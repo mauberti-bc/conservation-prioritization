@@ -1,0 +1,67 @@
+[project]
+name = "conservation-tool"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dask>=2025.5.1",
+    "debugpy>=1.8.14",
+    "fiona>=1.10.1",
+    "geopandas>=1.1.1",
+    "ipykernel>=6.29.5",
+    "jupyter>=1.1.1",
+    "jupyter-contrib-nbextensions>=0.7.0",
+    "jupyterlab-rise>=0.43.1",
+    "matplotlib>=3.10.3",
+    "morecantile>=6.2.0",
+    "pip>=25.1.1",
+    "pmtiles>=3.4.1",
+    "prefect[dask]>=3.4.8",
+    "psutil>=7.0.0",
+    "pulp>=3.2.1",
+    "pyarrow>=20.0.0",
+    "pyogrio>=0.11.0",
+    "pyzmq>=27.0.0",
+    "rasterio>=1.4.3",
+    "rio-tiler>=7.8.1",
+    "rioxarray>=0.19.0",
+    "rise>=5.7.1",
+    "ruff>=0.12.11",
+    "scikit-learn>=1.7.0",
+    "tornado>=6.5.1",
+    "tqdm>=4.67.1",
+    "zarr<3.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = ["build", ".venv", "__pycache__"]
+fix = true
+
+[tool.ruff.lint]
+select = ["E", "F", "B"]
+
+[build-system]
+requires = ["uv", "setuptools"]
+build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "isort>=6.0.1",
+]

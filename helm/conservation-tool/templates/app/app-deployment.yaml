@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "web-app.fullname.frontend" . }}
+spec:
+  replicas: {{ .Values.services.frontend.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "web-app.fullname.frontend" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "web-app.fullname.frontend" . }}
+    spec:
+      containers:
+        - name: "frontend"
+          image: "{{ .Values.services.frontend.image.name }}:{{ .Values.services.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.services.frontend.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - containerPort: {{ .Values.services.frontend.service.targetPort }}
+          resources:
+            {{- toYaml .Values.services.frontend.resources | nindent 12 }}

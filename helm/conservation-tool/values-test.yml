@@ -1,0 +1,14 @@
+images:
+  app:
+    tag: test
+  workflows:
+    worker:
+      tag: test
+
+frontend:
+  env:
+    environment: test
+
+workflows:
+  env:
+    environment: test

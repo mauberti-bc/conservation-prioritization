@@ -1,0 +1,108 @@
+name: Build and Push Images to OpenShift Registry
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'test'
+        type: choice
+        options:
+          - test
+  release:
+    types: [published]
+
+env:
+  OPENSHIFT_SERVER: https://api.silver.devops.gov.bc.ca:6443
+  IMAGE_REPOSITORY: conservation-tool
+  IMAGE_REGISTRY: image-registry.openshift-image-registry.svc:5000
+
+jobs:
+  set-env:
+    runs-on: ubuntu-latest
+    outputs:
+      env-name: ${{ steps.set-env.outputs.env-name }}
+      namespace: ${{ steps.set-env.outputs.namespace }}
+    steps:
+      - id: set-env
+        run: |
+          # Determine environment and namespace based on event
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "::set-output name=env-name::dev"
+            echo "::set-output name=namespace::your-tools-namespace-dev"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # Use input environment from manual trigger
+            ENV="${{ github.event.inputs.environment }}"
+            echo "::set-output name=env-name::$ENV"
+            echo "::set-output name=namespace::your-tools-namespace-$ENV"
+          elif [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "::set-output name=env-name::prod"
+            echo "::set-output name=namespace::your-tools-namespace-prod"
+          else
+            echo "Unsupported event type or branch for deployment."
+            exit 1
+          fi
+
+    build-push:
+    runs-on: ubuntu-latest
+    environment: ${{ needs.set-env.outputs.env-name }}
+    env:
+      OPENSHIFT_NAMESPACE: ${{ needs.set-env.outputs.namespace }}
+      IMAGE_TAG: ${{ needs.set-env.outputs.env-name }}
+    needs: set-env
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install OpenShift CLI
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: "4.14"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Log in to OpenShift
+        env:
+          OC_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
+          OPENSHIFT_SERVER: ${{ env.OPENSHIFT_SERVER }}
+        run: |
+          oc login --token=$OC_TOKEN --server=$OPENSHIFT_SERVER
+          oc project $OPENSHIFT_NAMESPACE
+
+      - name: Log in to OpenShift internal registry
+        run: oc registry login
+
+      - name: Build and push frontend image
+        run: |
+          IMAGE="${IMAGE_REGISTRY}/${OPENSHIFT_NAMESPACE}/${IMAGE_REPOSITORY}-frontend:${IMAGE_TAG}"
+          docker build -t $IMAGE ./app
+          docker push $IMAGE
+
+      - name: Build and push Prefect server image
+        run: |
+          IMAGE="${IMAGE_REGISTRY}/${OPENSHIFT_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-server:${IMAGE_TAG}"
+          docker build -t $IMAGE ./prefect/server
+          docker push $IMAGE
+
+      - name: Build and push Prefect worker image
+        run: |
+          IMAGE="${IMAGE_REGISTRY}/${OPENSHIFT_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-worker:${IMAGE_TAG}"
+          docker build -t $IMAGE ./prefect/worker
+          docker push $IMAGE
+
+      - name: Deploy Helm Chart to OpenShift
+        run: |
+          helm upgrade --install conservation-tool ./helm/conservation-tool \
+            --namespace $OPENSHIFT_NAMESPACE \
+            --set frontend.image.repository=${IMAGE_REGISTRY}/${OPENSHIFT_NAMESPACE}/${IMAGE_REPOSITORY}-frontend \
+            --set frontend.image.tag=$IMAGE_TAG \
+            --set prefectServer.image.repository=${IMAGE_REGISTRY}/${OPENSHIFT_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-server \
+            --set prefectServer.image.tag=$IMAGE_TAG \
+            --set prefectWorker.image.repository=${IMAGE_REGISTRY}/${OPENSHIFT_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-worker \
+            --set prefectWorker.image.tag=$IMAGE_TAG \
+            --wait

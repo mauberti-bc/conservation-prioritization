@@ -1,0 +1,14 @@
+images:
+  app:
+    tag: prod
+  workflows:
+    worker:
+      tag: prod
+
+frontend:
+  env:
+    environment: prod
+
+workflows:
+  env:
+    environment: prod

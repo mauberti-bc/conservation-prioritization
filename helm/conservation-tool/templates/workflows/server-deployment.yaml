@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "web-app.fullname.prefect-server" . }}
+spec:
+  replicas: {{ .Values.services.workflows.server.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "web-app.fullname.prefect-server" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "web-app.fullname.prefect-server" . }}
+    spec:
+      containers:
+        - name: prefect-server
+          image: "{{ .Values.services.workflows.server.image.name }}:{{ .Values.services.workflows.server.image.tag }}"
+          args: ["prefect", "server", "start"]
+          ports:
+            - containerPort: {{ .Values.services.workflows.server.service.port }}
+          resources:
+            {{- toYaml .Values.services.workflows.server.resources | nindent 12 }}

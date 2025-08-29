@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "web-app.fullname.prefect-worker" . }}
+spec:
+  replicas: {{ .Values.services.workflows.worker.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "web-app.fullname.prefect-worker" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "web-app.fullname.prefect-worker" . }}
+    spec:
+      containers:
+        - name: prefect-worker
+          image: "{{ .Values.services.workflows.worker.image.name }}:{{ .Values.services.workflows.worker.image.tag }}"
+          args:
+            - "prefect"
+            - "worker"
+            - "start"
+            - "--pool"
+            - "{{ .Values.services.workflows.worker.queue }}"
+          resources:
+            {{- toYaml .Values.services.workflows.worker.resources | nindent 12 }}

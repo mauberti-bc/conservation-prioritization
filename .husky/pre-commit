@@ -1,0 +1,24 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Get staged files
+FRONTEND_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '^frontend/' | grep -E '\.(js|jsx|ts|tsx)$')
+PYTHON_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '^workflows/' | grep '\.py$')
+
+if [ -n "$FRONTEND_FILES" ]; then
+    echo "Running frontend linting on changed files..."
+    cd frontend
+    # Remove 'frontend/' prefix from paths since we're now in the frontend directory
+    echo "$FRONTEND_FILES" | sed 's|^frontend/||' | xargs npm run lint --
+    echo "$FRONTEND_FILES" | sed 's|^frontend/||' | xargs npm run lint-fix --
+    cd ..
+fi
+
+if [ -n "$PYTHON_FILES" ]; then
+    echo "Running Ruff formatter and linter on changed files..."
+    cd workflows && source .venv/Scripts/activate
+    # Remove 'workflows/' prefix from paths since we're now in the workflows directory
+    echo "$PYTHON_FILES" | sed 's|^workflows/||' | xargs ruff format
+    echo "$PYTHON_FILES" | sed 's|^workflows/||' | xargs ruff check --fix
+    cd ..
+fi

@@ -1,0 +1,15 @@
+
+build: null
+push: null
+pull: null
+
+# prefect.yaml
+deployments:
+- name: "strict-optimization-project"
+  version: "1.0"
+  schedule: null
+  description: "Strict optimization where solutions respect constraints"
+  entrypoint: "src.flows.strict_optimization:strict_optimization"
+  work_pool:
+    name: "local"
+    work_queue_name: null

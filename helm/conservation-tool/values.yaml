@@ -1,0 +1,63 @@
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 75
+
+services:
+  frontend:
+    replicas: 1
+    image:
+      repository: image-registry.openshift-image-registry.svc:5000/fa9440-tools/conservation-tool-frontend
+      tag: latest
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    service:
+      type: ClusterIP
+      port: 80
+      targetPort: 3000
+    route:
+      enabled: true
+      host: conservation.nrs.gov.bc.ca
+
+  workflows:
+    server:
+      replicas: 1
+      image:
+        repository: prefecthq/prefect
+        tag: latest
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 250m
+          memory: 256Mi
+      service:
+        type: ClusterIP
+        port: 80
+        targetPort: 8080
+      route:
+        host: workflows.nrs.gov.bc.ca
+    worker:
+      replicas: 1
+      image:
+        repository: image-registry.openshift-image-registry.svc:5000/fa9440-tools/conservation-tool-workflows
+        tag: latest
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 250m
+          memory: 256Mi
+      service:
+        type: ClusterIP
+        port: 80
+        targetPort: 8081
+

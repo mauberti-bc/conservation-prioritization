@@ -1,0 +1,98 @@
+# Development files
+.venv/
+.vscode/
+notebooks/
+data/
+.git/
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache/
+.coverage
+.mypy_cache/
+.ruff_cache/
+pyrightconfig.json
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Documentation
+*.md
+docs/
+README*
+
+# IDE files
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env*
+!.env.example
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+node_modules/
+.next/
+.nuxt/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Large data files
+*.csv
+*.json
+*.parquet
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.zip
+*.tar.gz
+*.tar
+
+# Models and large files
+models/
+checkpoints/
+weights/
+*.model
+*.pkl
+*.joblib
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Only include what you need
+!src/
+!uv.lock
+!pyproject.toml
+!requirements.txt
+!flows/
+!deployments/
