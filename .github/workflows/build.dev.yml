@@ -55,7 +55,7 @@ jobs:
       - name: Build and push frontend image
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-frontend"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} ./frontend/Dockerfile
+          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./frontend/Dockerfile .
           docker push ${BASE_IMAGE}:${IMAGE_TAG}
           docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
           docker push ${BASE_IMAGE}:${GIT_SHA}
