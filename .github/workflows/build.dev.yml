@@ -34,7 +34,7 @@ jobs:
 
       - name: Log in to OpenShift
         env:
-          OC_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
+          OC_TOKEN: ${{ secrets.SA_TOKEN }}
         run: |
           oc login --token=$OC_TOKEN --server=$OPENSHIFT_SERVER
           oc project $TOOLS_NAMESPACE

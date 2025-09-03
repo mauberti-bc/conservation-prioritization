@@ -16,7 +16,7 @@ on:
 env:
   IMAGE_REGISTRY: image-registry.openshift-image-registry.svc:5000
   IMAGE_REPOSITORY: conservation-tool
-  OPENSHIFT_SERVER: https://api.silver.devops.gov.bc.ca:6443
+  OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
 
 jobs:
   promote-and-deploy:
