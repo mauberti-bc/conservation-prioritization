@@ -10,13 +10,11 @@
   "lint-staged": {
     "frontend/**/*.{js,jsx,ts,tsx}": [
       "npm run lint",
-      "npm run lint-fix",
-      "git add"
+      "npm run lint-fix"
     ],
     "workflows/**/*.py": [
       "ruff format",
-      "ruff check --fix",
-      "git add"
+      "ruff check --fix"
     ]
   }
 }
