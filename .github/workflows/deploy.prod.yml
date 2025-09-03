@@ -1,0 +1,13 @@
+name: Promote to Prod
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy.yml
+    with:
+      source_tag: prod
+      target_tag: prod
+      environment: prod

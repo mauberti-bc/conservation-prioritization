@@ -1,75 +1,41 @@
-name: Build and Push Images to OpenShift Registry
+name: Reusable Deployment Workflow
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      environment:
-        description: 'Deployment environment'
+      source_tag:
         required: true
-        default: 'test'
-        type: choice
-        options:
-          - test
-  release:
-    types: [published]
+        type: string
+      target_tag:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
 
 env:
-  OPENSHIFT_SERVER: https://api.silver.devops.gov.bc.ca:6443
-  IMAGE_REPOSITORY: conservation-tool
   IMAGE_REGISTRY: image-registry.openshift-image-registry.svc:5000
+  IMAGE_REPOSITORY: conservation-tool
+  OPENSHIFT_SERVER: https://api.silver.devops.gov.bc.ca:6443
 
 jobs:
-  set-env:
+  promote-and-deploy:
     runs-on: ubuntu-latest
-    outputs:
-      env-name: ${{ steps.set-env.outputs.env-name }}
-      namespace: ${{ steps.set-env.outputs.namespace }}
-    steps:
-      - id: set-env
-        run: |
-          # Determine environment and namespace based on event
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "::set-output name=env-name::dev"
-            echo "::set-output name=namespace::your-tools-namespace-dev"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            # Use input environment from manual trigger
-            ENV="${{ github.event.inputs.environment }}"
-            echo "::set-output name=env-name::$ENV"
-            echo "::set-output name=namespace::your-tools-namespace-$ENV"
-          elif [[ "${{ github.event_name }}" == "release" ]]; then
-            echo "::set-output name=env-name::prod"
-            echo "::set-output name=namespace::your-tools-namespace-prod"
-          else
-            echo "Unsupported event type or branch for deployment."
-            exit 1
-          fi
-
-    build-push:
-    runs-on: ubuntu-latest
-    environment: ${{ needs.set-env.outputs.env-name }}
+    environment: ${{ inputs.environment }}
     env:
-      OPENSHIFT_NAMESPACE: ${{ needs.set-env.outputs.namespace }}
-      IMAGE_TAG: ${{ needs.set-env.outputs.env-name }}
-    needs: set-env
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
+      TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
+      OC_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
+      SOURCE_TAG: ${{ inputs.source_tag }}
+      TARGET_TAG: ${{ inputs.target_tag }}
 
+    steps:
       - name: Install OpenShift CLI
         uses: redhat-actions/openshift-tools-installer@v1
         with:
           oc: "4.14"
 
-      - name: Install Helm
-        uses: azure/setup-helm@v3
-
       - name: Log in to OpenShift
-        env:
-          OC_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
-          OPENSHIFT_SERVER: ${{ env.OPENSHIFT_SERVER }}
         run: |
           oc login --token=$OC_TOKEN --server=$OPENSHIFT_SERVER
           oc project $OPENSHIFT_NAMESPACE
@@ -77,32 +43,37 @@ jobs:
       - name: Log in to OpenShift internal registry
         run: oc registry login
 
-      - name: Build and push frontend image
+      - name: Mirror and retag images
         run: |
-          IMAGE="${IMAGE_REGISTRY}/${OPENSHIFT_NAMESPACE}/${IMAGE_REPOSITORY}-frontend:${IMAGE_TAG}"
-          docker build -t $IMAGE ./app
-          docker push $IMAGE
+          for COMPONENT in frontend prefect-server prefect-worker prefect-deploy; do
+            SRC="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-$COMPONENT:${SOURCE_TAG}"
+            DST="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-$COMPONENT:${TARGET_TAG}"
+            echo "Promoting $SRC → $DST"
+            oc image mirror "$SRC" "$DST"
+          done
 
-      - name: Build and push Prefect server image
-        run: |
-          IMAGE="${IMAGE_REGISTRY}/${OPENSHIFT_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-server:${IMAGE_TAG}"
-          docker build -t $IMAGE ./prefect/server
-          docker push $IMAGE
-
-      - name: Build and push Prefect worker image
-        run: |
-          IMAGE="${IMAGE_REGISTRY}/${OPENSHIFT_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-worker:${IMAGE_TAG}"
-          docker build -t $IMAGE ./prefect/worker
-          docker push $IMAGE
-
-      - name: Deploy Helm Chart to OpenShift
+      - name: Deploy via Helm
         run: |
           helm upgrade --install conservation-tool ./helm/conservation-tool \
             --namespace $OPENSHIFT_NAMESPACE \
-            --set frontend.image.repository=${IMAGE_REGISTRY}/${OPENSHIFT_NAMESPACE}/${IMAGE_REPOSITORY}-frontend \
-            --set frontend.image.tag=$IMAGE_TAG \
-            --set prefectServer.image.repository=${IMAGE_REGISTRY}/${OPENSHIFT_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-server \
-            --set prefectServer.image.tag=$IMAGE_TAG \
-            --set prefectWorker.image.repository=${IMAGE_REGISTRY}/${OPENSHIFT_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-worker \
-            --set prefectWorker.image.tag=$IMAGE_TAG \
+            --set frontend.image.repository=${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-frontend \
+            --set frontend.image.tag=$TARGET_TAG \
+            --set prefectServer.image.repository=${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-server \
+            --set prefectServer.image.tag=$TARGET_TAG \
+            --set prefectWorker.image.repository=${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-worker \
+            --set prefectWorker.image.tag=$TARGET_TAG \
+            --set prefectDeploy.image.repository=${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-deploy \
+            --set prefectDeploy.image.tag=$TARGET_TAG \
             --wait
+
+      - name: Roll Deployments to refresh image pull
+        run: |
+          echo "Restarting Deployments in namespace: $OPENSHIFT_NAMESPACE"
+          oc rollout restart deployment -n $OPENSHIFT_NAMESPACE --all || true
+
+      - name: Roll StatefulSets to refresh image pull (if any)
+        run: |
+          echo "Restarting StatefulSets in namespace: $OPENSHIFT_NAMESPACE"
+          for sts in $(oc get sts -n $OPENSHIFT_NAMESPACE -o name); do
+            oc patch "$sts" -n $OPENSHIFT_NAMESPACE -p '{"spec":{"template":{"metadata":{"annotations":{"restarted-at":"'$(date +%s)'"}}}}}'
+          done
