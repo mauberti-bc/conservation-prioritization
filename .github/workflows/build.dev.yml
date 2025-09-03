@@ -21,18 +21,6 @@ jobs:
       IMAGE_TAG_LATEST: latest
       GIT_SHA: ${{ github.sha }}
     steps:
-      - name: Check environment variables
-        run: |
-          echo "TOOLS_NAMESPACE: ${TOOLS_NAMESPACE}"
-          echo "IMAGE_TAG: ${IMAGE_TAG}"
-          echo "GIT_SHA: ${GIT_SHA}"
-          if [ -z "$TOOLS_SA_TOKEN" ]; then
-            echo "TOOLS_SA_TOKEN is NOT set or is empty!"
-            exit 1
-          else
-            echo "TOOLS_SA_TOKEN is set."
-          fi
-
       - name: Checkout code
         uses: actions/checkout@v4
 
