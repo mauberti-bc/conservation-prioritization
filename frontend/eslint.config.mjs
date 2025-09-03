@@ -6,8 +6,6 @@ import eslintPluginReactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import typescriptEslint from 'typescript-eslint';
 
-// Run `npx eslint --inspect-config` to inspect the config
-
 export default [
   {
     ignores: [
@@ -74,9 +72,7 @@ export default [
         }
       ],
       '@typescript-eslint/no-redeclare': 'off',
-      // Vitest rules
-      // General rules
-      'no-undef': 'off', // handled by typescript
+      'no-undef': 'off',
       'no-redeclare': 'off',
       'no-unused-vars': 'off',
       'no-var': 'error',

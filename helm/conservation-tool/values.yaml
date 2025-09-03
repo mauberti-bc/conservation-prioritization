@@ -2,7 +2,7 @@ autoscaling:
   enabled: true
   minReplicas: 1
   maxReplicas: 2
-  targetCPUUtilizationPercentage: 75
+  targetCPUUtilizationPercentage: 50
 
 services:
   frontend:
@@ -10,6 +10,7 @@ services:
     image:
       repository: image-registry.openshift-image-registry.svc:5000/fa9440-tools/conservation-tool-frontend
       tag: latest
+      pullPolicy: IfNotPresent
     resources:
       limits:
         cpu: 500m
@@ -20,10 +21,10 @@ services:
     service:
       type: ClusterIP
       port: 80
-      targetPort: 3000
+      targetPort: 80
     route:
       enabled: true
-      host: conservation.nrs.gov.bc.ca
+      host: conservation123.nrs.gov.bc.ca
 
   workflows:
     server:
@@ -43,7 +44,7 @@ services:
         port: 80
         targetPort: 8080
       route:
-        host: workflows.nrs.gov.bc.ca
+        host: workflows123.nrs.gov.bc.ca
     worker:
       replicas: 1
       image:
@@ -60,4 +61,3 @@ services:
         type: ClusterIP
         port: 80
         targetPort: 8081
-
