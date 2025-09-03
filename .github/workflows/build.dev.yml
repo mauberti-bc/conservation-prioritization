@@ -16,7 +16,7 @@ jobs:
     environment: dev
     env:
       TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
-      SA_TOKEN: ${{ secrets.SA_TOKEN }}                  
+      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}                  
       IMAGE_TAG: dev
       IMAGE_TAG_LATEST: latest
       GIT_SHA: ${{ github.sha }}
@@ -26,11 +26,11 @@ jobs:
           echo "TOOLS_NAMESPACE: ${TOOLS_NAMESPACE}"
           echo "IMAGE_TAG: ${IMAGE_TAG}"
           echo "GIT_SHA: ${GIT_SHA}"
-          if [ -z "$SA_TOKEN" ]; then
-            echo "SA_TOKEN is NOT set or is empty!"
+          if [ -z "$TOOLS_SA_TOKEN" ]; then
+            echo "TOOLS_SA_TOKEN is NOT set or is empty!"
             exit 1
           else
-            echo "SA_TOKEN is set."
+            echo "TOOLS_SA_TOKEN is set."
           fi
 
       - name: Checkout code
@@ -46,7 +46,7 @@ jobs:
 
       - name: Log in to OpenShift
         run: |
-          oc login --token=$SA_TOKEN --server=$OPENSHIFT_SERVER
+          oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER
           oc project $TOOLS_NAMESPACE
 
       - name: Log in to OpenShift internal registry
