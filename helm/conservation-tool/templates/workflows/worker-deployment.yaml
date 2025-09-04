@@ -15,7 +15,7 @@ spec:
       serviceAccountName: deployer
       containers:
         - name: prefect-worker
-          image: "{{ .Values.imageRegistry }}/{{ .Values.services.workflows.worker.image.stream }}:{{ .Values.services.workflows.worker.image.tag }}"
+          image: "{{ .Values.registry }}/{{ .Values.services.workflows.worker.image.stream }}:{{ .Values.services.workflows.worker.image.tag }}"
           args:
             - "prefect"
             - "worker"

@@ -6,7 +6,8 @@ autoscaling:
 
 gitRepo: https://github.com/mauberti-bc/conservation-prioritization.git
 gitRef: main
-imageRegisry: image-registry.apps.gold.devops.gov.bc.ca/fa9440-tools
+
+registry: image-registry.apps.gold.devops.gov.bc.ca/fa9440-tools
 
 services:
   frontend:

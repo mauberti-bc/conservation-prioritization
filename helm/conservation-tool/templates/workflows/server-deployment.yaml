@@ -15,7 +15,7 @@ spec:
       serviceAccountName: deployer
       containers:
         - name: prefect-server
-          image: "{{ .Values.imageRegistry }}/{{ .Values.services.workflows.server.image.stream }}:{{ .Values.services.workflows.server.image.tag }}"
+          image: "{{ .Values.registry }}/{{ .Values.services.workflows.server.image.stream }}:{{ .Values.services.workflows.server.image.tag }}"
           args: ["prefect", "server", "start", "--port", "4200"]
           ports:
             - containerPort: {{ .Values.services.workflows.server.service.port }}

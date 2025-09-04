@@ -15,7 +15,7 @@ spec:
       serviceAccountName: deployer
       containers:
         - name: "frontend"
-          image: "{{ .Values.imageRegistry }}/{{ .Values.services.frontend.image.stream }}:{{ .Values.services.frontend.image.tag }}"
+          image: "{{ .Values.registry }}/{{ .Values.services.frontend.image.stream }}:{{ .Values.services.frontend.image.tag }}"
           imagePullPolicy: {{ .Values.services.frontend.image.pullPolicy | default "IfNotPresent" }}
           ports:
             - containerPort: 80
