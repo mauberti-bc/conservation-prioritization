@@ -8,6 +8,6 @@ jobs:
   deploy:
     uses: ./.github/workflows/deploy.yml
     with:
-      source_tag: prod
+      source_tag: test
       target_tag: prod
       environment: prod
