@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "web-app.fullname.prefect-deploy" . }}
+spec:
+  replicas: {{ .Values.services.workflows.deploy.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "web-app.fullname.prefect-deploy" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "web-app.fullname.prefect-deploy" . }}
+    spec:
+      containers:
+        - name: prefect-deploy
+          image: "{{ .Values.services.workflows.deploy.image.name }}:{{ .Values.services.workflows.deploy.image.tag }}"
+          args:
+            - "prefect"
+            - "deploy"
+            - "start"
+            - "--pool"
+            - "{{ .Values.services.workflows.deploy.queue }}"
+          resources:
+            {{- toYaml .Values.services.workflows.deploy.resources | nindent 12 }}

@@ -11,9 +11,9 @@ services:
   frontend:
     replicas: 1
     image:
-      stream: frontend
+      stream: conservation-tool-frontend
       tag: dev
-      pullPolicy: IfNotPresent
+      pullPolicy: "Always"
     resources:
       limits:
         cpu: 500m
@@ -52,9 +52,9 @@ services:
     worker:
       replicas: 1
       image:
-          stream: prefect-worker
-          tag: dev
-          pullPolicy: IfNotPresent
+        stream: prefect-worker
+        tag: dev
+        pullPolicy: IfNotPresent
       resources:
         limits:
           cpu: 500m
@@ -69,9 +69,9 @@ services:
     deploy:
       replicas: 1
       image:
-          stream: prefect-deploy
-          tag: dev
-          pullPolicy: IfNotPresent
+        stream: prefect-deploy
+        tag: dev
+        pullPolicy: IfNotPresent
       resources:
         limits:
           cpu: 500m

@@ -28,4 +28,4 @@ ENV PATH="/opt/app-root/src/.venv/bin:$PATH"
 
 EXPOSE 4200 8080
 
-CMD ["prefect", "server", "start"]
+CMD ["prefect", "server", "deploy"]

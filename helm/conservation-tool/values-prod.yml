@@ -12,5 +12,8 @@ services:
     worker:
       image:
         tag: prod
+    deploy:
+      image:
+        tag: prod
     env:
       environment: prod

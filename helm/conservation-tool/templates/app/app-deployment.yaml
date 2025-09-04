@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: "frontend"
-          image: "image-registry.openshift-image-registry.svc:5000/{{ .Values.namespace }}/{{ .Values.services.frontend.image.stream }}:{{ .Values.services.frontend.image.tag }}"
+          image: "{{ .Values.services.frontend.image.stream }}:{{ .Values.services.frontend.image.tag }}"
           imagePullPolicy: {{ .Values.services.frontend.image.pullPolicy | default "IfNotPresent" }}
           ports:
             - containerPort: 80
