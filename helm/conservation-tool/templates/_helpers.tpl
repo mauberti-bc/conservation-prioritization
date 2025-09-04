@@ -1,5 +1,5 @@
 {{- define "web-app.fullname" -}}
-{{ .Release.Name }}-{{ .Chart.Name }}
+{{ .Release.Name }}
 {{- end }}
 
 {{- define "web-app.fullname.prefect-server" -}}

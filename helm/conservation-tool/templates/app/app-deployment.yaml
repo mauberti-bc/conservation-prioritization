@@ -12,6 +12,7 @@ spec:
       labels:
         app: {{ include "web-app.fullname.frontend" . }}
     spec:
+      serviceAccountName: deployer
       containers:
         - name: "frontend"
           image: "{{ .Values.services.frontend.image.stream }}:{{ .Values.services.frontend.image.tag }}"

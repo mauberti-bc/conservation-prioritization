@@ -12,6 +12,7 @@ spec:
       labels:
         app: {{ include "web-app.fullname.prefect-worker" . }}
     spec:
+      serviceAccountName: deployer
       containers:
         - name: prefect-worker
           image: "{{ .Values.services.workflows.worker.image.stream }}:{{ .Values.services.workflows.worker.image.tag }}"
