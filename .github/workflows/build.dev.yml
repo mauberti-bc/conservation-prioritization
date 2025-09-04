@@ -17,15 +17,28 @@ jobs:
       frontend: ${{ steps.changes.outputs.frontend }}
       workflows: ${{ steps.changes.outputs.workflows }}
       helm: ${{ steps.changes.outputs.helm }}
+      force_build: ${{ steps.force-build.outputs.force_build }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Check for force build
+        id: force-build
+        run: |
+          if [ "${{ vars.FORCE_BUILD }}" = "true" ]; then
+            echo "force_build=true" >> $GITHUB_OUTPUT
+            echo "🚀 FORCE_BUILD is enabled - will build all components"
+          else
+            echo "force_build=false" >> $GITHUB_OUTPUT
+            echo "FORCE_BUILD is disabled - checking for changes"
+          fi
+
       - name: Debug what changed
         run: |
           echo "Current commit: ${{ github.sha }}"
           echo "Previous commit: ${{ github.event.before }}"
+          echo "Force build: ${{ steps.force-build.outputs.force_build }}"
           echo "Frontend changed: ${{ steps.changes.outputs.frontend }}"
           echo "Changed files:"
           git diff --name-only ${{ github.event.before }} ${{ github.sha }}
@@ -44,7 +57,7 @@ jobs:
   build-push:
     runs-on: ubuntu-latest
     needs: [changes]
-    if: ${{ needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true' }}
+    if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true' }}
     environment: dev
     env:
       TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
@@ -65,7 +78,7 @@ jobs:
         run: |
           for i in 1 2 3; do
             echo "Attempt $i: Logging into OpenShift..."
-            if oc login --token=$SA_TOKEN --server=$OPENSHIFT_SERVER; then
+            if oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER; then
               echo "Login succeeded"
               break
             elif [ "$i" -lt 3 ]; then
