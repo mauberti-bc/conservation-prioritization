@@ -52,8 +52,20 @@ jobs:
 
       - name: Log in to OpenShift
         run: |
-          oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER
-          oc project $TOOLS_NAMESPACE
+          for i in 1 2 3; do
+            echo "Attempt $i: Logging into OpenShift..."
+            if oc login --token=$SA_TOKEN --server=$OPENSHIFT_SERVER; then
+              echo "Login succeeded"
+              break
+            elif [ "$i" -lt 3 ]; then
+              echo "Login failed. Retrying in 5 seconds..."
+              sleep 5
+            else
+              echo "Login failed after 3 attempts."
+              exit 1
+            fi
+          done
+          oc project $OPENSHIFT_NAMESPACE
 
       - name: Log in to OpenShift internal registry
         run: |
@@ -130,7 +142,19 @@ jobs:
 
       - name: Log in to OpenShift
         run: |
-          oc login --token=$SA_TOKEN --server=$OPENSHIFT_SERVER
+          for i in 1 2 3; do
+            echo "Attempt $i: Logging into OpenShift..."
+            if oc login --token=$SA_TOKEN --server=$OPENSHIFT_SERVER; then
+              echo "Login succeeded"
+              break
+            elif [ "$i" -lt 3 ]; then
+              echo "Login failed. Retrying in 5 seconds..."
+              sleep 5
+            else
+              echo "Login failed after 3 attempts."
+              exit 1
+            fi
+          done
           oc project $OPENSHIFT_NAMESPACE
 
       - name: Deploy via Helm
