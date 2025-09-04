@@ -18,6 +18,10 @@ jobs:
       workflows: ${{ steps.changes.outputs.workflows }}
       helm: ${{ steps.changes.outputs.helm }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Debug what changed
         run: |
           echo "Current commit: ${{ github.sha }}"
@@ -26,10 +30,6 @@ jobs:
           echo "Changed files:"
           git diff --name-only ${{ github.event.before }} ${{ github.sha }}
 
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          
       - uses: dorny/paths-filter@v3
         id: changes
         with:
