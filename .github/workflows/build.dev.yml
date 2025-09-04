@@ -18,6 +18,13 @@ jobs:
       workflows: ${{ steps.changes.outputs.workflows }}
       helm: ${{ steps.changes.outputs.helm }}
     steps:
+      - name: Debug what changed
+        run: |
+          echo "Current commit: ${{ github.sha }}"
+          echo "Previous commit: ${{ github.event.before }}"
+          echo "Frontend changed: ${{ steps.changes.outputs.frontend }}"
+          echo "Changed files:"
+          git diff --name-only ${{ github.event.before }} ${{ github.sha }}
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
         id: changes

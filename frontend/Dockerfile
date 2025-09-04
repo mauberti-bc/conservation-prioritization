@@ -1,4 +1,5 @@
 # ---------- Build Stage ----------
+
 FROM node:22-alpine AS build
 
 WORKDIR /app
@@ -12,6 +13,7 @@ COPY . .
 RUN yarn build
 
 # ---------- Production Stage ----------
+    
 FROM caddy:2-alpine
 
 # Remove capabilities that cause permission issues on OpenShift
