@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY . ./
 
-# Add venv bin to PATH
+## Add venv bin to PATH
 ENV PATH="/opt/app-root/src/.venv/bin:$PATH"
 
 EXPOSE 4200 8080
