@@ -107,6 +107,7 @@ jobs:
     env:
       OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
       SA_TOKEN: ${{ secrets.SA_TOKEN }}
+      OPENSHIFT_SERVER: ${{ env.OPENSHIFT_SERVER }}
       VALUES: values-dev.yaml
     steps:
       - name: Checkout code
