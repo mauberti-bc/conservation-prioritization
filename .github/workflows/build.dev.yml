@@ -16,6 +16,7 @@ jobs:
     outputs:
       frontend: ${{ steps.changes.outputs.frontend }}
       workflows: ${{ steps.changes.outputs.workflows }}
+      helm: ${{ steps.changes.outputs.helm }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -26,6 +27,8 @@ jobs:
               - 'frontend/**'
             workflows:
               - 'workflows/**'
+            helm:
+              - 'helm/**'
 
   build-push:
     runs-on: ubuntu-latest
