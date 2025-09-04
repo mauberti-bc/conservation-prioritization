@@ -11,6 +11,22 @@ env:
   IMAGE_REGISTRY: image-registry.apps.gold.devops.gov.bc.ca
 
 jobs:
+  changes:
+      runs-on: ubuntu-latest
+      outputs:
+        frontend: ${{ steps.changes.outputs.frontend }}
+        workflows: ${{ steps.changes.outputs.workflows }}
+      steps:
+        - uses: actions/checkout@v4
+        - uses: dorny/paths-filter@v3
+          id: changes
+          with:
+            filters: |
+              frontend:
+                - 'frontend/**'
+              workflows:
+                - 'workflows/**'
+
   build-push:
     runs-on: ubuntu-latest
     environment: dev
@@ -45,6 +61,7 @@ jobs:
 
       - name: Build and push frontend image
         working-directory: frontend
+        if: needs.changes.outputs.frontend == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/frontend"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
@@ -54,6 +71,7 @@ jobs:
 
       - name: Build and push Prefect server image
         working-directory: workflows
+        if: needs.changes.outputs.workflows == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-server"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.server .
@@ -63,6 +81,7 @@ jobs:
 
       - name: Build and push Prefect worker image
         working-directory: workflows
+        if: needs.changes.outputs.workflows == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-worker"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.worker .
@@ -72,6 +91,7 @@ jobs:
 
       - name: Build and push Prefect deploy image
         working-directory: workflows
+        if: needs.changes.outputs.workflows == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-deploy"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.deploy .
@@ -80,8 +100,9 @@ jobs:
           docker push ${BASE_IMAGE}:${GIT_SHA}
 
       - name: Deploy via Helm
+        working-directory: helm/conservation-tool
         run: |
-          helm upgrade --install conservation-tool ./helm/conservation-tool \
+          helm upgrade --install conservation-tool . \
             --values ${VALUES} \
             --wait \
             --timeout=10m
