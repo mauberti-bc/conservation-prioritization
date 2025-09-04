@@ -15,10 +15,12 @@ on:
         required: false
         default: true
         type: boolean
+        
 env:
   IMAGE_REGISTRY: image-registry.apps.gold.devops.gov.bc.ca
   IMAGE_REPOSITORY: conservation-tool
   OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
+
 jobs:
   promote-images:
     if: ${{ inputs.promote_images }}
@@ -54,7 +56,7 @@ jobs:
           done
 
   deploy:
-    needs: ${{ inputs.promote_images && 'promote-images' || '' }}
+    needs: ${{ inputs.promote_images == true && 'promote-images' || '' }}
     if: always() && (needs.promote-images.result == 'success' || needs.promote-images.result == 'skipped' || !inputs.promote_images)
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}

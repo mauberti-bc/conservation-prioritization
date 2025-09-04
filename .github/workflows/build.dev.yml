@@ -63,7 +63,7 @@ jobs:
 
       - name: Build and push frontend image
         working-directory: frontend
-        if: needs.changes.outputs.frontend == 'true' || ${FORCE_BUILD} == 'true'
+        if: needs.changes.outputs.frontend == 'true' || ${{ env.FORCE_BUILD}} == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/frontend"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
@@ -73,7 +73,7 @@ jobs:
 
       - name: Build and push Prefect server image
         working-directory: workflows
-        if: needs.changes.outputs.workflows == 'true' || ${FORCE_BUILD} == 'true'
+        if: needs.changes.outputs.workflows == 'true' || ${{ env.FORCE_BUILD}} == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-server"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.server .
@@ -83,7 +83,7 @@ jobs:
 
       - name: Build and push Prefect worker image
         working-directory: workflows
-        if: needs.changes.outputs.workflows == 'true' || ${FORCE_BUILD} == 'true'
+        if: needs.changes.outputs.workflows == 'true' || ${{ env.FORCE_BUILD}} == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-worker"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.worker .
@@ -93,7 +93,7 @@ jobs:
 
       - name: Build and push Prefect deploy image
         working-directory: workflows
-        if: needs.changes.outputs.workflows == 'true' || ${FORCE_BUILD} == 'true'
+        if: needs.changes.outputs.workflows == 'true' || ${{ env.FORCE_BUILD}} == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-deploy"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.deploy .
