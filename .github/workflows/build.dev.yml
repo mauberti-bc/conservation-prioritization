@@ -109,6 +109,16 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v3
 
+      - name: Install OpenShift CLI
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: "4.16"
+
+      - name: Log in to OpenShift
+        run: |
+          oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER
+          oc project $TOOLS_NAMESPACE
+
       - name: Deploy via Helm
         working-directory: helm/conservation-tool
         run: |
