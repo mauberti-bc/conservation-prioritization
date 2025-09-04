@@ -34,8 +34,8 @@ jobs:
 
       - name: Log in to OpenShift
         run: |
-          oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER
-          oc project $TOOLS_NAMESPACE
+          oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER > /dev/null 2>&1
+          oc project $TOOLS_NAMESPACE > /dev/null 2>&1
 
       - name: Log in to OpenShift internal registry
         run: |
@@ -54,7 +54,7 @@ jobs:
         working-directory: workflows
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-server"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
+          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.server .
           docker push ${BASE_IMAGE}:${IMAGE_TAG}
           docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
           docker push ${BASE_IMAGE}:${GIT_SHA}
@@ -63,7 +63,7 @@ jobs:
         working-directory: workflows
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-worker"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
+          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.worker .
           docker push ${BASE_IMAGE}:${IMAGE_TAG}
           docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
           docker push ${BASE_IMAGE}:${GIT_SHA}
@@ -72,7 +72,7 @@ jobs:
         working-directory: workflows
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-deploy"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
+          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.deploy .
           docker push ${BASE_IMAGE}:${IMAGE_TAG}
           docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
           docker push ${BASE_IMAGE}:${GIT_SHA}
