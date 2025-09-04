@@ -83,7 +83,7 @@ jobs:
       - name: Deploy via Helm
         run: |
           helm upgrade --install conservation-tool ./helm/conservation-tool \
-            --values ${{ env.environment }}-values.yaml \
+            --values values-${{ env.environment }}.yaml \
             --wait \
             --timeout=10m
       
