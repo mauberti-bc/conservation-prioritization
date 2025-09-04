@@ -20,6 +20,6 @@ spec:
             - "worker"
             - "start"
             - "--pool"
-            - "{{ .Values.services.workflows.worker.queue }}"
+            - "{{ .Values.services.workflows.worker.pool }}"
           resources:
             {{- toYaml .Values.services.workflows.worker.resources | nindent 12 }}

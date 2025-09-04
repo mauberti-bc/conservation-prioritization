@@ -51,6 +51,7 @@ services:
         host: workflows123.nrs.gov.bc.ca
     worker:
       replicas: 1
+      pool: pool
       image:
         stream: prefect-worker
         tag: dev
