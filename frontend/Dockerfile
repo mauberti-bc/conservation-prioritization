@@ -13,26 +13,24 @@ RUN yarn build
 # ---------- Production Stage ----------
 FROM caddy:2-alpine
 
-# Create caddy user and group with specific UID for OpenShift compatibility
+# Create caddy user with specific UID for OpenShift compatibility
 RUN addgroup -g 1001 -S caddy && adduser -u 1001 -S -G caddy caddy
 
-# Remove capabilities and make caddy executable by any user
-RUN setcap -r /usr/bin/caddy && \
-    chmod 755 /usr/bin/caddy
+# Remove capabilities that cause permission issues on OpenShift
+RUN setcap -r /usr/bin/caddy
 
-# Create necessary directories with proper permissions
-RUN mkdir -p /usr/share/caddy /etc/caddy /var/lib/caddy /config /data && \
-    chown -R caddy:caddy /usr/share/caddy /etc/caddy /var/lib/caddy /config /data && \
-    chmod -R 755 /usr/share/caddy /etc/caddy /var/lib/caddy /config /data
+# Set up working directory that we own
+WORKDIR /app
+RUN chown -R caddy:caddy /app
 
-# Copy built static files to Caddy's web root
-COPY --from=build --chown=caddy:caddy /app/build /usr/share/caddy
+# Copy built static files to our app directory
+COPY --from=build --chown=caddy:caddy /app/build ./public
 
-# Copy the Caddyfile from the build context
-COPY --chown=caddy:caddy Caddyfile /etc/caddy/Caddyfile
+# Copy the Caddyfile to our app directory
+COPY --chown=caddy:caddy Caddyfile ./Caddyfile
 
 # Switch to non-root user
 USER 1001
 
-# Use a more OpenShift-friendly command that doesn't require privileged execution
-CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+# Run Caddy from our working directory using relative paths
+CMD ["caddy", "run", "--config", "./Caddyfile"]
