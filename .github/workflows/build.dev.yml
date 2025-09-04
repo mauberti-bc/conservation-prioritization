@@ -27,7 +27,7 @@ jobs:
       - name: Install OpenShift CLI
         uses: redhat-actions/openshift-tools-installer@v1
         with:
-          oc: "4.14"
+          oc: "4.16"
 
       - name: Install Helm
         uses: azure/setup-helm@v3
@@ -38,7 +38,8 @@ jobs:
           oc project $TOOLS_NAMESPACE
 
       - name: Log in to OpenShift internal registry
-        run: oc registry login
+        run: |
+          oc whoami -t | docker login $IMAGE_REGISTRY -u unused --password-stdin
 
       - name: Build and push frontend image
         working-directory: frontend
