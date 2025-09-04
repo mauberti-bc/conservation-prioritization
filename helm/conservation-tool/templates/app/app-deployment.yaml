@@ -21,15 +21,3 @@ spec:
             - containerPort: 80
           resources:
             {{- toYaml .Values.services.frontend.resources | nindent 12 }}
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 15
-            periodSeconds: 20

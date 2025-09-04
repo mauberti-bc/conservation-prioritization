@@ -22,5 +22,7 @@ spec:
             - "start"
             - "--pool"
             - "{{ .Values.services.workflows.worker.pool }}"
+          ports:
+            - containerPort: 4202
           resources:
             {{- toYaml .Values.services.workflows.worker.resources | nindent 12 }}
