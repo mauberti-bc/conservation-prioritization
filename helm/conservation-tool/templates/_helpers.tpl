@@ -10,6 +10,10 @@
 {{ include "web-app.fullname" . }}-prefect-worker
 {{- end }}
 
+{{- define "web-app.fullname.prefect-deploy" -}}
+{{ include "web-app.fullname" . }}-prefect-deploy
+{{- end }}
+
 {{- define "web-app.fullname.frontend" -}}
 {{ include "web-app.fullname" . }}-frontend
 {{- end }}

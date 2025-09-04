@@ -1,14 +1,16 @@
-images:
-  app:
-    tag: prod
-  workflows:
-    worker:
+services:
+  frontend:
+    image:
       tag: prod
+    env:
+      environment: prod
 
-frontend:
-  env:
-    environment: prod
-
-workflows:
-  env:
-    environment: prod
+  workflows:
+    server:
+      image:
+        tag: prod
+    worker:
+      image:
+        tag: prod
+    env:
+      environment: prod

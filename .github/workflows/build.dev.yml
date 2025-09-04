@@ -1,4 +1,4 @@
-name: Build and Push Images to OpenShift Registry
+name: Build and Trigger OpenShift Builds
 
 on:
   push:
@@ -7,19 +7,15 @@ on:
 
 env:
   OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
-  IMAGE_REPOSITORY: conservation-tool
-  IMAGE_REGISTRY: image-registry.openshift-image-registry.svc:5000
 
 jobs:
-  build-push:
+  build:
     runs-on: ubuntu-latest
     environment: dev
     env:
       TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
-      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}                  
+      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}
       IMAGE_TAG: dev
-      IMAGE_TAG_LATEST: latest
-      GIT_SHA: ${{ github.sha }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,55 +33,28 @@ jobs:
           oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER
           oc project $TOOLS_NAMESPACE
 
-      - name: Log in to OpenShift internal registry
-        run: oc registry login
-
-      - name: Build and push frontend image
-        working-directory: frontend
-        run: |
-          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-frontend"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-
-      - name: Build and push Prefect server image
-        working-directory: workflows
-        run: |
-          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-server"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-
-      - name: Build and push Prefect worker image
-        working-directory: workflows
-        run: |
-          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-worker"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-
-      - name: Build and push Prefect deploy image
-        working-directory: workflows
-        run: |
-          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-deploy"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-
-      - name: Deploy Helm Chart to OpenShift
+      - name: Deploy Helm Chart to OpenShift (Create BuildConfigs + ImageStreams)
         run: |
           helm upgrade --install conservation-tool ./helm/conservation-tool \
             --namespace $TOOLS_NAMESPACE \
-            --set frontend.image.repository=${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-frontend \
-            --set frontend.image.tag=$IMAGE_TAG \
-            --set prefectServer.image.repository=${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-server \
-            --set prefectServer.image.tag=$IMAGE_TAG \
-            --set prefectWorker.image.repository=${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-worker \
-            --set prefectWorker.image.tag=$IMAGE_TAG \
-            --set prefectDeploy.image.repository=${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${IMAGE_REPOSITORY}-prefect-deploy \
-            --set prefectDeploy.image.tag=$IMAGE_TAG \
+            --set services.frontend.image.tag=$IMAGE_TAG \
+            --set services.workflows.server.image.tag=$IMAGE_TAG \
+            --set services.workflows.worker.image.tag=$IMAGE_TAG \
+            --set services.workflows.deploy.image.tag=$IMAGE_TAG \
             --wait
+
+      - name: Build Frontend
+        run: |
+          oc start-build $(oc get bc -o name | grep frontend) --wait
+
+      - name: Build Prefect Server
+        run: |
+          oc start-build $(oc get bc -o name | grep server) --wait
+
+      - name: Build Prefect Worker
+        run: |
+          oc start-build $(oc get bc -o name | grep worker) --wait
+
+      - name: Build Prefect Deploy
+        run: |
+          oc start-build $(oc get bc -o name | grep deploy) --wait

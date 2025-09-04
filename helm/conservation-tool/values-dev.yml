@@ -1,14 +1,16 @@
-images:
-  app:
-    tag: dev
-  workflows:
-    worker:
+services:
+  frontend:
+    image:
       tag: dev
+    env:
+      environment: dev
 
-frontend:
-  env:
-    environment: dev
-
-workflows:
-  env:
-    environment: dev
+  workflows:
+    server:
+      image:
+        tag: dev
+    worker:
+      image:
+        tag: dev
+    env:
+      environment: dev

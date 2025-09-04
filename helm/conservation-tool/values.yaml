@@ -4,12 +4,15 @@ autoscaling:
   maxReplicas: 2
   targetCPUUtilizationPercentage: 50
 
+gitRepo: https://github.com/mauberti-bc/conservation-prioritization.git
+gitRef: main
+
 services:
   frontend:
     replicas: 1
     image:
-      repository: image-registry.openshift-image-registry.svc:5000/fa9440-tools/conservation-tool-frontend
-      tag: latest
+      stream: frontend
+      tag: dev
       pullPolicy: IfNotPresent
     resources:
       limits:
@@ -30,8 +33,9 @@ services:
     server:
       replicas: 1
       image:
-        repository: prefecthq/prefect
-        tag: latest
+        stream: prefect-server
+        tag: dev
+        pullPolicy: IfNotPresent
       resources:
         limits:
           cpu: 500m
@@ -48,8 +52,26 @@ services:
     worker:
       replicas: 1
       image:
-        repository: image-registry.openshift-image-registry.svc:5000/fa9440-tools/conservation-tool-workflows
-        tag: latest
+          stream: prefect-worker
+          tag: dev
+          pullPolicy: IfNotPresent
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 250m
+          memory: 256Mi
+      service:
+        type: ClusterIP
+        port: 80
+        targetPort: 8081
+    deploy:
+      replicas: 1
+      image:
+          stream: prefect-deploy
+          tag: dev
+          pullPolicy: IfNotPresent
       resources:
         limits:
           cpu: 500m

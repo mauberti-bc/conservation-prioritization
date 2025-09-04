@@ -1,0 +1,39 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: {{ .Values.services.frontend.image.stream }}
+  namespace: {{ .Values.namespace }}
+spec:
+  tags:
+    - name: dev
+    - name: latest
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: {{ .Values.services.workflows.server.image.stream }}
+  namespace: {{ .Values.namespace }}
+spec:
+  tags:
+    - name: dev
+    - name: latest
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: {{ .Values.services.workflows.worker.image.stream }}
+  namespace: {{ .Values.namespace }}
+spec:
+  tags:
+    - name: dev
+    - name: latest
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: {{ .Values.services.workflows.deploy.image.stream }}
+  namespace: {{ .Values.namespace }}
+spec:
+  tags:
+    - name: dev
+    - name: latest

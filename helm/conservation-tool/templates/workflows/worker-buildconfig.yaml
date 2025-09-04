@@ -1,0 +1,26 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: {{ include "web-app.fullname.prefect-worker" . }}
+  namespace: {{ .Values.namespace }}
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: {{ .Values.gitRepo }}
+      ref: {{ .Values.gitRef | default "main" }}
+    contextDir: workflows
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile.worker
+  output:
+    to:
+      kind: ImageStreamTag
+      name: {{ .Values.services.workflows.worker.image.stream }}:{{ .Values.services.workflows.worker.image.tag }}
+  triggers:
+    - type: ConfigChange
+    - type: ImageChange
+  successfulBuildsHistoryLimit: 3
+  failedBuildsHistoryLimit: 1
