@@ -1,16 +1,20 @@
 # Use the official Prefect image for Python 3.12
 FROM prefecthq/prefect:3-python3.12
 
-# Create non-root user for security
+# Create non-root user for security and writable UI directory
 RUN groupadd -r prefect && \
     useradd -r -g prefect -u 1001 -m prefect && \
-    mkdir -p /app /data && \
-    chown -R prefect:prefect /app /data
+    mkdir -p /app /data /tmp/prefect-ui && \
+    chown -R prefect:prefect /app /data /tmp/prefect-ui
 
 # Set working directory
 WORKDIR /app
 
 # Switch to non-root user
 USER prefect
+
+# Set environment variable to use writable directory for UI files
+# This fixes the OpenShift permissions issue
+ENV PREFECT_UI_STATIC_DIRECTORY=/tmp/prefect-ui
 
 CMD ["prefect", "server", "start", "--port", "4200"]
