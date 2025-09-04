@@ -12,23 +12,24 @@ env:
 
 jobs:
   changes:
-      runs-on: ubuntu-latest
-      outputs:
-        frontend: ${{ steps.changes.outputs.frontend }}
-        workflows: ${{ steps.changes.outputs.workflows }}
-      steps:
-        - uses: actions/checkout@v4
-        - uses: dorny/paths-filter@v3
-          id: changes
-          with:
-            filters: |
-              frontend:
-                - 'frontend/**'
-              workflows:
-                - 'workflows/**'
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.changes.outputs.frontend }}
+      workflows: ${{ steps.changes.outputs.workflows }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            workflows:
+              - 'workflows/**'
 
   build-push:
     runs-on: ubuntu-latest
+    needs: [changes]
     environment: dev
     env:
       OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
@@ -102,7 +103,9 @@ jobs:
       - name: Deploy via Helm
         working-directory: helm/conservation-tool
         run: |
+          # Make sure to use the correct namespace when running Helm
           helm upgrade --install conservation-tool . \
             --values ${VALUES} \
+            --namespace ${OPENSHIFT_NAMESPACE} \
             --wait \
             --timeout=10m
