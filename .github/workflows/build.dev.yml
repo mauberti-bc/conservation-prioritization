@@ -112,6 +112,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Debug - Check required env variables
+        run: |
+          echo "Checking required environment variables..."
+          echo "OPENSHIFT_NAMESPACE is set to: ${OPENSHIFT_NAMESPACE}"
+          echo "VALUES file is: ${VALUES}"
+          echo "SA_TOKEN is ${SA_TOKEN:+[SET]}"
+          echo "OPENSHIFT_SERVER is ${OPENSHIFT_SERVER:+[SET]}"
+        env:
+          OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
+          SA_TOKEN: ${{ secrets.SA_TOKEN }}
+          VALUES: values-dev.yaml
+          OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_SERVER }}
+
+
       - name: Install Helm
         uses: azure/setup-helm@v3
 
