@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: prefect-worker
-          image: "{{ .Values.services.workflows.worker.image.name }}:{{ .Values.services.workflows.worker.image.tag }}"
+          image: "{{ .Values.services.workflows.worker.image.stream }}:{{ .Values.services.workflows.worker.image.tag }}"
           args:
             - "prefect"
             - "worker"

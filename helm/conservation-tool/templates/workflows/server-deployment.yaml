@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: prefect-server
-          image: "{{ .Values.services.workflows.server.image.name }}:{{ .Values.services.workflows.server.image.tag }}"
+          image: "{{ .Values.services.workflows.server.image.stream }}:{{ .Values.services.workflows.server.image.tag }}"
           args: ["prefect", "server", "start", "--port", "4200"]
           ports:
             - containerPort: {{ .Values.services.workflows.server.service.port }}

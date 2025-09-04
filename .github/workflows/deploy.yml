@@ -15,7 +15,7 @@ on:
         required: false
         default: true
         type: boolean
-        
+       
 env:
   IMAGE_REGISTRY: image-registry.apps.gold.devops.gov.bc.ca
   IMAGE_REPOSITORY: conservation-tool
@@ -35,20 +35,19 @@ jobs:
         uses: redhat-actions/openshift-tools-installer@v1
         with:
           oc: "4.16"
-      
+     
       - name: Log in to OpenShift
         run: |
-          oc login --token=$OC_TOKEN --server=$OPENSHIFT_SERVER
-      
+          oc login --token="${OC_TOKEN}" --server="${OPENSHIFT_SERVER}" --insecure-skip-tls-verify=true
+          oc whoami
+     
       - name: Log in to OpenShift internal registry
         run: |
-          # Use the reliable authentication method from your build workflow
           oc whoami -t | docker login $IMAGE_REGISTRY -u unused --password-stdin
-      
+     
       - name: Mirror and retag images
         run: |
           for COMPONENT in frontend prefect-server prefect-worker prefect-deploy; do
-            # Fixed: Added IMAGE_REPOSITORY prefix to match your build workflow naming
             SRC="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${COMPONENT}:${SOURCE_TAG}"
             DST="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${COMPONENT}:${TARGET_TAG}"
             echo "Promoting $SRC → $DST"
@@ -56,8 +55,8 @@ jobs:
           done
 
   deploy:
-    needs: ${{ inputs.promote_images == true && 'promote-images' || '' }}
-    if: always() && (needs.promote-images.result == 'success' || needs.promote-images.result == 'skipped' || !inputs.promote_images)
+    needs: [promote-images]
+    if: ${{ always() && (needs.promote-images.result == 'success' || needs.promote-images.result == 'skipped') }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     env:
@@ -68,25 +67,26 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+     
       - name: Install OpenShift CLI
         uses: redhat-actions/openshift-tools-installer@v1
         with:
           oc: "4.16"
-      
+     
       - name: Install Helm
         uses: azure/setup-helm@v3
-      
+     
       - name: Log in to OpenShift
         run: |
-          oc login --token=$OC_TOKEN --server=$OPENSHIFT_SERVER
+          oc login --token="${OC_TOKEN}" --server="${OPENSHIFT_SERVER}" --insecure-skip-tls-verify=true
+          oc whoami
           oc project $OPENSHIFT_NAMESPACE
-      
+     
       - name: Roll Deployments to refresh image pull
         run: |
           echo "Restarting Deployments in namespace: $OPENSHIFT_NAMESPACE"
           oc rollout restart deployment -n $OPENSHIFT_NAMESPACE --all || true
-      
+     
       - name: Roll StatefulSets to refresh image pull (if any)
         run: |
           echo "Restarting StatefulSets in namespace: $OPENSHIFT_NAMESPACE"

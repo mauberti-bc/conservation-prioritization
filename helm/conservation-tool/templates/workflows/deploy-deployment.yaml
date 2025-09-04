@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: prefect-deploy
-          image: "{{ .Values.services.workflows.deploy.image.name }}:{{ .Values.services.workflows.deploy.image.tag }}"
+          image: "{{ .Values.services.workflows.deploy.image.stream }}:{{ .Values.services.workflows.deploy.image.tag }}"
           args:
             - "prefect"
             - "deploy"
