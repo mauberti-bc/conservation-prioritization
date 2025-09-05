@@ -1,3 +1,4 @@
+{{- if .Values.services.workflows.server.route.enabled }}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -9,3 +10,4 @@ spec:
     name: {{ include "web-app.fullname.prefect-server" . }}
   port:
     targetPort: {{ .Values.services.workflows.server.service.targetPort }}
+{{- end }}

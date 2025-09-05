@@ -28,7 +28,7 @@ services:
       port: 80
       targetPort: 80
     route:
-      enabled: true
+      enabled: false
       host: conservation123.nrs.gov.bc.ca
 
   workflows:
@@ -50,6 +50,7 @@ services:
         port: 80
         targetPort: 8080
       route:
+        enabled: false
         host: workflows123.nrs.gov.bc.ca
     worker:
       replicas: 1

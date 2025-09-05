@@ -1,3 +1,4 @@
+{{- if .Values.services.frontend.route.enabled }}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -9,3 +10,4 @@ spec:
     name: {{ include "web-app.fullname.frontend" . }}
   port:
     targetPort: {{ .Values.services.frontend.service.targetPort }}
+{{- end }}
