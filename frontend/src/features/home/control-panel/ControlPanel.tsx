@@ -3,11 +3,12 @@ import Icon from '@mdi/react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
+import config from 'config/config';
 import { Formik } from 'formik';
 import { Feature } from 'geojson';
 import { OptimizationParameters } from 'hooks/api/usePrefectApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useConfigContext, useDialogContext } from 'hooks/useContext';
+import { useDialogContext } from 'hooks/useContext';
 import { useZarr } from 'hooks/useZarr';
 import { useMemo, useState } from 'react';
 import yup from 'utils/yup';
@@ -116,10 +117,9 @@ export const ControlPanel = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
-  const configContext = useConfigContext();
 
   // Read this from my /data/species.zarr store instead using zarrita.js
-  const zarr = useZarr(configContext.ZARR_STORE_PATH);
+  const zarr = useZarr(config.ZARR_STORE_PATH);
 
   const layerOptions: LayerOption[] = useMemo(
     () =>

@@ -9,12 +9,12 @@
   },
   "lint-staged": {
     "frontend/**/*.{js,jsx,ts,tsx}": [
-      "npm run lint",
-      "npm run lint-fix"
+      "yarn --cwd frontend format-fix",
+      "yarn --cwd frontend lint-fix"
     ],
     "workflows/**/*.py": [
-      "ruff format",
-      "ruff check --fix"
+      "yarn --cwd workflows format",
+      "yarn --cwd workflows lint-fix"
     ]
   }
 }

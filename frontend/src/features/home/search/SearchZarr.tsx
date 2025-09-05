@@ -1,4 +1,4 @@
-import { useConfigContext } from 'hooks/useContext';
+import config from 'config/config';
 import { useZarr } from 'hooks/useZarr';
 import { useEffect, useMemo, useState } from 'react';
 import { LayerOption } from '../control-panel/form/ControlPanelForm';
@@ -14,7 +14,7 @@ export const SearchZarr = ({ onChange, children, showSearchInput = true }: Searc
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const { ZARR_STORE_PATH } = useConfigContext();
+  const { ZARR_STORE_PATH } = config;
   const zarr = useZarr(ZARR_STORE_PATH);
 
   const allLayers: LayerOption[] = useMemo(() => {

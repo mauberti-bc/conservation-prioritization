@@ -13,11 +13,74 @@ spec:
         app: {{ include "web-app.fullname.frontend" . }}
     spec:
       serviceAccountName: deployer
+      # OpenShift-compatible pod security context
+      securityContext:
+        runAsNonRoot: true
+        {{- if .Values.services.frontend.securityContext.runAsUser }}
+        runAsUser: {{ .Values.services.frontend.securityContext.runAsUser }}
+        {{- end }}
+        {{- if .Values.services.frontend.securityContext.fsGroup }}
+        fsGroup: {{ .Values.services.frontend.securityContext.fsGroup }}
+        {{- end }}
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: "frontend"
           image: "{{ .Values.registry }}/{{ .Values.services.frontend.image.stream }}:{{ .Values.services.frontend.image.tag }}"
           imagePullPolicy: {{ .Values.services.frontend.image.pullPolicy | default "IfNotPresent" }}
           ports:
-            - containerPort: 80
+            - containerPort: {{ .Values.services.frontend.service.targetPort }}
+          # Container-level security context
+          securityContext:
+            runAsNonRoot: true
+            {{- if .Values.services.frontend.securityContext.runAsUser }}
+            runAsUser: {{ .Values.services.frontend.securityContext.runAsUser }}
+            {{- end }}
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          # Volume mounts for Caddy's writable directories
+          volumeMounts:
+            - name: caddy-data
+              mountPath: /data/caddy
+            - name: caddy-config
+              mountPath: /config/caddy
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.services.frontend.extraVolumeMounts }}
+            {{- toYaml .Values.services.frontend.extraVolumeMounts | nindent 12 }}
+            {{- end }}
           resources:
             {{- toYaml .Values.services.frontend.resources | nindent 12 }}
+          # Health checks (optional but recommended)
+          {{- if .Values.services.frontend.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.services.frontend.livenessProbe.path }}
+              port: {{ .Values.services.frontend.service.targetPort }}
+            initialDelaySeconds: {{ .Values.services.frontend.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.frontend.livenessProbe.periodSeconds }}
+          {{- end }}
+          {{- if .Values.services.frontend.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.services.frontend.readinessProbe.path }}
+              port: {{ .Values.services.frontend.service.targetPort }}
+            initialDelaySeconds: {{ .Values.services.frontend.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.frontend.readinessProbe.periodSeconds }}
+          {{- end }}
+      # Volumes for writable directories
+      volumes:
+        - name: caddy-data
+          emptyDir: {}
+        - name: caddy-config
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.services.frontend.extraVolumes }}
+        {{- toYaml .Values.services.frontend.extraVolumes | nindent 8 }}
+        {{- end }}

@@ -1,5 +1,5 @@
+import config from 'config/config';
 import useAxios from 'hooks/useAxios';
-import { useConfigContext } from 'hooks/useContext';
 import { OptimizationParameters } from './usePrefectApi.interface';
 
 /**
@@ -8,7 +8,6 @@ import { OptimizationParameters } from './usePrefectApi.interface';
  * @returns {*} - API methods for Prefect interactions
  */
 export const usePrefectApi = () => {
-  const config = useConfigContext();
   const axios = useAxios(config.PREFECT_API_HOST);
 
   /**

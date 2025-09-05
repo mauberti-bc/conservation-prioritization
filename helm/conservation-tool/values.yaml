@@ -1,55 +1,112 @@
 autoscaling:
-  enabled: true
-  minReplicas: 1
+  enabled: false
   maxReplicas: 1
-  targetCPUUtilizationPercentage: 50
+  minReplicas: 1
 
 gitRepo: https://github.com/mauberti-bc/conservation-prioritization.git
 gitRef: main
-
 registry: image-registry.apps.gold.devops.gov.bc.ca/fa9440-tools
+
+prefect-server:
+  serviceAccount:
+    create: false
+    name: prefect-server
+  ui:
+    enabled: true
+    podSecurityContext:
+      runAsUser: 1003600000
+      fsGroup: null
+    containerSecurityContext:
+      runAsUser: 1003600000
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+  server:
+    podSecurityContext:
+      runAsUser: 1003600000
+      fsGroup: null
+    containerSecurityContext:
+      runAsUser: 1003600000
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+  ingress:
+    enabled: true
+    host:
+      hostname: conservation-tool-prefect-server-fa9440-dev.apps.gold.devops.gov.bc.ca
+      path: /
+    className: "openshift-default"
 
 services:
   frontend:
     replicas: 1
+    
     image:
       stream: frontend
       tag: dev
       pullPolicy: "Always"
-    resources:
-      limits:
-        cpu: 125m
-        memory: 512Mi
-      requests:
-        cpu: 125m
-        memory: 256Mi
+    
     service:
       type: ClusterIP
       port: 80
-      targetPort: 80
+      targetPort: 8080
+    
     route:
       host: conservation123.nrs.gov.bc.ca
-
+    
+    # OpenShift security context - using your UID range
+    securityContext:
+      runAsUser: 1003600000
+      fsGroup: 1003600000
+    
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+    
+    # Health checks for Caddy
+    livenessProbe:
+      enabled: true
+      path: "/health"  # Make sure your Caddyfile includes: respond /health 200
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    
+    readinessProbe:
+      enabled: true
+      path: "/health"  # Make sure your Caddyfile includes: respond /health 200
+      initialDelaySeconds: 5
+      periodSeconds: 5
+    
+    # Optional: Additional volume mounts if needed
+    extraVolumeMounts: []
+    
+    # Optional: Additional volumes if needed
+    extraVolumes: []
+  
   workflows:
-    server:
-      replicas: 1
-      image:
-        stream: prefect-server
-        tag: dev
-        pullPolicy: IfNotPresent
-      resources:
-        limits:
-          cpu: 125m
-          memory: 512Mi
-        requests:
-          cpu: 125m
-          memory: 256Mi
-      service:
-        type: ClusterIP
-        port: 80
-        targetPort: 8080
-      route:
-        host: workflows123.nrs.gov.bc.ca
     worker:
       replicas: 1
       pool: pool
@@ -59,15 +116,20 @@ services:
         pullPolicy: IfNotPresent
       resources:
         limits:
-          cpu: 125m
-          memory: 512Mi
+          cpu: 100m
+          memory: 256Mi
         requests:
-          cpu: 125m
+          cpu: 50m
           memory: 256Mi
       service:
         type: ClusterIP
         port: 80
         targetPort: 8081
+      # OpenShift security context for worker
+      securityContext:
+        runAsUser: 1003600000
+        fsGroup: 1003600000
+    
     deploy:
       replicas: 1
       image:
@@ -75,13 +137,13 @@ services:
         tag: dev
         pullPolicy: IfNotPresent
       resources:
-        limits:
-          cpu: 125m
-          memory: 512Mi
         requests:
-          cpu: 125m
+          cpu: 50m
           memory: 256Mi
-      service:
-        type: ClusterIP
-        port: 80
-        targetPort: 8081
+        limits:
+          cpu: 100m
+          memory: 256Mi
+      # OpenShift security context for deploy
+      securityContext:
+        runAsUser: 1003600000
+        fsGroup: 1003600000

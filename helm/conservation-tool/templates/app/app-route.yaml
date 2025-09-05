@@ -7,4 +7,4 @@ spec:
     kind: Service
     name: {{ include "web-app.fullname.frontend" . }}
   port:
-    targetPort: {{ .Values.services.frontend.service.targetPort }}
+    targetPort: {{ .Values.services.frontend.service.port }}
