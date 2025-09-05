@@ -28,6 +28,9 @@ spec:
         - name: "frontend"
           image: "{{ .Values.registry }}/{{ .Values.services.frontend.image.stream }}:{{ .Values.services.frontend.image.tag }}"
           imagePullPolicy: {{ .Values.services.frontend.image.pullPolicy | default "IfNotPresent" }}
+          env:
+          - name: PORT
+            value: "7070"
           ports:
             - containerPort: {{ .Values.services.frontend.service.targetPort }}
           # Container-level security context

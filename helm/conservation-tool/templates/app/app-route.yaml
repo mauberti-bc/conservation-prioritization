@@ -7,4 +7,7 @@ spec:
     kind: Service
     name: {{ include "web-app.fullname.frontend" . }}
   port:
-    targetPort: {{ .Values.services.frontend.service.port }}
+    targetPort: {{ .Values.services.frontend.service.targetPort }}
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

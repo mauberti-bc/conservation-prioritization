@@ -5,7 +5,8 @@ metadata:
 spec:
   type: {{ .Values.services.frontend.service.type }}
   ports:
-    - port: {{ .Values.services.frontend.service.port }}
+    - protocol: TCP
+      port: {{ .Values.services.frontend.service.port }}
       targetPort: {{ .Values.services.frontend.service.targetPort }}
   selector:
     app: {{ include "web-app.fullname.frontend" . }}

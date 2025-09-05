@@ -69,7 +69,7 @@ services:
     service:
       type: ClusterIP
       port: 80
-      targetPort: 8080
+      targetPort: 7070
     
     route:
       host: conservation123.nrs.gov.bc.ca
@@ -89,13 +89,13 @@ services:
     
     # Health checks for Caddy
     livenessProbe:
-      enabled: true
+      enabled: false
       path: "/health"  # Make sure your Caddyfile includes: respond /health 200
       initialDelaySeconds: 30
       periodSeconds: 10
     
     readinessProbe:
-      enabled: true
+      enabled: false
       path: "/health"  # Make sure your Caddyfile includes: respond /health 200
       initialDelaySeconds: 5
       periodSeconds: 5
