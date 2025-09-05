@@ -68,7 +68,7 @@ services:
     
     service:
       type: ClusterIP
-      port: 80
+      port: 7070
       targetPort: 7070
     
     route:
