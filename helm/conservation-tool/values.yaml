@@ -18,10 +18,10 @@ services:
       pullPolicy: "Always"
     resources:
       limits:
-        cpu: 250m
+        cpu: 125m
         memory: 512Mi
       requests:
-        cpu: 250m
+        cpu: 125m
         memory: 256Mi
     service:
       type: ClusterIP
@@ -40,10 +40,10 @@ services:
         pullPolicy: IfNotPresent
       resources:
         limits:
-          cpu: 250m
+          cpu: 125m
           memory: 512Mi
         requests:
-          cpu: 250m
+          cpu: 125m
           memory: 256Mi
       service:
         type: ClusterIP
@@ -61,10 +61,10 @@ services:
         pullPolicy: IfNotPresent
       resources:
         limits:
-          cpu: 250m
+          cpu: 125m
           memory: 512Mi
         requests:
-          cpu: 250m
+          cpu: 125m
           memory: 256Mi
       service:
         type: ClusterIP
@@ -78,10 +78,10 @@ services:
         pullPolicy: IfNotPresent
       resources:
         limits:
-          cpu: 250m
+          cpu: 125m
           memory: 512Mi
         requests:
-          cpu: 250m
+          cpu: 125m
           memory: 256Mi
       service:
         type: ClusterIP
