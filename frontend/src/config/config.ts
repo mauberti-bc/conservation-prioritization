@@ -11,6 +11,7 @@ export interface IConfig {
 const requiredEnvVars = ['VITE_NODE_ENV', 'VITE_PREFECT_API_URL', 'VITE_ZARR_STORE_PATH'];
 
 for (const varName of requiredEnvVars) {
+  console.log(`Variable: ${varName}`, `All variables: ${import.meta.env}`);
   if (!import.meta.env[varName]) {
     throw new Error(`Environment variable ${varName} is required but not defined.`);
   }

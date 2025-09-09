@@ -28,43 +28,6 @@ spec:
         - name: "frontend"
           image: "{{ .Values.registry }}/{{ .Values.services.frontend.image.stream }}:{{ .Values.services.frontend.image.tag }}"
           imagePullPolicy: {{ .Values.services.frontend.image.pullPolicy | default "IfNotPresent" }}
-          env:
-            - name: NODE_ENV
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "web-app.fullname" . }}-config
-                  key: NODE_ENV
-
-            - name: NODE_OPTIONS
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "web-app.fullname" . }}-config
-                  key: NODE_OPTIONS
-
-            - name: VITE_PREFECT_API_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "web-app.fullname" . }}-config
-                  key: VITE_PREFECT_API_URL
-
-            - name: VITE_API_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "web-app.fullname" . }}-config
-                  key: VITE_API_PORT
-
-            - name: VITE_API_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "web-app.fullname" . }}-config
-                  key: VITE_API_HOST
-
-            - name: VITE_ZARR_STORE_PATH
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "web-app.fullname" . }}-config
-                  key: VITE_ZARR_STORE_PATH
-
           ports:
             - containerPort: {{ .Values.services.frontend.service.targetPort }}
           # Container-level security context
