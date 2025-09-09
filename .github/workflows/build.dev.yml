@@ -65,13 +65,10 @@ jobs:
       IMAGE_TAG: dev
       IMAGE_TAG_LATEST: latest
       GIT_SHA: ${{ github.sha }}
-      NODE_ENV: ${{ secrets.NODE_ENV }}
-      NODE_OPTIONS: ${{ secrets.NODE_OPTIONS }}
-      FRONTEND_PORT: ${{ secrets.FRONTEND_PORT }}
-      PREFECT_API_URL: ${{ secrets.PREFECT_API_URL }}
-      API_PORT: ${{ secrets.API_PORT }}
-      API_HOST: ${{ secrets.API_HOST }}
-      ZARR_STORE_PATH: ${{ secrets.ZARR_STORE_PATH }}
+      NODE_ENV: ${{ vars.NODE_ENV }}
+      NODE_OPTIONS: ${{ vars.NODE_OPTIONS }}
+      PREFECT_API_URL: ${{ vars.PREFECT_API_URL }}
+      ZARR_STORE_PATH: ${{ vars.ZARR_STORE_PATH }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -109,7 +106,6 @@ jobs:
           docker build \
             --build-arg VITE_NODE_ENV="${NODE_ENV}" \
             --build-arg VITE_NODE_OPTIONS="${NODE_OPTIONS}" \
-            --build-arg VITE_FRONTEND_PORT="${FRONTEND_PORT}" \
             --build-arg VITE_PREFECT_API_URL="${PREFECT_API_URL}" \
             --build-arg VITE_ZARR_STORE_PATH="${ZARR_STORE_PATH}" \
             -t ${BASE_IMAGE}:${IMAGE_TAG} \
