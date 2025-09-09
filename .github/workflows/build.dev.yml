@@ -102,6 +102,15 @@ jobs:
       - name: Build and push frontend image
         working-directory: frontend
         run: |
+          # Check required env vars
+          required_vars=(NODE_ENV NODE_OPTIONS PREFECT_API_URL ZARR_STORE_PATH)
+          for var in "${required_vars[@]}"; do
+            if [ -z "${!var}" ]; then
+              echo "Error: Environment variable $var is not set."
+              exit 1
+            fi
+          done
+
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/frontend"
           docker build \
             --build-arg VITE_NODE_ENV="${NODE_ENV}" \
@@ -116,6 +125,7 @@ jobs:
           docker push ${BASE_IMAGE}:${IMAGE_TAG}
           docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
           docker push ${BASE_IMAGE}:${GIT_SHA}
+
 
       - name: Build and push Prefect server image
         working-directory: workflows
