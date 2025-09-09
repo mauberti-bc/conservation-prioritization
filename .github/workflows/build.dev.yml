@@ -159,6 +159,12 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v3
 
+      - name: Build Helm dependencies
+        working-directory: helm/conservation-tool
+        run: |
+          echo "Building Helm dependencies..."
+          helm dependency build
+
       - name: Install OpenShift CLI
         uses: redhat-actions/openshift-tools-installer@v1
         with:

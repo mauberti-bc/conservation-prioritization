@@ -29,5 +29,7 @@ COPY Caddyfile ./Caddyfile
 # Make sure the app directory is readable
 RUN chmod -R 755 /app
 
+RUN echo "=== Caddyfile ===" && cat /app/Caddyfile
+
 # Use a different approach for the CMD to handle potential permission issues
 CMD ["caddy", "run", "--config", "/app/Caddyfile"]
