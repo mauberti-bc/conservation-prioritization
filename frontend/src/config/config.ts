@@ -10,7 +10,7 @@ export interface IConfig {
 }
 
 const requiredEnvVars = [
-  'VITE_APP_API_HOST',
+  'VITE_API_HOST',
   'VITE_PREFECT_API_URL',
   'VITE_OBJECT_STORE_URL',
   'VITE_OBJECT_STORE_BUCKET_NAME',
@@ -23,20 +23,20 @@ for (const varName of requiredEnvVars) {
   }
 }
 
-const VITE_APP_API_HOST = import.meta.env.VITE_APP_API_HOST;
-const VITE_APP_API_PORT = import.meta.env.VITE_APP_API_PORT || '';
+const VITE_API_HOST = import.meta.env.VITE_API_HOST;
+const VITE_API_PORT = import.meta.env.VITE_API_PORT || '';
 const VITE_PREFECT_API_URL = import.meta.env.VITE_PREFECT_API_URL;
 const VITE_ZARR_STORE_PATH = import.meta.env.VITE_ZARR_STORE_PATH;
 
 const OBJECT_STORE_URL = import.meta.env.VITE_OBJECT_STORE_URL;
 const OBJECT_STORE_BUCKET_NAME = import.meta.env.VITE_OBJECT_STORE_BUCKET_NAME;
 
-const API_URL = VITE_APP_API_HOST
-  ? VITE_APP_API_PORT
-    ? `${VITE_APP_API_HOST}:${VITE_APP_API_PORT}`
-    : VITE_APP_API_HOST
+const API_URL = VITE_API_HOST
+  ? VITE_API_PORT
+    ? `${VITE_API_HOST}:${VITE_API_PORT}`
+    : VITE_API_HOST
   : (() => {
-      throw new Error('VITE_APP_API_HOST is required.');
+      throw new Error('VITE_API_HOST is required.');
     })();
 
 const config: IConfig = {

@@ -24,5 +24,18 @@ spec:
             - "{{ .Values.services.workflows.deploy.queue }}"
           ports:
             - containerPort: 4201
+          env:
+            - name: PREFECT_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "web-app.fullname" . }}-config
+                  key: PREFECT_API_URL
+
+            - name: ZARR_STORE_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "web-app.fullname" . }}-config
+                  key: ZARR_STORE_PATH
+
           resources:
             {{- toYaml .Values.services.workflows.deploy.resources | nindent 12 }}

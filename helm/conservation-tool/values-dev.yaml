@@ -3,17 +3,34 @@ services:
     image:
       tag: dev
     env:
-      environment: dev
+      NODE_ENV: "development"
+      LOG_LEVEL: "info"
+      APP_PORT: "7070"
+      NODE_OPTIONS: "--max-old-space-size=4096"
+      VITE_PORT: "7070"
+      VITE_PREFECT_API_URL: "http://localhost:4200/api"
+      VITE_API_PORT: "5200"
+      VITE_API_HOST: "http://api-server.namespace.svc.cluster.local"
+      VITE_ZARR_STORE_PATH: "/data/output_1000.zarr"
 
   workflows:
     server:
       image:
         tag: dev
+      env:
+        PREFECT_SERVER_API_HOST: "0.0.0.0"
+        PREFECT_UI_API_URL: "http://localhost:4200/api"
+
     worker:
       image:
         tag: dev
+      env:
+        PREFECT_API_URL: "http://prefect_server:4200/api"
+        ZARR_STORE_PATH: "/data/output_1000.zarr"
+
     deploy:
       image:
         tag: dev
-    env:
-      environment: dev
+      env:
+        PREFECT_API_URL: "http://prefect_server:4200/api"
+        ZARR_STORE_PATH: "/data/output_1000.zarr"

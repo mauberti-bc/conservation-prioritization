@@ -1,19 +1,19 @@
 services:
-  frontend:
+frontend:
+  image:
+    tag: test
+  env:
+    environment: test
+
+workflows:
+  server:
     image:
       tag: test
-    env:
-      environment: test
-
-  workflows:
-    server:
-      image:
-        tag: test
-    worker:
-      image:
-        tag: test
-    deploy:
-      image:
-        tag: test
-    env:
-      environment: test
+  worker:
+    image:
+      tag: test
+  deploy:
+    image:
+      tag: test
+  env:
+    environment: test

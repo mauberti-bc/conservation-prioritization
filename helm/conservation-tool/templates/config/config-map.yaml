@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "web-app.fullname" . }}-config
+data:
+  NODE_ENV: "{{ .Values.env.NODE_ENV }}"
+  NODE_OPTIONS: "{{ .Values.env.NODE_OPTIONS }}"
+  VITE_PORT: "{{ .Values.env.FRONTEND_PORT }}"
+  VITE_PREFECT_API_URL: "http://prefect-server.{{ .Release.Namespace }}.svc.cluster.local:4200/api"
+  VITE_API_PORT: "{{ .Values.env.API_PORT }}"
+  VITE_API_HOST: "{{ .Values.env.API_HOST }}"
+  VITE_ZARR_STORE_PATH: "{{ .Values.env.ZARR_STORE_PATH }}"
+
+  PREFECT_SERVER_API_HOST: "0.0.0.0"
+  PREFECT_UI_API_URL: "http://localhost:4200/api"
+
+  PREFECT_API_URL: "{{ .Values.env.PREFECT_API_URL }}"
+  ZARR_STORE_PATH: "{{ .Values.env.ZARR_STORE_PATH }}"

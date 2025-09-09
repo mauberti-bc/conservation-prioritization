@@ -7,6 +7,13 @@ gitRepo: https://github.com/mauberti-bc/conservation-prioritization.git
 gitRef: main
 registry: image-registry.apps.gold.devops.gov.bc.ca/fa9440-tools
 
+# Centralized common ports and URLs
+ports:
+  frontend: 7070
+  api: 5200
+  prefect_server_api: 4200
+  prefect_worker_api: 8081
+
 prefect-server:
   serviceAccount:
     create: false
@@ -50,6 +57,10 @@ prefect-server:
       limits:
         cpu: 100m
         memory: 256Mi
+    env:
+      - PREFECT_SERVER_API_HOST: "0.0.0.0"
+      - PREFECT_UI_API_URL: http://localhost:4200/api
+
   ingress:
     enabled: true
     host:
@@ -60,25 +71,25 @@ prefect-server:
 services:
   frontend:
     replicas: 1
-    
+
     image:
       stream: frontend
       tag: dev
       pullPolicy: "Always"
-    
+
     service:
       type: ClusterIP
-      port: 7070
-      targetPort: 7070
-    
+      port: {{ .Values.ports.frontend | default 7070 }}
+      targetPort: {{ .Values.ports.frontend | default 7070 }}
+
     route:
       host: conservation123.nrs.gov.bc.ca
-    
+
     # OpenShift security context - using your UID range
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
-    
+
     resources:
       requests:
         cpu: 50m
@@ -86,26 +97,23 @@ services:
       limits:
         cpu: 100m
         memory: 256Mi
-    
+
     # Health checks for Caddy
     livenessProbe:
       enabled: false
       path: "/health"  # Make sure your Caddyfile includes: respond /health 200
       initialDelaySeconds: 30
       periodSeconds: 10
-    
+
     readinessProbe:
       enabled: false
       path: "/health"  # Make sure your Caddyfile includes: respond /health 200
       initialDelaySeconds: 5
       periodSeconds: 5
-    
-    # Optional: Additional volume mounts if needed
+
     extraVolumeMounts: []
-    
-    # Optional: Additional volumes if needed
     extraVolumes: []
-  
+
   workflows:
     worker:
       replicas: 1
@@ -124,12 +132,11 @@ services:
       service:
         type: ClusterIP
         port: 80
-        targetPort: 8081
-      # OpenShift security context for worker
+        targetPort: {{ .Values.ports.prefect_worker_api | default 8081 }}
       securityContext:
         runAsUser: 1003600000
         fsGroup: 1003600000
-    
+
     deploy:
       replicas: 1
       image:
@@ -143,7 +150,14 @@ services:
         limits:
           cpu: 100m
           memory: 256Mi
-      # OpenShift security context for deploy
       securityContext:
         runAsUser: 1003600000
         fsGroup: 1003600000
+
+env:
+  NODE_ENV: "development"
+  NODE_OPTIONS: "--max-old-space-size=4096"
+  FRONTEND_PORT: "{{ .Values.ports.frontend }}"
+  API_PORT: "{{ .Values.ports.api }}"
+  API_HOST: "{{ .Values.urls.api_host }}"
+  ZARR_STORE_PATH: "/data/output_1000.zarr"
