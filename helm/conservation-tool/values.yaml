@@ -57,9 +57,6 @@ prefect-server:
       limits:
         cpu: 100m
         memory: 256Mi
-    env:
-      - PREFECT_SERVER_API_HOST: "0.0.0.0"
-      - PREFECT_UI_API_URL: http://localhost:4200/api
 
   ingress:
     enabled: true
@@ -79,13 +76,12 @@ services:
 
     service:
       type: ClusterIP
-      port: {{ .Values.ports.frontend | default 7070 }}
-      targetPort: {{ .Values.ports.frontend | default 7070 }}
+      port: 7070
+      targetPort: 7070
 
     route:
       host: conservation123.nrs.gov.bc.ca
 
-    # OpenShift security context - using your UID range
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
@@ -98,16 +94,15 @@ services:
         cpu: 100m
         memory: 256Mi
 
-    # Health checks for Caddy
     livenessProbe:
       enabled: false
-      path: "/health"  # Make sure your Caddyfile includes: respond /health 200
+      path: "/health"
       initialDelaySeconds: 30
       periodSeconds: 10
 
     readinessProbe:
       enabled: false
-      path: "/health"  # Make sure your Caddyfile includes: respond /health 200
+      path: "/health"
       initialDelaySeconds: 5
       periodSeconds: 5
 
@@ -132,7 +127,7 @@ services:
       service:
         type: ClusterIP
         port: 80
-        targetPort: {{ .Values.ports.prefect_worker_api | default 8081 }}
+        targetPort: 8081
       securityContext:
         runAsUser: 1003600000
         fsGroup: 1003600000
@@ -155,9 +150,5 @@ services:
         fsGroup: 1003600000
 
 env:
-  NODE_ENV: "development"
   NODE_OPTIONS: "--max-old-space-size=4096"
-  FRONTEND_PORT: "{{ .Values.ports.frontend }}"
-  API_PORT: "{{ .Values.ports.api }}"
-  API_HOST: "{{ .Values.urls.api_host }}"
   ZARR_STORE_PATH: "/data/output_1000.zarr"

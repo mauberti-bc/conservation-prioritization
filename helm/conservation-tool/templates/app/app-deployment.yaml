@@ -39,37 +39,31 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "web-app.fullname" . }}-config
-                  key: FRONTEND_NODE_OPTIONS
-
-            - name: VITE_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "web-app.fullname" . }}-config
-                  key: FRONTEND_PORT
+                  key: NODE_OPTIONS
 
             - name: VITE_PREFECT_API_URL
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "web-app.fullname" . }}-config
-                  key: PREFECT_API_URL
+                  key: VITE_PREFECT_API_URL
 
             - name: VITE_API_PORT
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "web-app.fullname" . }}-config
-                  key: API_PORT
+                  key: VITE_API_PORT
 
             - name: VITE_API_HOST
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "web-app.fullname" . }}-config
-                  key: API_HOST
+                  key: VITE_API_HOST
 
             - name: VITE_ZARR_STORE_PATH
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "web-app.fullname" . }}-config
-                  key: ZARR_STORE_PATH
+                  key: VITE_ZARR_STORE_PATH
 
           ports:
             - containerPort: {{ .Values.services.frontend.service.targetPort }}

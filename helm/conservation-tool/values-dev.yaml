@@ -1,3 +1,7 @@
+env:
+  NODE_ENV: "development"
+  PREFECT_API_URL: "http://prefect-server.fa9440-dev.svc.cluster.local:4200/api"
+
 services:
   frontend:
     image:
@@ -10,7 +14,6 @@ services:
       VITE_PORT: "7070"
       VITE_PREFECT_API_URL: "http://localhost:4200/api"
       VITE_API_PORT: "5200"
-      VITE_API_HOST: "http://api-server.namespace.svc.cluster.local"
       VITE_ZARR_STORE_PATH: "/data/output_1000.zarr"
 
   workflows:

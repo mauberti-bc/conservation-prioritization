@@ -1,4 +1,8 @@
-services:
+env:
+  NODE_ENV: "production"
+  PREFECT_API_URL: "http://prefect-server.fa9440-prod.svc.cluster.local:4200/api"
+  
+  services:
   frontend:
     image:
       tag: prod

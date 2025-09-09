@@ -1,19 +1,23 @@
-services:
-frontend:
-  image:
-    tag: test
-  env:
-    environment: test
+env:
+  NODE_ENV: "test"
+  PREFECT_API_URL: "http://prefect-server.fa9440-test.svc.cluster.local:4200/api"
 
-workflows:
-  server:
+services:
+  frontend:
     image:
       tag: test
-  worker:
-    image:
-      tag: test
-  deploy:
-    image:
-      tag: test
-  env:
-    environment: test
+    env:
+      environment: test
+
+  workflows:
+    server:
+      image:
+        tag: test
+    worker:
+      image:
+        tag: test
+    deploy:
+      image:
+        tag: test
+    env:
+      environment: test
