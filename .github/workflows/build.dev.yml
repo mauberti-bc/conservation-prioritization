@@ -162,6 +162,10 @@ jobs:
       - name: Build Helm dependencies
         working-directory: helm/conservation-tool
         run: |
+          echo "Adding required Helm repos..."
+          helm repo add prefecthq https://prefecthq.github.io/prefect-helm
+          helm repo update
+
           echo "Building Helm dependencies..."
           helm dependency build
 
