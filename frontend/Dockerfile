@@ -7,13 +7,6 @@ ARG VITE_ZARR_STORE_PATH
 # ---------- Build Stage ----------
 FROM node:22-alpine AS build
 WORKDIR /app
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
-COPY . .
-RUN yarn build
-
-# ---------- Production Stage ----------
-FROM caddy:2-alpine
 
 # Re-declare args in this stage to receive values
 ARG VITE_NODE_ENV
@@ -21,11 +14,19 @@ ARG VITE_NODE_OPTIONS
 ARG VITE_PREFECT_API_URL
 ARG VITE_ZARR_STORE_PATH
 
-# Set environment variables for runtime inside final image
+# Set as environment variables for the build process
 ENV VITE_NODE_ENV=$VITE_NODE_ENV
 ENV VITE_NODE_OPTIONS=$VITE_NODE_OPTIONS
 ENV VITE_PREFECT_API_URL=$VITE_PREFECT_API_URL
 ENV VITE_ZARR_STORE_PATH=$VITE_ZARR_STORE_PATH
+
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
+COPY . .
+RUN yarn build
+
+# ---------- Production Stage ----------
+FROM caddy:2-alpine
 
 # Remove capabilities that cause permission issues on OpenShift
 RUN setcap -r /usr/bin/caddy

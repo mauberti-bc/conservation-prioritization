@@ -28,32 +28,53 @@ function parseArraysFromConsolidatedMetadata(metadata: Record<string, any>): Zar
 
     const arrayPath = path.replace(/^\//, '').replace(/\/\.zarray$/, '');
     const zarrayMeta = metadata[path];
-    const zattrsMeta = metadata[`${arrayPath}/.zattrs`] || {};
 
+    if (!zarrayMeta || typeof zarrayMeta !== 'object') {
+      console.warn(`Skipping invalid zarray metadata at path: ${path}`);
+      continue;
+    }
+
+    const zattrsMeta = metadata[`${arrayPath}/.zattrs`];
     const pathParts = arrayPath.split('/');
+
+    if (!Array.isArray(pathParts) || pathParts.length === 0) {
+      console.warn(`Skipping malformed path: ${arrayPath}`);
+      continue;
+    }
+
     const name = pathParts[pathParts.length - 1];
 
-    // Skip coordinates
-    if (IGNORED_NAMES.has(name)) {
+    if (!name || IGNORED_NAMES.has(name)) {
       continue;
     }
 
     const group = pathParts.slice(0, -1).join('/');
 
+    const label = zattrsMeta?.label;
+    const description = zattrsMeta?.description;
+
+    const shape = zarrayMeta.shape;
+    const dtype = zarrayMeta.dtype;
+
+    if (!Array.isArray(shape) || typeof dtype !== 'string') {
+      console.warn(`Skipping array with invalid shape/dtype at: ${arrayPath}`);
+      continue;
+    }
+
     arrays.push({
       group,
       path: arrayPath,
-      name: zattrsMeta.label || name,
-      description: zattrsMeta.description || '',
-      shape: zarrayMeta.shape,
-      dtype: zarrayMeta.dtype,
+      name: typeof label === 'string' ? label : name,
+      description: typeof description === 'string' ? description : '',
+      shape,
+      dtype,
     });
   }
 
   return arrays.sort((a, b) => {
-    const aIsLandcover = a.path.startsWith('landcover') ? -1 : 0;
-    const bIsLandcover = b.path.startsWith('landcover') ? -1 : 0;
-    return aIsLandcover - bIsLandcover;
+    const aPriority = a.path?.startsWith('landcover') ? -1 : 0;
+    const bPriority = b.path?.startsWith('landcover') ? -1 : 0;
+    return aPriority - bPriority;
   });
 }
 
