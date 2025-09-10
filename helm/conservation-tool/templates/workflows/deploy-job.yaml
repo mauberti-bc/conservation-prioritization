@@ -1,18 +1,19 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: {{ include "web-app.fullname.prefect-deploy" . }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
-  replicas: {{ .Values.services.workflows.deploy.replicas }}
-  selector:
-    matchLabels:
-      app: {{ include "web-app.fullname.prefect-deploy" . }}
   template:
     metadata:
       labels:
         app: {{ include "web-app.fullname.prefect-deploy" . }}
     spec:
       serviceAccountName: deployer
+      restartPolicy: Never
       containers:
         - name: prefect-deploy
           image: "{{ .Values.registry }}/{{ .Values.services.workflows.deploy.image.stream }}:{{ .Values.services.workflows.deploy.image.tag }}"
@@ -30,12 +31,10 @@ spec:
                 configMapKeyRef:
                   name: {{ include "web-app.fullname" . }}-config
                   key: PREFECT_API_URL
-
             - name: ZARR_STORE_PATH
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "web-app.fullname" . }}-config
                   key: ZARR_STORE_PATH
-
           resources:
             {{- toYaml .Values.services.workflows.deploy.resources | nindent 12 }}
