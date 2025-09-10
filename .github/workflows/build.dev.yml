@@ -222,5 +222,5 @@ jobs:
             --values ${VALUES} \
             --namespace ${OPENSHIFT_NAMESPACE} \
             --wait \
-            --timeout=5m \
+            --timeout=10m \
             --atomic
