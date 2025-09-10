@@ -7,7 +7,6 @@ gitRepo: https://github.com/mauberti-bc/conservation-prioritization.git
 gitRef: main
 registry: image-registry.apps.gold.devops.gov.bc.ca/fa9440-tools
 
-# Centralized common ports and URLs
 ports:
   frontend: 7070
   api: 5200
@@ -34,10 +33,10 @@ prefect-server:
     resources:
       requests:
         cpu: 50m
-        memory: 256Mi
+        memory: 128Mi
       limits:
-        cpu: 100m
-        memory: 256Mi
+        cpu: 50m
+        memory: 128Mi
   server:
     podSecurityContext:
       runAsUser: 1003600000
@@ -57,17 +56,46 @@ prefect-server:
       limits:
         cpu: 100m
         memory: 256Mi
-
+  migrations:
+    enabled: true
+    backoffLimit: 3
+    securityContext:
+      runAsUser: 1003600000
   ingress:
     enabled: true
     host:
       hostname: conservation-tool-prefect-server-fa9440-dev.apps.gold.devops.gov.bc.ca
       path: /
     className: "openshift-default"
+  postgresql:
+    primary:
+      podSecurityContext:
+        runAsUser: 1003600000
+        fsGroup: null
+      containerSecurityContext:
+        runAsUser: 1003600000
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: false
+        capabilities:
+          drop:
+            - ALL
+  backgroundServices:
+    podSecurityContext:
+      runAsUser: 1003600000
+      fsGroup: null
+    containerSecurityContext:
+      runAsUser: 1003600000
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
 
 services:
   frontend:
-    replicas: 1
+    replicas: 0
 
     image:
       stream: frontend
@@ -111,7 +139,7 @@ services:
 
   workflows:
     worker:
-      replicas: 1
+      replicas: 0
       pool: pool
       image:
         stream: prefect-worker
@@ -133,7 +161,7 @@ services:
         fsGroup: 1003600000
 
     deploy:
-      replicas: 1
+      replicas: 0
       image:
         stream: prefect-deploy
         tag: dev
