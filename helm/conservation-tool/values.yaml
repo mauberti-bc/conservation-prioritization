@@ -90,7 +90,7 @@ prefect-server:
   backgroundServices:
     podSecurityContext:
       runAsUser: 1003600000
-      fsGroup: null
+      fsGroup: 1003600000
     containerSecurityContext:
       runAsUser: 1003600000
       runAsNonRoot: true

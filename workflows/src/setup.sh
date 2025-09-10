@@ -13,6 +13,6 @@ fi
 
 # Apply deployments from prefect.yaml
 echo "Applying deployments..."
-prefect deploy -n local
+prefect --no-prompt deploy --all
 
 echo "Setup complete."
