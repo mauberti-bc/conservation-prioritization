@@ -224,3 +224,9 @@ jobs:
             --wait \
             --timeout=10m \
             --atomic
+
+      - name: Scale up frontend and worker
+        run: |
+          oc scale deployment conservation-tool-frontend --replicas=1
+          oc scale deployment conservation-tool-prefect-worker --replicas=1
+
