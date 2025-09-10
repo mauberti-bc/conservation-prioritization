@@ -169,10 +169,10 @@ services:
       resources:
         requests:
           cpu: 50m
-          memory: 256Mi
+          memory: 512Mi
         limits:
           cpu: 100m
-          memory: 256Mi
+          memory: 512Mi
       securityContext:
         runAsUser: 1003600000
         fsGroup: 1003600000
