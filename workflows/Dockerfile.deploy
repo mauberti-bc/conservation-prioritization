@@ -1,13 +1,16 @@
-# Use base image that has gdal installed
 FROM ghcr.io/osgeo/gdal:ubuntu-small-3.10.0
-
-RUN python -v
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-ENV HOME=/opt/app-root/src
+# Use a safer HOME location
+ENV HOME=/home/app
 RUN mkdir -p $HOME
 WORKDIR $HOME
+
+# Set Prefect and Matplotlib dirs
+ENV PREFECT_HOME=/tmp/.prefect
+ENV MPLCONFIGDIR=/tmp/.config/matplotlib
+RUN mkdir -p $PREFECT_HOME $MPLCONFIGDIR
 
 RUN apt-get update && apt-get install -y \
     curl \
@@ -23,8 +26,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY . ./
 
-## Add venv bin to PATH
-ENV PATH="/opt/app-root/src/.venv/bin:$PATH"
+ENV PATH="/home/app/.venv/bin:$PATH"
 
 EXPOSE 4200 8080
 
