@@ -148,10 +148,10 @@ services:
       resources:
         limits:
           cpu: 100m
-          memory: 256Mi
+          memory: 1028Mi
         requests:
           cpu: 50m
-          memory: 256Mi
+          memory: 1028Mi
       service:
         type: ClusterIP
         port: 80
@@ -169,10 +169,10 @@ services:
       resources:
         requests:
           cpu: 50m
-          memory: 512Mi
+          memory: 1028Mi
         limits:
           cpu: 100m
-          memory: 512Mi
+          memory: 1028Mi
       securityContext:
         runAsUser: 1003600000
         fsGroup: 1003600000
