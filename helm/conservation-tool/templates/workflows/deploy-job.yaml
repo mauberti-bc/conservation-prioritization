@@ -31,5 +31,11 @@ spec:
                 configMapKeyRef:
                   name: {{ include "web-app.fullname" . }}-config
                   key: ZARR_STORE_PATH
+            - name: HOME
+              value: "/home/app"
+            - name: PREFECT_HOME
+              value: "/tmp/.prefect"
+            - name: MPLCONFIGDIR
+              value: "/tmp/.config/matplotlib"
           resources:
             {{- toYaml .Values.services.workflows.deploy.resources | nindent 12 }}
