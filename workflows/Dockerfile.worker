@@ -1,31 +1,46 @@
 # Use base image that has gdal installed
 FROM ghcr.io/osgeo/gdal:ubuntu-small-3.10.0
 
-RUN python -v
+# Optional: verify Python is present
+RUN python3 --version
 
+# Bring in uv for dependency management
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
+# Set HOME and working directory
 ENV HOME=/opt/app-root/src
-RUN mkdir -p $HOME
 WORKDIR $HOME
 
+# Create essential directories and give user permission
+RUN mkdir -p $HOME \
+    && mkdir -p /tmp/.prefect /tmp/.config/matplotlib \
+    && chown -R 1003600000:0 $HOME /tmp/.prefect /tmp/.config/matplotlib
+
+# Set environment variables for Prefect and Matplotlib to use writable paths
+ENV PREFECT_HOME=/tmp/.prefect
+ENV MPLCONFIGDIR=/tmp/.config/matplotlib
+
+# Update and install required packages
 RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Python dependencies
 COPY pyproject.toml uv.lock ./
-
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked
 
+# Copy the source code
 COPY . ./
 
-# Add venv bin to PATH
+# Activate virtual environment
 ENV PATH="/opt/app-root/src/.venv/bin:$PATH"
 
-EXPOSE 4200 8080
+# Switch to the desired user (if not set by runtime)
+USER 1003600000
 
+# Start Prefect server
 CMD ["prefect", "server", "start"]
