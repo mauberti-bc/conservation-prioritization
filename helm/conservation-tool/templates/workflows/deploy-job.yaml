@@ -17,12 +17,7 @@ spec:
       containers:
         - name: prefect-deploy
           image: "{{ .Values.registry }}/{{ .Values.services.workflows.deploy.image.stream }}:{{ .Values.services.workflows.deploy.image.tag }}"
-          args:
-            - "prefect"
-            - "deploy"
-            - "start"
-            - "--pool"
-            - "{{ .Values.services.workflows.deploy.queue }}"
+          command: ["bash", "src/setup.sh"]
           ports:
             - containerPort: 4201
           env:
