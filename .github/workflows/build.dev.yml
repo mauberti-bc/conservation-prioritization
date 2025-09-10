@@ -126,17 +126,6 @@ jobs:
           docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
           docker push ${BASE_IMAGE}:${GIT_SHA}
 
-
-      - name: Build and push Prefect server image
-        working-directory: workflows
-        if: needs.changes.outputs.workflows == 'true'
-        run: |
-          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-server"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.server .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-
       - name: Build and push Prefect worker image
         working-directory: workflows
         if: needs.changes.outputs.workflows == 'true'

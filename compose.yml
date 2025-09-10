@@ -64,7 +64,7 @@ services:
   prefect_deploy:
     build:
       context: ./workflows
-      dockerfile: Dockerfile.deploy
+      dockerfile: ./.docker/Dockerfile.deploy
     image: ${DOCKER_PROJECT_NAME}-prefect-deploy-${DOCKER_NAMESPACE}-img
     container_name: ${DOCKER_PROJECT_NAME}-prefect-deploy-${DOCKER_NAMESPACE}-container
     depends_on:

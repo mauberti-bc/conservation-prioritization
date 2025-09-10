@@ -41,6 +41,7 @@ prefect-server:
     podSecurityContext:
       runAsUser: 1003600000
       fsGroup: null
+
     containerSecurityContext:
       runAsUser: 1003600000
       runAsNonRoot: true
@@ -49,6 +50,7 @@ prefect-server:
       capabilities:
         drop:
           - ALL
+
     resources:
       requests:
         cpu: 50m
@@ -56,13 +58,18 @@ prefect-server:
       limits:
         cpu: 100m
         memory: 256Mi
+
+    env:
+      - name: PREFECT_SERVER_API_HOST
+        value: "0.0.0.0"
+
   migrations:
     enabled: true
     backoffLimit: 3
     securityContext:
       runAsUser: 1003600000
   ingress:
-    enabled: true
+    enabled: false
     host:
       hostname: conservation-tool-prefect-server-fa9440-dev.apps.gold.devops.gov.bc.ca
       path: /
