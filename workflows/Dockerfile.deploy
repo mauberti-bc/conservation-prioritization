@@ -29,5 +29,3 @@ COPY . ./
 
 # Expose venv bin directory to path
 ENV PATH="/home/app/.venv/bin:$PATH"
-
-CMD ["prefect", "server", "deploy"]
