@@ -13,6 +13,3 @@ spec:
         - namespaceSelector:
             matchLabels:
               network.openshift.io/policy-group: ingress
-      ports:
-        - protocol: TCP
-          port: {{ .Values.services.frontend.service.targetPort }}

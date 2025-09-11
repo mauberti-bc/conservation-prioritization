@@ -1,23 +1,19 @@
 env:
-  NODE_ENV: "production"
-  PREFECT_API_URL: "http://prefect-server.fa9440-prod.svc.cluster.local:4200/api"
-  
-  services:
+  NODE_ENV: "test"
+  PREFECT_API_URL: "http://prefect-server.fa9440-test.svc.cluster.local:4200/api"
+  ZARR_STORE_PATH: "/data/output_1000.zarr"
+
+services:
   frontend:
     image:
-      tag: prod
-    env:
-      environment: prod
+      tag: test
 
   workflows:
-    server:
-      image:
-        tag: prod
     worker:
       image:
-        tag: prod
+        tag: test
+      env:
+
     deploy:
       image:
-        tag: prod
-    env:
-      environment: prod
+        tag: test
