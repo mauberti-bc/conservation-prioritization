@@ -46,3 +46,23 @@ export const GetProjectSchema: OpenAPIV3.SchemaObject = {
     }
   }
 };
+
+/**
+ * OpenAPI Schema for updating a project.
+ */
+export const UpdateProjectSchema: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 100,
+      description: 'Project name.'
+    },
+    description: {
+      type: 'string',
+      maxLength: 500,
+      nullable: true,
+      description: 'Project description.'
+    }
+  }
+};

@@ -87,7 +87,7 @@ export const useProjectApi = (axios: AxiosInstance) => {
     projectId: string,
     updates: Partial<CreateProjectRequest>
   ): Promise<GetProjectResponse> => {
-    const { data } = await axios.put<GetProjectResponse>(`/api/project/${projectId}`, updates);
+    const { data } = await axios.post<GetProjectResponse>(`/api/project/${projectId}`, updates);
     return data;
   };
 
