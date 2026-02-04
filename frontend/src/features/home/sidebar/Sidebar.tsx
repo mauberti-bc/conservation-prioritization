@@ -5,18 +5,17 @@ import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useLayerSearch } from 'hooks/useLayerSearch';
 import { DataLoader } from 'hooks/useDataLoader';
 import { useEffect, useMemo, useState } from 'react';
-import { ACTIVE_VIEW } from '../HomePage';
+import { SidebarView } from 'context/sidebarUIContext';
 import { LayerPanel } from '../layer-panel/LayerPanel';
-import { CreateTaskPage } from '../task/create/CreateTaskPage';
 import { SidebarNavigation } from './navigation/SidebarNavigation';
 import { ProjectList } from './projects/ProjectList';
-import { TaskDetailsPanel } from './tasks/TaskDetailsPanel';
 import { TaskList } from './tasks/TaskList';
 import { SidebarSection } from './SidebarSection';
+import Typography from '@mui/material/Typography';
 
 interface SidebarProps {
-  activeView: ACTIVE_VIEW | null;
-  onViewChange: (newView: ACTIVE_VIEW | null) => void;
+  activeView: SidebarView;
+  onViewChange: (newView: SidebarView) => void;
   tasksDataLoader: DataLoader<[], GetTaskResponse[], unknown>;
   projectsDataLoader: DataLoader<[], GetProjectResponse[], unknown>;
   isAuthenticated: boolean;
@@ -107,7 +106,11 @@ export const Sidebar = ({
           flexDirection: 'column',
           overflow: 'hidden',
         }}>
-        {activeView === 'new' && <CreateTaskPage />}
+        {activeView === 'new' && (
+          <SidebarSection title="New task" onSearch={() => undefined} showSearch={false}>
+            <Typography color="textSecondary">Configure your task in the main panel.</Typography>
+          </SidebarSection>
+        )}
         {activeView === 'tasks' && (
           <SidebarSection
             title="Tasks"
@@ -115,7 +118,9 @@ export const Sidebar = ({
               setTaskSearchTerm(term);
             }}>
             {selectedTaskId ? (
-              <TaskDetailsPanel />
+              <Typography color="textSecondary">
+                Task selected. Use the back arrow to return to the list.
+              </Typography>
             ) : (
               <TaskList
                 tasks={filteredTasks}

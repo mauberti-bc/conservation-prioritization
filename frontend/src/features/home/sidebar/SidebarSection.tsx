@@ -10,6 +10,7 @@ interface SidebarSectionProps {
   onSearch: (term: string) => void;
   children: React.ReactNode;
   placeholder?: string;
+  showSearch?: boolean;
 }
 
 /**
@@ -18,7 +19,7 @@ interface SidebarSectionProps {
  * @param {SidebarSectionProps} props
  * @returns {JSX.Element}
  */
-export const SidebarSection = ({ title, onSearch, children, placeholder }: SidebarSectionProps) => {
+export const SidebarSection = ({ title, onSearch, children, placeholder, showSearch = true }: SidebarSectionProps) => {
   const [value, setValue] = useState('');
 
   const debouncedSearch = useMemo(() => {
@@ -36,26 +37,28 @@ export const SidebarSection = ({ title, onSearch, children, placeholder }: Sideb
   return (
     <Box display="flex" flexDirection="column" gap={2} px={3} py={2} height="100%">
       <Typography variant="h5">{title}</Typography>
-      <TextField
-        value={value}
-        onChange={(event) => {
-          const nextValue = event.target.value;
-          setValue(nextValue);
-          debouncedSearch(nextValue);
-        }}
-        variant="outlined"
-        fullWidth
-        placeholder={placeholder ?? 'Search'}
-        slotProps={{
-          input: {
-            startAdornment: (
-              <InputAdornment position="start">
-                <Icon path={mdiMagnify} size={1} style={{ color: grey[500] }} />
-              </InputAdornment>
-            ),
-          },
-        }}
-      />
+      {showSearch && (
+        <TextField
+          value={value}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setValue(nextValue);
+            debouncedSearch(nextValue);
+          }}
+          variant="outlined"
+          fullWidth
+          placeholder={placeholder ?? 'Search'}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Icon path={mdiMagnify} size={1} style={{ color: grey[500] }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+      )}
       <Box display="flex" flexDirection="column" gap={2} flex={1} minHeight={0}>
         {children}
       </Box>

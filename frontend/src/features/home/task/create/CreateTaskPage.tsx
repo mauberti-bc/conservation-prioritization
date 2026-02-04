@@ -5,7 +5,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import { Formik } from 'formik';
-import { CreateTaskLayer, CreateTaskRequest } from 'hooks/interfaces/useTaskApi.interface';
+import { CreateTaskLayer, CreateTaskRequest, GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useMapContext, useTaskContext } from 'hooks/useContext';
 import { useEffect, useState } from 'react';
@@ -24,7 +24,11 @@ const initialValues: TaskCreateFormValues = {
   geometry: [],
 };
 
-export const CreateTaskPage = () => {
+interface CreateTaskPageProps {
+  onTaskCreated?: (task: GetTaskResponse) => void;
+}
+
+export const CreateTaskPage = ({ onTaskCreated }: CreateTaskPageProps) => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
@@ -72,6 +76,7 @@ export const CreateTaskPage = () => {
       // Call the API to create the task
       const createdTask = await conservationApi.task.createTask(taskData);
       setFocusedTask(createdTask);
+      onTaskCreated?.(createdTask);
 
       // Success message
       dialogContext.setSnackbar({
