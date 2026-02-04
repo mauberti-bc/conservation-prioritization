@@ -154,6 +154,7 @@ export async function up(knex: Knex): Promise<void> {
       project_id              uuid              DEFAULT gen_random_uuid(),
       name                    varchar(100)      NOT NULL,
       description             varchar(500),
+      colour                  varchar(7)        NOT NULL,
       record_effective_date   timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date         timestamptz(6),
       created_at              timestamptz(6)    DEFAULT now() NOT NULL,
@@ -169,6 +170,7 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN project.project_id IS 'System generated UUID primary key.';
     COMMENT ON COLUMN project.name IS 'The name of the project.';
     COMMENT ON COLUMN project.description IS 'Project description.';
+    COMMENT ON COLUMN project.colour IS 'Hex colour associated with the project.';
     COMMENT ON COLUMN project.record_effective_date IS 'Record level effective date.';
     COMMENT ON COLUMN project.record_end_date IS 'Record level end date.';
     COMMENT ON COLUMN project.created_at IS 'The datetime the record was created.';

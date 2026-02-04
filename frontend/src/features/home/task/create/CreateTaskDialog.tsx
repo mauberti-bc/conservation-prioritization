@@ -1,14 +1,24 @@
 import { mdiClose } from '@mdi/js';
 import Icon from '@mdi/react';
 import { LoadingButton } from '@mui/lab';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
+  Typography,
+} from '@mui/material';
 import { MapContextProvider } from 'context/mapContext';
 import { useMapContext } from 'hooks/useContext';
 import { MutableRefObject, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DrawControls } from '../../map/draw/DrawControls';
 import { MapContainer } from '../../map/MapContainer';
-import { CreateTaskForm } from './CreateTask';
+import { CreateTask } from './CreateTask';
 
 export const CreateTaskDialog = () => {
   const navigate = useNavigate();
@@ -69,7 +79,12 @@ const CreateTaskDialogContent = ({
           maxHeight: 'none',
         },
       }}>
-      <DialogTitle sx={{ p: 2 }}>
+      <DialogTitle
+        sx={{
+          p: 2,
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          zIndex: 1,
+        }}>
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Typography variant="h6" fontWeight={600}>
             Create Task
@@ -79,7 +94,8 @@ const CreateTaskDialogContent = ({
           </IconButton>
         </Box>
       </DialogTitle>
-      <DialogContent sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
+      <Divider />
+      <DialogContent sx={{ p: '0 !important', height: '100%', overflow: 'hidden', m: 0 }}>
         <Box
           sx={{
             display: 'grid',
@@ -93,8 +109,9 @@ const CreateTaskDialogContent = ({
               minHeight: 0,
               height: '100%',
               overflow: 'auto',
+              py: 2,
             }}>
-            <CreateTaskForm
+            <CreateTask
               submitRef={submitRef}
               hideInternalActions
               onSubmittingChange={onSubmittingChange}
@@ -109,7 +126,14 @@ const CreateTaskDialogContent = ({
           </Box>
         </Box>
       </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2, justifyContent: 'flex-end' }}>
+      <DialogActions
+        sx={{
+          px: 3,
+          py: 2,
+          justifyContent: 'flex-end',
+          boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.08)',
+          zIndex: 1,
+        }}>
         <LoadingButton variant="contained" onClick={onSubmit} loading={isSubmitting}>
           Submit
         </LoadingButton>

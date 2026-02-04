@@ -92,8 +92,7 @@ export const HomePage = () => {
             sx={{
               position: 'absolute',
               top: 16,
-              left: '50%',
-              transform: 'translateX(-50%)',
+              left: `calc(${sidebarWidth} + 16px)`,
               zIndex: 10,
             }}>
             <Chip size="small" color="primary" label={statusLabel} />

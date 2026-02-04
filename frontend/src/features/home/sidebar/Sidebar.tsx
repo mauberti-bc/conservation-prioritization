@@ -99,7 +99,7 @@ export const Sidebar = ({
     return (projectsDataLoader.data ?? []).find((project) => project.project_id === selectedProjectId) ?? null;
   }, [projectsDataLoader.data, selectedProjectId]);
 
-  const handleCreateProject = async (values: { name: string; description: string }) => {
+  const handleCreateProject = async (values: { name: string; description: string; colour: string }) => {
     try {
       setProjectCreateSaving(true);
       setProjectCreateError(null);
@@ -107,6 +107,7 @@ export const Sidebar = ({
       await conservationApi.project.createProject({
         name: values.name,
         description: values.description.trim() && values.description,
+        colour: values.colour.trim() ? values.colour : undefined,
       });
 
       await refreshProjects();

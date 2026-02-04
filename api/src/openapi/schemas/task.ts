@@ -337,6 +337,37 @@ export const GetTaskSchema: OpenAPIV3.SchemaObject = {
           }
         }
       }
+    },
+    projects: {
+      type: 'array',
+      description: 'Projects associated with the task.',
+      items: {
+        type: 'object',
+        required: ['project_id', 'name', 'description', 'colour'],
+        properties: {
+          project_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'Project ID.'
+          },
+          name: {
+            type: 'string',
+            maxLength: 100,
+            description: 'Project name.'
+          },
+          description: {
+            type: 'string',
+            maxLength: 500,
+            nullable: true,
+            description: 'Project description.'
+          },
+          colour: {
+            type: 'string',
+            maxLength: 7,
+            description: 'Hex colour code.'
+          }
+        }
+      }
     }
   }
 };

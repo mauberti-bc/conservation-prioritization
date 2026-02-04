@@ -7,6 +7,7 @@ export const Project = z.object({
   project_id: z.string().uuid(), // UUID type for project_id
   name: z.string().max(100), // Max length of 100 for project name
   description: z.string().max(500).nullable(), // Optional project description
+  colour: z.string().max(7), // Hex colour code
   task_count: z.number().int().nonnegative().optional() // Optional task count for listings
 });
 
@@ -17,7 +18,8 @@ export type Project = z.infer<typeof Project>;
  */
 export const CreateProject = z.object({
   name: z.string().max(100), // Max length of 100 for project name
-  description: z.string().max(500).nullable() // Optional project description
+  description: z.string().max(500).nullable(), // Optional project description
+  colour: z.string().max(7).optional() // Optional hex colour code
 });
 
 export type CreateProject = z.infer<typeof CreateProject>;
@@ -29,7 +31,8 @@ export type CreateProject = z.infer<typeof CreateProject>;
  */
 export const UpdateProject = z.object({
   name: z.string().max(100).optional(), // Optional project name
-  description: z.string().max(500).nullable().optional() // Optional project description
+  description: z.string().max(500).nullable().optional(), // Optional project description
+  colour: z.string().max(7).optional() // Optional hex colour code
 });
 
 export type UpdateProject = z.infer<typeof UpdateProject>;

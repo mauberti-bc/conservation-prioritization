@@ -15,7 +15,7 @@ interface LabelledSectionProps {
  */
 export const LabelledSection = ({ label, children }: LabelledSectionProps) => {
   return (
-    <Stack spacing={1}>
+    <Stack spacing={2}>
       <Typography
         fontWeight={700}
         display="flex"

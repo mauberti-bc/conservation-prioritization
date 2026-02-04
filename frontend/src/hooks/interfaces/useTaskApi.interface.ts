@@ -72,6 +72,12 @@ export interface GetTaskResponse {
   name: string; // Name of the task
   description: string | null; // Description of the task
   tileset_uri?: string | null;
+  projects?: {
+    project_id: string;
+    name: string;
+    description: string | null;
+    colour: string;
+  }[];
   geometries?: {
     geometry_id: string;
     name: string;

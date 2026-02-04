@@ -7,6 +7,7 @@ export interface Project {
   project_id: string;
   name: string;
   description: string;
+  colour: string;
 }
 
 /**
@@ -15,6 +16,7 @@ export interface Project {
 export interface CreateProjectRequest {
   name: string;
   description: string;
+  colour?: string;
 }
 
 /**
@@ -24,6 +26,7 @@ export interface GetProjectResponse {
   project_id: string;
   name: string;
   description: string;
+  colour: string;
   tasks?: GetTaskResponse[];
   task_count?: number;
 }

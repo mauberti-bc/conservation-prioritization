@@ -29,10 +29,6 @@ const initialValues: TaskCreateFormValues = {
 };
 
 interface CreateTaskProps {
-  onTaskCreated?: (task: GetTaskResponse) => void;
-}
-
-interface CreateTaskFormProps {
   onSubmitSuccess?: (task: GetTaskResponse) => void;
   submitRef?: MutableRefObject<(() => void) | null>;
   hideInternalActions?: boolean;
@@ -67,12 +63,15 @@ const SubmitRefBinder = ({
   return null;
 };
 
-export const CreateTaskForm = ({
+/**
+ * @deprecated Standalone CreateTask page is deprecated. This component is used inside CreateTaskDialog.
+ */
+export const CreateTask = ({
   onSubmitSuccess,
   submitRef,
   hideInternalActions = false,
   onSubmittingChange,
-}: CreateTaskFormProps) => {
+}: CreateTaskProps) => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
@@ -217,8 +216,4 @@ export const CreateTaskForm = ({
       }}
     </Formik>
   );
-};
-
-export const CreateTask = ({ onTaskCreated }: CreateTaskProps) => {
-  return <CreateTaskForm onSubmitSuccess={onTaskCreated} />;
 };
