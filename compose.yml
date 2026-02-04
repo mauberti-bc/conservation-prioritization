@@ -229,7 +229,7 @@ services:
     volumes:
       - minio_data:/data
     networks:
-      - biohubbc-network
+      - conservation-network
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
@@ -244,7 +244,7 @@ services:
       minio:
         condition: service_healthy
     networks:
-      - biohubbc-network
+      - conservation-network
     entrypoint:
       - /bin/sh
       - -c
@@ -257,8 +257,6 @@ services:
 
 networks:
   conservation-network:
-    driver: bridge
-  biohubbc-network:
     driver: bridge
 
 volumes:

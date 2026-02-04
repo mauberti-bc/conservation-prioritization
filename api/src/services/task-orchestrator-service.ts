@@ -168,6 +168,7 @@ export class TaskOrchestratorService extends DBService {
         prefect_deployment_id: deploymentId
       });
     } catch (error) {
+      console.log(error);
       await this.taskService.updateTaskExecution(task.task_id, {
         status: TASK_STATUS.FAILED_TO_SUBMIT,
         status_message: error instanceof Error ? error.message : 'Failed to submit task to Prefect.'
@@ -283,9 +284,7 @@ export class TaskOrchestratorService extends DBService {
     const layerPaths = new Set<string>();
 
     request.layers.forEach((layer) => {
-      if (layer.layer_name) {
-        layerPaths.add(layer.layer_name);
-      }
+      layerPaths.add(layer.layer_name);
     });
 
     if (request.budget?.layer_name) {

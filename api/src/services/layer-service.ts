@@ -1,3 +1,5 @@
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { ApiGeneralError } from '../errors/api-error';
 import { LayerMeta } from '../models/layer.interface';
 import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination';
@@ -7,7 +9,7 @@ import { parseArraysFromConsolidatedMetadata } from '../utils/zarr';
 type ZarrModule = typeof import('zarrita');
 
 /**
- * Cache entry for parsed Zarr layers
+ * Cache entry for parsed Zarr layers.
  */
 interface LayerCache {
   layers: LayerMeta[];
@@ -21,9 +23,11 @@ interface LayerCache {
  * @class LayerService
  */
 export class LayerService {
-  private store: any | null = null;
+  /** Lazy-loaded Zarrita module */
   private zarrModulePromise: Promise<ZarrModule> | null = null;
-  private readonly zarrUrl: string;
+
+  /** Raw Zarr store path */
+  private readonly zarrPath: string;
 
   /** In-memory cache for parsed Zarr layers */
   private static cache: LayerCache | null = null;
@@ -34,20 +38,22 @@ export class LayerService {
   /**
    * Creates an instance of the LayerService.
    *
+   * Reads and validates the ZARR_STORE_PATH environment variable.
+   *
    * @memberof LayerService
    */
   constructor() {
-    const zarrUrl = process.env.ZARR_STORE_PATH;
+    const raw = process.env.ZARR_STORE_PATH;
 
-    if (!zarrUrl) {
-      throw new ApiGeneralError('Zarr URL not defined', []);
+    if (!raw) {
+      throw new ApiGeneralError('ZARR_STORE_PATH not defined', []);
     }
 
-    this.zarrUrl = zarrUrl;
+    this.zarrPath = raw.trim().replace(/^"(.*)"$/, '$1');
   }
 
   /**
-   * Lazily loads the Zarr module to avoid CJS import issues.
+   * Lazily loads the Zarrita module.
    *
    * @returns {Promise<ZarrModule>}
    * @private
@@ -61,23 +67,36 @@ export class LayerService {
   }
 
   /**
-   * Lazily constructs the Zarr FetchStore.
+   * Create a simple store object that reads from the local filesystem.
+   * Compatible with zarrita's store interface.
    *
-   * @returns {Promise<any>}
+   * @returns {any} Store object with get() method
    * @private
    */
-  private async getStore(): Promise<any> {
-    if (!this.store) {
-      const zarr = await this.getZarrModule();
-      this.store = new zarr.FetchStore(this.zarrUrl);
-    }
+  private createLocalStore(): any {
+    const basePath = this.zarrPath;
 
-    return this.store;
+    return {
+      get: async (key: string): Promise<ArrayBuffer | null> => {
+        try {
+          const filePath = path.join(basePath, key);
+          const data = await fs.readFile(filePath);
+          return data.buffer;
+        } catch (error) {
+          const err = error as NodeJS.ErrnoException;
+          if (err.code === 'ENOENT') {
+            return null;
+          }
+          throw error;
+        }
+      }
+    };
   }
 
   /**
    * Load and parse all layers from the Zarr store.
-   * Uses an in-memory cache to avoid repeated downloads of `.zmetadata`.
+   *
+   * Uses an in-memory cache to avoid repeated reads of `.zmetadata`.
    *
    * @returns {Promise<LayerMeta[]>}
    * @private
@@ -90,11 +109,14 @@ export class LayerService {
     }
 
     const zarr = await this.getZarrModule();
-    const store = await this.getStore();
+    const store = this.createLocalStore();
     const location = zarr.root(store);
+
+    // Resolve consolidated metadata path
     const metadataPath = location.resolve('.zmetadata').path;
 
     let consolidatedMetadata: unknown;
+
     try {
       const metadataBytes = await store.get(metadataPath);
 
@@ -112,7 +134,9 @@ export class LayerService {
     const metadataRecord = (consolidatedMetadata as { metadata?: unknown }).metadata;
 
     if (!metadataRecord || typeof metadataRecord !== 'object') {
-      throw new ApiGeneralError('Invalid consolidated Zarr metadata payload', [{ label: 'LayerService.loadAllLayers' }]);
+      throw new ApiGeneralError('Invalid consolidated Zarr metadata payload', [
+        { label: 'LayerService.loadAllLayers' }
+      ]);
     }
 
     const layers = parseArraysFromConsolidatedMetadata(metadataRecord as Record<string, unknown>).sort((a, b) =>
@@ -155,7 +179,7 @@ export class LayerService {
    *
    * @param {string} searchTerm Optional search term
    * @param {ApiPaginationOptions} pagination Pagination options
-   * @returns {Promise<{ layers: LayerMeta[]; pagination: ApiPaginationResults }>}
+   * @returns {Promise<{ layers: LayerMeta[]; pagination: ApiPaginationResults | null }>}
    * @memberof LayerService
    */
   async findLayers(

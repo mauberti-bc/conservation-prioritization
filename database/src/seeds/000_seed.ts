@@ -123,18 +123,21 @@ export async function seed(knex: Knex): Promise<void> {
       .where({ name: profile.system_role ?? 'member', scope: 'profile', record_end_date: null })
       .first();
 
-    await knex('profile').insert({
-      profile_guid: profile.profile_guid,
-      profile_identifier: profile.profile_identifier,
-      identity_source: profile.identity_source,
-      role_id: resolvedRole?.role_id || null,
-      display_name: profile.display_name,
-      email: profile.email,
-      given_name: profile.given_name,
-      family_name: profile.family_name,
-      agency: profile.agency,
-      notes: profile.notes
-    });
+    await knex('profile')
+      .insert({
+        profile_guid: profile.profile_guid,
+        profile_identifier: profile.profile_identifier,
+        identity_source: profile.identity_source,
+        role_id: resolvedRole?.role_id || null,
+        display_name: profile.display_name,
+        email: profile.email,
+        given_name: profile.given_name,
+        family_name: profile.family_name,
+        agency: profile.agency,
+        notes: profile.notes
+      })
+      .onConflict()
+      .ignore();
   }
 
   /* ==========================================================================
