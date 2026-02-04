@@ -30,6 +30,7 @@ db-setup: | check-env build-db-setup run-db-setup
 clamav: | check-env build-clamav run-clamav
 
 fix: | lint-fix format-fix
+install: | install-deps
 
 ## ------------------------------------------------------------------------------
 ## Setup Commands
@@ -46,6 +47,22 @@ check-env: ## Warn if env vars missing in .env
 	@echo "Make: check-env - checking for missing env vars"
 	@echo "==============================================="
 	@awk -F '=' 'NR==FNR && !/^#/ && NF {a[$$1]; next} !/^#/ && NF && !($$1 in a)' .env env_config/env.docker | while read -r line; do echo "Warning: Missing value for $$line in .env"; done
+
+## ------------------------------------------------------------------------------
+## Install Commands
+## ------------------------------------------------------------------------------
+
+install-deps: ## Install dependencies using Corepack + Yarn
+	@echo "==============================================="
+	@echo "Make: install - installing dependencies"
+	@echo "==============================================="
+	@corepack enable
+	@corepack prepare yarn@4.11.0 --activate
+	@corepack yarn --version
+	@corepack yarn install
+	@corepack yarn --cwd api install
+	@corepack yarn --cwd frontend install
+	@corepack yarn --cwd database install
 
 ## ------------------------------------------------------------------------------
 ## Cleanup Commands

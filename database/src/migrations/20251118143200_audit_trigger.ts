@@ -17,9 +17,6 @@ export async function up(knex: Knex): Promise<void> {
     ----------------------------------------------------------------------------------------
     -- Step 1: Insert first profile with role resolved via CTE
     WITH w_role AS (
-      SELECT role_id FROM role WHERE name = '${SYSTEM_ROLE.ADMIN}'
-    )
-    WITH w_role AS (
       SELECT role_id
       FROM role
       WHERE name = '${SYSTEM_ROLE.ADMIN}'
