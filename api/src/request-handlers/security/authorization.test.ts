@@ -4,7 +4,6 @@ import { describe } from 'mocha';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import { HTTPError } from '../../errors/http-error';
-import { ProfileExtended } from '../../repositories/profile-repository';
 import { AuthorizationService } from '../../services/authorization-service';
 import { getRequestHandlerMocks, registerMockDBConnection } from '../../__mocks__/db';
 import * as authorization from './authorization';
@@ -64,23 +63,8 @@ describe('authorizeRequest', function () {
     sinon.restore();
   });
 
-  it('returns false if systemUserObject is null', async function () {
-    registerMockDBConnection();
-
-    const mockProfileObject = undefined as unknown as ProfileExtended;
-    sinon.stub(AuthorizationService.prototype, 'getProfileObject').resolves(mockProfileObject);
-
-    const mockReq = { authorization_scheme: {} } as unknown as Request;
-    const isAuthorized = await authorization.authorizeRequest(mockReq);
-
-    expect(isAuthorized).to.equal(false);
-  });
-
   it('returns true if the user is a system administrator', async function () {
     registerMockDBConnection();
-
-    const mockProfileObject = { role_names: [] } as unknown as ProfileExtended;
-    sinon.stub(AuthorizationService.prototype, 'getProfileObject').resolves(mockProfileObject);
 
     sinon.stub(AuthorizationService.prototype, 'authorizeSystemAdministrator').resolves(true);
 
@@ -93,9 +77,6 @@ describe('authorizeRequest', function () {
   it('returns true if the authorization_scheme is undefined', async function () {
     registerMockDBConnection();
 
-    const mockProfileObject = { role_names: [] } as unknown as ProfileExtended;
-    sinon.stub(AuthorizationService.prototype, 'getProfileObject').resolves(mockProfileObject);
-
     sinon.stub(AuthorizationService.prototype, 'authorizeSystemAdministrator').resolves(false);
 
     const mockReq = { authorization_scheme: undefined } as unknown as Request;
@@ -106,9 +87,6 @@ describe('authorizeRequest', function () {
 
   it('returns true if the user is authorized against the authorization_scheme', async function () {
     registerMockDBConnection();
-
-    const mockProfileObject = { role_names: [] } as unknown as ProfileExtended;
-    sinon.stub(AuthorizationService.prototype, 'getProfileObject').resolves(mockProfileObject);
 
     sinon.stub(AuthorizationService.prototype, 'authorizeSystemAdministrator').resolves(false);
 
@@ -122,9 +100,6 @@ describe('authorizeRequest', function () {
 
   it('returns false if the user is not authorized against the authorization_scheme', async function () {
     registerMockDBConnection();
-
-    const mockProfileObject = { role_names: [] } as unknown as ProfileExtended;
-    sinon.stub(AuthorizationService.prototype, 'getProfileObject').resolves(mockProfileObject);
 
     sinon.stub(AuthorizationService.prototype, 'authorizeSystemAdministrator').resolves(false);
 

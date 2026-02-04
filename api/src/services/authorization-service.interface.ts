@@ -18,10 +18,10 @@ enum AuthorizeOperator {
   OR = 'or'
 }
 
-// Add a new interface for the `SystemRole` discriminator
-export interface AuthorizeBySystemRole {
-  validSystemRoles: SYSTEM_ROLE[];
-  discriminator: 'SystemRole';
+// Add a new interface for the `Profile` discriminator
+export interface AuthorizeByProfile {
+  validSystemRoles?: SYSTEM_ROLE[];
+  discriminator: 'Profile';
 }
 
 export interface AuthorizeByTask {
@@ -36,7 +36,7 @@ export interface AuthorizeByProject {
   discriminator: 'Project';
 }
 
-export type AuthorizeRule = AuthorizeBySystemRole | AuthorizeByTask | AuthorizeByProject;
+export type AuthorizeRule = AuthorizeByProfile | AuthorizeByTask | AuthorizeByProject;
 
 export type AuthorizeConfigOr = {
   [AuthorizeOperator.AND]?: never;

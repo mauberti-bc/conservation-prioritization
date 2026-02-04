@@ -3,6 +3,7 @@ import { RequestHandler } from 'express-serve-static-core';
 import { getAPIUserDBConnection } from '../../database/db';
 import { HTTP403 } from '../../errors/http-error';
 import { AuthorizationService } from '../../services/authorization-service';
+import { AuthorizationScheme } from '../../services/authorization-service.interface';
 import { getLogger } from '../../utils/logger';
 
 const defaultLog = getLogger('request-handlers/security/authorization');
@@ -48,7 +49,7 @@ export const authorizeRequest = async (req: Request): Promise<boolean> => {
   const connection = getAPIUserDBConnection();
 
   try {
-    const authorizationScheme: AuthorizationScheme = req['authorization_scheme'];
+    const authorizationScheme: AuthorizationScheme = req.authorization_scheme;
 
     if (!authorizationScheme) {
       // No authorization scheme specified, all authenticated users are authorized
@@ -58,16 +59,17 @@ export const authorizeRequest = async (req: Request): Promise<boolean> => {
     await connection.open();
 
     const authorizationService = new AuthorizationService(connection, {
-      systemUser: req['profile'],
-      keycloakToken: req['keycloak_token']
+      profile: req.profile,
+      keycloakToken: req.keycloak_token
     });
 
-    const isAuthorized =
-      (await authorizationService.authorizeSystemAdministrator()) ||
-      (await authorizationService.executeAuthorizationScheme(authorizationScheme));
+    const isSystemAdmin = await authorizationService.authorizeSystemAdministrator();
 
-    // Add the profile to the request for future use, if needed
-    req['profile'] = authorizationService.systemUser;
+    const isAuthorized = isSystemAdmin
+      ? true
+      : await authorizationService.executeAuthorizationScheme(authorizationScheme);
+
+    req.profile = authorizationService.getProfile();
 
     await connection.commit();
 
