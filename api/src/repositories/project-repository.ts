@@ -170,17 +170,38 @@ export class ProjectRepository extends BaseRepository {
    * @memberof ProjectRepository
    */
   async updateProject(projectId: string, updates: UpdateProject): Promise<Project> {
-    const sqlStatement = SQL`
-      UPDATE project
-      SET
-        name = COALESCE(${updates.name}, name),
-        description = COALESCE(${updates.description}, description)
+    const sqlStatement = SQL`UPDATE project SET `;
+    const updateFragments: SQLStatement[] = [];
+
+    if (updates.name !== undefined) {
+      updateFragments.push(SQL`name = ${updates.name}`);
+    }
+
+    if (updates.description !== undefined) {
+      updateFragments.push(SQL`description = ${updates.description}`);
+    }
+
+    if (!updateFragments.length) {
+      throw new ApiExecuteSQLError('No project updates provided', [
+        'ProjectRepository->updateProject',
+        'Expected at least one update field'
+      ]);
+    }
+
+    updateFragments.forEach((fragment, index) => {
+      if (index > 0) {
+        sqlStatement.append(SQL`, `);
+      }
+      sqlStatement.append(fragment);
+    });
+
+    sqlStatement.append(SQL`
       WHERE
         project_id = ${projectId}
       AND
         record_end_date IS NULL
       RETURNING project_id, name, description
-    `;
+    `);
 
     const response = await this.connection.sql(sqlStatement, Project);
 

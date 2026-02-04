@@ -87,6 +87,17 @@ export const TaskDetailsPanel = () => {
         hasNoData={Boolean(taskDataLoader.error || !task)}
         hasNoDataFallback={
           <Box p={3}>
+            <IconButton
+              aria-label="Back to tasks"
+              size="small"
+              sx={{
+                color: grey[700],
+              }}
+              onClick={() => {
+                setFocusedTask(null);
+              }}>
+              <Icon path={mdiArrowLeft} size={1} color="rgba(97, 97, 97, 1)" />
+            </IconButton>
             <Typography color="error">Failed to load task.</Typography>
           </Box>
         }>
