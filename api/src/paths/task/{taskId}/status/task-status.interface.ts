@@ -1,4 +1,6 @@
+import { TaskStatus } from '../../../../models/task';
+
 export interface UpdateTaskStatusBody {
-  status: string;
+  status: TaskStatus;
   message?: string | null;
 }

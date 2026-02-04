@@ -4,9 +4,9 @@ import Typography from '@mui/material/Typography';
 import Stack from '@mui/system/Stack';
 import { LabelledSection } from 'components/layout/LabelledSection';
 import { TooltipStack } from 'components/tooltip/TooltipStack';
+import { useFormikContext } from 'formik';
 import { Feature } from 'geojson';
 import { OPTIMIZATION_VARIANT, RESAMPLING } from 'hooks/interfaces/useTaskApi.interface';
-import { useFormikContext } from 'formik';
 import { TaskAdvancedSection } from './advanced/TaskAdvancedSection';
 import { TaskAreaSection } from './area/TaskAreaSection';
 import { TaskBudgetSection } from './budget/TaskBudgetSection';
@@ -69,7 +69,7 @@ export const TaskCreateForm = ({ isReadOnly = false }: TaskCreateFormProps) => {
                 value={values.description ?? ''}
                 onChange={handleChange}
                 multiline
-                minRows={3}
+                minRows={2}
                 error={touched.description && Boolean(errors.description)}
                 helperText={touched.description && errors.description ? String(errors.description) : ''}
               />

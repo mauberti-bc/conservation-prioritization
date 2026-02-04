@@ -1,4 +1,5 @@
 import { IDBConnection } from '../database/db';
+import { ApiGeneralError } from '../errors/api-error';
 import { PrefectSubmissionError } from '../errors/prefect-error';
 import { CreateGeometry } from '../models/geometry';
 import { CreateTask, TaskStatus } from '../models/task';
@@ -8,7 +9,9 @@ import { CreateTaskRequest } from '../models/task-orchestrator';
 import { TaskWithLayers } from '../models/task.interface';
 import { TASK_STATUS } from '../types/status';
 import { buildOptimizationParameters } from '../utils/task-optimization';
+import { DBService } from './db-service';
 import { GeometryService } from './geometry-service';
+import { LayerService } from './layer-service';
 import { PrefectService } from './prefect-service';
 import { TaskGeometryService } from './task-geometry-service';
 import { TaskLayerConstraintService } from './task-layer-constraint-service';
@@ -21,7 +24,7 @@ import { TaskService } from './task-service';
  * @export
  * @class TaskOrchestratorService
  */
-export class TaskOrchestratorService {
+export class TaskOrchestratorService extends DBService {
   private taskService: TaskService;
   private taskLayerService: TaskLayerService;
   private taskLayerConstraintService: TaskLayerConstraintService;
@@ -36,6 +39,7 @@ export class TaskOrchestratorService {
    * @memberof TaskOrchestratorService
    */
   constructor(connection: IDBConnection) {
+    super(connection);
     this.taskService = new TaskService(connection);
     this.taskLayerService = new TaskLayerService(connection);
     this.taskLayerConstraintService = new TaskLayerConstraintService(connection);
@@ -56,6 +60,9 @@ export class TaskOrchestratorService {
     const taskData: CreateTask = {
       name: request.name,
       description: request.description,
+      resolution: request.resolution ?? null,
+      resampling: request.resampling ?? null,
+      variant: request.variant ?? null,
       status: TASK_STATUS.PENDING
     };
     const task = await this.taskService.createTask(taskData);
@@ -143,6 +150,7 @@ export class TaskOrchestratorService {
     const optimizationParameters = buildOptimizationParameters(request);
 
     try {
+      await this.validateLayerPaths(request);
       const { deploymentId, flowRunId } = await this.prefectService.submitStrictOptimization(
         task.task_id,
         optimizationParameters
@@ -159,6 +167,9 @@ export class TaskOrchestratorService {
         status: TASK_STATUS.FAILED_TO_SUBMIT,
         status_message: error instanceof Error ? error.message : 'Failed to submit task to Prefect.'
       });
+
+      // Commit because this is a transaction, so throwing will roll back the above update to failure
+      await this.connection.commit();
 
       throw new PrefectSubmissionError('Failed to submit task to Prefect.');
     }
@@ -197,27 +208,14 @@ export class TaskOrchestratorService {
       geometry: task.geometries?.map((geometry) => ({
         name: geometry.name ?? null,
         description: geometry.description ?? null,
-        geojson: geometry.geojson
-      })),
-      budget: task.budget
-        ? {
-            layer_name: task.budget.layer_name,
-            description: task.budget.description ?? null,
-            mode: task.budget.mode,
-            importance: task.budget.importance ?? null,
-            threshold: task.budget.threshold ?? null,
-            constraints: task.budget.constraints.map((constraint) => ({
-              type: constraint.type,
-              min: constraint.min ?? null,
-              max: constraint.max ?? null
-            }))
-          }
-        : undefined
+        geojson: this.normalizeGeoJsonPayload(geometry.geojson)
+      }))
     };
 
     const optimizationParameters = buildOptimizationParameters(request);
 
     try {
+      await this.validateLayerPaths(request);
       const { deploymentId, flowRunId } = await this.prefectService.submitStrictOptimization(
         task.task_id,
         optimizationParameters
@@ -235,10 +233,72 @@ export class TaskOrchestratorService {
         status_message: error instanceof Error ? error.message : 'Failed to submit task to Prefect.'
       });
 
+      // Commit because this is a transaction, so throwing will roll back the above update to failure
+      await this.connection.commit();
+
       throw new PrefectSubmissionError('Failed to submit task to Prefect.');
     }
 
     return this.taskService.getTaskById(task.task_id);
+  }
+
+  /**
+   * Normalize geometry payloads to the shape expected by CreateTaskGeometryRequest.
+   *
+   * @param {unknown} geojson
+   * @return {*}  {{ geometry: unknown; [key: string]: unknown }}
+   * @memberof TaskOrchestratorService
+   */
+  private normalizeGeoJsonPayload(geojson: unknown): { geometry: unknown; [key: string]: unknown } {
+    if (geojson && typeof geojson === 'object' && 'geometry' in geojson) {
+      return geojson as { geometry: unknown; [key: string]: unknown };
+    }
+
+    return { geometry: geojson };
+  }
+
+  /**
+   * Validate that all requested layer paths exist in the Zarr store before submitting to Prefect.
+   *
+   * @param {CreateTaskRequest} request
+   * @return {*}  {Promise<void>}
+   * @memberof TaskOrchestratorService
+   */
+  private async validateLayerPaths(request: CreateTaskRequest): Promise<void> {
+    const layerPaths = new Set<string>();
+
+    request.layers.forEach((layer) => {
+      if (layer.layer_name) {
+        layerPaths.add(layer.layer_name);
+      }
+    });
+
+    if (request.budget?.layer_name) {
+      layerPaths.add(request.budget.layer_name);
+    }
+
+    if (!layerPaths.size) {
+      throw new ApiGeneralError('Task must include at least one layer path to submit.');
+    }
+
+    const invalidPaths = Array.from(layerPaths).filter((path) => !path.includes('/'));
+    if (invalidPaths.length) {
+      throw new ApiGeneralError('Invalid layer path format. Expected group/variable path.', invalidPaths);
+    }
+
+    const layerService = new LayerService();
+    const lookups = await Promise.all(
+      Array.from(layerPaths).map(async (path) => {
+        const found = await layerService.getLayerByPath(path);
+        return { path, found };
+      })
+    );
+
+    const missingPaths = lookups.filter((item) => !item.found).map((item) => item.path);
+
+    if (missingPaths.length) {
+      throw new ApiGeneralError('One or more layer paths were not found in the Zarr store.', missingPaths);
+    }
   }
 
   /**

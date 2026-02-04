@@ -61,7 +61,7 @@ services:
     container_name: ${DOCKER_PROJECT_NAME}-prefect-worker-${DOCKER_NAMESPACE}-container
     command: ["prefect", "worker", "start", "-p", "local"]
     volumes:
-      - ./workflows/data:/data
+      - zarr_data:/data
     depends_on:
       prefect_deploy:
         condition: service_completed_successfully
@@ -207,7 +207,7 @@ services:
     volumes:
       - ./api:/opt/app-root/src
       - /opt/app-root/src/node_modules
-      - ./workflows/data:/data
+      - zarr_data:/data
       - ./workflows/data:/opt/app-root/src/public/data
     depends_on:
       db:
@@ -265,3 +265,9 @@ volumes:
   postgres:
     name: ${DOCKER_PROJECT_NAME}-db-${DOCKER_NAMESPACE}-vol
   minio_data:
+  zarr_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./workflows/data
