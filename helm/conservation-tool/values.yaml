@@ -6,6 +6,7 @@ autoscaling:
 gitRepo: https://github.com/mauberti-bc/conservation-prioritization.git
 gitRef: main
 registry: image-registry.apps.gold.devops.gov.bc.ca/fa9440-tools
+objectStorageUrl: https://nrs.objectstore.gov.bc.ca:443/
 
 ports:
   frontend: 7070
