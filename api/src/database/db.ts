@@ -92,6 +92,7 @@ export const getDBPool = (): pg.Pool => {
  */
 export interface IDBConnection {
   open: () => Promise<void>;
+  openWithoutTransaction: () => Promise<void>;
   release: () => void;
   commit: () => Promise<void>;
   rollback: () => Promise<void>;
@@ -147,6 +148,21 @@ export const getDBConnection = ({
 
     await setUserContext();
     await client.query('BEGIN');
+  };
+
+  /**
+   * Opens the database connection without starting a transaction
+   */
+  const openWithoutTransaction = async () => {
+    if (isOpen) {
+      return;
+    }
+
+    client = await getDBPool().connect();
+    isOpen = true;
+    isReleased = false;
+
+    await setUserContext();
   };
 
   /**
@@ -295,6 +311,7 @@ export const getDBConnection = ({
 
   return {
     open: asyncErrorWrapper(open),
+    openWithoutTransaction: asyncErrorWrapper(openWithoutTransaction),
     release: syncErrorWrapper(release),
     commit: asyncErrorWrapper(commit),
     rollback: asyncErrorWrapper(rollback),

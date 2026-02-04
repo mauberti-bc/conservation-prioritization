@@ -6,6 +6,7 @@ import { CreateTaskLayer } from '../models/task-layer';
 import { CreateTaskLayerConstraint } from '../models/task-layer-constraint';
 import { PrefectSubmissionError } from '../errors/prefect-error';
 import { buildOptimizationParameters } from '../utils/task-optimization';
+import { TASK_STATUS } from '../types/status';
 import { PrefectService } from './prefect-service';
 import { TaskLayerConstraintService } from './task-layer-constraint-service';
 import { TaskLayerService } from './task-layer-service';
@@ -48,7 +49,7 @@ export class TaskOrchestratorService {
     const taskData: CreateTask = {
       name: request.name,
       description: request.description,
-      status: 'pending'
+      status: TASK_STATUS.PENDING
     };
     const task = await this.taskService.createTask(taskData);
 
@@ -121,14 +122,14 @@ export class TaskOrchestratorService {
       );
 
       await this.taskService.updateTaskExecution(task.task_id, {
-        status: 'submitted',
+        status: TASK_STATUS.SUBMITTED,
         status_message: null,
         prefect_flow_run_id: flowRunId,
         prefect_deployment_id: deploymentId
       });
     } catch (error) {
       await this.taskService.updateTaskExecution(task.task_id, {
-        status: 'failed_to_submit',
+        status: TASK_STATUS.FAILED_TO_SUBMIT,
         status_message: error instanceof Error ? error.message : 'Failed to submit task to Prefect.'
       });
 

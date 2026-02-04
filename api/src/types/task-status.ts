@@ -1,9 +1,11 @@
+import type { TaskStatusValue, TileStatusValue } from './status';
+
 export interface TaskStatusMessage {
   task_id: string;
-  status: string;
+  status: TaskStatusValue;
   updated_at?: string;
   tile?: {
-    status: string;
+    status: TileStatusValue;
     uri?: string | null;
   } | null;
 }

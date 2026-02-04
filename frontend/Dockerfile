@@ -27,6 +27,7 @@ ENV VITE_ZARR_STORE_PATH=$VITE_ZARR_STORE_PATH
 
 # Copy Yarn configuration files
 COPY package.json yarn.lock .yarnrc.yml ./
+COPY .yarn/ .yarn/
 
 # Install dependencies with Yarn 4.11.0
 RUN yarn install --immutable

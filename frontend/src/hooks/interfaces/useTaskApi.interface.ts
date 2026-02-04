@@ -1,3 +1,5 @@
+import type { TaskStatusValue } from 'constants/status';
+
 export enum OPTIMIZATION_VARIANT {
   STRICT = 'strict',
   APPROXIMATE = 'approximate',
@@ -54,12 +56,14 @@ export interface CreateTaskRequest {
 /**
  * Response interface for a task (including layers and constraints).
  */
+import type { TaskStatusValue } from 'constants/status';
+
 export interface GetTaskResponse {
   task_id: string; // UUID of the task
   name: string; // Name of the task
   description: string | null; // Description of the task
   tileset_uri?: string | null;
-  status: 'pending' | 'submitted' | 'running' | 'completed' | 'failed' | 'failed_to_submit';
+  status: TaskStatusValue;
   status_message?: string | null;
   prefect_flow_run_id?: string | null;
   prefect_deployment_id?: string | null;
