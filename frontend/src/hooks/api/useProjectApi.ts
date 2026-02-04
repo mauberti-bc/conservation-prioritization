@@ -1,4 +1,5 @@
 import { AxiosInstance } from 'axios';
+import { InviteProfilesRequest, InviteProfilesResponse } from 'hooks/interfaces/invite.interface';
 import { CreateProjectRequest, GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import qs from 'qs';
@@ -102,6 +103,21 @@ export const useProjectApi = (axios: AxiosInstance) => {
     return data;
   };
 
+  /**
+   * Invite profiles to a project by email.
+   *
+   * @param {string} projectId
+   * @param {InviteProfilesRequest} payload
+   * @return {Promise<InviteProfilesResponse>}
+   */
+  const inviteProfilesToProject = async (
+    projectId: string,
+    payload: InviteProfilesRequest
+  ): Promise<InviteProfilesResponse> => {
+    const { data } = await axios.post<InviteProfilesResponse>(`/api/project/${projectId}/profile`, payload);
+    return data;
+  };
+
   return {
     createProject,
     getProjectById,
@@ -110,5 +126,6 @@ export const useProjectApi = (axios: AxiosInstance) => {
     deleteProject,
     addTasksToProject,
     getProjectTasks,
+    inviteProfilesToProject,
   };
 };

@@ -219,6 +219,43 @@ export class ProfileRepository extends BaseRepository {
   }
 
   /**
+   * Fetches an active profile by email address.
+   *
+   * @param {string} email
+   * @return {*}  {Promise<Profile | null>}
+   * @memberof ProfileRepository
+   */
+  async findProfileByEmail(email: string): Promise<Profile | null> {
+    const sqlStatement = SQL`
+      SELECT
+        p.profile_id,
+        p.identity_source,
+        p.profile_identifier,
+        p.profile_guid,
+        p.role_id,
+        p.display_name,
+        p.email,
+        p.given_name,
+        p.family_name,
+        p.agency,
+        p.notes,
+        r.name as role_name
+      FROM
+        profile p
+      LEFT JOIN role r ON r.role_id = p.role_id
+      WHERE
+        LOWER(p.email) = LOWER(${email})
+      AND
+        p.record_end_date IS NULL
+      LIMIT 1;
+    `;
+
+    const response = await this.connection.sql(sqlStatement, Profile);
+
+    return response.rows[0] ?? null;
+  }
+
+  /**
    * Updates an existing active profile.
    *
    * Only supplied fields will be updated; all others remain unchanged.
@@ -353,6 +390,7 @@ export class ProfileRepository extends BaseRepository {
    * @memberof ProfileRepository
    */
   async getRoleIdByNameAndScope(roleName: string, roleScope: string): Promise<string> {
+    console.log(roleName, roleScope);
     const sqlStatement = SQL`
       SELECT role_id
       FROM role

@@ -1,5 +1,6 @@
 import { Box, List, Typography } from '@mui/material';
 import { grey } from '@mui/material/colors';
+import { InviteDialog } from 'components/dialog/InviteDialog';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { SkeletonList } from 'components/loading/SkeletonLoaders';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
@@ -33,6 +34,9 @@ export const TaskList = ({
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [projectDialogTaskIds, setProjectDialogTaskIds] = useState<string[]>([]);
+  const [inviteTask, setInviteTask] = useState<GetTaskResponse | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   const handleDeleteTask = (task: GetTaskResponse) => {
     dialogContext.setYesNoDialog({
@@ -57,6 +61,41 @@ export const TaskList = ({
     setSelectedTaskIds([task.task_id]);
     setProjectDialogTaskIds([task.task_id]);
     setProjectDialogOpen(true);
+  };
+
+  const handleInviteTask = (task: GetTaskResponse) => {
+    setInviteError(null);
+    setInviteTask(task);
+  };
+
+  const handleInviteSubmit = async (emails: string[]) => {
+    if (!inviteTask) {
+      return;
+    }
+
+    try {
+      setInviteLoading(true);
+      setInviteError(null);
+
+      const result = await conservationApi.task.inviteProfilesToTask(inviteTask.task_id, { emails });
+      const skippedCount = result.skipped_emails.length;
+      const addedCount = result.added_profile_ids.length;
+
+      dialogContext.setSnackbar({
+        open: true,
+        snackbarMessage:
+          skippedCount > 0
+            ? `Invited ${addedCount} profile(s). Skipped ${skippedCount} email(s).`
+            : `Invited ${addedCount} profile(s).`,
+      });
+
+      setInviteTask(null);
+    } catch (error) {
+      console.error('Failed to invite profiles to task', error);
+      setInviteError('Failed to send invites. Please try again.');
+    } finally {
+      setInviteLoading(false);
+    }
   };
 
   const handleConfirmAddToProject = async (projectIds: string[]) => {
@@ -97,6 +136,7 @@ export const TaskList = ({
               onEditTask={onEditTask}
               onDeleteTask={handleDeleteTask}
               onAddToProject={handleAddToProject}
+              onInvite={handleInviteTask}
               showActions={enableActions}
             />
           ))}
@@ -112,6 +152,17 @@ export const TaskList = ({
           onSubmit={handleConfirmAddToProject}
         />
       )}
+      <InviteDialog
+        open={Boolean(inviteTask)}
+        title={inviteTask ? `Invite to ${inviteTask.name}` : 'Invite to Task'}
+        description="Enter email addresses to add existing profiles to this task."
+        onClose={() => {
+          setInviteTask(null);
+        }}
+        onSubmit={handleInviteSubmit}
+        isSubmitting={inviteLoading}
+        error={inviteError}
+      />
     </Box>
   );
 };

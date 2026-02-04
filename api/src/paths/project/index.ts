@@ -68,8 +68,10 @@ export function createProject(): RequestHandler {
     try {
       await connection.open();
 
+      const profileId = connection.profileId();
+
       const projectService = new ProjectService(connection);
-      const project = await projectService.createProject(payload);
+      const project = await projectService.createProjectWithCreator(payload, profileId);
 
       await connection.commit();
 

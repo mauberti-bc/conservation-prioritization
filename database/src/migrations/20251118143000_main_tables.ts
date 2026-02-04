@@ -13,7 +13,7 @@ export async function up(knex: Knex): Promise<void> {
     SET search_path=conservation,public;
 
     CREATE TYPE identity_source AS ENUM ('${IDENTITY_SOURCE.SYSTEM}', '${IDENTITY_SOURCE.IDIR}', '${IDENTITY_SOURCE.AZURE_IDIR}', '${IDENTITY_SOURCE.DATABASE}');
-    CREATE TYPE role_scope AS ENUM ('system', 'task', 'profile');
+    CREATE TYPE role_scope AS ENUM ('system', 'project', 'task', 'profile', 'dashboard');
     CREATE TYPE task_status AS ENUM ('pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit');
     CREATE TYPE task_layer_mode AS ENUM ('flexible', 'locked-in', 'locked-out');
     CREATE TYPE task_layer_constraint_type AS ENUM ('percent', 'unit');

@@ -51,7 +51,7 @@ export async function seed(knex: Knex): Promise<void> {
    * ROLES (from SEED_CONSTANTS)
    * ========================================================================== */
 
-  for (const role of C.SYSTEM_ROLES) {
+  for (const role of C.PROFILE_ROLES) {
     await knex.raw(
       `
         INSERT INTO role (name, description, scope)
@@ -105,7 +105,7 @@ export async function seed(knex: Knex): Promise<void> {
 
   const projectAdminRole = await knex('role')
     .select('role_id')
-    .where({ name: 'admin', scope: 'profile', record_end_date: null })
+    .where({ name: 'admin', scope: 'project', record_end_date: null })
     .first();
 
   const taskAdminRole = await knex('role')
@@ -120,7 +120,7 @@ export async function seed(knex: Knex): Promise<void> {
   for (const profile of C.PROFILES) {
     const resolvedRole = await knex('role')
       .select('role_id')
-      .where({ name: profile.system_role ?? 'member', scope: 'system', record_end_date: null })
+      .where({ name: profile.system_role ?? 'member', scope: 'profile', record_end_date: null })
       .first();
 
     await knex('profile').insert({

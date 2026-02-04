@@ -1,50 +1,76 @@
+import { CircularProgress } from '@mui/material';
 import Box from '@mui/material/Box';
+import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { useMapContext } from 'hooks/useContext';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import * as pmtiles from 'pmtiles';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { attachMapContainer, detachMapContainer, getMapCacheEntry, setMapCacheEntry } from 'utils/mapInstanceCache';
+import { ensurePMTilesProtocol } from 'utils/pmtilesProtocol';
 
-type MapContainerProps = {
+interface MapContainerProps {
   pmtilesUrls?: string[];
-};
+  keepAliveKey?: string;
+}
 
-export const MapContainer = ({ pmtilesUrls = [] }: MapContainerProps) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+/**
+ * Map container with optional instance caching to avoid remounting.
+ *
+ * @param {MapContainerProps} props
+ * @returns {JSX.Element}
+ */
+export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerProps) => {
+  const mapHostRef = useRef<HTMLDivElement | null>(null);
   const { mapRef } = useMapContext();
-  const protocolRef = useRef<pmtiles.Protocol | null>(null);
+  const [isMapInitialized, setIsMapInitialized] = useState(false);
+  const [areLayersLoaded, setAreLayersLoaded] = useState(false);
 
-  // Register PMTiles protocol once
-  useEffect(() => {
-    if (protocolRef.current) {
-      return;
-    }
-
-    protocolRef.current = new pmtiles.Protocol();
-    maplibregl.addProtocol('pmtiles', protocolRef.current.tile);
-  }, []);
+  const isMapLoading = !isMapInitialized || (pmtilesUrls.length > 0 && !areLayersLoaded);
 
   useEffect(() => {
-    if (!containerRef.current) {
-      return;
+    const mapHost = mapHostRef.current;
+    if (!mapHost) {
+      return undefined;
     }
 
-    if (mapRef.current) {
-      const map = mapRef.current;
-      const container = containerRef.current;
-      if (map.getContainer() !== container) {
-        const mapWithContainer = map as maplibregl.Map & { setContainer?: (nextContainer: HTMLElement) => void };
-        if (mapWithContainer.setContainer) {
-          mapWithContainer.setContainer(container);
-          map.resize();
+    ensurePMTilesProtocol();
+
+    if (keepAliveKey) {
+      const cached = getMapCacheEntry(keepAliveKey);
+      if (cached) {
+        attachMapContainer(cached, mapHost);
+        mapRef.current = cached.map;
+
+        if (cached.map.isStyleLoaded()) {
+          ensureBaseLayer(cached.map);
+          setIsMapInitialized(true);
+        } else {
+          cached.map.once('load', () => {
+            ensureBaseLayer(cached.map);
+            setIsMapInitialized(true);
+          });
         }
+
+        cached.map.resize();
+        cached.map.triggerRepaint();
+
+        return () => {
+          detachMapContainer(cached);
+          mapRef.current = null;
+          setIsMapInitialized(false);
+          setAreLayersLoaded(false);
+        };
       }
-      return;
     }
 
-    // Initialize map with default style (empty vector base)
+    const innerContainer = document.createElement('div');
+    innerContainer.style.width = '100%';
+    innerContainer.style.height = '100%';
+    mapHost.innerHTML = '';
+    mapHost.appendChild(innerContainer);
+
     const map = new maplibregl.Map({
-      container: containerRef.current,
+      container: innerContainer,
       style: {
         version: 8,
         sources: {},
@@ -55,58 +81,182 @@ export const MapContainer = ({ pmtilesUrls = [] }: MapContainerProps) => {
       maxZoom: 11,
     });
 
-    // Add navigation controls
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-    map.on('load', () => {
-      // Add OSM tile source
-      if (!map.getSource('osm')) {
-        map.addSource('osm', {
-          type: 'raster',
-          tiles: [
-            'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
-          ],
-          tileSize: 256,
-        });
+    const handleMapReady = () => {
+      ensureBaseLayer(map);
+      setIsMapInitialized(true);
+    };
 
-        map.addLayer({
-          id: 'osm-tiles',
-          type: 'raster',
-          source: 'osm',
-          minzoom: 0,
-          maxzoom: 19,
-        });
-      }
-
-      updatePmtilesLayers(map, pmtilesUrls);
-    });
+    map.once('load', handleMapReady);
+    if (map.isStyleLoaded()) {
+      handleMapReady();
+    }
 
     mapRef.current = map;
-  }, [mapRef, pmtilesUrls]);
+
+    if (keepAliveKey) {
+      setMapCacheEntry(keepAliveKey, { map, container: innerContainer });
+    }
+
+    return () => {
+      if (keepAliveKey) {
+        detachMapContainer({ map, container: innerContainer });
+      } else {
+        map.remove();
+        mapHost.replaceChildren();
+      }
+      mapRef.current = null;
+      setIsMapInitialized(false);
+      setAreLayersLoaded(false);
+    };
+  }, [keepAliveKey, mapRef]);
 
   useEffect(() => {
     const map = mapRef.current;
+    const host = mapHostRef.current;
 
-    if (!map) {
-      return;
+    if (!map || !host) {
+      return undefined;
     }
+
+    const handleResize = () => {
+      map.resize();
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+
+    resizeObserver.observe(host);
+    handleResize();
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [mapRef, isMapInitialized]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapInitialized) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    setAreLayersLoaded(false);
+
+    const applyLayers = () => {
+      updatePmtilesLayers(map, pmtilesUrls);
+
+      if (!pmtilesUrls.length) {
+        setAreLayersLoaded(true);
+        return;
+      }
+
+      let idleTimeout: number | null = null;
+
+      const handleIdle = () => {
+        if (idleTimeout) {
+          window.clearTimeout(idleTimeout);
+          idleTimeout = null;
+        }
+        if (!cancelled) {
+          setAreLayersLoaded(true);
+        }
+      };
+
+      idleTimeout = window.setTimeout(() => {
+        if (!cancelled) {
+          setAreLayersLoaded(true);
+        }
+      }, 1500);
+
+      map.once('idle', handleIdle);
+      map.triggerRepaint();
+    };
 
     if (!map.isStyleLoaded()) {
       map.once('load', () => {
-        updatePmtilesLayers(map, pmtilesUrls);
+        if (!cancelled) {
+          applyLayers();
+        }
       });
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
-    updatePmtilesLayers(map, pmtilesUrls);
-  }, [mapRef, pmtilesUrls]);
+    applyLayers();
 
-  return <Box ref={containerRef} sx={{ width: '100%', height: '100%' }} />;
+    return () => {
+      cancelled = true;
+    };
+  }, [isMapInitialized, mapRef, pmtilesUrls]);
+
+  return (
+    <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
+      <Box ref={mapHostRef} sx={{ position: 'absolute', inset: 0 }} />
+      <LoadingGuard
+        isLoading={isMapLoading}
+        isLoadingFallbackDelay={300}
+        isLoadingFallback={
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              bgcolor: 'rgba(255,255,255,0.8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+            }}>
+            <CircularProgress size={35} />
+          </Box>
+        }>
+        <Box />
+      </LoadingGuard>
+    </Box>
+  );
 };
 
-const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[]) => {
+/**
+ * Ensure the base OSM raster layer exists.
+ *
+ * @param {maplibregl.Map} map
+ * @returns {void}
+ */
+const ensureBaseLayer = (map: maplibregl.Map): void => {
+  if (!map.getSource('osm')) {
+    map.addSource('osm', {
+      type: 'raster',
+      tiles: [
+        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+    });
+  }
+
+  if (!map.getLayer('osm-tiles')) {
+    map.addLayer({
+      id: 'osm-tiles',
+      type: 'raster',
+      source: 'osm',
+      minzoom: 0,
+      maxzoom: 19,
+    });
+  }
+};
+
+/**
+ * Replace PMTiles layers with the provided list of archive URLs.
+ *
+ * @param {maplibregl.Map} map
+ * @param {string[]} pmtilesUrls
+ * @returns {void}
+ */
+const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[]): void => {
   const sourcePrefix = 'pmtiles-';
   const layerPrefix = 'pmtiles-layer-';
 
@@ -135,10 +285,15 @@ const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[]) => {
   pmtilesUrls.forEach((url, index) => {
     const sourceId = `${sourcePrefix}${index}`;
     const layerId = `${layerPrefix}${index}`;
+    const resolvedUrl = url.startsWith('pmtiles://')
+      ? url
+      : url.startsWith('http://') || url.startsWith('https://')
+        ? `pmtiles://${url}`
+        : url;
 
     map.addSource(sourceId, {
       type: 'raster',
-      url,
+      url: resolvedUrl,
       tileSize: 256,
     });
 

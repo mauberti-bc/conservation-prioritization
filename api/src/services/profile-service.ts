@@ -149,7 +149,7 @@ export class ProfileService extends DBService {
       }
     }
 
-    const roleId = await this.profileRepository.getRoleIdByName(SYSTEM_ROLE.MEMBER);
+    const roleId = await this.profileRepository.getRoleIdByNameAndScope(SYSTEM_ROLE.MEMBER, 'profile');
 
     return [
       await this.profileRepository.createProfile({
