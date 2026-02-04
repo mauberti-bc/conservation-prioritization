@@ -90,6 +90,8 @@ export class TaskService extends DBService {
     const taskProjects = await this.projectRepository.getProjectsByTaskIds([taskId]);
     const dashboardId = await this.dashboardTaskRepository.getLatestDashboardIdForTask(taskId);
 
+    // Generate presigned URL
+
     return {
       ...task,
       layers,

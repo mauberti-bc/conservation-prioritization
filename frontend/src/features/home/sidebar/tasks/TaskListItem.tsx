@@ -1,6 +1,7 @@
 import {
   mdiAccountPlus,
   mdiAlertCircleOutline,
+  mdiCheck,
   mdiDelete,
   mdiFolderPlusOutline,
   mdiPencil,
@@ -187,6 +188,20 @@ export const TaskListItem = ({
             void handleRetryTask();
           }}>
           <Icon path={mdiAlertCircleOutline} size={1} />
+        </IconButton>
+      );
+    }
+
+    if (task.status === TASK_STATUS.COMPLETED) {
+      return (
+        <IconButton
+          color="success"
+          size="small"
+          onClick={(event) => {
+            event.stopPropagation();
+            void handleRetryTask();
+          }}>
+          <Icon path={mdiCheck} size={1} />
         </IconButton>
       );
     }
