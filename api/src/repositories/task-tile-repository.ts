@@ -134,4 +134,29 @@ export class TaskTileRepository extends BaseRepository {
 
     return response.rows[0];
   }
+
+  /**
+   * Fetches the most recent task tile for a task.
+   *
+   * @param {string} taskId
+   * @return {*}  {Promise<TaskTile | null>}
+   * @memberof TaskTileRepository
+   */
+  async getLatestTaskTileByTaskId(taskId: string): Promise<TaskTile | null> {
+    const sqlStatement = SQL`
+      SELECT task_tile_id, task_id, status, uri, content_type, started_at, completed_at, failed_at, error_code, error_message
+      FROM task_tile
+      WHERE task_id = ${taskId}
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+
+    const response = await this.connection.sql(sqlStatement, TaskTile);
+
+    if (response.rowCount < 1) {
+      return null;
+    }
+
+    return response.rows[0];
+  }
 }

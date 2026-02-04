@@ -46,7 +46,7 @@ def _update_task_tile_status(
     error_message: Optional[str] = None,
 ) -> None:
     api_url, api_key = _get_internal_api_config()
-    url = f"{api_url}/internal/task-tile/{task_tile_id}/status"
+    url = f"{api_url}/tile/{task_tile_id}/status"
 
     payload: Dict[str, Any] = {"status": status}
     if uri is not None:

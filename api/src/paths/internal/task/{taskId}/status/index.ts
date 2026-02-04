@@ -1,12 +1,12 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getAPIUserDBConnection } from '../../../../database/db';
-import type { TaskStatus, UpdateTaskExecution } from '../../../../models/task';
 import { defaultErrorResponses } from '../../../../openapi/schemas/http-responses';
 import { GetTaskSchema, TaskStatusUpdateSchema } from '../../../../openapi/schemas/task';
 import { TaskService } from '../../../../services/task-service';
 import { enforceInternalAuth } from '../../../../utils/internal-auth';
 import { getLogger } from '../../../../utils/logger';
+import { UpdateTaskStatusBody, UpdateTaskStatusParams } from './task-status.interface';
 
 const defaultLog = getLogger(__filename);
 
@@ -61,12 +61,13 @@ POST.apiDoc = {
  */
 export function updateTaskStatus(): RequestHandler {
   return async (req, res) => {
-    const taskId = req.params.taskId;
-    const { status, message } = req.body as { status: TaskStatus; message?: string | null };
+    const params = req.params as UpdateTaskStatusParams;
+    const body = req.body as UpdateTaskStatusBody;
+    const taskId = params.taskId;
 
     enforceInternalAuth(req.headers as Record<string, string | string[] | undefined>);
 
-    defaultLog.debug({ label: 'updateTaskStatus', message: `Updating task ${taskId} status to ${status}` });
+    defaultLog.debug({ label: 'updateTaskStatus', message: `Updating task ${taskId} status to ${body.status}` });
 
     const connection = getAPIUserDBConnection();
 
@@ -74,13 +75,10 @@ export function updateTaskStatus(): RequestHandler {
       await connection.open();
       const taskService = new TaskService(connection);
 
-      const updates: UpdateTaskExecution = {
-        status,
-        status_message: message ?? null
-      };
-
-      await taskService.updateTaskExecution(taskId, updates);
-      const updatedTask = await taskService.getTaskById(taskId);
+      const updatedTask = await taskService.updateTaskStatus(taskId, {
+        status: body.status,
+        status_message: body.message ?? null
+      });
 
       await connection.commit();
 

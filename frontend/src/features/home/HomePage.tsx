@@ -1,17 +1,20 @@
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import { useMapContext } from 'hooks/useContext';
+import { useMapContext, useTaskContext } from 'hooks/useContext';
 import { useSearchParams } from 'hooks/useSearchParams';
 import { useEffect, useMemo } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
 import { Sidebar } from './sidebar/Sidebar';
+import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
 
 export type ACTIVE_VIEW = 'new' | 'tasks' | 'projects' | 'layers';
 
 export const HomePage = () => {
   const { searchParams, setSearchParams } = useSearchParams<{ v?: ACTIVE_VIEW }>();
   const { drawControlsRef } = useMapContext();
+  const { taskId, taskDataLoader } = useTaskContext();
+  const { data: taskStatus } = useTaskStatusWebSocket(taskId);
 
   useEffect(() => {
     if (!searchParams.get('v')) {
@@ -26,14 +29,23 @@ export const HomePage = () => {
     setSearchParams(searchParams);
   };
 
+  const pmtilesUrls = useMemo(() => {
+    const statusUri =
+      taskStatus?.tile?.status === 'COMPLETED' && taskStatus.tile.uri ? taskStatus.tile.uri : null;
+    const fallbackUri = taskDataLoader.data?.tileset_uri ?? null;
+    const resolvedUri = statusUri ?? fallbackUri;
+
+    return resolvedUri ? [resolvedUri] : [];
+  }, [taskStatus, taskDataLoader.data]);
+
   const memoizedMap = useMemo(() => {
     return (
       <>
-        <MapContainer pmtilesUrls={['pmtiles://data/outputs/solution.pmtiles']} />
+        <MapContainer pmtilesUrls={pmtilesUrls} />
         <DrawControls ref={drawControlsRef} />
       </>
     );
-  }, [drawControlsRef]);
+  }, [drawControlsRef, pmtilesUrls]);
 
   return (
     <Stack flex="1" direction="row" m={0} p={0} overflow="hidden" height="100%">

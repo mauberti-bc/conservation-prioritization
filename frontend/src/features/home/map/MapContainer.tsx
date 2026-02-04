@@ -64,30 +64,7 @@ export const MapContainer = ({ pmtilesUrls = [] }: MapContainerProps) => {
         });
       }
 
-      // Add PMTiles sources and layers
-      pmtilesUrls.forEach((url, index) => {
-        const sourceId = `pmtiles-${index}`;
-        const layerId = `pmtiles-layer-${index}`;
-
-        if (!map.getSource(sourceId)) {
-          map.addSource(sourceId, {
-            type: 'raster',
-            url,
-            tileSize: 256,
-          });
-        }
-
-        if (!map.getLayer(layerId)) {
-          map.addLayer({
-            id: layerId,
-            type: 'raster',
-            source: sourceId,
-            paint: { 'raster-opacity': 0.75 },
-            minzoom: 0,
-            maxzoom: 12,
-          });
-        }
-      });
+      updatePmtilesLayers(map, pmtilesUrls);
     });
 
     return () => {
@@ -96,5 +73,69 @@ export const MapContainer = ({ pmtilesUrls = [] }: MapContainerProps) => {
     };
   }, [mapRef, pmtilesUrls]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (!map) {
+      return;
+    }
+
+    if (!map.isStyleLoaded()) {
+      map.once('load', () => {
+        updatePmtilesLayers(map, pmtilesUrls);
+      });
+      return;
+    }
+
+    updatePmtilesLayers(map, pmtilesUrls);
+  }, [mapRef, pmtilesUrls]);
+
   return <Box ref={containerRef} sx={{ width: '100%', height: '100%' }} />;
+};
+
+const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[]) => {
+  const sourcePrefix = 'pmtiles-';
+  const layerPrefix = 'pmtiles-layer-';
+
+  const style = map.getStyle();
+
+  if (style.layers) {
+    style.layers
+      .filter((layer) => layer.id.startsWith(layerPrefix))
+      .forEach((layer) => {
+        if (map.getLayer(layer.id)) {
+          map.removeLayer(layer.id);
+        }
+      });
+  }
+
+  if (style.sources) {
+    Object.keys(style.sources)
+      .filter((sourceId) => sourceId.startsWith(sourcePrefix))
+      .forEach((sourceId) => {
+        if (map.getSource(sourceId)) {
+          map.removeSource(sourceId);
+        }
+      });
+  }
+
+  pmtilesUrls.forEach((url, index) => {
+    const sourceId = `${sourcePrefix}${index}`;
+    const layerId = `${layerPrefix}${index}`;
+
+    map.addSource(sourceId, {
+      type: 'raster',
+      url,
+      tileSize: 256,
+    });
+
+    map.addLayer({
+      id: layerId,
+      type: 'raster',
+      source: sourceId,
+      paint: { 'raster-opacity': 0.75 },
+      minzoom: 0,
+      maxzoom: 12,
+    });
+  });
 };
