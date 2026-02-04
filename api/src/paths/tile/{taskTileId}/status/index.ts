@@ -1,12 +1,12 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
-import { getAPIUserDBConnection } from '../../../../../database/db';
-import { defaultErrorResponses } from '../../../../../openapi/schemas/http-responses';
-import { TaskTileSchema, TaskTileStatusUpdateSchema } from '../../../../../openapi/schemas/task-tile';
-import { TaskTileService } from '../../../../../services/task-tile-service';
-import { enforceInternalAuth } from '../../../../../utils/internal-auth';
-import { getLogger } from '../../../../../utils/logger';
-import { UpdateTaskTileStatusBody, UpdateTaskTileStatusParams } from './task-tile-status.interface';
+import { getAPIUserDBConnection } from '../../../../database/db';
+import { defaultErrorResponses } from '../../../../openapi/schemas/http-responses';
+import { TaskTileSchema, TaskTileStatusUpdateSchema } from '../../../../openapi/schemas/task-tile';
+import { TaskTileService } from '../../../../services/task-tile-service';
+import { enforceInternalAuth } from '../../../../utils/internal-auth';
+import { getLogger } from '../../../../utils/logger';
+import { UpdateTaskTileStatusBody } from './task-tile-status.interface';
 
 const defaultLog = getLogger(__filename);
 
@@ -55,9 +55,8 @@ POST.apiDoc = {
  */
 export function updateTaskTileStatus(): RequestHandler {
   return async (req, res) => {
-    const params = req.params as UpdateTaskTileStatusParams;
     const body = req.body as UpdateTaskTileStatusBody;
-    const taskTileId = params.taskTileId;
+    const taskTileId = req.params.taskTileId;
 
     enforceInternalAuth(req.headers as Record<string, string | string[] | undefined>);
 
