@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
+import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
 import { useMapContext, useTaskContext } from 'hooks/useContext';
 import { useSearchParams } from 'hooks/useSearchParams';
 import { useEffect, useMemo } from 'react';
@@ -11,27 +12,26 @@ import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
 export type ACTIVE_VIEW = 'new' | 'tasks' | 'projects' | 'layers';
 
 export const HomePage = () => {
-  const { searchParams, setSearchParams } = useSearchParams<{ v?: ACTIVE_VIEW }>();
+  const { searchParams, setSearchParams } = useSearchParams<HomeQueryParams>();
   const { drawControlsRef } = useMapContext();
   const { taskId, taskDataLoader } = useTaskContext();
   const { data: taskStatus } = useTaskStatusWebSocket(taskId);
 
   useEffect(() => {
-    if (!searchParams.get('v')) {
-      setSearchParams(searchParams.set('v', 'new'));
+    if (!searchParams.get(QUERY_PARAM.VIEW)) {
+      setSearchParams(searchParams.set(QUERY_PARAM.VIEW, 'new'));
     }
   }, [searchParams, setSearchParams]);
 
-  const activeView = (searchParams.get('v') as ACTIVE_VIEW) ?? null;
+  const activeView = (searchParams.get(QUERY_PARAM.VIEW) as ACTIVE_VIEW) ?? null;
 
   const handleViewChange = (view: ACTIVE_VIEW | null) => {
-    searchParams.setOrDelete('v', view);
+    searchParams.setOrDelete(QUERY_PARAM.VIEW, view);
     setSearchParams(searchParams);
   };
 
   const pmtilesUrls = useMemo(() => {
-    const statusUri =
-      taskStatus?.tile?.status === 'COMPLETED' && taskStatus.tile.uri ? taskStatus.tile.uri : null;
+    const statusUri = taskStatus?.tile?.status === 'COMPLETED' && taskStatus.tile.uri ? taskStatus.tile.uri : null;
     const fallbackUri = taskDataLoader.data?.tileset_uri ?? null;
     const resolvedUri = statusUri ?? fallbackUri;
 
