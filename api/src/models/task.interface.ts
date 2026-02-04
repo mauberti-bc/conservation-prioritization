@@ -1,4 +1,5 @@
 import { Task } from './task';
+import { Geometry } from './geometry';
 import { TaskLayer } from './task-layer';
 import { TaskLayerConstraint } from './task-layer-constraint';
 
@@ -14,4 +15,5 @@ export interface TaskLayerWithConstraints extends TaskLayer {
  */
 export interface TaskWithLayers extends Task {
   layers: TaskLayerWithConstraints[];
+  geometries: Geometry[];
 }

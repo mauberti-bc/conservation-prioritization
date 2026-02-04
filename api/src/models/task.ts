@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Geometry } from './geometry';
 
 /**
  * Task status enum for lifecycle tracking.
@@ -19,7 +20,8 @@ export const Task = z.object({
   status: TaskStatus, // Current task status
   status_message: z.string().max(500).nullable(), // Optional status message
   prefect_flow_run_id: z.string().uuid().nullable(), // Prefect flow run ID
-  prefect_deployment_id: z.string().uuid().nullable() // Prefect deployment ID
+  prefect_deployment_id: z.string().uuid().nullable(), // Prefect deployment ID
+  geometries: z.array(Geometry).optional() // Associated geometries
 });
 
 export type Task = z.infer<typeof Task>;
@@ -31,6 +33,7 @@ export const CreateTask = Task.omit({
   task_id: true,
   tileset_uri: true,
   output_uri: true,
+  geometries: true,
   status_message: true,
   prefect_flow_run_id: true,
   prefect_deployment_id: true

@@ -294,6 +294,74 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN task.updated_by IS 'The id of the profile who updated the record.';
 
     ----------------------------------------------------------------------------------------
+    -- Geometry Table
+    ----------------------------------------------------------------------------------------
+
+    CREATE TABLE geometry (
+      geometry_id            uuid              DEFAULT gen_random_uuid(),
+      name                   varchar(100)      NOT NULL,
+      description            varchar(500),
+      geometry               geometry(Geometry, 4326) NOT NULL,
+      record_effective_date  timestamptz(6)    DEFAULT now() NOT NULL,
+      record_end_date        timestamptz(6),
+      created_at             timestamptz(6)    DEFAULT now() NOT NULL,
+      created_by             uuid              NOT NULL,
+      updated_at             timestamptz(6),
+      updated_by             uuid,
+      CONSTRAINT geometry_pk PRIMARY KEY (geometry_id),
+      CONSTRAINT geometry_created_by_fk FOREIGN KEY (created_by) REFERENCES profile(profile_id) ON DELETE RESTRICT,
+      CONSTRAINT geometry_updated_by_fk FOREIGN KEY (updated_by) REFERENCES profile(profile_id) ON DELETE SET NULL
+    );
+
+    COMMENT ON TABLE geometry IS 'Stores geometry inputs for tasks.';
+    COMMENT ON COLUMN geometry.geometry_id IS 'System generated UUID primary key.';
+    COMMENT ON COLUMN geometry.name IS 'Human readable geometry name.';
+    COMMENT ON COLUMN geometry.description IS 'Geometry description.';
+    COMMENT ON COLUMN geometry.geometry IS 'Geometry stored as SRID 4326.';
+    COMMENT ON COLUMN geometry.record_effective_date IS 'Record level effective date.';
+    COMMENT ON COLUMN geometry.record_end_date IS 'Record level end date.';
+    COMMENT ON COLUMN geometry.created_at IS 'The datetime the record was created.';
+    COMMENT ON COLUMN geometry.created_by IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN geometry.updated_at IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN geometry.updated_by IS 'The id of the profile who updated the record.';
+
+    ----------------------------------------------------------------------------------------
+    -- Task Geometry Table
+    ----------------------------------------------------------------------------------------
+
+    CREATE TABLE task_geometry (
+      task_geometry_id       uuid              DEFAULT gen_random_uuid(),
+      task_id                uuid              NOT NULL,
+      geometry_id            uuid              NOT NULL,
+      record_effective_date  timestamptz(6)    DEFAULT now() NOT NULL,
+      record_end_date        timestamptz(6),
+      created_at             timestamptz(6)    DEFAULT now() NOT NULL,
+      created_by             uuid              NOT NULL,
+      updated_at             timestamptz(6),
+      updated_by             uuid,
+      CONSTRAINT task_geometry_pk PRIMARY KEY (task_geometry_id),
+      CONSTRAINT task_geometry_task_fk FOREIGN KEY (task_id) REFERENCES task(task_id) ON DELETE CASCADE,
+      CONSTRAINT task_geometry_geometry_fk FOREIGN KEY (geometry_id) REFERENCES geometry(geometry_id) ON DELETE RESTRICT,
+      CONSTRAINT task_geometry_created_by_fk FOREIGN KEY (created_by) REFERENCES profile(profile_id) ON DELETE RESTRICT,
+      CONSTRAINT task_geometry_updated_by_fk FOREIGN KEY (updated_by) REFERENCES profile(profile_id) ON DELETE SET NULL
+    );
+
+    CREATE UNIQUE INDEX task_geometry_uk1 ON task_geometry (task_id, geometry_id) WHERE record_end_date IS NULL;
+    CREATE INDEX task_geometry_idx1 ON task_geometry (task_id);
+    CREATE INDEX task_geometry_idx2 ON task_geometry (geometry_id);
+
+    COMMENT ON TABLE task_geometry IS 'Associates geometries with tasks.';
+    COMMENT ON COLUMN task_geometry.task_geometry_id IS 'System generated UUID primary key.';
+    COMMENT ON COLUMN task_geometry.task_id IS 'Foreign key referencing task.';
+    COMMENT ON COLUMN task_geometry.geometry_id IS 'Foreign key referencing geometry.';
+    COMMENT ON COLUMN task_geometry.record_effective_date IS 'Record level effective date.';
+    COMMENT ON COLUMN task_geometry.record_end_date IS 'Record level end date.';
+    COMMENT ON COLUMN task_geometry.created_at IS 'The datetime the record was created.';
+    COMMENT ON COLUMN task_geometry.created_by IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN task_geometry.updated_at IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN task_geometry.updated_by IS 'The id of the profile who updated the record.';
+
+    ----------------------------------------------------------------------------------------
     -- Task Permission Table
     ----------------------------------------------------------------------------------------
 
@@ -523,6 +591,8 @@ export async function down(knex: Knex): Promise<void> {
     SET search_path=conservation,public;
 
     DROP TABLE IF EXISTS task_tile;
+    DROP TABLE IF EXISTS task_geometry;
+    DROP TABLE IF EXISTS geometry;
     DROP TABLE IF EXISTS task_layer_constraint;
     DROP TABLE IF EXISTS task_layer;
     DROP TABLE IF EXISTS project_task;

@@ -43,6 +43,17 @@ export const CreateTaskSchema: OpenAPIV3.SchemaObject = {
         type: 'object',
         required: ['geojson'],
         properties: {
+          name: {
+            type: 'string',
+            maxLength: 100,
+            description: 'Optional geometry name.'
+          },
+          description: {
+            type: 'string',
+            maxLength: 500,
+            nullable: true,
+            description: 'Optional geometry description.'
+          },
           geojson: GeoJSONFeature
         }
       }
@@ -175,7 +186,7 @@ export const CreateTaskSchema: OpenAPIV3.SchemaObject = {
  */
 export const GetTaskSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
-  required: ['task_id', 'name', 'description', 'status', 'layers'],
+  required: ['task_id', 'name', 'description', 'status', 'layers', 'geometries'],
   properties: {
     task_id: {
       type: 'string',
@@ -221,6 +232,31 @@ export const GetTaskSchema: OpenAPIV3.SchemaObject = {
       format: 'uuid',
       nullable: true,
       description: 'Prefect deployment ID used to launch the task.'
+    },
+    geometries: {
+      type: 'array',
+      description: 'Geometries associated with the task.',
+      items: {
+        type: 'object',
+        required: ['geometry_id', 'name', 'geojson'],
+        properties: {
+          geometry_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'The ID of the geometry.'
+          },
+          name: {
+            type: 'string',
+            description: 'Geometry name.'
+          },
+          description: {
+            type: 'string',
+            nullable: true,
+            description: 'Geometry description.'
+          },
+          geojson: GeoJSONFeature
+        }
+      }
     },
     layers: {
       type: 'array',

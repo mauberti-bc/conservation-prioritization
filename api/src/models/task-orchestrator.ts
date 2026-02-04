@@ -11,6 +11,8 @@ export interface CreateTaskLayerConstraintRequest {
  * Interface for a geometry item within a task request.
  */
 export interface CreateTaskGeometryRequest {
+  name?: string | null;
+  description?: string | null;
   geojson: {
     geometry: unknown;
     [key: string]: unknown;
