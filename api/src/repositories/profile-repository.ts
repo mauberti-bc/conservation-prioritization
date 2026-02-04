@@ -303,4 +303,34 @@ export class ProfileRepository extends BaseRepository {
 
     return response.rows[0].role_id as string;
   }
+
+  /**
+   * Fetches a role ID by role name and scope.
+   *
+   * @param {string} roleName
+   * @param {string} roleScope
+   * @return {*}  {Promise<string>}
+   * @memberof ProfileRepository
+   */
+  async getRoleIdByNameAndScope(roleName: string, roleScope: string): Promise<string> {
+    const sqlStatement = SQL`
+      SELECT role_id
+      FROM role
+      WHERE LOWER(name) = LOWER(${roleName})
+      AND LOWER(scope::text) = LOWER(${roleScope})
+      AND record_end_date IS NULL
+      LIMIT 1
+    `;
+
+    const response = await this.connection.sql(sqlStatement);
+
+    if (!response.rowCount) {
+      throw new ApiExecuteSQLError('Failed to get role by name and scope', [
+        'ProfileRepository->getRoleIdByNameAndScope',
+        'Expected rowCount > 0'
+      ]);
+    }
+
+    return response.rows[0].role_id as string;
+  }
 }

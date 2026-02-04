@@ -2,6 +2,7 @@ import { mdiArrowLeft } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Chip, Divider, IconButton, Stack, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
+import { grey } from '@mui/material/colors';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { useTaskContext } from 'hooks/useContext';
 
@@ -40,10 +41,13 @@ export const TaskDetailsPanel = () => {
             <IconButton
               aria-label="Back to tasks"
               size="small"
+              sx={{
+                color: grey[700],
+              }}
               onClick={() => {
                 setFocusedTask(null);
               }}>
-              <Icon path={mdiArrowLeft} size={1} />
+              <Icon path={mdiArrowLeft} size={1} color="rgba(97, 97, 97, 1)" />
             </IconButton>
             <Typography
               variant="subtitle1"

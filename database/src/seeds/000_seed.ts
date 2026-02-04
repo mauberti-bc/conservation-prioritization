@@ -90,6 +90,19 @@ export async function seed(knex: Knex): Promise<void> {
     );
   }
 
+  for (const role of C.DASHBOARD_ROLES) {
+    await knex.raw(
+      `
+        INSERT INTO role (name, description, scope)
+        SELECT ?, ?, ?
+        WHERE NOT EXISTS (
+          SELECT 1 FROM role WHERE name = ? AND scope = ? AND record_end_date IS NULL
+        )
+      `,
+      [role.name, role.description, role.scope, role.name, role.scope]
+    );
+  }
+
   const projectAdminRole = await knex('role')
     .select('role_id')
     .where({ name: 'admin', scope: 'profile', record_end_date: null })

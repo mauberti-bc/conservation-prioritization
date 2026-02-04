@@ -2,6 +2,7 @@ import { mdiArrowLeft } from '@mdi/js';
 import Icon from '@mdi/react';
 import { IconButton, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
+import { grey } from '@mui/material/colors';
 import Paper from '@mui/material/Paper';
 import { ComponentSwitch } from 'components/ComponentSwitch';
 import { SidebarView } from 'context/sidebarUIContext';
@@ -178,11 +179,14 @@ export const Sidebar = ({
                           <IconButton
                             aria-label="Back to tasks"
                             size="small"
+                            sx={{
+                              color: grey[700],
+                            }}
                             onClick={() => {
                               setFocusedTask(null);
                               setTaskPanelMode('view');
                             }}>
-                            <Icon path={mdiArrowLeft} size={1} />
+                            <Icon path={mdiArrowLeft} size={1} color="rgba(97, 97, 97, 1)" />
                           </IconButton>
                           <Typography
                             variant="subtitle1"
@@ -224,7 +228,7 @@ export const Sidebar = ({
                             onClick={() => {
                               setSelectedProjectId(null);
                             }}>
-                            <Icon path={mdiArrowLeft} size={1} />
+                            <Icon path={mdiArrowLeft} size={1} color="rgba(97, 97, 97, 1)" />
                           </IconButton>
                           <Typography
                             variant="subtitle1"

@@ -10,13 +10,12 @@ export const InteractiveListItemButton = (props: ListItemButtonProps) => {
     <ListItemButton
       {...rest}
       sx={{
-        backgroundColor: 'grey.50',
         border: '1px solid',
         borderColor: 'divider',
         '&:hover': {
-          backgroundColor: 'action.hover'
+          backgroundColor: 'action.hover',
         },
-        ...sx
+        ...sx,
       }}
     />
   );
