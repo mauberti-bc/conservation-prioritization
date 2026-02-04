@@ -2,7 +2,9 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
+import { useLayerSearch } from 'hooks/useLayerSearch';
 import { DataLoader } from 'hooks/useDataLoader';
+import { useEffect, useMemo, useState } from 'react';
 import { ACTIVE_VIEW } from '../HomePage';
 import { LayerPanel } from '../layer-panel/LayerPanel';
 import { CreateTaskPage } from '../task/create/CreateTaskPage';
@@ -10,6 +12,7 @@ import { SidebarNavigation } from './navigation/SidebarNavigation';
 import { ProjectList } from './projects/ProjectList';
 import { TaskDetailsPanel } from './tasks/TaskDetailsPanel';
 import { TaskList } from './tasks/TaskList';
+import { SidebarSection } from './SidebarSection';
 
 interface SidebarProps {
   activeView: ACTIVE_VIEW | null;
@@ -30,6 +33,53 @@ export const Sidebar = ({
   selectedTaskId,
   onSelectTask,
 }: SidebarProps) => {
+  const [taskSearchTerm, setTaskSearchTerm] = useState('');
+  const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const { layers, loading: layersLoading, error: layersError, search: searchLayers } = useLayerSearch({
+    debounceMs: 0,
+    allowEmptySearch: isAuthenticated,
+  });
+
+  const filteredTasks = useMemo(() => {
+    const term = taskSearchTerm.trim().toLowerCase();
+    const tasks = tasksDataLoader.data ?? [];
+
+    if (!term) {
+      return tasks;
+    }
+
+    return tasks.filter((task) => {
+      const haystack = `${task.name ?? ''} ${task.description ?? ''} ${task.status ?? ''}`.toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [taskSearchTerm, tasksDataLoader.data]);
+
+  const filteredProjects = useMemo(() => {
+    const term = projectSearchTerm.trim().toLowerCase();
+    const projects = projectsDataLoader.data ?? [];
+
+    if (!term) {
+      return projects;
+    }
+
+    return projects.filter((project) => {
+      const haystack = `${project.name ?? ''} ${project.description ?? ''}`.toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [projectSearchTerm, projectsDataLoader.data]);
+
+  useEffect(() => {
+    if (activeView !== 'layers') {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      return;
+    }
+
+    searchLayers('');
+  }, [activeView, isAuthenticated, searchLayers]);
+
   return (
     <Box display="flex" height="100%" zIndex={8} width="100%">
       {/* Sidebar navigation tabs */}
@@ -59,33 +109,47 @@ export const Sidebar = ({
         }}>
         {activeView === 'new' && <CreateTaskPage />}
         {activeView === 'tasks' && (
-          <Box sx={{ overflow: 'auto' }}>
+          <SidebarSection
+            title="Tasks"
+            onSearch={(term) => {
+              setTaskSearchTerm(term);
+            }}>
             {selectedTaskId ? (
               <TaskDetailsPanel />
             ) : (
               <TaskList
-                tasks={tasksDataLoader.data ?? []}
+                tasks={filteredTasks}
                 isLoading={tasksDataLoader.isLoading}
                 selectedTaskId={selectedTaskId}
                 onSelectTask={onSelectTask}
               />
             )}
-          </Box>
+          </SidebarSection>
         )}
         {activeView === 'projects' && (
-          <Box sx={{ overflow: 'auto' }}>
+          <SidebarSection
+            title="Projects"
+            onSearch={(term) => {
+              setProjectSearchTerm(term);
+            }}>
             <ProjectList
-              projects={projectsDataLoader.data ?? []}
+              projects={filteredProjects}
               isLoading={projectsDataLoader.isLoading}
               selectedTaskId={selectedTaskId}
               onSelectTask={onSelectTask}
             />
-          </Box>
+          </SidebarSection>
         )}
         {activeView === 'layers' && (
-          <Box sx={{ overflow: 'auto' }}>
-            <LayerPanel canSearch={isAuthenticated} />
-          </Box>
+          <SidebarSection
+            title="Layers"
+            onSearch={(term) => {
+              if (isAuthenticated) {
+                searchLayers(term);
+              }
+            }}>
+            <LayerPanel layers={layers} isLoading={layersLoading} error={layersError} />
+          </SidebarSection>
         )}
       </Box>
     </Box>

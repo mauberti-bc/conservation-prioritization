@@ -1,6 +1,3 @@
-/**
- * Interface representing a project.
- */
 import { GetTaskResponse } from './useTaskApi.interface';
 
 /**

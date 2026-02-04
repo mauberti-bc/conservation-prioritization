@@ -15,16 +15,7 @@ interface ProjectListProps {
 
 export const ProjectList = ({ projects, isLoading, selectedTaskId, onSelectTask }: ProjectListProps) => {
   return (
-    <Box
-      sx={{
-        mt: 2,
-        mx: 1,
-        p: 1,
-        borderRadius: 1,
-        maxHeight: '300px',
-        overflowY: 'auto',
-      }}>
-      <Typography sx={{ mb: 1, px: 1 }}>Projects</Typography>
+    <Box sx={{ overflowY: 'auto', maxHeight: '100%' }}>
       <LoadingGuard
         isLoading={isLoading}
         isLoadingFallback={
