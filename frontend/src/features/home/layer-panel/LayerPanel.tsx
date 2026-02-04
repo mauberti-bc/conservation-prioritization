@@ -4,15 +4,19 @@ import { useState } from 'react';
 import { LayerSearch } from 'features/layer/search/LayerSearch';
 import { LayerCardItem } from './card/LayerCardItem';
 
-export const LayerPanel = () => {
+interface LayerPanelProps {
+  canSearch: boolean;
+}
+
+export const LayerPanel = ({ canSearch }: LayerPanelProps) => {
   const [selected, setSelected] = useState<string[]>([]);
 
   return (
     <Stack spacing={0} height="100%">
       <LayerSearch
         variant="list"
-        allowEmptySearch={true}
-        autoSearchOnMount={true}
+        allowEmptySearch={canSearch}
+        autoSearchOnMount={canSearch}
         initialSearchTerm=""
         renderResults={({ layers }) =>
           layers.length > 0 ? (

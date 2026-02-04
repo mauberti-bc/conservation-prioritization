@@ -6,6 +6,7 @@ import { IDENTITY_SOURCE } from '../constants/database';
 import { ApiExecuteSQLError, ApiGeneralError } from '../errors/api-error';
 import { Profile } from '../models/profile';
 import * as UserQueries from '../queries/database/user-context-queries';
+import { getUserGuid, getUserIdentitySource } from '../utils/keycloak-utils';
 import { getLogger } from '../utils/logger';
 import { asyncErrorWrapper, syncErrorWrapper } from './db-utils';
 
@@ -118,14 +119,15 @@ export interface IDBConnection {
  *
  * @return {*}  {IDBConnection}
  */
-export const getDBConnection = ({
-  sub,
-  identity_provider
-}: {
-  sub: string;
-  identity_provider: IDENTITY_SOURCE;
-}): IDBConnection => {
-  if (!sub) {
+export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnection => {
+  if (!keycloakToken) {
+    throw new Error('Keycloak token is undefined');
+  }
+
+  const userGuid = getUserGuid(keycloakToken);
+  const identitySource = getUserIdentitySource(keycloakToken);
+
+  if (!userGuid) {
     throw new Error('User identifier is required');
   }
 
@@ -146,8 +148,8 @@ export const getDBConnection = ({
     isOpen = true;
     isReleased = false;
 
-    await setUserContext();
     await client.query('BEGIN');
+    await setUserContext();
   };
 
   /**
@@ -279,9 +281,6 @@ export const getDBConnection = ({
    * Sets the database user context using the current identity
    */
   const setUserContext = async () => {
-    const userGuid = sub;
-    const identitySource = identity_provider;
-
     if (!userGuid || !identitySource) {
       throw new ApiGeneralError('Cannot determine user context');
     }
@@ -329,9 +328,9 @@ export const getDBConnection = ({
  */
 export const getAPIUserDBConnection = (): IDBConnection => {
   return getDBConnection({
-    sub: process.env.DB_USER_API!,
+    preferred_username: `${process.env.DB_USER_API}@${IDENTITY_SOURCE.DATABASE}`,
     identity_provider: IDENTITY_SOURCE.DATABASE
-  });
+  } as Record<string, any>);
 };
 
 /**
@@ -342,7 +341,7 @@ export const getAPIUserDBConnection = (): IDBConnection => {
  */
 export const getServiceAccountDBConnection = (systemUser: Profile): IDBConnection => {
   return getDBConnection({
-    sub: systemUser.profile_guid,
+    preferred_username: `${systemUser.profile_guid}@${IDENTITY_SOURCE.SYSTEM}`,
     identity_provider: IDENTITY_SOURCE.SYSTEM
-  });
+  } as Record<string, any>);
 };

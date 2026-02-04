@@ -96,12 +96,12 @@ export async function seed(knex: Knex): Promise<void> {
 
   const projectAdminRole = await knex('role')
     .select('role_id')
-    .where({ name: 'project_admin', scope: 'profile', record_end_date: null })
+    .where({ name: 'admin', scope: 'profile', record_end_date: null })
     .first();
 
   const projectUserRole = await knex('role')
     .select('role_id')
-    .where({ name: 'project_user', scope: 'profile', record_end_date: null })
+    .where({ name: 'member', scope: 'profile', record_end_date: null })
     .first();
 
   if (projectAdminRole?.role_id) {
@@ -118,12 +118,12 @@ export async function seed(knex: Knex): Promise<void> {
 
   const taskAdminRole = await knex('role')
     .select('role_id')
-    .where({ name: 'task_admin', scope: 'task', record_end_date: null })
+    .where({ name: 'admin', scope: 'task', record_end_date: null })
     .first();
 
   const taskUserRole = await knex('role')
     .select('role_id')
-    .where({ name: 'task_user', scope: 'task', record_end_date: null })
+    .where({ name: 'member', scope: 'task', record_end_date: null })
     .first();
 
   if (taskAdminRole?.role_id) {

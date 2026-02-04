@@ -1,16 +1,13 @@
-export enum SYSTEM_ROLE {
-  SYSTEM_ADMIN = 'SYSTEM_ADMIN',
-  SYSTEM_USER = 'SYSTEM_USER'
-}
+import { SYSTEM_ROLE } from '../constants/roles';
 
 export enum PROJECT_ROLE {
-  PROJECT_ADMIN = 'PROJECT_ADMIN',
-  PROJECT_USER = 'PROJECT_USER'
+  PROJECT_ADMIN = 'admin',
+  PROJECT_USER = 'member'
 }
 
 export enum TASK_ROLE {
-  TASK_ADMIN = 'TASK_ADMIN',
-  TASK_USER = 'TASK_USER'
+  TASK_ADMIN = 'admin',
+  TASK_USER = 'member'
 }
 
 enum AuthorizeOperator {

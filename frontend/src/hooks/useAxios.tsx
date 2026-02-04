@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosHeaders, AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosHeaders, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { AuthContext } from 'context/authContext';
 import { useContext, useEffect, useMemo, useRef } from 'react';
 
@@ -39,6 +39,7 @@ const ensureProtocol = (url: string): string => {
 const useAxios = (baseUrl?: string): AxiosInstance => {
   const authContext = useContext(AuthContext);
   const accessToken = authContext?.auth?.user?.access_token;
+  const getValidAccessToken = authContext?.getValidAccessToken;
   const tokenRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -65,15 +66,31 @@ const useAxios = (baseUrl?: string): AxiosInstance => {
 
     instance.interceptors.response.use(
       (response: AxiosResponse) => response,
-      (error: AxiosError) => {
-        if (error.response?.status !== 401) {
-          throw new APIError(error);
+      async (error: AxiosError) => {
+        const statusCode = error.response?.status;
+        const requestConfig = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
+
+        if (statusCode === 401 && requestConfig && !requestConfig._retry && getValidAccessToken) {
+          requestConfig._retry = true;
+          const refreshedToken = await getValidAccessToken();
+
+          if (refreshedToken) {
+            const headers =
+              requestConfig.headers instanceof AxiosHeaders
+                ? requestConfig.headers
+                : AxiosHeaders.from(requestConfig.headers);
+            headers.set('Authorization', `Bearer ${refreshedToken}`);
+            requestConfig.headers = headers;
+            return instance(requestConfig);
+          }
         }
+
+        return Promise.reject(new APIError(error));
       }
     );
 
     return instance;
-  }, [accessToken, baseUrl]);
+  }, [accessToken, baseUrl, getValidAccessToken]);
 };
 
 export default useAxios;

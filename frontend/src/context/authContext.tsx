@@ -12,6 +12,13 @@ export interface IAuth {
    * @memberof IAuth
    */
   auth: AuthContextProps;
+  /**
+   * Attempts to return a valid access token, performing a silent renew if needed.
+   *
+   * @return {*}  {Promise<string | null>}
+   * @memberof IAuth
+   */
+  getValidAccessToken: () => Promise<string | null>;
 }
 
 export const AuthContext = React.createContext<IAuth | undefined>(undefined);
@@ -26,6 +33,22 @@ export const AuthContextProvider = (props: PropsWithChildren) => {
   const auth = useAuth();
   const config = useConfigContext();
   const lastRegisteredTokenRef = useRef<string | null>(null);
+
+  const getValidAccessToken = async (): Promise<string | null> => {
+    const currentToken = auth.user?.access_token ?? null;
+
+    if (currentToken) {
+      return currentToken;
+    }
+
+    try {
+      const refreshedUser = await auth.signinSilent();
+      return refreshedUser?.access_token ?? null;
+    } catch (error) {
+      console.error('Silent renew failed', error);
+      return null;
+    }
+  };
 
   // Add event listener for silent renew errors
   useEffect(() => {
@@ -77,6 +100,7 @@ export const AuthContextProvider = (props: PropsWithChildren) => {
     <AuthContext.Provider
       value={{
         auth,
+        getValidAccessToken,
       }}>
       {props.children}
     </AuthContext.Provider>
