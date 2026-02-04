@@ -157,17 +157,17 @@ const TooltipBox = ({
     <Typography color="textSecondary">{children}</Typography>
     <Box display="flex" alignItems="center" justifyContent="space-between" mt={2}>
       {!disablePrevious && (
-        <Button size="small" onClick={onPrevious} sx={{ mr: 'auto' }}>
+        <Button onClick={onPrevious} sx={{ mr: 'auto' }}>
           Previous
         </Button>
       )}
       {!disableNext && (
-        <Button size="small" onClick={onNext} sx={{ ml: 'auto' }}>
+        <Button onClick={onNext} sx={{ ml: 'auto' }}>
           Next
         </Button>
       )}
       {disableNext && (
-        <Button size="small" onClick={onNext} sx={{ ml: 'auto' }}>
+        <Button onClick={onNext} sx={{ ml: 'auto' }}>
           Finish
         </Button>
       )}

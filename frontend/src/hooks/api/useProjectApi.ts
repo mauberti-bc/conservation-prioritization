@@ -1,5 +1,6 @@
 import { AxiosInstance } from 'axios';
 import { CreateProjectRequest, GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
+import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import qs from 'qs';
 import { ApiPaginationRequestOptions } from 'types/pagination';
 
@@ -61,7 +62,18 @@ export const useProjectApi = (axios: AxiosInstance) => {
    * @return {Promise<void>} Resolves when the tasks are added.
    */
   const addTasksToProject = async (projectId: string, taskIds: string[]): Promise<void> => {
-    await axios.post(`/api/project/${projectId}/tasks`, { taskIds });
+    await axios.post(`/api/project/${projectId}/task`, { taskIds });
+  };
+
+  /**
+   * Retrieve tasks associated with a project.
+   *
+   * @param {string} projectId - The project UUID.
+   * @return {Promise<GetTaskResponse[]>} A list of tasks.
+   */
+  const getProjectTasks = async (projectId: string): Promise<GetTaskResponse[]> => {
+    const { data } = await axios.get<GetTaskResponse[]>(`/api/project/${projectId}/task`);
+    return data;
   };
 
   /**
@@ -97,5 +109,6 @@ export const useProjectApi = (axios: AxiosInstance) => {
     updateProject,
     deleteProject,
     addTasksToProject,
+    getProjectTasks,
   };
 };

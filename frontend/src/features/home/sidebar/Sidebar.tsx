@@ -8,10 +8,11 @@ import { ComponentSwitch } from 'components/ComponentSwitch';
 import { SidebarView } from 'context/sidebarUIContext';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
+import { useConservationApi } from 'hooks/useConservationApi';
 import { useTaskContext } from 'hooks/useContext';
 import { DataLoader } from 'hooks/useDataLoader';
 import { useLayerSearch } from 'hooks/useLayerSearch';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { LayerPanel } from '../layer-panel/LayerPanel';
 import { CreateTask } from '../task/create/CreateTask';
 import { EditTask } from '../task/create/EditTask';
@@ -37,10 +38,14 @@ export const Sidebar = ({
   isAuthenticated,
 }: SidebarProps) => {
   const { taskId, taskDataLoader, setFocusedTask, refreshTasks } = useTaskContext();
+  const conservationApi = useConservationApi();
   const [taskSearchTerm, setTaskSearchTerm] = useState('');
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
   const [taskPanelMode, setTaskPanelMode] = useState<'view' | 'edit'>('view');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectTasks, setSelectedProjectTasks] = useState<GetTaskResponse[]>([]);
+  const [projectTasksLoading, setProjectTasksLoading] = useState(false);
+  const getProjectTasksRef = useRef(conservationApi.project.getProjectTasks);
   const {
     layers,
     loading: layersLoading,
@@ -88,6 +93,45 @@ export const Sidebar = ({
   }, [projectsDataLoader.data, selectedProjectId]);
 
   useEffect(() => {
+    getProjectTasksRef.current = conservationApi.project.getProjectTasks;
+  }, [conservationApi.project]);
+
+  useEffect(() => {
+    if (!selectedProjectId) {
+      setSelectedProjectTasks([]);
+      setProjectTasksLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+    setProjectTasksLoading(true);
+
+    const loadTasks = async () => {
+      try {
+        const tasks = await getProjectTasksRef.current(selectedProjectId);
+        if (isMounted) {
+          setSelectedProjectTasks(tasks);
+        }
+      } catch (error) {
+        console.error('Failed to load project tasks', error);
+        if (isMounted) {
+          setSelectedProjectTasks([]);
+        }
+      } finally {
+        if (isMounted) {
+          setProjectTasksLoading(false);
+        }
+      }
+    };
+
+    void loadTasks();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedProjectId]);
+
+  useEffect(() => {
     if (activeView !== 'layers') {
       return;
     }
@@ -104,7 +148,6 @@ export const Sidebar = ({
       setSelectedProjectId(null);
     }
   }, [activeView]);
-
   const navWidth = 180;
   const viewKey = activeView ?? 'none';
 
@@ -237,17 +280,15 @@ export const Sidebar = ({
                             {selectedProject.name}
                           </Typography>
                         </Box>
-                        <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                        <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', px: 2 }}>
                           <TaskList
-                            tasks={selectedProject.tasks ?? []}
-                            isLoading={false}
+                            tasks={selectedProjectTasks}
+                            isLoading={projectTasksLoading}
                             onSelectTask={(task) => {
                               setFocusedTask(task);
                               setTaskPanelMode('view');
                               onViewChange('tasks');
                             }}
-                            enableActions={false}
-                            enableProjectDialog={false}
                           />
                         </Box>
                       </Box>

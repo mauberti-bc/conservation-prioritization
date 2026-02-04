@@ -1,4 +1,4 @@
-import { mdiAlertCircleOutline, mdiDelete, mdiEyeOutline, mdiFolderPlusOutline, mdiPencil } from '@mdi/js';
+import { mdiAlertCircleOutline, mdiDelete, mdiFolderPlusOutline, mdiPencil } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Box, Chip, CircularProgress, IconButton, ListItem, ListItemText, Typography } from '@mui/material';
 import { IconMenuButton } from 'components/button/IconMenuButton';
@@ -35,13 +35,6 @@ export const TaskListItem = ({
       icon: mdiPencil,
       onClick: () => {
         onEditTask?.(task);
-      },
-    },
-    {
-      label: 'View',
-      icon: mdiEyeOutline,
-      onClick: () => {
-        onSelectTask(task);
       },
     },
     {
