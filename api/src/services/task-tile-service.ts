@@ -1,5 +1,6 @@
 import { SQL } from 'sql-template-strings';
 import { IDBConnection } from '../database/db';
+import { HTTP400 } from '../errors/http-error';
 import type { TaskTile } from '../models/task-tile';
 import { TaskTileRepository } from '../repositories/task-tile-repository';
 import { DBService } from './db-service';
@@ -95,5 +96,41 @@ export class TaskTileService extends DBService {
       error_code: errorCode ?? null,
       error_message: errorMessage ?? null
     });
+  }
+
+  /**
+   * Updates a task tile status and handles required fields.
+   *
+   * @param {string} taskTileId
+   * @param {{ status: 'STARTED' | 'COMPLETED' | 'FAILED' | 'DRAFT'; uri?: string | null; content_type?: string | null; error_code?: string | null; error_message?: string | null }} updates
+   * @return {*}  {Promise<TaskTile>}
+   * @memberof TaskTileService
+   */
+  async updateTileStatus(
+    taskTileId: string,
+    updates: {
+      status: 'STARTED' | 'COMPLETED' | 'FAILED' | 'DRAFT';
+      uri?: string | null;
+      content_type?: string | null;
+      error_code?: string | null;
+      error_message?: string | null;
+    }
+  ): Promise<TaskTile> {
+    if (updates.status === 'STARTED') {
+      return this.markTileStarted(taskTileId);
+    }
+
+    if (updates.status === 'COMPLETED') {
+      if (!updates.uri) {
+        throw new HTTP400('Tile completion requires a uri.');
+      }
+      return this.markTileCompleted(taskTileId, updates.uri, updates.content_type ?? null);
+    }
+
+    if (updates.status === 'FAILED') {
+      return this.markTileFailed(taskTileId, updates.error_code ?? null, updates.error_message ?? null);
+    }
+
+    return this.markTileFailed(taskTileId, 'invalid_status', 'Unsupported status update.');
   }
 }

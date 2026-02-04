@@ -1,4 +1,5 @@
 import express, { NextFunction, Request, Response } from 'express';
+import http from 'http';
 import { initialize } from 'express-openapi';
 import multer from 'multer';
 import { OpenAPIV3 } from 'openapi-types';
@@ -11,6 +12,7 @@ import { authenticateRequest, authenticateRequestOptional } from './request-hand
 import { initRequestStorage } from './utils/async-request-storage';
 import { scanFileForVirus } from './utils/file-utils';
 import { getLogger } from './utils/logger';
+import { createTaskStatusWebSocketServer, handleTaskStatusConnection, parseTaskStatusPath } from './websockets/task-status-ws';
 
 const logger = getLogger('app');
 
@@ -22,6 +24,8 @@ const MAX_UPLOAD_NUM_FILES = Number(process.env.MAX_UPLOAD_NUM_FILES) || 10;
 const MAX_UPLOAD_FILE_SIZE = Number(process.env.MAX_UPLOAD_FILE_SIZE) || 50 * 1024 * 1024;
 
 const app = express();
+const server = http.createServer(app);
+const taskStatusWebSocketServer = createTaskStatusWebSocketServer();
 
 // --- Middleware ---
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -83,7 +87,21 @@ app.use(
     initDBPool(defaultPoolConfig);
     await initDBConstants();
 
-    app.listen(PORT, () => {
+    server.on('upgrade', (req, socket, head) => {
+      const url = new URL(req.url ?? '', `http://${req.headers.host}`);
+      const taskId = parseTaskStatusPath(url.pathname);
+
+      if (!taskId) {
+        socket.destroy();
+        return;
+      }
+
+      taskStatusWebSocketServer.handleUpgrade(req, socket, head, (ws) => {
+        handleTaskStatusConnection(ws, req, taskId);
+      });
+    });
+
+    server.listen(PORT, () => {
       logger.info({ label: 'start api', message: `API running on ${HOST}:${PORT}/api` });
     });
   } catch (error) {

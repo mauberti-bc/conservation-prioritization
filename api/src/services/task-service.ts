@@ -2,9 +2,12 @@ import { IDBConnection } from '../database/db';
 import { CreateTask, DeleteTask, Task, UpdateTask, UpdateTaskExecution } from '../models/task';
 import { TaskWithLayers, TaskLayerWithConstraints } from '../models/task.interface';
 import { TaskRepository } from '../repositories/task-repository';
+import { TaskTileRepository } from '../repositories/task-tile-repository';
 import { TaskLayerService } from './task-layer-service';
 import { TaskLayerConstraintService } from './task-layer-constraint-service';
 import { DBService } from './db-service';
+import { toPmtilesUrl } from '../utils/pmtiles';
+import type { TaskStatusMessage } from '../types/task-status';
 
 /**
  * Service for managing task data.
@@ -17,6 +20,7 @@ export class TaskService extends DBService {
   taskRepository: TaskRepository;
   taskLayerService: TaskLayerService;
   taskLayerConstraintService: TaskLayerConstraintService;
+  taskTileRepository: TaskTileRepository;
 
   /**
    * Creates an instance of TaskService.
@@ -29,6 +33,7 @@ export class TaskService extends DBService {
     this.taskRepository = new TaskRepository(connection);
     this.taskLayerService = new TaskLayerService(connection);
     this.taskLayerConstraintService = new TaskLayerConstraintService(connection);
+    this.taskTileRepository = new TaskTileRepository(connection);
   }
 
   /**
@@ -106,6 +111,19 @@ export class TaskService extends DBService {
   }
 
   /**
+   * Updates task status from internal workflows and returns the hydrated task.
+   *
+   * @param {string} taskId
+   * @param {UpdateTaskExecution} updates
+   * @return {*}  {Promise<TaskWithLayers>}
+   * @memberof TaskService
+   */
+  async updateTaskStatus(taskId: string, updates: UpdateTaskExecution): Promise<TaskWithLayers> {
+    await this.taskRepository.updateTaskExecution(taskId, updates);
+    return this.getTaskById(taskId);
+  }
+
+  /**
    * Soft deletes a task.
    *
    * @param {DeleteTask} data - The data for the task to delete.
@@ -114,6 +132,30 @@ export class TaskService extends DBService {
    */
   async deleteTask(data: DeleteTask): Promise<void> {
     return this.taskRepository.deleteTask(data);
+  }
+
+  /**
+   * Fetches a snapshot of task status and tile state for websocket updates.
+   *
+   * @param {string} taskId
+   * @return {*}  {Promise<TaskStatusMessage>}
+   * @memberof TaskService
+   */
+  async getTaskStatusSnapshot(taskId: string): Promise<TaskStatusMessage> {
+    const task = await this.taskRepository.getTaskById(taskId);
+    const tile = await this.taskTileRepository.getLatestTaskTileByTaskId(taskId);
+    const tileUri = toPmtilesUrl(tile?.uri ?? null);
+
+    return {
+      task_id: task.task_id,
+      status: task.status,
+      tile: tile
+        ? {
+            status: tile.status,
+            uri: tileUri
+          }
+        : null
+    };
   }
 
   /**
