@@ -11,6 +11,7 @@ import { normalizeTaskStatus, normalizeTileStatus } from '../utils/status';
 import { DBService } from './db-service';
 import { TaskLayerConstraintService } from './task-layer-constraint-service';
 import { TaskLayerService } from './task-layer-service';
+import { TaskTileService } from './task-tile-service';
 
 /**
  * Service for managing task data.
@@ -24,6 +25,7 @@ export class TaskService extends DBService {
   taskLayerService: TaskLayerService;
   taskLayerConstraintService: TaskLayerConstraintService;
   taskTileRepository: TaskTileRepository;
+  taskTileService: TaskTileService;
 
   /**
    * Creates an instance of TaskService.
@@ -37,6 +39,7 @@ export class TaskService extends DBService {
     this.taskLayerService = new TaskLayerService(connection);
     this.taskLayerConstraintService = new TaskLayerConstraintService(connection);
     this.taskTileRepository = new TaskTileRepository(connection);
+    this.taskTileService = new TaskTileService(connection);
   }
 
   /**
@@ -183,7 +186,31 @@ export class TaskService extends DBService {
    */
   async updateTaskStatus(taskId: string, updates: UpdateTaskExecution): Promise<TaskWithLayers> {
     await this.taskRepository.updateTaskExecution(taskId, updates);
+    await this.submitTileJobIfCompleted(taskId, updates);
     return this.getTaskById(taskId);
+  }
+
+  /**
+   * Submits a tile job when a task reaches COMPLETED, ensuring idempotency.
+   *
+   * @param {string} taskId
+   * @param {UpdateTaskExecution} updates
+   * @return {*}  {Promise<void>}
+   * @memberof TaskService
+   */
+  async submitTileJobIfCompleted(taskId: string, updates: UpdateTaskExecution): Promise<void> {
+    if (updates.status !== TASK_STATUS.COMPLETED) {
+      return;
+    }
+
+    const existingTile = await this.taskTileRepository.getLatestTaskTileByTaskId(taskId);
+    const normalizedStatus = normalizeTileStatus(existingTile?.status ?? null);
+
+    if (normalizedStatus && [TILE_STATUS.DRAFT, TILE_STATUS.STARTED].includes(normalizedStatus)) {
+      return;
+    }
+
+    await this.taskTileService.createDraftTileAndSubmit(taskId);
   }
 
   /**

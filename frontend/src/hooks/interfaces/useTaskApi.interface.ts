@@ -1,4 +1,5 @@
 import { TaskStatusValue } from 'constants/status';
+import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { DashboardAccessScheme, DashboardResponse } from './useDashboardApi.interface';
 
 export enum OPTIMIZATION_VARIANT {
@@ -49,10 +50,7 @@ export interface CreateTaskRequest {
   target_area?: number; // Target area for optimization (percentage or absolute)
   is_percentage?: boolean; // Whether target_area is a percentage
   geometry?: {
-    geojson: {
-      geometry: unknown;
-      [key: string]: unknown;
-    };
+    geojson: Feature<Geometry, GeoJsonProperties>;
   }[];
   budget?: {
     name: string;

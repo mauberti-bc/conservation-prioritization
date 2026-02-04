@@ -201,6 +201,8 @@ services:
     volumes:
       - ./api:/opt/app-root/src
       - /opt/app-root/src/node_modules
+      - ./workflows/data:/data
+      - ./workflows/data:/opt/app-root/src/public/data
     depends_on:
       db:
         condition: service_healthy
