@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "conservation-tool.fullname.db" . }}
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.services.db.service.type | default "ClusterIP" }}
+  ports:
+    - name: postgresql
+      protocol: TCP
+      port: {{ .Values.services.db.service.port | default 5432 }}
+      targetPort: {{ .Values.services.db.service.targetPort | default 5432 }}
+  selector:
+    app: {{ include "conservation-tool.fullname.db" . }}

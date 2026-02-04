@@ -1,13 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "web-app.fullname.frontend" . }}
+  name: {{ include "conservation-tool.fullname.frontend" . }}
+  labels:
+    app: {{ include "conservation-tool.fullname.frontend" . }}
 spec:
-  type: {{ .Values.services.frontend.service.type }}
+  type: {{ .Values.services.frontend.service.type | default "ClusterIP" }}
   ports:
     - name: frontend-port
       protocol: TCP
-      port: {{ .Values.services.frontend.service.port }}
-      targetPort: {{ .Values.services.frontend.service.targetPort }}
+      port: {{ .Values.services.frontend.service.port | default 7070 }}
+      targetPort: {{ .Values.services.frontend.service.targetPort | default 7070 }}
   selector:
-    app: {{ include "web-app.fullname.frontend" . }}
+    app: {{ include "conservation-tool.fullname.frontend" . }}

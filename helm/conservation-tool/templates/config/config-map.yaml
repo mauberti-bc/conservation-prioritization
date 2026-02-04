@@ -1,20 +1,39 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "web-app.fullname" . }}-config
+  name: {{ include "conservation-tool.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
 data:
-  NODE_ENV: "{{ .Values.env.NODE_ENV }}"
-  NODE_OPTIONS: "{{ .Values.env.NODE_OPTIONS }}"
-  VITE_PORT: "{{ .Values.env.FRONTEND_PORT }}"
+  # ========================
+  # General Environment
+  # ========================
+  NODE_ENV: "{{ .Values.env.NODE_ENV | default "development" }}"
+  NODE_OPTIONS: "{{ .Values.env.NODE_OPTIONS | default "--max-old-space-size=4096" }}"
+  VITE_PORT: "{{ .Values.env.FRONTEND_PORT | default 7070 }}"
   VITE_PREFECT_API_URL: "{{ .Values.env.PREFECT_API_URL }}"
-  VITE_API_PORT: "{{ .Values.env.API_PORT }}"
-  VITE_API_HOST: "{{ .Values.env.API_HOST }}"
-  VITE_ZARR_STORE_PATH: "{{ .Values.env.ZARR_STORE_PATH }}"
-
-  # Server-only (not used by Vite frontend build)
+  VITE_API_PORT: "{{ .Values.env.API_PORT | default 5200 }}"
+  VITE_API_HOST: "{{ .Values.env.API_HOST | default "" }}"
+  VITE_ZARR_STORE_PATH: "{{ .Values.env.ZARR_STORE_PATH | default "/data/output_1000.zarr" }}"
+  # ========================
+  # Prefect Server / Worker
+  # ========================
   PREFECT_SERVER_API_HOST: "0.0.0.0"
-  PREFECT_UI_API_URL: "http://localhost:4200/api"
-
-  # Used by worker and deploy containers, not frontend
+  PREFECT_UI_API_URL: "{{ .Values.env.PREFECT_API_URL | default "http://localhost:4200/api" }}"
   PREFECT_API_URL: "{{ .Values.env.PREFECT_API_URL }}"
   ZARR_STORE_PATH: "{{ .Values.env.ZARR_STORE_PATH }}"
+  # ========================
+  # Database Host/Port (non-sensitive)
+  # ========================
+  DB_HOST: "{{ .Values.database.host }}"
+  DB_PORT: "{{ .Values.database.port }}"
+  DB_DATABASE: "{{ .Values.database.name }}"
+  DB_SCHEMA: "{{ .Values.database.schema }}"
+  # ========================
+  # Object Storage URLs (non-sensitive)
+  # ========================
+  OBJECT_STORE_BUCKET_NAME: "{{ .Values.objectStorage.bucketName }}"
+  # ========================
+  # Keycloak URLs (non-sensitive)
+  # ========================
+  KEYCLOAK_HOST: "{{ .Values.keycloak.host }}"
+  KEYCLOAK_REALM: "{{ .Values.keycloak.realm }}"

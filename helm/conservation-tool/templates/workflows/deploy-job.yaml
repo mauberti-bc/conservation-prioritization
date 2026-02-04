@@ -1,7 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "web-app.fullname.prefect-deploy" . }}
+  name: {{ include "conservation-tool.fullname.prefect-deploy" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "0"
@@ -10,27 +13,24 @@ spec:
   template:
     metadata:
       labels:
-        app: {{ include "web-app.fullname.prefect-deploy" . }}
+        app: {{ include "conservation-tool.fullname.prefect-deploy" . }}
     spec:
       serviceAccountName: deployer
       restartPolicy: Never
       containers:
         - name: prefect-deploy
           image: "{{ .Values.registry }}/{{ .Values.services.workflows.deploy.image.stream }}:{{ .Values.services.workflows.deploy.image.tag }}"
-          command: ["bash", "src/setup.sh"]
+          imagePullPolicy: {{ .Values.services.workflows.deploy.image.pullPolicy | default "IfNotPresent" }}
+          command:
+            - bash
+            - src/setup.sh
           ports:
-            - containerPort: 4201
+            - containerPort: {{ .Values.ports.prefect_server_api | default 4201 }}
           env:
             - name: PREFECT_API_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "web-app.fullname" . }}-config
-                  key: PREFECT_API_URL
+              value: "{{ .Values.env.PREFECT_API_URL }}"
             - name: ZARR_STORE_PATH
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "web-app.fullname" . }}-config
-                  key: ZARR_STORE_PATH
+              value: "{{ .Values.env.ZARR_STORE_PATH }}"
             - name: HOME
               value: "/home/app"
             - name: PREFECT_HOME

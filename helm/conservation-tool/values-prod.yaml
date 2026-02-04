@@ -1,19 +1,337 @@
-env:
-  NODE_ENV: "test"
-  PREFECT_API_URL: "http://prefect-server.fa9440-test.svc.cluster.local:4200/api"
-  ZARR_STORE_PATH: "/data/output_1000.zarr"
+# ========================
+# Global Configuration
+# ========================
+autoscaling:
+  enabled: false
+  maxReplicas: 1
+  minReplicas: 1
 
+gitRepo: "https://github.com/mauberti-bc/conservation-prioritization.git"
+gitRef: "main"
+registry: "image-registry.apps.gold.devops.gov.bc.ca/fa9440-tools"
+objectStorageUrl: "https://nrs.objectstore.gov.bc.ca:443/"
+
+environment:
+  id: "prod"
+  name: "development"
+  ts: "20260112-01"
+  licensePlate: "abc123"
+  changeId: "001"
+
+# ========================
+# Ports Configuration
+# ========================
+ports:
+  frontend: 7070
+  api: 5200
+  prefect_server_api: 4200
+  prefect_worker_api: 8081
+  db: 5432
+
+# ========================
+# Database Configuration
+# ========================
+database:
+  host: "biohubbc-db-prod"
+  port: 5432
+  name: "conservation_dev"
+  userApi: ""  # set via --set by workflow
+  userApiPassword: ""  # set via --set by workflow
+  userPrefect: ""  # set via --set by workflow
+  userPrefectPassword: ""  # set via --set by workflow
+  admin: ""  # set via --set by workflow
+  adminPassword: ""  # set via --set by workflow
+  schema: "public"
+  pgData: "/var/lib/postgresql/data"
+  timezone: "UTC"
+  postgresql:
+    primary:
+      podSecurityContext:
+        runAsUser: 1003600000
+        fsGroup: 1003600000
+      containerSecurityContext:
+        runAsUser: 1003600000
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: false
+        capabilities:
+          drop:
+            - ALL
+  persistence:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 0.5Gi
+    existingClaim: ""  # optional
+
+# ========================
+# Prefect Configuration
+# ========================
+prefect:
+  databaseUrl: ""  # set via --set by workflow
+
+# ========================
+# Object Storage Configuration
+# ========================
+objectStorage:
+  url: ""  # set via --set by workflow
+  accessKeyId: ""  # set via --set by workflow
+  secretKeyId: ""  # set via --set by workflow
+  bucketName: "conservation-tool-prod"
+  keyPrefix: "prod/"
+
+# ========================
+# Keycloak Configuration
+# ========================
+keycloak:
+  host: ""  # set via --set by workflow
+  realm: "conservation-prod"
+  adminUsername: ""  # set via --set by workflow
+  adminPassword: ""  # set via --set by workflow
+  apiTokenUrl: ""  # set via --set by workflow
+  apiClientId: "conservation-api"
+  apiClientSecret: ""  # set via --set by workflow
+  apiHost: "keycloak-prod"
+  apiEnvironment: "prod"
+
+# ========================
+# Prefect Server & Workers
+# ========================
+prefect-server:
+  serviceAccount:
+    create: false
+    name: "prefect-server"
+
+  ui:
+    enabled: true
+    podSecurityContext:
+      runAsUser: 1003600000
+      fsGroup: null
+    containerSecurityContext:
+      runAsUser: 1003600000
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 50m
+        memory: 128Mi
+
+  server:
+    podSecurityContext:
+      runAsUser: 1003600000
+      fsGroup: null
+    containerSecurityContext:
+      runAsUser: 1003600000
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+    env:
+      - name: PREFECT_API_DATABASE_CONNECTION_URL
+        valueFrom:
+          secretKeyRef:
+            name: conservation-tool-prefect-db
+            key: PREFECT_SQLALCHEMY_DATABASE_CONNECTION_URL
+
+  migrations:
+    enabled: true
+    backoffLimit: 3
+    securityContext:
+      runAsUser: 1003600000
+
+  ingress:
+    enabled: false
+    host:
+      hostname: "conservation-tool-prefect-server-fa9440-prod.apps.gold.devops.gov.bc.ca"
+      path: "/"
+    className: "openshift-default"
+
+prefect-worker:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 1028Mi
+    limits:
+      cpu: 100m
+      memory: 1028Mi
+  replicas: 0
+  pool: pool
+  securityContext:
+    runAsUser: 1003600000
+    fsGroup: 1003600000
+
+prefect-deploy:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 1028Mi
+    limits:
+      cpu: 100m
+      memory: 1028Mi
+  replicas: 0
+  securityContext:
+    runAsUser: 1003600000
+    fsGroup: 1003600000
+
+# ========================
+# Services Configuration
+# ========================
 services:
   frontend:
+    replicas: 1
     image:
-      tag: test
+      stream: "frontend"
+      tag: "prod"
+      pullPolicy: "Always"
+    service:
+      type: ClusterIP
+      port: 7070
+      targetPort: 7070
+    route:
+      host: "conservation-prod.nrs.gov.bc.ca"
+    securityContext:
+      runAsUser: 1003600000
+      fsGroup: 1003600000
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+    livenessProbe:
+      enabled: false
+      path: "/health"
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readinessProbe:
+      enabled: false
+      path: "/health"
+      initialDelaySeconds: 5
+      periodSeconds: 5
+    extraVolumeMounts: []
+    extraVolumes: []
 
   workflows:
     worker:
+      replicas: 1
+      pool: pool
       image:
-        tag: test
-      env:
+        stream: "prefect-worker"
+        tag: "prod"
+        pullPolicy: IfNotPresent
+      resources:
+        limits:
+          cpu: 100m
+          memory: 1028Mi
+        requests:
+          cpu: 50m
+          memory: 1028Mi
+      service:
+        type: ClusterIP
+        port: 80
+        targetPort: 8081
+      securityContext:
+        runAsUser: 1003600000
+        fsGroup: 1003600000
 
     deploy:
+      replicas: 1
       image:
-        tag: test
+        stream: "prefect-deploy"
+        tag: "prod"
+        pullPolicy: IfNotPresent
+      resources:
+        requests:
+          cpu: 50m
+          memory: 1028Mi
+        limits:
+          cpu: 100m
+          memory: 1028Mi
+      securityContext:
+        runAsUser: 1003600000
+        fsGroup: 1003600000
+
+  api:
+    replicas: 1
+    image:
+      stream: "api"
+      tag: "prod"
+      pullPolicy: IfNotPresent
+    service:
+      type: ClusterIP
+      port: 5200
+      targetPort: 5200
+    securityContext:
+      runAsUser: 1003600000
+      fsGroup: 1003600000
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 100m
+        memory: 512Mi
+
+  db:
+    image:
+      stream: "postgres"
+      tag: "17-alpine"
+      pullPolicy: "IfNotPresent"
+    service:
+      type: ClusterIP
+      port: 5432
+      targetPort: 5432
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 100m
+        memory: 512Mi
+    securityContext:
+      runAsUser: 1003600000
+      fsGroup: 1003600000
+    persistence:
+      enabled: true
+      size: 0.5Gi
+      accessMode: ReadWriteOnce
+
+# ========================
+# Background Services
+# ========================
+backgroundServices:
+  podSecurityContext:
+    runAsUser: 1003600000
+    fsGroup: 1003600000
+  containerSecurityContext:
+    runAsUser: 1003600000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+# ========================
+# Global Environment Variables
+# ========================
+env:
+  NODE_ENV: "development"
+  PREFECT_API_URL: "http://prefect-server.fa9440-prod.svc.cluster.local:4200/api"
+  ZARR_STORE_PATH: "/data/output_1000.zarr"

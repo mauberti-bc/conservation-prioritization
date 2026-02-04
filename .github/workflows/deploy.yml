@@ -1,100 +1,267 @@
-name: Reusable Deployment Workflow
+name: Build and Push Images to OpenShift Registry
+
 on:
-  workflow_call:
-    inputs:
-      source_tag:
-        required: true
-        type: string
-      target_tag:
-        required: true
-        type: string
-      environment:
-        required: true
-        type: string
-      promote_images:
-        required: false
-        default: true
-        type: boolean
-       
+  push:
+    branches:
+      - main
+
 env:
-  IMAGE_REGISTRY: image-registry.apps.gold.devops.gov.bc.ca
-  IMAGE_REPOSITORY: conservation-tool
   OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
+  IMAGE_REPOSITORY: conservation-tool
+  IMAGE_REGISTRY: image-registry.apps.gold.devops.gov.bc.ca
 
 jobs:
-  promote-images:
-    if: ${{ inputs.promote_images }}
+  changes:
     runs-on: ubuntu-latest
-    env:
-      TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
-      OC_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
-      SOURCE_TAG: ${{ inputs.source_tag }}
-      TARGET_TAG: ${{ inputs.target_tag }}
+    outputs:
+      frontend: ${{ steps.changes.outputs.frontend }}
+      workflows: ${{ steps.changes.outputs.workflows }}
+      helm: ${{ steps.changes.outputs.helm }}
+      force_build: ${{ steps.force-build.outputs.force_build }}
     steps:
-      - name: Install OpenShift CLI
-        uses: redhat-actions/openshift-tools-installer@v1
+      - uses: actions/checkout@v4
         with:
-          oc: "4.16"
-     
-      - name: Log in to OpenShift
-        run: |
-          oc login --token="${OC_TOKEN}" --server="${OPENSHIFT_SERVER}" --insecure-skip-tls-verify=true
-          oc whoami
-     
-      - name: Log in to OpenShift internal registry
-        run: |
-          oc whoami -t | docker login $IMAGE_REGISTRY -u unused --password-stdin
-     
-      - name: Mirror and retag images
-        run: |
-          for COMPONENT in frontend prefect-server prefect-worker prefect-deploy; do
-            SRC="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${COMPONENT}:${SOURCE_TAG}"
-            DST="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/${COMPONENT}:${TARGET_TAG}"
-            echo "Promoting $SRC → $DST"
-            oc image mirror "$SRC" "$DST"
-          done
+          fetch-depth: 0
 
-  deploy:
-    needs: [promote-images]
-    if: ${{ always() && (needs.promote-images.result == 'success' || needs.promote-images.result == 'skipped') }}
+      - name: Check for force build
+        id: force-build
+        run: |
+          if [ "${{ vars.FORCE_BUILD }}" = "true" ]; then
+            echo "force_build=true" >> $GITHUB_OUTPUT
+            echo "🚀 FORCE_BUILD is enabled - will build all components"
+          else
+            echo "force_build=false" >> $GITHUB_OUTPUT
+            echo "FORCE_BUILD is disabled - checking for changes"
+          fi
+
+      - name: Debug what changed
+        run: |
+          echo "Current commit: ${{ github.sha }}"
+          echo "Previous commit: ${{ github.event.before }}"
+          echo "Force build: ${{ steps.force-build.outputs.force_build }}"
+          echo "Frontend changed: ${{ steps.changes.outputs.frontend }}"
+          echo "Changed files:"
+          git diff --name-only ${{ github.event.before }} ${{ github.sha }}
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            workflows:
+              - 'workflows/**'
+            helm:
+              - 'helm/**'
+
+  build-push:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+    needs: [changes]
+    if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true' }}
+    environment: dev
     env:
-      OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
       TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
-      OC_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
-      TARGET_TAG: ${{ inputs.target_tag }}
+      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}                  
+      IMAGE_TAG: dev
+      IMAGE_TAG_LATEST: latest
+      GIT_SHA: ${{ github.sha }}
+      NODE_ENV: ${{ vars.NODE_ENV }}
+      NODE_OPTIONS: ${{ vars.NODE_OPTIONS }}
+      PREFECT_API_URL: ${{ vars.PREFECT_API_URL }}
+      ZARR_STORE_PATH: ${{ vars.ZARR_STORE_PATH }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-     
+
       - name: Install OpenShift CLI
         uses: redhat-actions/openshift-tools-installer@v1
         with:
           oc: "4.16"
-     
-      - name: Install Helm
-        uses: azure/setup-helm@v3
-     
+
       - name: Log in to OpenShift
         run: |
-          oc login --token="${OC_TOKEN}" --server="${OPENSHIFT_SERVER}" --insecure-skip-tls-verify=true
-          oc whoami
+          for i in 1 2 3; do
+            echo "Attempt $i: Logging into OpenShift..."
+            if oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER --insecure-skip-tls-verify=true; then
+              echo "Login succeeded"
+              break
+            elif [ "$i" -lt 3 ]; then
+              echo "Login failed. Retrying in 15 seconds..."
+              sleep 15
+            else
+              echo "Login failed after 3 attempts."
+              exit 1
+            fi
+          done
+
+      - name: Log in to OpenShift internal registry
+        run: |
+          oc whoami -t | docker login $IMAGE_REGISTRY -u unused --password-stdin
+
+      - name: Build and push frontend image
+        working-directory: frontend
+        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.frontend == 'true' }}
+        run: |
+          # Check required env vars
+          required_vars=(NODE_ENV NODE_OPTIONS PREFECT_API_URL ZARR_STORE_PATH)
+          for var in "${required_vars[@]}"; do
+            if [ -z "${!var}" ]; then
+              echo "Error: Environment variable $var is not set."
+              exit 1
+            fi
+          done
+
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/frontend"
+          docker build \
+            --build-arg VITE_NODE_ENV="${NODE_ENV}" \
+            --build-arg VITE_NODE_OPTIONS="${NODE_OPTIONS}" \
+            --build-arg VITE_PREFECT_API_URL="${PREFECT_API_URL}" \
+            --build-arg VITE_ZARR_STORE_PATH="${ZARR_STORE_PATH}" \
+            -t ${BASE_IMAGE}:${IMAGE_TAG} \
+            -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} \
+            -t ${BASE_IMAGE}:${GIT_SHA} \
+            -f ./Dockerfile .
+
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
+          docker push ${BASE_IMAGE}:${GIT_SHA}
+
+      - name: Build and push Prefect worker image
+        working-directory: workflows
+        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.workflows == 'true' }}
+        run: |
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-worker"
+          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.worker .
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
+          docker push ${BASE_IMAGE}:${GIT_SHA}
+
+      - name: Build and push Prefect deploy image
+        working-directory: workflows
+        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.workflows == 'true' }}
+        run: |
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-deploy"
+          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.deploy .
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
+          docker push ${BASE_IMAGE}:${GIT_SHA}
+
+  install-helm:
+    runs-on: ubuntu-latest
+    needs: [build-push]
+    if: ${{ always() }}
+    environment: dev
+    env:
+      OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
+      OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
+      SA_TOKEN: ${{ secrets.SA_TOKEN }}
+      VALUES_FILE: values-dev.yaml
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install OpenShift CLI
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: "4.16"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Log in to OpenShift
+        run: |
+          oc login --token=$SA_TOKEN --server=$OPENSHIFT_SERVER --insecure-skip-tls-verify=true
           oc project $OPENSHIFT_NAMESPACE
-     
-      - name: Roll Deployments to refresh image pull
+
+      - name: Extract backend secrets from OpenShift
+        id: backend-secrets
         run: |
-          echo "Restarting Deployments in namespace: $OPENSHIFT_NAMESPACE"
-          oc rollout restart deployment -n $OPENSHIFT_NAMESPACE --all || true
-     
-      - name: Roll StatefulSets to refresh image pull (if any)
+          echo "Extracting backend secrets from OpenShift..."
+          echo "db_host=$(oc get secret conservation-tool-db -o jsonpath='{.data.host}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_user_api=$(oc get secret conservation-tool-db -o jsonpath='{.data.api-username}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_user_api_pass=$(oc get secret conservation-tool-db -o jsonpath='{.data.api-password}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_user_prefect=$(oc get secret conservation-tool-db -o jsonpath='{.data.prefect-username}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_user_prefect_pass=$(oc get secret conservation-tool-db -o jsonpath='{.data.prefect-password}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_admin=$(oc get secret conservation-tool-db -o jsonpath='{.data.admin-username}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_admin_pass=$(oc get secret conservation-tool-db -o jsonpath='{.data.admin-password}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_port=$(oc get secret conservation-tool-db -o jsonpath='{.data.port}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_database=$(oc get secret conservation-tool-db -o jsonpath='{.data.database}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_schema=$(oc get secret conservation-tool-db -o jsonpath='{.data.schema}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "object_store_url=$(oc get secret conservation-tool-storage -o jsonpath='{.data.url}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "object_store_access_key=$(oc get secret conservation-tool-storage -o jsonpath='{.data.access-key}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "object_store_secret_key=$(oc get secret conservation-tool-storage -o jsonpath='{.data.secret-key}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "object_store_bucket=$(oc get secret conservation-tool-storage -o jsonpath='{.data.bucket-name}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "s3_key_prefix=$(oc get secret conservation-tool-storage -o jsonpath='{.data.key-prefix}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_host=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.host}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_realm=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.realm}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_admin_username=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.admin-username}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_admin_password=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.admin-password}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_api_token_url=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.api-token-url}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_api_client_id=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.api-client-id}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_api_client_secret=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.api-client-secret}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_api_host=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.api-host}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_api_environment=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.api-environment}' | base64 -d)" >> $GITHUB_OUTPUT
+
+      - name: Build Prefect database connection string
+        id: prefect-db-url
         run: |
-          echo "Restarting StatefulSets in namespace: $OPENSHIFT_NAMESPACE"
-          if oc get sts -n $OPENSHIFT_NAMESPACE --no-headers 2>/dev/null | grep -q .; then
-            for sts in $(oc get sts -n $OPENSHIFT_NAMESPACE -o name); do
-              echo "Restarting $sts"
-              oc patch "$sts" -n $OPENSHIFT_NAMESPACE -p '{"spec":{"template":{"metadata":{"annotations":{"restarted-at":"'$(date +%s)'"}}}}}'
-            done
-          else
-            echo "No StatefulSets found in namespace $OPENSHIFT_NAMESPACE"
-          fi
+          DB_USER_PREFECT="${{ steps.backend-secrets.outputs.db_user_prefect }}"
+          DB_USER_PREFECT_PASS="${{ steps.backend-secrets.outputs.db_user_prefect_pass }}"
+          DB_HOST="${{ steps.backend-secrets.outputs.db_host }}"
+          DB_PORT="${{ steps.backend-secrets.outputs.db_port }}"
+          DB_DATABASE="${{ steps.backend-secrets.outputs.db_database }}"
+          PREFECT_API_DATABASE_CONNECTION_URL="postgresql+asyncpg://${DB_USER_PREFECT}:${DB_USER_PREFECT_PASS}@${DB_HOST}:${DB_PORT}/${DB_DATABASE}"
+          echo "prefect_api_db_url=${PREFECT_API_DATABASE_CONNECTION_URL}" >> $GITHUB_OUTPUT
+
+      - name: Build Helm dependencies
+        working-directory: helm/conservation-tool
+        run: |
+          echo "Adding required Helm repos..."
+          helm repo add prefecthq https://prefecthq.github.io/prefect-helm
+          helm repo update
+
+          echo "Building Helm dependencies..."
+          helm dependency build
+
+      - name: Deploy via Helm
+        working-directory: helm/conservation-tool
+        run: |
+          helm upgrade --install conservation-tool . \
+            --values values.yaml \
+            --values ${VALUES_FILE} \
+            --set env.DB_HOST="${{ steps.backend-secrets.outputs.db_host }}" \
+            --set env.DB_PORT="${{ steps.backend-secrets.outputs.db_port }}" \
+            --set env.DB_DATABASE="${{ steps.backend-secrets.outputs.db_database }}" \
+            --set env.DB_SCHEMA="${{ steps.backend-secrets.outputs.db_schema }}" \
+            --set env.DB_USER_API="${{ steps.backend-secrets.outputs.db_user_api }}" \
+            --set env.DB_USER_API_PASS="${{ steps.backend-secrets.outputs.db_user_api_pass }}" \
+            --set env.DB_USER_PREFECT="${{ steps.backend-secrets.outputs.db_user_prefect }}" \
+            --set env.DB_USER_PREFECT_PASS="${{ steps.backend-secrets.outputs.db_user_prefect_pass }}" \
+            --set env.DB_ADMIN="${{ steps.backend-secrets.outputs.db_admin }}" \
+            --set env.DB_ADMIN_PASS="${{ steps.backend-secrets.outputs.db_admin_pass }}" \
+            --set env.OBJECT_STORE_URL="${{ steps.backend-secrets.outputs.object_store_url }}" \
+            --set env.OBJECT_STORE_ACCESS_KEY_ID="${{ steps.backend-secrets.outputs.object_store_access_key }}" \
+            --set env.OBJECT_STORE_SECRET_KEY_ID="${{ steps.backend-secrets.outputs.object_store_secret_key }}" \
+            --set env.OBJECT_STORE_BUCKET_NAME="${{ steps.backend-secrets.outputs.object_store_bucket }}" \
+            --set env.S3_KEY_PREFIX="${{ steps.backend-secrets.outputs.s3_key_prefix }}" \
+            --set env.KEYCLOAK_HOST="${{ steps.backend-secrets.outputs.keycloak_host }}" \
+            --set env.KEYCLOAK_REALM="${{ steps.backend-secrets.outputs.keycloak_realm }}" \
+            --set env.KEYCLOAK_ADMIN_USERNAME="${{ steps.backend-secrets.outputs.keycloak_admin_username }}" \
+            --set env.KEYCLOAK_ADMIN_PASSWORD="${{ steps.backend-secrets.outputs.keycloak_admin_password }}" \
+            --set env.KEYCLOAK_API_TOKEN_URL="${{ steps.backend-secrets.outputs.keycloak_api_token_url }}" \
+            --set env.KEYCLOAK_API_CLIENT_ID="${{ steps.backend-secrets.outputs.keycloak_api_client_id }}" \
+            --set env.KEYCLOAK_API_CLIENT_SECRET="${{ steps.backend-secrets.outputs.keycloak_api_client_secret }}" \
+            --set env.KEYCLOAK_API_HOST="${{ steps.backend-secrets.outputs.keycloak_api_host }}" \
+            --set env.KEYCLOAK_API_ENVIRONMENT="${{ steps.backend-secrets.outputs.keycloak_api_environment }}" \
+            --set env.PREFECT_API_DATABASE_CONNECTION_URL="${{ steps.prefect-db-url.outputs.prefect_api_db_url }}" \
+            --set 'prefect-server.config.PREFECT_API_DATABASE_CONNECTION_URL'="${{ steps.prefect-db-url.outputs.prefect_api_db_url }}" \
+            --namespace ${OPENSHIFT_NAMESPACE} \
+            --wait \
+            --timeout=10m \
+            --atomic
+
+      - name: Verify deployment
+        run: |
+          echo "Verifying deployment..."
+          oc get deployments -n ${OPENSHIFT_NAMESPACE}
+          oc get pods -n ${OPENSHIFT_NAMESPACE}

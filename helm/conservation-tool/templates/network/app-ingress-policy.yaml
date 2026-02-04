@@ -1,11 +1,14 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: '{{ include "web-app.fullname.frontend" . }}-ingress-from-router'
+  name: {{ include "conservation-tool.fullname.frontend" . }}-ingress-from-router
+  namespace: {{ .Values.namespace | default (include "conservation-tool.namespace" .) }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
-      app: {{ include "web-app.fullname.frontend" . }}
+      app: {{ include "conservation-tool.fullname.frontend" . }}
   policyTypes:
     - Ingress
   ingress:
