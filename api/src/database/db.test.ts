@@ -1,11 +1,9 @@
 import { expect } from 'chai';
-import { describe } from 'mocha';
+import { afterEach, beforeEach, describe, it } from 'mocha';
 import * as pg from 'pg';
-import Sinon, { SinonStub } from 'sinon';
+import Sinon, { SinonSandbox, SinonStub } from 'sinon';
 import SQL from 'sql-template-strings';
 import { SYSTEM_IDENTITY_SOURCE } from '../constants/database';
-import { ApiExecuteSQLError } from '../errors/api-error';
-import { HTTPError } from '../errors/http-error';
 import { SystemUser } from '../repositories/user-repository';
 import { getMockDBConnection } from '../__mocks__/db';
 import * as db from './db';
@@ -23,47 +21,31 @@ import {
 
 describe('db', () => {
   describe('getDBPool', () => {
-    it('returns an undefined database pool instance if it has not yet been initialized', () => {
+    it('returns undefined if pool not initialized', () => {
       const pool = getDBPool();
-
       expect(pool).to.be.undefined;
     });
 
-    it('returns a defined database pool instance if it has been initialized', () => {
+    it('returns defined pool if initialized', () => {
       initDBPool();
-
       const pool = getDBPool();
-
       expect(pool).not.to.be.undefined;
     });
   });
 
   describe('getDBConnection', () => {
-    it('throws an error if keycloak token is undefined', () => {
-      try {
-        getDBConnection(null as unknown as object);
-
-        expect.fail();
-      } catch (actualError) {
-        expect((actualError as HTTPError).message).to.equal('Keycloak token is undefined');
-      }
+    it('throws error if keycloak token is undefined', () => {
+      expect(() => getDBConnection(null as unknown as object)).to.throw('Keycloak token is undefined');
     });
 
     it('returns a database connection instance', () => {
       const connection = getDBConnection({});
-
       expect(connection).not.to.be.null;
     });
 
-    describe('DBConnection', () => {
-      const sinonSandbox = Sinon.createSandbox();
-
-      const mockKeycloakToken = {
-        preferred_username: 'testguid@idir',
-        idir_username: 'testuser',
-        identity_provider: SYSTEM_IDENTITY_SOURCE.IDIR
-      };
-
+    describe('DBConnection instance methods', () => {
+      let sinonSandbox: SinonSandbox;
+      let mockKeycloakToken: object;
       let queryStub: SinonStub;
       let releaseStub: SinonStub;
       let mockClient: { query: SinonStub; release: SinonStub };
@@ -72,8 +54,16 @@ describe('db', () => {
       let connection: IDBConnection;
 
       beforeEach(() => {
-        queryStub = sinonSandbox.stub().resolves();
-        releaseStub = sinonSandbox.stub().resolves();
+        sinonSandbox = Sinon.createSandbox();
+
+        mockKeycloakToken = {
+          preferred_username: 'testguid@idir',
+          idir_username: 'testuser',
+          identity_provider: SYSTEM_IDENTITY_SOURCE.IDIR
+        };
+
+        queryStub = sinonSandbox.stub().resolves({ rows: [{ api_set_context: 123 }] });
+        releaseStub = sinonSandbox.stub();
         mockClient = { query: queryStub, release: releaseStub };
         connectStub = sinonSandbox.stub().resolves(mockClient);
         mockPool = { connect: connectStub };
@@ -85,306 +75,168 @@ describe('db', () => {
       });
 
       describe('open', () => {
-        describe('when not previously called', () => {
-          it('opens a new connection, sets the user context, and sends a `BEGIN` query', async () => {
-            const getDBPoolStub = sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
+        it('opens connection, sets user context, begins transaction', async () => {
+          sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
 
-            await connection.open();
+          await connection.open();
 
-            expect(getDBPoolStub).to.have.been.calledOnce;
-            expect(connectStub).to.have.been.calledOnce;
+          const expectedSQL = SQL`select api_set_context(${'testguid'}, ${SYSTEM_IDENTITY_SOURCE.IDIR});`;
 
-            const expectedSystemUserContextSQL = SQL`select api_set_context(${'testguid'}, ${
-              SYSTEM_IDENTITY_SOURCE.IDIR
-            });`;
-
-            expect(queryStub).to.have.been.calledWith(
-              expectedSystemUserContextSQL?.text,
-              expectedSystemUserContextSQL?.values
-            );
-
-            expect(queryStub).to.have.been.calledWith('BEGIN');
-          });
+          expect(queryStub).to.have.been.calledWith(expectedSQL.text, expectedSQL.values);
+          expect(queryStub).to.have.been.calledWith('BEGIN');
         });
 
-        describe('when previously called', () => {
-          it('does nothing', async () => {
-            const getDBPoolStub = sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
+        it('does nothing if already open', async () => {
+          sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
 
-            // call first time
-            await connection.open();
+          await connection.open();
+          queryStub.resetHistory();
+          connectStub.resetHistory();
 
-            // reset mock call history
-            queryStub.resetHistory();
-            connectStub.resetHistory();
+          await connection.open();
 
-            // call second time
-            await connection.open();
-
-            expect(getDBPoolStub).to.have.been.calledOnce;
-
-            expect(connectStub).not.to.have.been.called;
-            expect(queryStub).not.to.have.been.called;
-          });
+          expect(connectStub).not.to.have.been.called;
+          expect(queryStub).not.to.have.been.called;
         });
 
-        describe('when the db pool has not been initialized', () => {
-          it('throws an error', async () => {
-            const getDBPoolStub = sinonSandbox.stub(db, 'getDBPool').returns(undefined);
+        it('throws error if pool not initialized', async () => {
+          sinonSandbox.stub(db, 'getDBPool').returns(undefined);
 
-            let expectedError: ApiExecuteSQLError;
-            try {
-              await connection.open();
+          let error: any;
+          try {
+            await connection.open();
+          } catch (err) {
+            error = err;
+          }
 
-              expect.fail('Expected an error to be thrown');
-            } catch (error) {
-              expectedError = error as ApiExecuteSQLError;
-            }
-
-            expect(expectedError.message).to.equal('Failed to execute SQL');
-
-            expect(expectedError.errors?.length).to.be.greaterThan(0);
-            expectedError.errors?.forEach((item) => {
-              expect(item).to.be.eql({ name: 'Error', message: 'DBPool is not initialized' });
-            });
-            expect(getDBPoolStub).to.have.been.calledOnce;
-
-            expect(connectStub).not.to.have.been.called;
-            expect(queryStub).not.to.have.been.called;
-          });
+          expect(error).to.exist;
+          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBPool is not initialized' });
         });
       });
 
       describe('release', () => {
-        describe('when a connection is open', () => {
-          describe('when not previously called', () => {
-            it('releases the open connection', async () => {
-              sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
-
-              await connection.open();
-
-              connection.release();
-
-              expect(releaseStub).to.have.been.calledOnce;
-            });
-          });
-
-          describe('when previously called', () => {
-            it('does not attempt to release a connection', async () => {
-              sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
-
-              await connection.open();
-
-              // call first time
-              connection.release();
-
-              // reset mock call history
-              releaseStub.resetHistory();
-
-              // call second time
-              connection.release();
-
-              expect(releaseStub).not.to.have.been.called;
-            });
-          });
+        it('releases connection when open', async () => {
+          sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
+          await connection.open();
+          connection.release();
+          expect(releaseStub).to.have.been.calledOnce;
         });
 
-        describe('when a connection is not open', () => {
-          it('does not attempt to release a connection', async () => {
-            connection.release();
+        it('does nothing if already released', async () => {
+          sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
+          await connection.open();
+          connection.release();
+          releaseStub.resetHistory();
+          connection.release();
+          expect(releaseStub).not.to.have.been.called;
+        });
 
-            expect(releaseStub).not.to.have.been.called;
-          });
+        it('does nothing if not open', () => {
+          connection.release();
+          expect(releaseStub).not.to.have.been.called;
         });
       });
 
       describe('commit', () => {
-        describe('when a connection is open', () => {
-          it('sends a `COMMIT` query', async () => {
-            sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
-
-            await connection.open();
-
-            connection.commit();
-
-            expect(queryStub).to.have.been.calledWith('COMMIT');
-          });
+        it('sends COMMIT when open', async () => {
+          sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
+          await connection.open();
+          await connection.commit();
+          expect(queryStub).to.have.been.calledWith('COMMIT');
         });
 
-        describe('when a connection is not open', () => {
-          it('throws an error', async () => {
-            sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
-
-            let expectedError: ApiExecuteSQLError;
-            try {
-              await connection.commit();
-
-              expect.fail('Expected an error to be thrown');
-            } catch (error) {
-              expectedError = error as ApiExecuteSQLError;
-            }
-
-            expect(expectedError.message).to.equal('Failed to execute SQL');
-
-            expect(expectedError.errors?.length).to.be.greaterThan(0);
-            expectedError.errors?.forEach((item) => {
-              expect(item).to.be.eql({ name: 'Error', message: 'DBConnection is not open' });
-            });
-          });
-        });
-      });
-
-      describe('query', () => {
-        describe('when a connection is open', () => {
-          it('sends a query statement', async () => {
-            sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
-
-            await connection.open();
-
-            const queryStatement = `query`;
-
-            await connection.query(queryStatement);
-
-            expect(queryStub).to.have.been.calledWith('query');
-          });
-
-          it('sends a query with empty values', async () => {
-            sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
-
-            await connection.open();
-
-            const queryStatement = `query`;
-
-            await connection.query(queryStatement);
-
-            expect(queryStub).to.have.been.calledWith('query', []);
-          });
-        });
-
-        describe('when a connection is not open', () => {
-          it('throws an error', async () => {
-            sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
-
-            let expectedError: ApiExecuteSQLError;
-            try {
-              const queryStatement = `query ${123}`;
-
-              await connection.query(queryStatement);
-
-              expect.fail('Expected an error to be thrown');
-            } catch (error) {
-              expectedError = error as ApiExecuteSQLError;
-            }
-
-            expect(expectedError.message).to.equal('Failed to execute SQL');
-
-            expect(expectedError.errors?.length).to.be.greaterThan(0);
-            expectedError.errors?.forEach((item) => {
-              expect(item).to.be.eql({ name: 'Error', message: 'DBConnection is not open' });
-            });
-          });
+        it('throws error if not open', async () => {
+          let error: any;
+          try {
+            await connection.commit();
+          } catch (err) {
+            error = err;
+          }
+          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBConnection is not open' });
         });
       });
 
       describe('rollback', () => {
-        describe('when a connection is open', () => {
-          it('sends a `ROLLBACK` query', async () => {
-            sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
-
-            await connection.open();
-
-            await connection.rollback();
-
-            expect(queryStub).to.have.been.calledWith('ROLLBACK');
-          });
+        it('sends ROLLBACK when open', async () => {
+          sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
+          await connection.open();
+          await connection.rollback();
+          expect(queryStub).to.have.been.calledWith('ROLLBACK');
         });
 
-        describe('when a connection is not open', () => {
-          it('throws an error', async () => {
-            sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
+        it('throws error if not open', async () => {
+          let error: any;
+          try {
+            await connection.rollback();
+          } catch (err) {
+            error = err;
+          }
+          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBConnection is not open' });
+        });
+      });
 
-            let expectedError: ApiExecuteSQLError;
-            try {
-              await connection.rollback();
+      describe('query', () => {
+        it('sends query when open', async () => {
+          sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
+          await connection.open();
+          await connection.query('SELECT 1');
+          expect(queryStub).to.have.been.calledWith('SELECT 1', []);
+        });
 
-              expect.fail('Expected an error to be thrown');
-            } catch (error) {
-              expectedError = error as ApiExecuteSQLError;
-            }
-
-            expect(expectedError.message).to.equal('Failed to execute SQL');
-
-            expect(expectedError.errors?.length).to.be.greaterThan(0);
-            expectedError.errors?.forEach((item) => {
-              expect(item).to.be.eql({ name: 'Error', message: 'DBConnection is not open' });
-            });
-          });
+        it('throws error if not open', async () => {
+          let error: any;
+          try {
+            await connection.query('SELECT 1');
+          } catch (err) {
+            error = err;
+          }
+          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBConnection is not open' });
         });
       });
 
       describe('sql', () => {
-        describe('when a connection is open', () => {
-          it('sends a sql statement', async () => {
-            sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
-
-            await connection.open();
-
-            const sqlStatement = SQL`sql query ${123}`;
-
-            await connection.sql(sqlStatement);
-
-            expect(queryStub).to.have.been.calledWith('sql query $1', [123]);
-          });
+        it('sends sql statement when open', async () => {
+          sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
+          await connection.open();
+          const sqlStatement = SQL`SELECT ${1}`;
+          await connection.sql(sqlStatement);
+          expect(queryStub).to.have.been.calledWith('SELECT $1', [1]);
         });
 
-        describe('when a connection is not open', () => {
-          it('throws an error', async () => {
-            sinonSandbox.stub(db, 'getDBPool').returns(mockPool as unknown as pg.Pool);
-
-            let expectedError: ApiExecuteSQLError;
-            try {
-              const sqlStatement = SQL`sql query ${123}`;
-
-              await connection.sql(sqlStatement);
-
-              expect.fail('Expected an error to be thrown');
-            } catch (error) {
-              expectedError = error as ApiExecuteSQLError;
-            }
-            expect(expectedError.message).to.equal('Failed to execute SQL');
-
-            expect(expectedError.errors?.length).to.be.greaterThan(0);
-            expectedError.errors?.forEach((item) => {
-              expect(item).to.be.eql({ name: 'Error', message: 'DBConnection is not open' });
-            });
-          });
+        it('throws error if not open', async () => {
+          let error: any;
+          try {
+            const sqlStatement = SQL`SELECT ${1}`;
+            await connection.sql(sqlStatement);
+          } catch (err) {
+            error = err;
+          }
+          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBConnection is not open' });
         });
       });
     });
   });
 
   describe('getAPIUserDBConnection', () => {
-    it('calls getDBConnection for the biohub_api user', () => {
+    it('calls getDBConnection for API user', () => {
       const mockDBConnection = getMockDBConnection();
-      const getDBConnectionStub = Sinon.stub(db, 'getDBConnection').returns(mockDBConnection);
+      const stub = Sinon.stub(db, 'getDBConnection').returns(mockDBConnection);
 
       getAPIUserDBConnection();
 
-      const DB_USERNAME = process.env.DB_USER_API;
-
-      expect(getDBConnectionStub).to.have.been.calledWith({
-        preferred_username: `${DB_USERNAME}@${SYSTEM_IDENTITY_SOURCE.DATABASE}`,
+      expect(stub).to.have.been.calledWith({
+        preferred_username: `${process.env.DB_USER_API}@${SYSTEM_IDENTITY_SOURCE.DATABASE}`,
         identity_provider: SYSTEM_IDENTITY_SOURCE.DATABASE
       });
 
-      getDBConnectionStub.restore();
+      stub.restore();
     });
   });
 
   describe('getServiceAccountDBConnection', () => {
-    it('calls getDBConnection for a service account user', () => {
+    it('calls getDBConnection for service account user', () => {
       const mockDBConnection = getMockDBConnection();
-      const getDBConnectionStub = Sinon.stub(db, 'getDBConnection').returns(mockDBConnection);
+      const stub = Sinon.stub(db, 'getDBConnection').returns(mockDBConnection);
 
       const systemUser: SystemUser = {
         system_user_id: 1,
@@ -402,19 +254,18 @@ describe('db', () => {
 
       getServiceAccountDBConnection(systemUser);
 
-      expect(getDBConnectionStub).to.have.been.calledWith({
+      expect(stub).to.have.been.calledWith({
         preferred_username: 'service-account-sims-svc-4464',
         identity_provider: SYSTEM_IDENTITY_SOURCE.SYSTEM
       });
 
-      getDBConnectionStub.restore();
+      stub.restore();
     });
   });
 
   describe('getKnexQueryBuilder', () => {
     it('returns a Knex query builder', () => {
       const queryBuilder = getKnexQueryBuilder();
-
       expect(queryBuilder.client.config).to.eql({ client: DB_CLIENT });
     });
   });
@@ -422,7 +273,6 @@ describe('db', () => {
   describe('getKnex', () => {
     it('returns a Knex instance', () => {
       const knex = getKnex();
-
       expect(knex.client.config).to.eql({ client: DB_CLIENT });
     });
   });

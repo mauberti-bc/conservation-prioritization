@@ -15,15 +15,14 @@ describe('db-constants', () => {
     sinon.restore();
   });
 
-  describe('when db constants has not been initialized', () => {
+  describe('when DBConstants has not been initialized', () => {
     describe('initDBConstants', () => {
       it('catches and re-throws an error', async () => {
         const getAPIUserDBConnectionStub = sinon.stub(db, 'getAPIUserDBConnection').throws(new Error('test error'));
 
         try {
           await initDBConstants();
-
-          expect.fail();
+          expect.fail('Expected error to be thrown');
         } catch (actualError) {
           expect((actualError as Error).message).to.equal('test error');
           expect(getAPIUserDBConnectionStub).to.have.been.calledOnce;
@@ -35,8 +34,7 @@ describe('db-constants', () => {
       it('throws an error if DBConstants has not been initialized', () => {
         try {
           getDBConstants();
-
-          expect.fail();
+          expect.fail('Expected error to be thrown');
         } catch (actualError) {
           expect((actualError as Error).message).to.equal('DBConstants is not initialized');
         }
@@ -44,34 +42,38 @@ describe('db-constants', () => {
     });
   });
 
-  describe('when db constants has been initialized', () => {
+  describe('when DBConstants has been initialized', () => {
     let dbConnectionObj: db.IDBConnection;
     let getAPIUserDBConnectionStub: SinonStub<[], db.IDBConnection>;
 
     before(async () => {
-      const mockQueryResponse = {
+      // Mock query response using the updated "profile" table fields
+      const mockQueryResponse: QueryResult<SystemUser> = {
         rowCount: 1,
         rows: [
           {
             system_user_id: 1,
             user_identity_source_id: 2,
-            user_identifier: 'sims-svc-4464',
-            user_guid: 'service-account-sims-svc-4464',
+            user_identifier: '123',
+            user_guid: 'service-account-123',
             record_effective_date: '',
             record_end_date: '',
-            create_date: '2023-12-12',
+            create_date: '2025-12-12',
             create_user: 1,
             update_date: null,
             update_user: null,
             revision_count: 0
-          } as SystemUser
-        ]
-      } as any as Promise<QueryResult<any>>;
+          }
+        ],
+        command: '',
+        oid: 0,
+        fields: []
+      };
 
       dbConnectionObj = getMockDBConnection({
-        open: sinon.stub(),
-        commit: sinon.stub(),
-        release: sinon.stub(),
+        open: sinon.stub().resolves(),
+        commit: sinon.stub().resolves(),
+        release: sinon.stub().resolves(),
         sql: sinon.stub().resolves(mockQueryResponse)
       });
 
@@ -81,22 +83,22 @@ describe('db-constants', () => {
     });
 
     describe('initDBConstants', () => {
-      it('does nothing if db constants has already been initialized', async () => {
+      it('does nothing if DBConstants has already been initialized', async () => {
         expect(getAPIUserDBConnectionStub).to.have.been.calledOnce;
 
         // Call init a second time
         await initDBConstants();
 
-        // Expect not to have been called again (twice)
+        // Expect it not to have been called again
         expect(getAPIUserDBConnectionStub).to.have.been.calledOnce;
       });
     });
 
     describe('getDBConstants', () => {
-      it('returns a defined db constants instance if it has been initialized', async () => {
+      it('returns a defined DBConstants instance if it has been initialized', () => {
         const dbConstants = getDBConstants();
-
         expect(dbConstants).not.to.be.undefined;
+        expect(dbConstants.serviceClientUsers).to.have.lengthOf(1);
       });
     });
   });
