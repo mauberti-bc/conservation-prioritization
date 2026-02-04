@@ -226,6 +226,26 @@ export async function up(knex: Knex): Promise<void> {
       AFTER INSERT OR UPDATE OR DELETE ON task
       FOR EACH ROW EXECUTE FUNCTION tr_audit_trigger();
 
+    DROP TRIGGER IF EXISTS trg_journal_geometry ON geometry;
+    CREATE TRIGGER trg_journal_geometry
+      BEFORE INSERT OR UPDATE OR DELETE ON geometry
+      FOR EACH ROW EXECUTE FUNCTION tr_journal_trigger();
+
+    DROP TRIGGER IF EXISTS trg_audit_geometry ON geometry;
+    CREATE TRIGGER trg_audit_geometry
+      AFTER INSERT OR UPDATE OR DELETE ON geometry
+      FOR EACH ROW EXECUTE FUNCTION tr_audit_trigger();
+
+    DROP TRIGGER IF EXISTS trg_journal_task_geometry ON task_geometry;
+    CREATE TRIGGER trg_journal_task_geometry
+      BEFORE INSERT OR UPDATE OR DELETE ON task_geometry
+      FOR EACH ROW EXECUTE FUNCTION tr_journal_trigger();
+
+    DROP TRIGGER IF EXISTS trg_audit_task_geometry ON task_geometry;
+    CREATE TRIGGER trg_audit_task_geometry
+      AFTER INSERT OR UPDATE OR DELETE ON task_geometry
+      FOR EACH ROW EXECUTE FUNCTION tr_audit_trigger();
+
     DROP TRIGGER IF EXISTS trg_journal_task_permission ON task_permission;
     CREATE TRIGGER trg_journal_task_permission
       BEFORE INSERT OR UPDATE OR DELETE ON task_permission
@@ -299,6 +319,8 @@ export async function down(knex: Knex): Promise<void> {
     DROP TRIGGER IF EXISTS trg_audit_project_permission ON project_permission;
     DROP TRIGGER IF EXISTS trg_audit_project_profile ON project_profile;
     DROP TRIGGER IF EXISTS trg_audit_task ON task;
+    DROP TRIGGER IF EXISTS trg_audit_geometry ON geometry;
+    DROP TRIGGER IF EXISTS trg_audit_task_geometry ON task_geometry;
     DROP TRIGGER IF EXISTS trg_audit_task_permission ON task_permission;
     DROP TRIGGER IF EXISTS trg_audit_task_profile ON task_profile;
     DROP TRIGGER IF EXISTS trg_audit_project_task ON project_task;
@@ -313,6 +335,8 @@ export async function down(knex: Knex): Promise<void> {
     DROP TRIGGER IF EXISTS trg_journal_project_permission ON project_permission;
     DROP TRIGGER IF EXISTS trg_journal_project_profile ON project_profile;
     DROP TRIGGER IF EXISTS trg_journal_task ON task;
+    DROP TRIGGER IF EXISTS trg_journal_geometry ON geometry;
+    DROP TRIGGER IF EXISTS trg_journal_task_geometry ON task_geometry;
     DROP TRIGGER IF EXISTS trg_journal_task_permission ON task_permission;
     DROP TRIGGER IF EXISTS trg_journal_task_profile ON task_profile;
     DROP TRIGGER IF EXISTS trg_journal_project_task ON project_task;

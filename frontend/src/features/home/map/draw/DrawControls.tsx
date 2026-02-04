@@ -13,9 +13,27 @@ export interface DrawControlsProps {
 }
 
 export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
-  const { mapRef, drawRef } = useMapContext();
+  const { mapRef, drawRef, isMapReady } = useMapContext();
   const submitCallbackRef = useRef<((features: Feature[]) => void) | null>(null);
   const previousFeatureIdsRef = useRef<Set<string | number>>(new Set());
+  const isControlAttachedRef = useRef(false);
+
+  const hasDrawSources = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return false;
+    }
+    const sources = map.getStyle().sources ?? {};
+    return Boolean(sources['mapbox-gl-draw-cold'] && sources['mapbox-gl-draw-hot']);
+  }, [mapRef]);
+
+  const hasDrawLayers = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return false;
+    }
+    return Boolean(map.getLayer('gl-draw-polygon-fill') || map.getLayer('gl-draw-polygon-fill-active'));
+  }, [mapRef]);
 
   // Function to ensure draw layers are on top
   const ensureDrawLayersOnTop = useCallback(() => {
@@ -119,7 +137,7 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
 
     const initializeDraw = () => {
       const map = mapRef.current;
-      if (!map || drawRef.current) {
+      if (!map || !isMapReady || drawRef.current) {
         return;
       }
 
@@ -148,17 +166,10 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
 
       drawRef.current = draw;
       map.addControl(draw as unknown as maplibregl.IControl, 'top-right');
-
-      const ensureDrawSources = () => {
-        const sources = map.getStyle().sources ?? {};
-        if (sources['mapbox-gl-draw-cold'] && sources['mapbox-gl-draw-hot']) {
-          return true;
-        }
-        return false;
-      };
+      isControlAttachedRef.current = true;
 
       const waitForDrawSources = () => {
-        if (ensureDrawSources()) {
+        if (hasDrawSources()) {
           ensureDrawLayersOnTop();
           return;
         }
@@ -184,6 +195,10 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
         }
       };
 
+      const onDrawRender = () => {
+        ensureDrawLayersOnTop();
+      };
+
       if (map.isStyleLoaded()) {
         onMapLoad();
         waitForDrawSources();
@@ -197,16 +212,22 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
       // Ensure draw layers stay on top when new sources/layers are added
       map.on('sourcedata', onMapSourceData);
       map.on('styledata', ensureDrawLayersOnTop);
+      map.on('draw.render', onDrawRender);
 
       // Cleanup event listeners
       return () => {
         map.off('sourcedata', onMapSourceData);
         map.off('styledata', ensureDrawLayersOnTop);
-        try {
-          map.removeControl(draw as unknown as maplibregl.IControl);
-        } catch (error) {
-          console.debug('Failed to remove draw control', error);
+        map.off('draw.render', onDrawRender);
+        const isRemoved = Boolean((map as maplibregl.Map & { _removed?: boolean })._removed);
+        if (isControlAttachedRef.current && !isRemoved) {
+          try {
+            map.removeControl(draw as unknown as maplibregl.IControl);
+          } catch (error) {
+            console.debug('Failed to remove draw control', error);
+          }
         }
+        isControlAttachedRef.current = false;
         if (drawRef.current === draw) {
           drawRef.current = null;
         }
@@ -236,13 +257,26 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
         cleanup();
       }
     };
-  }, [mapRef, drawRef, ensureDrawLayersOnTop]);
+  }, [mapRef, drawRef, ensureDrawLayersOnTop, isMapReady, hasDrawSources]);
 
   useImperativeHandle(ref, () => ({
     startDrawing,
     submit,
     clearDrawing,
   }));
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const draw = drawRef.current;
+
+    if (!map || !draw || !isMapReady) {
+      return;
+    }
+
+    if (hasDrawSources() && hasDrawLayers()) {
+      ensureDrawLayersOnTop();
+    }
+  }, [isMapReady, mapRef, drawRef, ensureDrawLayersOnTop, hasDrawSources, hasDrawLayers]);
 
   return null;
 });

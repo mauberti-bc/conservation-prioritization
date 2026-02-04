@@ -21,7 +21,7 @@ interface MapContainerProps {
  */
 export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerProps) => {
   const mapHostRef = useRef<HTMLDivElement | null>(null);
-  const { mapRef } = useMapContext();
+  const { mapRef, setIsMapReady } = useMapContext();
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [areLayersLoaded, setAreLayersLoaded] = useState(false);
 
@@ -41,14 +41,16 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
         attachMapContainer(cached, mapHost);
         mapRef.current = cached.map;
 
-        if (cached.map.isStyleLoaded()) {
+        const handleReady = () => {
           ensureBaseLayer(cached.map);
           setIsMapInitialized(true);
+          setIsMapReady(true);
+        };
+
+        if (cached.map.isStyleLoaded()) {
+          handleReady();
         } else {
-          cached.map.once('load', () => {
-            ensureBaseLayer(cached.map);
-            setIsMapInitialized(true);
-          });
+          cached.map.once('load', handleReady);
         }
 
         cached.map.resize();
@@ -59,6 +61,7 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
           mapRef.current = null;
           setIsMapInitialized(false);
           setAreLayersLoaded(false);
+          setIsMapReady(false);
         };
       }
     }
@@ -86,6 +89,7 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
     const handleMapReady = () => {
       ensureBaseLayer(map);
       setIsMapInitialized(true);
+      setIsMapReady(true);
     };
 
     map.once('load', handleMapReady);
@@ -109,8 +113,9 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
       mapRef.current = null;
       setIsMapInitialized(false);
       setAreLayersLoaded(false);
+      setIsMapReady(false);
     };
-  }, [keepAliveKey, mapRef]);
+  }, [keepAliveKey, mapRef, setIsMapReady]);
 
   useEffect(() => {
     const map = mapRef.current;

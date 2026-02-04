@@ -51,7 +51,7 @@ export class TaskOrchestratorService {
    * @return {*} {Promise<Task>} - The newly created task.
    * @memberof TaskOrchestratorService
    */
-  async createTask(request: CreateTaskRequest): Promise<TaskWithLayers> {
+  async createTask(request: CreateTaskRequest, profileId?: string | null): Promise<TaskWithLayers> {
     // Step 1: Create the task
     const taskData: CreateTask = {
       name: request.name,
@@ -59,6 +59,9 @@ export class TaskOrchestratorService {
       status: TASK_STATUS.PENDING
     };
     const task = await this.taskService.createTask(taskData);
+    if (profileId) {
+      await this.taskService.addCreatorAsAdmin(task.task_id, profileId);
+    }
 
     // Step 2: Create each configured layer for the task
     for (const layer of request.layers) {
@@ -135,8 +138,8 @@ export class TaskOrchestratorService {
    * @return {*} {Promise<TaskWithLayers>} - The newly created task with Prefect linkage.
    * @memberof TaskOrchestratorService
    */
-  async createTaskAndSubmit(request: CreateTaskRequest): Promise<TaskWithLayers> {
-    const task = await this.createTask(request);
+  async createTaskAndSubmit(request: CreateTaskRequest, profileId?: string | null): Promise<TaskWithLayers> {
+    const task = await this.createTask(request, profileId);
     const optimizationParameters = buildOptimizationParameters(request);
 
     try {
