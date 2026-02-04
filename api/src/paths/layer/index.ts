@@ -1,12 +1,16 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
-import { getDBConnection } from '../../database/db';
 import { defaultErrorResponses } from '../../openapi/schemas/http-responses';
-import { paginationResponseSchema } from '../../openapi/schemas/pagination';
-import { GetTaskSchema } from '../../openapi/schemas/task';
+import { LayerMetaSchema } from '../../openapi/schemas/layer';
+import { paginationRequestQueryParamSchema, paginationResponseSchema } from '../../openapi/schemas/pagination';
 import { authorizeRequestHandler } from '../../request-handlers/security/authorization';
 import { LayerService } from '../../services/layer-service';
 import { getLogger } from '../../utils/logger';
+import {
+  ensureCompletePaginationOptions,
+  makePaginationOptionsFromRequest,
+  makePaginationResponse
+} from '../../utils/pagination';
 
 const defaultLog = getLogger(__filename);
 
@@ -36,11 +40,12 @@ GET.apiDoc = {
       description: 'Search term',
       in: 'query',
       name: 'keyword',
-      required: true,
+      required: false,
       schema: {
         type: 'string'
       }
-    }
+    },
+    ...paginationRequestQueryParamSchema
   ],
   security: [
     {
@@ -58,9 +63,9 @@ GET.apiDoc = {
             properties: {
               layers: {
                 type: 'array',
-                items: GetTaskSchema
+                items: LayerMetaSchema
               },
-              pagination: { ...paginationResponseSchema, nullable: true }
+              pagination: paginationResponseSchema
             }
           }
         }
@@ -78,27 +83,19 @@ GET.apiDoc = {
 export function findLayers(): RequestHandler {
   return async (req, res) => {
     defaultLog.debug({ label: 'findLayers' });
-
-    const connection = getDBConnection(req.keycloak_token);
-
     try {
-      await connection.open();
-
       const layerService = new LayerService();
 
-      const keyword = req.params.keyword as string;
+      const keyword = (req.query.keyword as string | undefined) ?? '';
+      const pagination = ensureCompletePaginationOptions(makePaginationOptionsFromRequest(req));
 
-      const { layers, pagination } = await layerService.findLayers(keyword);
+      const { layers, pagination: paginationResult } = await layerService.findLayers(keyword, pagination);
+      const responsePagination = paginationResult ?? makePaginationResponse(layers.length, pagination);
 
-      await connection.commit();
-
-      return res.status(200).json({ layers, pagination });
+      return res.status(200).json({ layers, pagination: responsePagination });
     } catch (error) {
       defaultLog.error({ label: 'findLayers', message: 'error', error });
-      await connection.rollback();
       throw error;
-    } finally {
-      connection.release();
     }
   };
 }
