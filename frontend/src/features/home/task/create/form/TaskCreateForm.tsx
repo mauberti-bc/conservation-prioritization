@@ -35,9 +35,10 @@ const COST_LAYER_OPTION: TaskLayerOption = {
 
 interface TaskCreateFormProps {
   isReadOnly?: boolean;
+  autoSearchOnMount?: boolean;
 }
 
-export const TaskCreateForm = ({ isReadOnly = false }: TaskCreateFormProps) => {
+export const TaskCreateForm = ({ isReadOnly = false, autoSearchOnMount = false }: TaskCreateFormProps) => {
   const costLayer = COST_LAYER_OPTION;
   const { values, handleChange, touched, errors } = useFormikContext<TaskCreateFormValues>();
 
@@ -105,7 +106,7 @@ export const TaskCreateForm = ({ isReadOnly = false }: TaskCreateFormProps) => {
               Layers
             </Typography>
           </TooltipStack>
-          <TaskLayerSection isReadOnly={isReadOnly} />
+          <TaskLayerSection isReadOnly={isReadOnly} autoSearchOnMount={autoSearchOnMount} />
         </Box>
 
         <Box>
