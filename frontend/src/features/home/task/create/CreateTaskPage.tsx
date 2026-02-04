@@ -8,12 +8,10 @@ import { Formik } from 'formik';
 import { CreateTaskLayer, CreateTaskRequest } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useMapContext } from 'hooks/useContext';
-import useDataLoader from 'hooks/useDataLoader';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { taskValidationSchema } from './TaskCreateYup';
 import { OPTIMIZATION_VARIANT } from 'hooks/interfaces/useTaskApi.interface';
 import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
-import { TaskLayerOption } from './form/layer/task-layer.interface';
 
 const initialValues: TaskCreateFormValues = {
   resolution: 1000,
@@ -31,19 +29,6 @@ export const CreateTaskPage = () => {
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
   const { drawControlsRef, mapRef } = useMapContext();
-
-  const availableLayersLoader = useDataLoader(async (search: string) => await conservationApi.layer.findLayers(search));
-
-  const layerOptions: TaskLayerOption[] = useMemo(
-    () =>
-      availableLayersLoader.data?.layers.map((layer) => ({
-        path: layer.path,
-        name: layer.name,
-        description: layer.description,
-        group: layer.group,
-      })) ?? [],
-    [availableLayersLoader]
-  );
 
   // Clean up drawn features when component unmounts
   useEffect(() => {
@@ -135,7 +120,7 @@ export const CreateTaskPage = () => {
                 height: '100%',
                 overflow: 'auto',
               }}>
-              <TaskCreateForm layerOptions={layerOptions} />
+              <TaskCreateForm />
             </Box>
 
             {/* Sticky footer */}

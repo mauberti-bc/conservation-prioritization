@@ -15,8 +15,8 @@ import { TaskCreateFormValues } from '../TaskCreateForm';
 import { FormikErrorAlert } from '../error/FormikErrorAlert';
 import { LayerConstraint } from './card/constraint/item/LayerConstraintItem';
 import { SelectedLayerItem } from './card/SelectedLayerItem';
+import { LayerSearch } from 'features/layer/search/LayerSearch';
 import { TaskLayerConfig, TaskLayerOption, initialTaskLayerValues } from './task-layer.interface';
-import { LayerSelect } from './select/LayerSelect';
 
 export const TaskLayerSection = () => {
   const { values, setFieldValue, errors, setFieldError } = useFormikContext<TaskCreateFormValues>();
@@ -167,7 +167,8 @@ export const TaskLayerSection = () => {
   return (
     <Stack direction="column" gap={1}>
       <Box>
-        <LayerSelect
+        <LayerSearch
+          variant="select"
           showCheckbox
           selectedLayers={selectedLayerOptions}
           onLayerChange={(selected: TaskLayerOption) => {

@@ -32,6 +32,7 @@ export const useLayerSearch = ({ debounceMs = 300 }: UseLayerSearchProps = {}): 
       if (!trimmed) {
         setLayers([]);
         setError(null);
+        setLoading(false);
         return;
       }
 
@@ -40,7 +41,13 @@ export const useLayerSearch = ({ debounceMs = 300 }: UseLayerSearchProps = {}): 
 
       try {
         const response = await conservationApi.layer.findLayers(trimmed);
-        setLayers(response.layers);
+        const mappedLayers: TaskLayerOption[] = response.layers.map((layer) => ({
+          path: layer.path,
+          name: layer.name,
+          description: layer.description,
+          group: layer.group,
+        }));
+        setLayers(mappedLayers);
       } catch (err) {
         console.error('Failed to fetch layers:', err);
         setError('Failed to load layers. Please try again.');

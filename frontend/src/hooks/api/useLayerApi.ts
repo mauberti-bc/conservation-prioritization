@@ -11,12 +11,12 @@ export const useLayersApi = (axios: AxiosInstance) => {
   /**
    * Find layers based on the search keyword.
    *
-   * @param {string} keyword - The keyword to search for in layer names.
+   * @param {string} [keyword] - The keyword to search for in layer names.
    * @return {Promise<FindLayersResponse>} A list of layers that match the search term.
    */
-  const findLayers = async (keyword: string): Promise<FindLayersResponse> => {
+  const findLayers = async (keyword?: string): Promise<FindLayersResponse> => {
     const { data } = await axios.get<FindLayersResponse>('/api/layers', {
-      params: { keyword },
+      params: keyword ? { keyword } : undefined,
     });
     return data;
   };
