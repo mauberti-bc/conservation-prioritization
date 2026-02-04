@@ -14,7 +14,10 @@ export $(shell sed 's/=.*//' .env)
 setup: | setup-env check-env ## Copies default env.docker to .env
 env: | setup-env check-env
 
-# Running project parts
+# Web app and prefect
+all: | build-all run-all
+
+# Running web app parts
 web: | build-web run-web
 
 # Prefect
@@ -65,6 +68,22 @@ prune: ## Delete ALL Docker artifacts (dangerous)
 	@echo "==============================================="
 	@docker system prune --all --volumes -f
 	@docker volume prune --all -f
+
+## ------------------------------------------------------------------------------
+## Build and Run Backend + Web + Prefect
+## ------------------------------------------------------------------------------
+
+build-all: ## Build containers for all
+	@echo "==============================================="
+	@echo "Make: build-all - building all images"
+	@echo "==============================================="
+	@docker compose build frontend db db_setup prefect_server prefect_deploy prefect_worker
+
+run-all: ## Run containers for all
+	@echo "==============================================="
+	@echo "Make: run-all - running all images"
+	@echo "==============================================="
+	@docker compose up -d frontend db db_setup prefect_server prefect_deploy prefect_worker
 
 ## ------------------------------------------------------------------------------
 ## Build and Run Backend + Web

@@ -76,7 +76,7 @@ export const appTheme = createTheme({
       fontSize: '1rem',
     },
     body2: {
-      fontSize: '0.85rem',
+      fontSize: '0.8rem',
     },
   },
   components: {
@@ -192,6 +192,7 @@ export const appTheme = createTheme({
         },
         startIcon: {
           marginBottom: '1px',
+          mr: 0,
         },
         sizeLarge: {
           fontSize: '1rem',

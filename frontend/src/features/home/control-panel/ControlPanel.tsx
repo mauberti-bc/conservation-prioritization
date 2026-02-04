@@ -1,5 +1,6 @@
 import { mdiCheck } from '@mdi/js';
 import Icon from '@mdi/react';
+import { Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
@@ -12,7 +13,6 @@ import { useDialogContext, useMapContext } from 'hooks/useContext';
 import { useZarr } from 'hooks/useZarr';
 import { useEffect, useMemo, useState } from 'react';
 import yup from 'utils/yup';
-import { ControlPanelAdvanced } from './form/advanced/ControlPanelAdvanced';
 import { OPTIMIZATION_VARIANT } from './form/advanced/form/ControlPanelAdvancedForm';
 import { ControlPanelForm, LayerOption } from './form/ControlPanelForm';
 import { Layer } from './form/layer/layer.interface';
@@ -115,11 +115,10 @@ const initialValues: FormValues = {
 };
 
 export const ControlPanel = () => {
-  const [advancedOpen, setAdvancedOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
-  const { drawControlsRef } = useMapContext();
+  const { drawControlsRef, mapRef } = useMapContext();
 
   // Read this from my /data/species.zarr store instead using zarrita.js
   const zarr = useZarr(config.ZARR_STORE_PATH);
@@ -138,16 +137,13 @@ export const ControlPanel = () => {
   // Clean up drawn features when component unmounts
   useEffect(() => {
     const drawControls = drawControlsRef.current;
+    const map = mapRef.current;
     return () => {
-      if (drawControls) {
+      if (drawControls && map) {
         drawControls.clearDrawing();
       }
     };
-  }, [drawControlsRef]);
-
-  const handleToggleAdvanced = () => {
-    setAdvancedOpen((prev) => !prev);
-  };
+  }, [drawControlsRef, mapRef]);
 
   const handleSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
@@ -212,12 +208,15 @@ export const ControlPanel = () => {
             <Box
               sx={{
                 flex: 1,
-                overflow: 'hidden',
+                px: 3,
+                py: 1,
+                pb: 3,
                 display: 'flex',
                 flexDirection: 'column',
-                pt: 1,
-                px: 3,
-                mr: 0.5,
+                minHeight: 0,
+                gap: 3,
+                height: '100%',
+                overflow: 'auto',
               }}>
               <ControlPanelForm layerOptions={layerOptions} />
             </Box>
@@ -232,10 +231,8 @@ export const ControlPanel = () => {
                 bottom: 0,
                 backgroundColor: 'white',
               }}>
-              <Stack gap={1} px={3} alignItems="flex-start">
-                <ControlPanelAdvanced open={advancedOpen} handleClick={handleToggleAdvanced} />
-
-                {/* Submit Button */}
+              {/* Submit Button */}
+              <Box mx={3}>
                 <Button
                   variant="contained"
                   loading={isSubmitting}
@@ -245,7 +242,10 @@ export const ControlPanel = () => {
                   fullWidth>
                   Submit
                 </Button>
-              </Stack>
+              </Box>
+              <Typography variant="body2" textAlign="center" mt={2} color="textSecondary">
+                Your task will begin processing when you submit. Tasks typically take 1&ndash;3 minutes.
+              </Typography>
             </Box>
           </Box>
         );

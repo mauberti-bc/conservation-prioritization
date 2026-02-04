@@ -1,30 +1,42 @@
-import { mdiCogOutline } from '@mdi/js';
+import { mdiChevronDown, mdiCogOutline } from '@mdi/js';
 import Icon from '@mdi/react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Collapse from '@mui/material/Collapse';
+import { grey } from '@mui/material/colors';
+import { useState } from 'react';
 import { ControlPanelAdvancedForm } from './form/ControlPanelAdvancedForm';
 
-interface ControlPanelAdvanced {
-  open: boolean;
-  handleClick: () => void;
-}
+export const ControlPanelAdvanced = () => {
+  const [open, setOpen] = useState(false);
 
-export const ControlPanelAdvanced = (props: ControlPanelAdvanced) => {
-  const { open, handleClick } = props;
+  const handleClick = () => {
+    setOpen((prev) => !prev);
+  };
 
   return (
-    <Box flex="1 1 auto" width="100%">
+    <Box width="100%">
       <Box>
         <Button
           onClick={handleClick}
           color="primary"
           startIcon={<Icon path={mdiCogOutline} size={1} />}
-          sx={{ justifyContent: 'flex-start' }}>
+          endIcon={
+            <Icon
+              path={mdiChevronDown}
+              size={1}
+              style={{
+                transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+              }}
+            />
+          }
+          sx={{ justifyContent: 'flex-start', color: grey[500] }}>
           {open ? 'Hide Advanced' : 'Show Advanced'}
         </Button>
       </Box>
-      <Collapse in={open} sx={{ width: '100%' }}>
+
+      <Collapse in={open} sx={{ width: '100%' }} timeout={100}>
         <Box ml={1} my={1}>
           <ControlPanelAdvancedForm />
         </Box>

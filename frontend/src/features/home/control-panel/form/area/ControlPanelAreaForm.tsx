@@ -127,7 +127,7 @@ export const ControlPanelAreaForm = () => {
         </TooltipPopover>
       </Box>
 
-      <Box mb={1}>
+      <Box>
         <FileDropzone
           label="Upload areas of interest"
           accept={{
@@ -140,7 +140,11 @@ export const ControlPanelAreaForm = () => {
         />
       </Box>
 
-      <ControlPanelGeometryForm geometry={values.geometry} onDelete={handleDelete} />
+      {values.geometry.length > 0 ? (
+        <Box mt={1}>
+          <ControlPanelGeometryForm geometry={values.geometry} onDelete={handleDelete} />
+        </Box>
+      ) : null}
 
       {floatingFinishButton}
     </>

@@ -80,7 +80,7 @@ export const ControlPanelBudgetForm = ({ costLayer }: IControlPanelBudgetFormPro
   };
 
   return (
-    <Box display="flex" alignItems="center" gap={2} mb={1} width="100%">
+    <Box display="flex" alignItems="center" gap={2} width="100%">
       <TextField
         placeholder={costLayer ? 'Unlimited' : 'Failed to find cost layer'}
         value={existingMax !== null ? formatBudget(existingMax.toString()) : ''}
