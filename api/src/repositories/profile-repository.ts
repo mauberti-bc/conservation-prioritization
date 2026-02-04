@@ -154,7 +154,7 @@ export class ProfileRepository extends BaseRepository {
         r.name as role_name
       FROM
         profile p
-      JOIN role r ON r.role_id = p.role_id
+      LEFT JOIN role r ON r.role_id = p.role_id
       WHERE
         LOWER(p.profile_guid) = LOWER(${profileGuid})
       AND

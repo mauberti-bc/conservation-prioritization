@@ -2,6 +2,7 @@ import { SYSTEM_ROLE } from '../constants/roles';
 import { IDBConnection } from '../database/db';
 import { CreateProfile, DeleteProfile, Profile, UpdateProfile, UpsertProfile } from '../models/profile';
 import { ProfileRepository } from '../repositories/profile-repository';
+import { ApiExecuteSQLError } from '../errors/api-error';
 import { DBService } from './db-service';
 
 /**
@@ -108,6 +109,21 @@ export class ProfileService extends DBService {
     const existingProfile = await this.profileRepository.findProfileByGuid(profile.profile_guid);
 
     if (existingProfile) {
+      const hasChanges =
+        existingProfile.identity_source !== profile.identity_source ||
+        existingProfile.profile_identifier !== profile.profile_identifier ||
+        existingProfile.profile_guid !== profile.profile_guid ||
+        (existingProfile.display_name ?? null) !== (profile.display_name ?? null) ||
+        (existingProfile.email ?? null) !== (profile.email ?? null) ||
+        (existingProfile.given_name ?? null) !== (profile.given_name ?? null) ||
+        (existingProfile.family_name ?? null) !== (profile.family_name ?? null) ||
+        (existingProfile.agency ?? null) !== (profile.agency ?? null) ||
+        (existingProfile.notes ?? null) !== (profile.notes ?? null);
+
+      if (!hasChanges) {
+        return [existingProfile, false];
+      }
+
       const updates: UpdateProfile = {
         identity_source: profile.identity_source,
         profile_identifier: profile.profile_identifier,
@@ -120,7 +136,17 @@ export class ProfileService extends DBService {
         notes: profile.notes
       };
 
-      return [await this.profileRepository.updateProfile(existingProfile.profile_id, updates), false];
+      try {
+        return [await this.profileRepository.updateProfile(existingProfile.profile_id, updates), false];
+      } catch (error) {
+        if (error instanceof ApiExecuteSQLError) {
+          const latestProfile = await this.profileRepository.findProfileByGuid(profile.profile_guid);
+          if (latestProfile) {
+            return [latestProfile, false];
+          }
+        }
+        throw error;
+      }
     }
 
     const roleId = await this.profileRepository.getRoleIdByName(SYSTEM_ROLE.MEMBER);

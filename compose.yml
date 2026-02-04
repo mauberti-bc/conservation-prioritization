@@ -40,8 +40,8 @@ services:
       timeout: 15s
       retries: 10
     depends_on:
-      db_setup:
-        condition: service_completed_successfully
+      db:
+        condition: service_healthy
     ports:
       - "4200:4200"
       - "8080:8080"
@@ -70,7 +70,7 @@ services:
     environment:
       PREFECT_API_URL: http://prefect_server:4200/api
       ZARR_STORE_PATH: ${ZARR_STORE_PATH}
-      CONSERVATION_API_URL: ${CONSERVATION_API_URL}
+      CONSERVATION_API_URL: http://api:5200/api
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       OBJECT_STORE_URL: ${OBJECT_STORE_URL}
@@ -195,7 +195,7 @@ services:
       S3_KEY_PREFIX: ${S3_KEY_PREFIX}
       APP_HOST: ${APP_HOST}
       ZARR_STORE_PATH: ${ZARR_STORE_PATH}
-      PREFECT_API_URL: ${PREFECT_API_URL}
+      PREFECT_API_URL: http://prefect_server:4200/api
       PREFECT_API_KEY: ${PREFECT_API_KEY}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     volumes:

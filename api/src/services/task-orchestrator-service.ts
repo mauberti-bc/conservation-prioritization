@@ -1,12 +1,12 @@
 import { IDBConnection } from '../database/db';
+import { PrefectSubmissionError } from '../errors/prefect-error';
 import { CreateTask } from '../models/task';
-import { TaskWithLayers } from '../models/task.interface';
-import { CreateTaskRequest } from '../models/task-orchestrator';
 import { CreateTaskLayer } from '../models/task-layer';
 import { CreateTaskLayerConstraint } from '../models/task-layer-constraint';
-import { PrefectSubmissionError } from '../errors/prefect-error';
-import { buildOptimizationParameters } from '../utils/task-optimization';
+import { CreateTaskRequest } from '../models/task-orchestrator';
+import { TaskWithLayers } from '../models/task.interface';
 import { TASK_STATUS } from '../types/status';
+import { buildOptimizationParameters } from '../utils/task-optimization';
 import { PrefectService } from './prefect-service';
 import { TaskLayerConstraintService } from './task-layer-constraint-service';
 import { TaskLayerService } from './task-layer-service';
