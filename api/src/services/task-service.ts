@@ -89,11 +89,13 @@ export class TaskService extends DBService {
     const geometries = await this.taskGeometryService.getGeometriesByTaskId(taskId);
     const taskProjects = await this.projectRepository.getProjectsByTaskIds([taskId]);
     const dashboardId = await this.dashboardTaskRepository.getLatestDashboardIdForTask(taskId);
+    const tilesetUri = await this.toPresignedTilesetUri(task.tileset_uri);
 
     // Generate presigned URL
 
     return {
       ...task,
+      tileset_uri: tilesetUri,
       layers,
       geometries,
       projects: taskProjects.map((project) => ({
@@ -132,12 +134,15 @@ export class TaskService extends DBService {
     const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
     const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
 
-    return tasks.map((task) => ({
-      ...task,
-      layers: layersByTaskId.get(task.task_id) ?? [],
-      geometries: geometriesByTaskId.get(task.task_id) ?? [],
-      projects: projectsByTaskId.get(task.task_id) ?? []
-    }));
+    return Promise.all(
+      tasks.map(async (task) => ({
+        ...task,
+        tileset_uri: await this.toPresignedTilesetUri(task.tileset_uri),
+        layers: layersByTaskId.get(task.task_id) ?? [],
+        geometries: geometriesByTaskId.get(task.task_id) ?? [],
+        projects: projectsByTaskId.get(task.task_id) ?? []
+      }))
+    );
   }
 
   /**
@@ -166,12 +171,15 @@ export class TaskService extends DBService {
       layersByTaskId.set(layer.task_id, existing);
     }
 
-    return tasks.map((task) => ({
-      ...task,
-      layers: layersByTaskId.get(task.task_id) ?? [],
-      geometries: geometriesByTaskId.get(task.task_id) ?? [],
-      projects: projectsByTaskId.get(task.task_id) ?? []
-    }));
+    return Promise.all(
+      tasks.map(async (task) => ({
+        ...task,
+        tileset_uri: await this.toPresignedTilesetUri(task.tileset_uri),
+        layers: layersByTaskId.get(task.task_id) ?? [],
+        geometries: geometriesByTaskId.get(task.task_id) ?? [],
+        projects: projectsByTaskId.get(task.task_id) ?? []
+      }))
+    );
   }
 
   /**
@@ -204,12 +212,15 @@ export class TaskService extends DBService {
       layersByTaskId.set(layer.task_id, existing);
     }
 
-    const populatedTasks = tasks.map((task) => ({
-      ...task,
-      layers: layersByTaskId.get(task.task_id) ?? [],
-      geometries: geometriesByTaskId.get(task.task_id) ?? [],
-      projects: projectsByTaskId.get(task.task_id) ?? []
-    }));
+    const populatedTasks = await Promise.all(
+      tasks.map(async (task) => ({
+        ...task,
+        tileset_uri: await this.toPresignedTilesetUri(task.tileset_uri),
+        layers: layersByTaskId.get(task.task_id) ?? [],
+        geometries: geometriesByTaskId.get(task.task_id) ?? [],
+        projects: projectsByTaskId.get(task.task_id) ?? []
+      }))
+    );
 
     return {
       tasks: populatedTasks,
@@ -243,12 +254,26 @@ export class TaskService extends DBService {
       layersByTaskId.set(layer.task_id, existing);
     }
 
-    return tasks.map((task) => ({
-      ...task,
-      layers: layersByTaskId.get(task.task_id) ?? [],
-      geometries: geometriesByTaskId.get(task.task_id) ?? [],
-      projects: projectsByTaskId.get(task.task_id) ?? []
-    }));
+    return Promise.all(
+      tasks.map(async (task) => ({
+        ...task,
+        tileset_uri: await this.toPresignedTilesetUri(task.tileset_uri),
+        layers: layersByTaskId.get(task.task_id) ?? [],
+        geometries: geometriesByTaskId.get(task.task_id) ?? [],
+        projects: projectsByTaskId.get(task.task_id) ?? []
+      }))
+    );
+  }
+
+  /**
+   * Convert a stored tileset URI into a presigned PMTiles URL.
+   *
+   * @param {string | null | undefined} uri
+   * @return {*}  {Promise<string | null>}
+   * @memberof TaskService
+   */
+  private async toPresignedTilesetUri(uri: string | null | undefined): Promise<string | null> {
+    return toPresignedPmtilesUrl(uri);
   }
 
   /**
