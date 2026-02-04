@@ -18,7 +18,11 @@ import { LayerConstraint } from './card/constraint/item/LayerConstraintItem';
 import { SelectedLayerItem } from './card/SelectedLayerItem';
 import { TaskLayerConfig, TaskLayerOption, initialTaskLayerValues } from './task-layer.interface';
 
-export const TaskLayerSection = () => {
+interface TaskLayerSectionProps {
+  isReadOnly?: boolean;
+}
+
+export const TaskLayerSection = ({ isReadOnly = false }: TaskLayerSectionProps) => {
   const { values, setFieldValue, errors, setFieldError } = useFormikContext<TaskCreateFormValues>();
   const [checkboxSelected, setCheckboxSelected] = useState<string[]>([]);
   const dialogContext = useDialogContext();
@@ -164,25 +168,27 @@ export const TaskLayerSection = () => {
 
   return (
     <Stack direction="column" gap={1}>
-      <Box>
-        <LayerSearch
-          variant="select"
-          showCheckbox
-          selectedLayers={selectedLayerOptions}
-          onLayerChange={(selected: TaskLayerOption) => {
-            const exists = values.layers.some((layer) => layer.path === selected.path);
+      {!isReadOnly && (
+        <Box>
+          <LayerSearch
+            variant="select"
+            showCheckbox
+            selectedLayers={selectedLayerOptions}
+            onLayerChange={(selected: TaskLayerOption) => {
+              const exists = values.layers.some((layer) => layer.path === selected.path);
 
-            if (exists) {
-              setFieldValue(
-                'layers',
-                values.layers.filter((layer) => layer.path !== selected.path)
-              );
-            } else {
-              setFieldValue('layers', [...values.layers, { ...initialTaskLayerValues, ...selected }]);
-            }
-          }}
-        />
-      </Box>
+              if (exists) {
+                setFieldValue(
+                  'layers',
+                  values.layers.filter((layer) => layer.path !== selected.path)
+                );
+              } else {
+                setFieldValue('layers', [...values.layers, { ...initialTaskLayerValues, ...selected }]);
+              }
+            }}
+          />
+        </Box>
+      )}
 
       {errors.layers && typeof errors.layers === 'string' && (
         <Box mt={2} width="100%">
@@ -193,15 +199,17 @@ export const TaskLayerSection = () => {
       {values.layers.length > 0 && (
         <>
           <Box display="flex" alignItems="center">
-            <Checkbox
-              onChange={handleCheckboxAll}
-              indeterminate={checkboxSelected.length > 0 && checkboxSelected.length < values.layers.length}
-              checked={checkboxSelected.length === values.layers.length}
-            />
+            {!isReadOnly && (
+              <Checkbox
+                onChange={handleCheckboxAll}
+                indeterminate={checkboxSelected.length > 0 && checkboxSelected.length < values.layers.length}
+                checked={checkboxSelected.length === values.layers.length}
+              />
+            )}
 
             <Stack direction="row" gap={1} alignItems="center">
               <Typography
-                ml={4}
+                ml={isReadOnly ? 0 : 4}
                 color="textSecondary"
                 fontWeight={700}
                 textTransform="uppercase"
@@ -235,12 +243,16 @@ export const TaskLayerSection = () => {
             </Stack>
 
             <Stack direction="row" gap={0.5} ml="auto">
-              <IconButton sx={{ color: grey[500] }} onClick={handleResetAll}>
-                <Icon path={mdiSync} size={1} />
-              </IconButton>
-              <IconButton sx={{ color: grey[500] }} onClick={handleClearAll}>
-                <Icon path={mdiBroom} size={1} />
-              </IconButton>
+              {!isReadOnly && (
+                <>
+                  <IconButton sx={{ color: grey[500] }} onClick={handleResetAll}>
+                    <Icon path={mdiSync} size={1} />
+                  </IconButton>
+                  <IconButton sx={{ color: grey[500] }} onClick={handleClearAll}>
+                    <Icon path={mdiBroom} size={1} />
+                  </IconButton>
+                </>
+              )}
             </Stack>
           </Box>
 
@@ -262,6 +274,7 @@ export const TaskLayerSection = () => {
                     const updated = errorObjects.filter((e) => e.message !== message);
                     setFieldError(`layers[${index}]`, updated.length > 0 ? updated[0].message : undefined);
                   }}
+                  isReadOnly={isReadOnly}
                 />
               );
             })}

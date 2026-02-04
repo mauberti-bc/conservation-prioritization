@@ -1,6 +1,11 @@
 /**
  * Interface representing a project.
  */
+import { GetTaskResponse } from './useTaskApi.interface';
+
+/**
+ * Interface representing a project.
+ */
 export interface Project {
   project_id: string;
   name: string;
@@ -22,4 +27,5 @@ export interface GetProjectResponse {
   project_id: string;
   name: string;
   description: string;
+  tasks?: GetTaskResponse[];
 }

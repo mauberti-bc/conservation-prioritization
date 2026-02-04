@@ -21,9 +21,10 @@ interface TaskGeometryFormValues {
 interface TaskGeometryFormProps {
   geometry: Geometry[];
   onDelete: (id: string) => void;
+  isReadOnly?: boolean;
 }
 
-export const TaskGeometryForm = ({ geometry, onDelete }: TaskGeometryFormProps) => {
+export const TaskGeometryForm = ({ geometry, onDelete, isReadOnly = false }: TaskGeometryFormProps) => {
   const { setFieldValue } = useFormikContext<TaskGeometryFormValues>();
   const [editingGeometry, setEditingGeometry] = useState<Geometry | null>(null);
 
@@ -76,17 +77,19 @@ export const TaskGeometryForm = ({ geometry, onDelete }: TaskGeometryFormProps) 
               )}
             </Box>
 
-            <IconMenuButton
-              items={[
-                { label: 'Edit', icon: mdiPencil, onClick: () => handleEditClick(g) },
-                { label: 'Delete', icon: mdiDelete, onClick: () => onDelete(g.id) },
-              ]}
-            />
+            {!isReadOnly && (
+              <IconMenuButton
+                items={[
+                  { label: 'Edit', icon: mdiPencil, onClick: () => handleEditClick(g) },
+                  { label: 'Delete', icon: mdiDelete, onClick: () => onDelete(g.id) },
+                ]}
+              />
+            )}
           </Paper>
         ))}
       </Stack>
 
-      {editingGeometry && (
+      {editingGeometry && !isReadOnly && (
         <GeometryEditDialog
           open={!!editingGeometry}
           geometry={editingGeometry}

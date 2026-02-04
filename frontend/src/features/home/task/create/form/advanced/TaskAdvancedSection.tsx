@@ -7,8 +7,14 @@ import { grey } from '@mui/material/colors';
 import { useState } from 'react';
 import { TaskAdvancedForm } from './form/TaskAdvancedForm';
 
-export const TaskAdvancedSection = () => {
+interface TaskAdvancedSectionProps {
+  isReadOnly?: boolean;
+}
+
+export const TaskAdvancedSection = ({ isReadOnly = false }: TaskAdvancedSectionProps) => {
   const [open, setOpen] = useState(false);
+
+  const shouldShowPanel = isReadOnly ? true : open;
 
   const handleClick = () => {
     setOpen((prev) => !prev);
@@ -16,27 +22,29 @@ export const TaskAdvancedSection = () => {
 
   return (
     <Box width="100%">
-      <Box>
-        <Button
-          onClick={handleClick}
-          color="primary"
-          startIcon={<Icon path={mdiCogOutline} size={1} />}
-          endIcon={
-            <Icon
-              path={mdiChevronDown}
-              size={1}
-              style={{
-                transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s ease',
-              }}
-            />
-          }
-          sx={{ justifyContent: 'flex-start', color: grey[500] }}>
-          {open ? 'Hide Advanced' : 'Show Advanced'}
-        </Button>
-      </Box>
+      {!isReadOnly && (
+        <Box>
+          <Button
+            onClick={handleClick}
+            color="primary"
+            startIcon={<Icon path={mdiCogOutline} size={1} />}
+            endIcon={
+              <Icon
+                path={mdiChevronDown}
+                size={1}
+                style={{
+                  transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease',
+                }}
+              />
+            }
+            sx={{ justifyContent: 'flex-start', color: grey[500] }}>
+            {open ? 'Hide Advanced' : 'Show Advanced'}
+          </Button>
+        </Box>
+      )}
 
-      <Collapse in={open} sx={{ width: '100%' }} timeout={100}>
+      <Collapse in={shouldShowPanel} sx={{ width: '100%' }} timeout={100}>
         <Box ml={1} my={1}>
           <TaskAdvancedForm />
         </Box>

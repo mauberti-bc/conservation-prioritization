@@ -9,9 +9,9 @@ interface MapContextType {
   drawControlsRef: React.RefObject<DrawControlsProps | null>;
 }
 
-const mapRef = createRef<Map>();
-const drawRef = createRef<MapboxDraw>();
-const drawControlsRef = createRef<DrawControlsProps>();
+const mapRef = createRef<Map | null>();
+const drawRef = createRef<MapboxDraw | null>();
+const drawControlsRef = createRef<DrawControlsProps | null>();
 
 export const MapContext = createContext<MapContextType | undefined>(undefined);
 

@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import { grey } from '@mui/material/colors';
+import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { LayerCardItem } from 'features/home/layer-panel/card/LayerCardItem';
 import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
 import { useCallback, useMemo, useState } from 'react';
@@ -149,22 +150,15 @@ export const LayerSearchDialog = ({
           setGroupFilters={(filter: string) =>
             setGroupFilters((prev) => (prev.includes(filter) ? prev.filter((f) => f !== filter) : [...prev, filter]))
           }>
-          <List sx={{ pl: 1 }}>
-            {loading ? (
+          <LoadingGuard
+            isLoading={loading}
+            isLoadingFallback={
               <Box sx={{ px: 3, pt: 4, pb: 4, textAlign: 'center', color: 'text.secondary' }}>
                 <Typography>Loading layers...</Typography>
               </Box>
-            ) : hasResults ? (
-              filteredLayers.map((layer) => (
-                <ListItem key={layer.path} sx={{ px: 0 }}>
-                  <LayerCardItem
-                    layer={layer}
-                    onToggle={() => onLayerChange(layer)}
-                    checked={selectedLayers.some((l) => l.path === layer.path)}
-                  />
-                </ListItem>
-              ))
-            ) : (
+            }
+            hasNoData={!loading && !hasResults}
+            hasNoDataFallback={
               <Box
                 sx={{
                   px: 3,
@@ -195,8 +189,19 @@ export const LayerSearchDialog = ({
                   Try adjusting your search or filters.
                 </Typography>
               </Box>
-            )}
-          </List>
+            }>
+            <List sx={{ pl: 1 }}>
+              {filteredLayers.map((layer) => (
+                <ListItem key={layer.path} sx={{ px: 0 }}>
+                  <LayerCardItem
+                    layer={layer}
+                    onToggle={() => onLayerChange(layer)}
+                    checked={selectedLayers.some((l) => l.path === layer.path)}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </LoadingGuard>
         </LayerSearchLayout>
       </DialogContent>
     </Dialog>

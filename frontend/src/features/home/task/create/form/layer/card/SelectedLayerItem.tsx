@@ -34,6 +34,7 @@ interface Props {
   handleCheckboxChange: (layerName: string) => void;
   errors?: { id: string; message: string }[];
   handleErrorClose: (message: string) => void;
+  isReadOnly?: boolean;
 }
 
 export const SelectedLayerItem = ({
@@ -45,6 +46,7 @@ export const SelectedLayerItem = ({
   handleCheckboxChange,
   errors,
   handleErrorClose,
+  isReadOnly = false,
 }: Props) => {
   const [localImportance, setLocalImportance] = useState(layer.importance);
   const theme = useTheme();
@@ -93,9 +95,11 @@ export const SelectedLayerItem = ({
 
   return (
     <Stack flexDirection="row" gap={1} id={`layer-item`}>
-      <Box mt={1}>
-        <Checkbox checked={checked} onChange={() => handleCheckboxChange(layer.name)} />
-      </Box>
+      {!isReadOnly && (
+        <Box mt={1}>
+          <Checkbox checked={checked} onChange={() => handleCheckboxChange(layer.name)} />
+        </Box>
+      )}
 
       <ListItem
         component={Paper}
@@ -137,6 +141,7 @@ export const SelectedLayerItem = ({
 
               <Box display="flex" alignItems="center" gap={1}>
                 <ToggleButtonGroup
+                  disabled={isReadOnly}
                   exclusive
                   size="small"
                   value={layer.mode}
@@ -197,18 +202,20 @@ export const SelectedLayerItem = ({
                   </TooltipPopover>
                 </ToggleButtonGroup>
 
-                <TooltipPopover tooltip="Add constraint">
-                  <IconButton
-                    color="primary"
-                    sx={{ borderRadius: '4px' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAddConstraint(layer);
-                    }}
-                    aria-label="Add Constraint">
-                    <Icon path={mdiPlusLock} size={1} />
-                  </IconButton>
-                </TooltipPopover>
+                {!isReadOnly && (
+                  <TooltipPopover tooltip="Add constraint">
+                    <IconButton
+                      color="primary"
+                      sx={{ borderRadius: '4px' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddConstraint(layer);
+                      }}
+                      aria-label="Add Constraint">
+                      <Icon path={mdiPlusLock} size={1} />
+                    </IconButton>
+                  </TooltipPopover>
+                )}
               </Box>
             </Box>
 
@@ -235,6 +242,7 @@ export const SelectedLayerItem = ({
                     onClick={(e) => e.stopPropagation()}
                     onChange={(_, value) => setLocalImportance(value as number)}
                     onChangeCommitted={(_, value) => onLayerChange(layer, { ...layer, importance: value })}
+                    disabled={isReadOnly}
                     step={1}
                     min={-100}
                     max={100}

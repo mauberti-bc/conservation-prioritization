@@ -95,7 +95,21 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
   };
 
   const clearDrawing = () => {
-    drawRef.current?.deleteAll();
+    const draw = drawRef.current as MapboxDraw & { _ctx?: { store?: unknown } };
+    if (!draw) {
+      return;
+    }
+
+    if (!draw._ctx?.store) {
+      return;
+    }
+
+    try {
+      draw.deleteAll();
+    } catch (error) {
+      console.debug('Failed to clear drawing:', error);
+    }
+
     previousFeatureIdsRef.current.clear();
   };
 

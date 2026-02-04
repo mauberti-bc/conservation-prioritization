@@ -1,8 +1,9 @@
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import useDataLoader, { DataLoader } from 'hooks/useDataLoader';
-import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router';
+import { createContext, PropsWithChildren, useCallback, useEffect, useMemo } from 'react';
+import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
+import { useSearchParams } from 'hooks/useSearchParams';
 
 export interface ITaskContext {
   taskDataLoader: DataLoader<[task_id: string], GetTaskResponse, unknown>;
@@ -19,10 +20,8 @@ export const TaskContext = createContext<ITaskContext>({
 export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>) => {
   const conservationApi = useConservationApi();
   const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
-  const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
-
-  const { taskId } = useParams<{ taskId?: string }>();
-  const activeTaskId = taskId ?? focusedTaskId;
+  const { searchParams, setSearchParams } = useSearchParams<HomeQueryParams>();
+  const activeTaskId = searchParams.get(QUERY_PARAM.TASK_ID);
 
   useEffect(() => {
     if (activeTaskId && taskDataLoader.data?.task_id !== activeTaskId) {
@@ -33,14 +32,16 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
   const setFocusedTask = useCallback(
     (task: GetTaskResponse | null) => {
       if (task) {
-        setFocusedTaskId(task.task_id);
+        searchParams.set(QUERY_PARAM.TASK_ID, task.task_id);
+        setSearchParams(searchParams);
         taskDataLoader.setData(task);
       } else {
-        setFocusedTaskId(null);
+        searchParams.delete(QUERY_PARAM.TASK_ID);
+        setSearchParams(searchParams);
         taskDataLoader.clearData();
       }
     },
-    [taskDataLoader]
+    [searchParams, setSearchParams, taskDataLoader]
   );
 
   const taskContext: ITaskContext = useMemo(() => {
