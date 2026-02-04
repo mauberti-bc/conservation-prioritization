@@ -1,20 +1,22 @@
 /**
  * Interface for a constraint within a task layer.
  */
-export interface CreateTaskLayerConstraint {
-  task_layer_id: string;
-  constraint_name: string;
-  constraint_value: string;
+export interface CreateTaskLayerConstraintRequest {
+  type: 'percent' | 'unit';
+  min?: number | null;
+  max?: number | null;
 }
 
 /**
  * Interface for a layer within a task.
  */
-export interface CreateTaskLayer {
-  task_id: string;
+export interface CreateTaskLayerRequest {
   layer_name: string;
-  description: string;
-  constraints: CreateTaskLayerConstraint[];
+  description: string | null;
+  mode: 'flexible' | 'locked-in' | 'locked-out';
+  importance?: number | null;
+  threshold?: number | null;
+  constraints: CreateTaskLayerConstraintRequest[];
 }
 
 /**
@@ -23,5 +25,9 @@ export interface CreateTaskLayer {
 export interface CreateTaskRequest {
   name: string;
   description: string;
-  layers: CreateTaskLayer[];
+  layers: CreateTaskLayerRequest[];
+  resolution?: number;
+  resampling?: 'mode' | 'min' | 'max';
+  variant?: 'strict' | 'approximate';
+  budget?: CreateTaskLayerRequest;
 }

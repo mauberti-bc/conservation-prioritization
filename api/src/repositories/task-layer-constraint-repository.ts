@@ -24,9 +24,14 @@ export class TaskLayerConstraintRepository extends BaseRepository {
    */
   async createTaskLayerConstraint(taskLayerConstraint: CreateTaskLayerConstraint): Promise<TaskLayerConstraint> {
     const sqlStatement = SQL`
-      INSERT INTO task_layer_constraint (task_layer_id, constraint_name, constraint_value)
-      VALUES (${taskLayerConstraint.task_layer_id}, ${taskLayerConstraint.constraint_name}, ${taskLayerConstraint.constraint_value})
-      RETURNING task_layer_constraint_id, task_layer_id, constraint_name, constraint_value
+      INSERT INTO task_layer_constraint (task_layer_id, type, min, max)
+      VALUES (
+        ${taskLayerConstraint.task_layer_id},
+        ${taskLayerConstraint.type},
+        ${taskLayerConstraint.min ?? null},
+        ${taskLayerConstraint.max ?? null}
+      )
+      RETURNING task_layer_constraint_id, task_layer_id, type, min, max
     `;
 
     const response = await this.connection.sql(sqlStatement, TaskLayerConstraint);
@@ -50,7 +55,7 @@ export class TaskLayerConstraintRepository extends BaseRepository {
    */
   async getTaskLayerConstraintById(taskLayerConstraintId: string): Promise<TaskLayerConstraint> {
     const sqlStatement = SQL`
-      SELECT task_layer_constraint_id, task_layer_id, constraint_name, constraint_value
+      SELECT task_layer_constraint_id, task_layer_id, type, min, max
       FROM task_layer_constraint
       WHERE task_layer_constraint_id = ${taskLayerConstraintId}
     `;
@@ -76,7 +81,7 @@ export class TaskLayerConstraintRepository extends BaseRepository {
    */
   async getTaskLayerConstraintsByTaskLayerId(taskLayerId: string): Promise<TaskLayerConstraint[]> {
     const sqlStatement = SQL`
-      SELECT task_layer_constraint_id, task_layer_id, constraint_name, constraint_value
+      SELECT task_layer_constraint_id, task_layer_id, type, min, max
       FROM task_layer_constraint
       WHERE task_layer_id = ${taskLayerId}
     `;
