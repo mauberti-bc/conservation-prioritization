@@ -63,6 +63,8 @@ services:
     depends_on:
       prefect_deploy:
         condition: service_completed_successfully
+    ports:
+    - "8787:8787"  # Expose the 
     environment:
       PREFECT_API_URL: http://prefect_server:4200/api
       ZARR_STORE_PATH: ${ZARR_STORE_PATH}

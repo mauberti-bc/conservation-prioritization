@@ -10,10 +10,6 @@
     "frontend/**/*.{js,jsx,ts,tsx}": [
       "yarn --cwd frontend format-fix",
       "yarn --cwd frontend lint-fix"
-    ],
-    "workflows/**/*.py": [
-      "yarn --cwd workflows format",
-      "yarn --cwd workflows lint-fix"
     ]
   },
   "packageManager": "yarn@4.11.0"

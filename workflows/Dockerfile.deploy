@@ -1,10 +1,10 @@
+# Dockerfile.deploy
 FROM ghcr.io/osgeo/gdal:ubuntu-small-3.10.0
 
 # Copy uv package manager
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Create required writable dirs for app, Prefect, and Matplotlib
-# Use chmod 777 to allow access by any runtime UID
 RUN mkdir -p /home/app \
     && mkdir -p /tmp/.prefect \
     && mkdir -p /tmp/.config/matplotlib \
@@ -12,6 +12,9 @@ RUN mkdir -p /home/app \
 
 # Set working directory
 WORKDIR /home/app
+
+# Set Python path to find src package (current directory is workflows root)
+ENV PYTHONPATH="/home/app:${PYTHONPATH}"
 
 # Install curl
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
@@ -26,6 +29,29 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Copy source code
 COPY . ./
+
+# Verify dependencies and imports
+RUN /home/app/.venv/bin/python - <<'EOF'
+import sys
+import pathlib
+
+src_path = pathlib.Path('/home/app/src')
+if src_path.exists():
+    print(f'✓ src directory found: {src_path}')
+else:
+    print('✗ src directory not found at /home/app/src')
+    sys.exit(1)
+
+try:
+    import rioxarray
+    import xarray as xr
+    print('✓ rioxarray imported successfully')
+except ImportError as e:
+    print(f'✗ Failed to import rioxarray: {e}')
+    sys.exit(1)
+EOF
+
+
 
 # Expose venv bin directory to path
 ENV PATH="/home/app/.venv/bin:$PATH"
