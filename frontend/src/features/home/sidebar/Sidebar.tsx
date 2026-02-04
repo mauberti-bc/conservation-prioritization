@@ -20,7 +20,7 @@ export const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
           pl: 1,
           pt: 2,
           borderRadius: 0,
-          flexShrink: 0, // don't shrink in flex layout
+          flexShrink: 0,
         }}>
         <SidebarNavigation activeView={activeView} onViewChange={onViewChange} />
       </Paper>
