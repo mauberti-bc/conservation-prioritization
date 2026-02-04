@@ -20,9 +20,10 @@ import { TaskLayerConfig, TaskLayerOption, initialTaskLayerValues } from './task
 
 interface TaskLayerSectionProps {
   isReadOnly?: boolean;
+  autoSearchOnMount?: boolean;
 }
 
-export const TaskLayerSection = ({ isReadOnly = false }: TaskLayerSectionProps) => {
+export const TaskLayerSection = ({ isReadOnly = false, autoSearchOnMount = false }: TaskLayerSectionProps) => {
   const { values, setFieldValue, errors, setFieldError } = useFormikContext<TaskCreateFormValues>();
   const [checkboxSelected, setCheckboxSelected] = useState<string[]>([]);
   const dialogContext = useDialogContext();
@@ -174,6 +175,9 @@ export const TaskLayerSection = ({ isReadOnly = false }: TaskLayerSectionProps) 
             variant="select"
             showCheckbox
             selectedLayers={selectedLayerOptions}
+            allowEmptySearch
+            autoSearchOnMount={autoSearchOnMount}
+            initialSearchTerm=""
             onLayerChange={(selected: TaskLayerOption) => {
               const exists = values.layers.some((layer) => layer.path === selected.path);
 
