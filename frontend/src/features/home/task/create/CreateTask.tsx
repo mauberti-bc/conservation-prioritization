@@ -77,7 +77,7 @@ export const CreateTaskForm = ({
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
   const { drawControlsRef, mapRef } = useMapContext();
-  const { setFocusedTask } = useTaskContext();
+  const { setFocusedTask, refreshTasks } = useTaskContext();
 
   // Clean up drawn features when component unmounts
   useEffect(() => {
@@ -110,7 +110,7 @@ export const CreateTaskForm = ({
       // Create the task payload
       const taskData: CreateTaskRequest = {
         name: values.name,
-        description: values.name, // If description is the same as name, adjust as needed
+        description: values.description ?? null,
         variant: values.variant, // You still need 'variant' here, so keep it
         resolution: values.resolution,
         resampling: values.resampling,
@@ -127,6 +127,7 @@ export const CreateTaskForm = ({
       // Call the API to create the task
       const createdTask = await conservationApi.task.createTask(taskData);
       setFocusedTask(createdTask);
+      await refreshTasks();
       onSubmitSuccess?.(createdTask);
 
       // Success message

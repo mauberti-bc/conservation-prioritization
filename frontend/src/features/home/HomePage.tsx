@@ -27,7 +27,12 @@ export const HomePage = () => {
     }
 
     if (activeView === 'tasks') {
-      void tasksDataLoader.load();
+      void tasksDataLoader.load({
+        page: 1,
+        limit: 25,
+        sort: 'created_at',
+        order: 'desc',
+      });
     }
 
     if (activeView === 'projects') {

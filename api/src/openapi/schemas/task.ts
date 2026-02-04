@@ -16,7 +16,8 @@ export const CreateTaskSchema: OpenAPIV3.SchemaObject = {
     description: {
       type: 'string',
       description: 'A description of the task.',
-      maxLength: 500
+      maxLength: 500,
+      nullable: true
     },
     resolution: {
       type: 'number',
@@ -214,7 +215,7 @@ export const GetTaskSchema: OpenAPIV3.SchemaObject = {
     status: {
       type: 'string',
       description: 'Execution status for the task lifecycle.',
-      enum: ['pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit']
+      enum: ['draft', 'pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit']
     },
     status_message: {
       type: 'string',
@@ -449,7 +450,7 @@ export const TaskStatusUpdateSchema: OpenAPIV3.SchemaObject = {
     status: {
       type: 'string',
       description: 'Updated task status.',
-      enum: ['pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit']
+      enum: ['draft', 'pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit']
     },
     message: {
       type: 'string',

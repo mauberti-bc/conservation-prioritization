@@ -1,4 +1,5 @@
 export const TASK_STATUS = {
+  DRAFT: 'draft',
   PENDING: 'pending',
   SUBMITTED: 'submitted',
   RUNNING: 'running',

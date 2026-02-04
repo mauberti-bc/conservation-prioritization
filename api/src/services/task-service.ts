@@ -1,4 +1,5 @@
 import { IDBConnection } from '../database/db';
+import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination';
 import { CreateTask, DeleteTask, Task, UpdateTask, UpdateTaskExecution } from '../models/task';
 import { TaskLayerConstraint } from '../models/task-layer-constraint';
 import { TaskLayerWithConstraints, TaskWithLayers } from '../models/task.interface';
@@ -19,6 +20,7 @@ import { TaskLayerService } from './task-layer-service';
 import { TaskPermissionService } from './task-permission-service';
 import { TaskProfileService } from './task-profile-service';
 import { TaskTileService } from './task-tile-service';
+import { makePaginationResponse } from '../utils/pagination';
 
 /**
  * Service for managing task data.
@@ -152,6 +154,47 @@ export class TaskService extends DBService {
   }
 
   /**
+   * Gets all tasks available to the profile ID with pagination.
+   *
+   * @param {string} profileId
+   * @param {ApiPaginationOptions} pagination
+   * @return {*}  {Promise<{ tasks: TaskWithLayers[]; pagination: ApiPaginationResults }>}
+   * @memberof TaskService
+   */
+  async getTasksForProfilePaginated(
+    profileId: string,
+    pagination: ApiPaginationOptions
+  ): Promise<{ tasks: TaskWithLayers[]; pagination: ApiPaginationResults }> {
+    const { tasks, total } = await this.taskRepository.getTasksByProfileIdPaginated(profileId, pagination);
+    const taskIds = tasks.map((task) => task.task_id);
+
+    if (!taskIds.length) {
+      return { tasks: [], pagination: makePaginationResponse(total, pagination) };
+    }
+
+    const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
+    const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
+
+    const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
+    for (const layer of layersWithConstraints) {
+      const existing = layersByTaskId.get(layer.task_id) ?? [];
+      existing.push(layer);
+      layersByTaskId.set(layer.task_id, existing);
+    }
+
+    const populatedTasks = tasks.map((task) => ({
+      ...task,
+      layers: layersByTaskId.get(task.task_id) ?? [],
+      geometries: geometriesByTaskId.get(task.task_id) ?? []
+    }));
+
+    return {
+      tasks: populatedTasks,
+      pagination: makePaginationResponse(total, pagination)
+    };
+  }
+
+  /**
    * Gets all tasks associated with a project.
    *
    * @param {string} projectId
@@ -227,6 +270,25 @@ export class TaskService extends DBService {
       task_id: taskId,
       profile_id: profileId,
       role_id: adminRoleId
+    });
+  }
+
+  /**
+   * Resets execution metadata for a task and sets a new status.
+   *
+   * @param {string} taskId
+   * @param {TaskStatus} status
+   * @return {*}  {Promise<Task>}
+   * @memberof TaskService
+   */
+  async resetExecutionState(taskId: string, status: TaskStatus): Promise<Task> {
+    return this.updateTaskExecution(taskId, {
+      status,
+      status_message: null,
+      prefect_flow_run_id: null,
+      prefect_deployment_id: null,
+      tileset_uri: null,
+      output_uri: null
     });
   }
 
