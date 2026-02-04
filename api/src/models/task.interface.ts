@@ -22,4 +22,5 @@ export interface TaskWithLayers extends Task {
     description: string | null;
     colour: string;
   }[];
+  dashboard_id?: string | null;
 }

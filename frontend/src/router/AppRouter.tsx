@@ -102,7 +102,7 @@ export const AppRouter = () => {
         }
       />
       <Route
-        path="/p/:taskId"
+        path="/p/:dashboardId"
         element={
           <MapContextProvider>
             <BaseLayout>

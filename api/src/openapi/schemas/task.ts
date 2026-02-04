@@ -234,6 +234,12 @@ export const GetTaskSchema: OpenAPIV3.SchemaObject = {
       nullable: true,
       description: 'Prefect deployment ID used to launch the task.'
     },
+    dashboard_id: {
+      type: 'string',
+      format: 'uuid',
+      nullable: true,
+      description: 'Most recent dashboard ID for the task.'
+    },
     geometries: {
       type: 'array',
       description: 'Geometries associated with the task.',

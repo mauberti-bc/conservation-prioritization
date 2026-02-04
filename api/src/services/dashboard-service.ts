@@ -95,6 +95,30 @@ export class DashboardService extends DBService {
   }
 
   /**
+   * Fetch the most recent dashboard associated with a task, enforcing access rules.
+   *
+   * @param {string} taskId
+   * @param {string} profileId
+   * @return {*}  {Promise<DashboardResponse>}
+   * @memberof DashboardService
+   */
+  async getLatestDashboardForTask(taskId: string, profileId: string): Promise<DashboardResponse> {
+    const role = await this.taskProfileService.getRoleForTaskProfile(taskId, profileId);
+
+    if (!role) {
+      throw new HTTP403('Access denied.');
+    }
+
+    const dashboardId = await this.dashboardTaskRepository.getLatestDashboardIdForTask(taskId);
+
+    if (!dashboardId) {
+      throw new HTTP404('Dashboard not found.');
+    }
+
+    return this.getDashboardWithTasks(dashboardId, profileId);
+  }
+
+  /**
    * Fetch a dashboard and its tasks, enforcing access rules.
    *
    * @param {string} dashboardId

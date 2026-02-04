@@ -2,6 +2,7 @@ import { AxiosInstance } from 'axios';
 import { InviteProfilesRequest, InviteProfilesResponse } from 'hooks/interfaces/invite.interface';
 import {
   CreateTaskRequest,
+  GetTaskDashboardResponse,
   GetTaskResponse,
   GetTasksResponse,
   PublishDashboardRequest,
@@ -98,6 +99,17 @@ export const useTaskApi = (axios: AxiosInstance) => {
   };
 
   /**
+   * Retrieve the most recent dashboard for a task.
+   *
+   * @param {string} taskId
+   * @return {Promise<PublishDashboardResponse>} The dashboard response.
+   */
+  const getTaskDashboard = async (taskId: string): Promise<GetTaskDashboardResponse> => {
+    const { data } = await axios.get<GetTaskDashboardResponse>(`/api/task/${taskId}/dashboard`);
+    return data;
+  };
+
+  /**
    * Add one or more projects to a task.
    *
    * @param {string} taskId - The UUID of the task.
@@ -142,6 +154,7 @@ export const useTaskApi = (axios: AxiosInstance) => {
     updateTask,
     updateTaskStatus,
     publishTaskDashboard,
+    getTaskDashboard,
     addProjectsToTask,
     inviteProfilesToTask,
     deleteTask,

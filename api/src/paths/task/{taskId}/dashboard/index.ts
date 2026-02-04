@@ -24,6 +24,19 @@ export const POST: Operation = [
   publishDashboard()
 ];
 
+export const GET: Operation = [
+  authorizeRequestHandler(() => {
+    return {
+      and: [
+        {
+          discriminator: 'Profile'
+        }
+      ]
+    };
+  }),
+  getLatestDashboard()
+];
+
 POST.apiDoc = {
   description: 'Publish a task to a new dashboard.',
   tags: ['tasks', 'dashboards'],
@@ -77,6 +90,39 @@ POST.apiDoc = {
   }
 };
 
+GET.apiDoc = {
+  description: 'Fetch the most recent dashboard for a task.',
+  tags: ['tasks', 'dashboards'],
+  security: [
+    {
+      Bearer: []
+    }
+  ],
+  parameters: [
+    {
+      in: 'path',
+      name: 'taskId',
+      required: true,
+      schema: {
+        type: 'string',
+        format: 'uuid'
+      },
+      description: 'UUID of the task.'
+    }
+  ],
+  responses: {
+    200: {
+      description: 'Dashboard returned successfully.',
+      content: {
+        'application/json': {
+          schema: DashboardSchema
+        }
+      }
+    },
+    ...defaultErrorResponses
+  }
+};
+
 /**
  * Express request handler to publish a task to a dashboard.
  *
@@ -117,6 +163,44 @@ export function publishDashboard(): RequestHandler {
       });
     } catch (error) {
       defaultLog.error({ label: 'publishDashboard', message: 'error', error });
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  };
+}
+
+/**
+ * Express request handler to fetch the most recent dashboard for a task.
+ *
+ * @returns {RequestHandler}
+ */
+export function getLatestDashboard(): RequestHandler {
+  return async (req, res) => {
+    defaultLog.debug({ label: 'getLatestDashboard' });
+
+    const taskId = req.params.taskId as string;
+    const connection = getDBConnection(req.keycloak_token);
+
+    try {
+      await connection.open();
+      const profileId = connection.profileId();
+
+      const dashboardService = new DashboardService(connection);
+      const response = await dashboardService.getLatestDashboardForTask(taskId, profileId);
+
+      await connection.commit();
+
+      const dashboardUrl = `/t/dashboard/${response.dashboard.dashboard_id}`;
+
+      return res.status(200).json({
+        ...response.dashboard,
+        task_ids: response.task_ids,
+        dashboard_url: dashboardUrl
+      });
+    } catch (error) {
+      defaultLog.error({ label: 'getLatestDashboard', message: 'error', error });
       await connection.rollback();
       throw error;
     } finally {

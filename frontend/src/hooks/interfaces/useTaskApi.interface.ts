@@ -72,6 +72,7 @@ export interface GetTaskResponse {
   name: string; // Name of the task
   description: string | null; // Description of the task
   tileset_uri?: string | null;
+  dashboard_id?: string | null;
   projects?: {
     project_id: string;
     name: string;
@@ -125,6 +126,8 @@ export interface PublishDashboardRequest {
  * Response interface for dashboard publish operations.
  */
 export interface PublishDashboardResponse extends DashboardResponse {}
+
+export interface GetTaskDashboardResponse extends DashboardResponse {}
 
 /**
  * Interface for the task layer (with task_layer_id and task_id as primary keys).

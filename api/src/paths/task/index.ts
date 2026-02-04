@@ -1,7 +1,8 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getDBConnection } from '../../database/db';
-import { HTTP500 } from '../../errors/http-error';
+import { ApiGeneralError } from '../../errors/api-error';
+import { HTTP400, HTTP500 } from '../../errors/http-error';
 import { PrefectSubmissionError } from '../../errors/prefect-error';
 import { CreateTaskRequest } from '../../models/task-orchestrator';
 import { defaultErrorResponses } from '../../openapi/schemas/http-responses';
@@ -81,6 +82,11 @@ export function createTask(): RequestHandler {
       return res.status(201).json(taskResponse);
     } catch (error) {
       defaultLog.error({ label: 'createTask', message: 'error', error });
+
+      if (error instanceof ApiGeneralError) {
+        await connection.rollback();
+        throw new HTTP400(error.message);
+      }
 
       if (error instanceof PrefectSubmissionError) {
         await connection.commit();

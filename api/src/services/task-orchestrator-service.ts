@@ -150,6 +150,11 @@ export class TaskOrchestratorService extends DBService {
     const optimizationParameters = buildOptimizationParameters(request);
 
     try {
+      // Immediately return the task if there are no layers, do not submit to prefect
+      if (!request.layers.length && !request.budget) {
+        return this.taskService.getTaskById(task.task_id);
+      }
+
       await this.validateLayerPaths(request);
       const { deploymentId, flowRunId } = await this.prefectService.submitStrictOptimization(
         task.task_id,
@@ -211,6 +216,16 @@ export class TaskOrchestratorService extends DBService {
         geojson: this.normalizeGeoJsonPayload(geometry.geojson)
       }))
     };
+
+    if (!request.layers.length && !request.budget) {
+      await this.taskService.updateTaskExecution(task.task_id, {
+        status: TASK_STATUS.PENDING,
+        status_message: null,
+        prefect_flow_run_id: null,
+        prefect_deployment_id: null
+      });
+      return this.taskService.getTaskById(task.task_id);
+    }
 
     const optimizationParameters = buildOptimizationParameters(request);
 

@@ -74,4 +74,28 @@ export class DashboardTaskRepository extends BaseRepository {
 
     return (response.rows ?? []).map((row) => row.task_id as string);
   }
+
+  /**
+   * Fetch the most recent dashboard ID associated with a task.
+   *
+   * @param {string} taskId
+   * @return {*}  {Promise<string | null>}
+   * @memberof DashboardTaskRepository
+   */
+  async getLatestDashboardIdForTask(taskId: string): Promise<string | null> {
+    const sqlStatement = SQL`
+      SELECT d.dashboard_id
+      FROM dashboard_task dt
+      JOIN dashboard d ON d.dashboard_id = dt.dashboard_id
+      WHERE dt.task_id = ${taskId}
+      AND dt.record_end_date IS NULL
+      AND d.record_end_date IS NULL
+      ORDER BY d.created_at DESC
+      LIMIT 1
+    `;
+
+    const response = await this.connection.sql(sqlStatement);
+
+    return response.rows?.[0]?.dashboard_id ?? null;
+  }
 }
