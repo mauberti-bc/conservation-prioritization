@@ -29,6 +29,8 @@ db-setup: | check-env build-db-setup run-db-setup
 
 clamav: | check-env build-clamav run-clamav
 
+minio: | check-env run-minio
+
 fix: | lint-fix format-fix
 install: | install-deps
 
@@ -171,6 +173,17 @@ run-prefect: ## Run containers for prefect
 	@echo "Make: run-prefect - running prefect images"
 	@echo "==============================================="
 	@docker compose up -d prefect_server prefect_deploy prefect_worker
+
+
+## ------------------------------------------------------------------------------
+## Run MinIO
+## ------------------------------------------------------------------------------
+
+run-minio: ## Run MinIO + setup containers
+	@echo "==============================================="
+	@echo "Make: run-minio - running MinIO images"
+	@echo "==============================================="
+	@docker compose up -d minio minio_setup
 
 
 ## ------------------------------------------------------------------------------
