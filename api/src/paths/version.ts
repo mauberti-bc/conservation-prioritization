@@ -1,0 +1,60 @@
+import { RequestHandler } from 'express';
+import { Operation } from 'express-openapi';
+
+export const GET: Operation = [getVersionInformation()];
+
+GET.apiDoc = {
+  description: 'Get API information',
+  tags: ['misc'],
+  responses: {
+    200: {
+      description: 'API information',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              version: {
+                description: 'API Version',
+                type: 'string'
+              },
+              change_version: {
+                description: 'API Change Version',
+                type: 'string'
+              },
+              environment: {
+                description: 'API Environment',
+                type: 'string'
+              },
+              timezone: {
+                description: 'API Timezone',
+                type: 'string'
+              }
+            }
+          }
+        }
+      }
+    },
+    default: {
+      $ref: '#/components/responses/default'
+    }
+  }
+};
+
+/**
+ * Get api version information.
+ *
+ * @returns {RequestHandler}
+ */
+export function getVersionInformation(): RequestHandler {
+  return async (_req, res) => {
+    const versionInfo = {
+      version: process.env.VERSION,
+      change_version: process.env.CHANGE_VERSION,
+      environment: process.env.NODE_ENV,
+      timezone: process.env.TZ
+    };
+
+    res.status(200).json(versionInfo);
+  };
+}
