@@ -1,34 +1,34 @@
 import { mdiCheck } from '@mdi/js';
 import Icon from '@mdi/react';
-import { Typography } from '@mui/material';
+import { CircularProgress, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import { Formik } from 'formik';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router';
 import { CreateTaskLayer, CreateTaskRequest } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useMapContext } from 'hooks/useContext';
-import { useEffect, useState } from 'react';
+import useDataLoader from 'hooks/useDataLoader';
+import { mapTaskResponseToCreateFormValues } from 'utils/task-mapping';
 import { taskValidationSchema } from './TaskCreateYup';
-import { OPTIMIZATION_VARIANT } from 'hooks/interfaces/useTaskApi.interface';
 import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
 
-const initialValues: TaskCreateFormValues = {
-  resolution: 1000,
-  description: null,
-  resampling: 'mode',
-  name: 'Untitled Task',
-  variant: OPTIMIZATION_VARIANT.STRICT,
-  budget: null,
-  layers: [],
-  geometry: [],
-};
-
-export const CreateTaskPage = () => {
+export const EditTaskPage = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { taskId } = useParams<{ taskId?: string }>();
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
   const { drawControlsRef, mapRef } = useMapContext();
+
+  const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
+
+  useEffect(() => {
+    if (taskId) {
+      taskDataLoader.load(taskId);
+    }
+  }, [taskId, taskDataLoader]);
 
   // Clean up drawn features when component unmounts
   useEffect(() => {
@@ -40,6 +40,13 @@ export const CreateTaskPage = () => {
       }
     };
   }, [drawControlsRef, mapRef]);
+
+  const initialValues = useMemo<TaskCreateFormValues | null>(() => {
+    if (!taskDataLoader.data) {
+      return null;
+    }
+    return mapTaskResponseToCreateFormValues(taskDataLoader.data);
+  }, [taskDataLoader.data]);
 
   const handleSubmit = async (values: TaskCreateFormValues) => {
     setIsSubmitting(true);
@@ -58,20 +65,17 @@ export const CreateTaskPage = () => {
         })),
       }));
 
-      // Create the task payload
       const taskData: CreateTaskRequest = {
         name: values.name,
-        description: values.name, // If description is the same as name, adjust as needed
-        variant: values.variant, // You still need 'variant' here, so keep it
+        description: values.name,
+        variant: values.variant,
         resolution: values.resolution,
         resampling: values.resampling,
         layers: mappedLayers,
       };
 
-      // Call the API to create the task
       await conservationApi.task.createTask(taskData);
 
-      // Success message
       dialogContext.setSnackbar({
         open: true,
         snackbarMessage: (
@@ -92,9 +96,35 @@ export const CreateTaskPage = () => {
     }
   };
 
+  if (!taskId) {
+    return (
+      <Box p={3}>
+        <Typography color="error">Missing task ID.</Typography>
+      </Box>
+    );
+  }
+
+  if (taskDataLoader.isLoading || !taskDataLoader.hasLoaded) {
+    return (
+      <Box p={3} display="flex" alignItems="center" gap={2}>
+        <CircularProgress size={20} />
+        <Typography>Loading task...</Typography>
+      </Box>
+    );
+  }
+
+  if (taskDataLoader.error || !initialValues) {
+    return (
+      <Box p={3}>
+        <Typography color="error">Failed to load task.</Typography>
+      </Box>
+    );
+  }
+
   return (
     <Formik
       initialValues={initialValues}
+      enableReinitialize
       onSubmit={handleSubmit}
       validationSchema={taskValidationSchema}
       validateOnChange={false}
@@ -117,6 +147,11 @@ export const CreateTaskPage = () => {
                 height: '100%',
                 overflow: 'auto',
               }}>
+              <Box px={3} pt={2}>
+                <Typography variant="body2" color="textSecondary">
+                  This will create a new task based on the selected configuration.
+                </Typography>
+              </Box>
               <TaskCreateForm />
             </Box>
 
@@ -139,7 +174,7 @@ export const CreateTaskPage = () => {
                   color="primary"
                   sx={{ flex: 1, py: 2 }}
                   fullWidth>
-                  Submit
+                  Create Copy
                 </Button>
               </Box>
               <Typography variant="body2" textAlign="center" mt={1.5} color="textSecondary">

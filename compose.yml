@@ -68,6 +68,8 @@ services:
     environment:
       PREFECT_API_URL: http://prefect_server:4200/api
       ZARR_STORE_PATH: ${ZARR_STORE_PATH}
+      CONSERVATION_API_URL: ${CONSERVATION_API_URL}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     networks:
       - conservation-network
 
@@ -185,6 +187,9 @@ services:
       S3_KEY_PREFIX: ${S3_KEY_PREFIX}
       APP_HOST: ${APP_HOST}
       ZARR_STORE_PATH: ${ZARR_STORE_PATH}
+      PREFECT_API_URL: ${PREFECT_API_URL}
+      PREFECT_API_KEY: ${PREFECT_API_KEY}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     volumes:
       - ./api:/opt/app-root/src
       - /opt/app-root/src/node_modules

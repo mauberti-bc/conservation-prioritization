@@ -346,6 +346,9 @@ env:
   PREFECT_SERVER_API_HOST: "0.0.0.0"
   PREFECT_UI_API_URL: "http://localhost:4200/api"
   PREFECT_API_DATABASE_CONNECTION_URL: ""  # Set via --set env.PREFECT_API_DATABASE_CONNECTION_URL by workflow
+  PREFECT_API_KEY: ""  # Optional Prefect API key
+  CONSERVATION_API_URL: ""  # Base URL for internal workflow callbacks
+  INTERNAL_API_KEY: ""  # Internal API token for workflow callbacks
 
   # Object Storage
   OBJECT_STORE_URL: ""  # Set via --set env.OBJECT_STORE_URL by workflow

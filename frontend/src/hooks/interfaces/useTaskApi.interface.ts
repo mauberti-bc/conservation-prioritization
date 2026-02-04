@@ -17,7 +17,7 @@ export interface CreateTaskLayerConstraint {
  * Interface representing a layer for a task during creation (without task_layer_id).
  */
 export interface CreateTaskLayer {
-  name: string; // Name of the layer
+  layer_name: string; // Name of the layer
   description: string | null; // Description of the layer
   mode: 'flexible' | 'locked-in' | 'locked-out'; // Mode of the layer
   importance?: number | null; // Optional importance (required when mode is flexible)
@@ -57,10 +57,18 @@ export interface CreateTaskRequest {
 export interface GetTaskResponse {
   task_id: string; // UUID of the task
   name: string; // Name of the task
-  description: string; // Description of the task
-  record_effective_date: string; // ISO string of record effective date
-  record_end_date: string | null; // ISO string of record end date or null
+  description: string | null; // Description of the task
+  status: 'pending' | 'submitted' | 'running' | 'completed' | 'failed' | 'failed_to_submit';
+  status_message?: string | null;
+  prefect_flow_run_id?: string | null;
+  prefect_deployment_id?: string | null;
+  record_effective_date?: string; // ISO string of record effective date
+  record_end_date?: string | null; // ISO string of record end date or null
+  resolution?: number;
+  resampling?: RESAMPLING;
+  variant?: OPTIMIZATION_VARIANT;
   layers: TaskLayer[]; // List of layers with constraints
+  budget?: TaskLayer | null;
 }
 
 /**
@@ -70,7 +78,10 @@ export interface TaskLayer {
   task_layer_id: string; // UUID of the layer
   task_id: string; // UUID of the task it belongs to
   layer_name: string; // Name of the layer
-  description: string; // Description of the layer
+  description: string | null; // Description of the layer
+  mode: 'flexible' | 'locked-in' | 'locked-out';
+  importance?: number | null;
+  threshold?: number | null;
   constraints: TaskLayerConstraint[]; // List of constraints for this layer
 }
 
@@ -80,8 +91,6 @@ export interface TaskLayer {
 export interface TaskLayerConstraint {
   task_layer_constraint_id: string; // UUID of the constraint
   task_layer_id: string; // UUID of the layer it belongs to
-  constraint_name: string; // Name of the constraint
-  constraint_value: string; // Value of the constraint
   min?: number | null; // Optional minimum value (for some constraints)
   max?: number | null; // Optional maximum value (for some constraints)
   type: 'percent' | 'unit'; // Type of the constraint, either 'percent' or 'unit'
