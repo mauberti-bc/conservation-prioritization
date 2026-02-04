@@ -138,9 +138,20 @@ export const getPresignedObjectUrl = async (
     return null;
   }
 
-  const client = getObjectStoreClient();
+  const publicEndpoint = getObjectStorePublicEndpoint();
+  const client = publicEndpoint
+    ? new S3Client({
+        endpoint: publicEndpoint,
+        credentials: {
+          accessKeyId: getObjectStoreConfig().accessKeyId,
+          secretAccessKey: getObjectStoreConfig().secretAccessKey
+        },
+        forcePathStyle: getObjectStoreConfig().forcePathStyle,
+        region: getObjectStoreConfig().region
+      })
+    : getObjectStoreClient();
 
-  const signedUrl = await getSignedUrl(
+  return getSignedUrl(
     client,
     new GetObjectCommand({
       Bucket: bucket,
@@ -150,34 +161,6 @@ export const getPresignedObjectUrl = async (
       expiresIn: expiresInSeconds
     }
   );
-
-  return rewriteSignedUrlForPublicEndpoint(signedUrl);
-};
-
-/**
- * Rewrites a signed URL to use a public endpoint when configured.
- *
- * @param {string} signedUrl
- * @return {*}  {string}
- */
-const rewriteSignedUrlForPublicEndpoint = (signedUrl: string): string => {
-  const publicEndpoint = getObjectStorePublicEndpoint();
-
-  if (!publicEndpoint) {
-    return signedUrl;
-  }
-
-  try {
-    const signed = new URL(signedUrl);
-    const publicUrl = new URL(publicEndpoint);
-
-    signed.protocol = publicUrl.protocol;
-    signed.host = publicUrl.host;
-
-    return signed.toString();
-  } catch {
-    return signedUrl;
-  }
 };
 
 /**

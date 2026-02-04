@@ -177,7 +177,7 @@ export const CreateTask = ({
                 height: '100%',
                 overflow: 'auto',
               }}>
-              <TaskCreateForm />
+              <TaskCreateForm autoSearchOnMount />
             </Box>
 
             {/* Sticky footer */}
