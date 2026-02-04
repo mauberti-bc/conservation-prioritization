@@ -23,20 +23,38 @@ export class DashboardPermissionRepository extends BaseRepository {
         dashboard_id,
         profile_id,
         role_id
-      ) VALUES (
+      )
+      SELECT
         ${permission.dashboard_id},
         ${permission.profile_id},
         ${permission.role_id}
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM dashboard_permission
+        WHERE dashboard_id = ${permission.dashboard_id}
+        AND profile_id = ${permission.profile_id}
+        AND record_end_date IS NULL
       )
-      ON CONFLICT (dashboard_id, profile_id) DO UPDATE
-      SET role_id = EXCLUDED.role_id,
-          record_end_date = NULL
       RETURNING dashboard_permission_id, dashboard_id, profile_id, role_id
     `;
 
     const response = await this.connection.sql(sqlStatement, DashboardPermission);
 
-    return response.rows?.[0] ?? null;
+    if (response.rowCount > 0) {
+      return response.rows[0];
+    }
+
+    const selectStatement = SQL`
+      SELECT dashboard_permission_id, dashboard_id, profile_id, role_id
+      FROM dashboard_permission
+      WHERE dashboard_id = ${permission.dashboard_id}
+      AND profile_id = ${permission.profile_id}
+      AND record_end_date IS NULL
+    `;
+
+    const selectResponse = await this.connection.sql(selectStatement, DashboardPermission);
+
+    return selectResponse.rows?.[0] ?? null;
   }
 
   /**

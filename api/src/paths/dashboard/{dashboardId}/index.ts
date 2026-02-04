@@ -77,9 +77,12 @@ export function getDashboard(): RequestHandler {
 
       await connection.commit();
 
+      const dashboardUrl = `/t/dashboard/${response.dashboard.dashboard_id}`;
+
       return res.status(200).json({
         ...response.dashboard,
-        task_ids: response.task_ids
+        task_ids: response.task_ids,
+        dashboard_url: dashboardUrl
       });
     } catch (error) {
       defaultLog.error({ label: 'getDashboard', message: 'error', error });

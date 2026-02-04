@@ -49,8 +49,13 @@ export const startPollingWebsocketChannel = async <TPayload>(
     ws.send(payload);
   };
 
-  const closeSocket = () => {
+  const closeSocket = (reason?: string) => {
     if (ws.readyState === WebSocket.OPEN) {
+      if (reason) {
+        ws.close(1000, reason);
+        return;
+      }
+
       ws.close();
     }
   };
@@ -83,7 +88,7 @@ export const startPollingWebsocketChannel = async <TPayload>(
       }
 
       if (shouldClose && shouldClose(payload)) {
-        closeSocket();
+        closeSocket('terminal');
       }
     } catch (error) {
       if (isNonFatalError && isNonFatalError(error)) {

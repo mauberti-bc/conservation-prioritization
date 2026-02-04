@@ -1,5 +1,5 @@
 import { mdiDelete, mdiPencil } from '@mdi/js';
-import { Box, Checkbox, Chip, ListItem, ListItemText, Typography } from '@mui/material';
+import { Box, Checkbox, Chip, ListItem, Typography } from '@mui/material';
 import { IconMenuButton } from 'components/button/IconMenuButton';
 import { InteractiveListItemButton } from 'components/list/InteractiveListItemButton';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
@@ -57,7 +57,7 @@ export const ProjectListItem = ({
         onClick={() => {
           onSelectProject(project);
         }}>
-        <Box display="flex" alignItems="center" gap={1} width="100%">
+        <Box display="flex" alignItems="center" gap={1} width="100%" minWidth={0} py={1}>
           {selectable && (
             <Checkbox
               checked={selectedProjectIds.includes(project.project_id)}
@@ -70,18 +70,20 @@ export const ProjectListItem = ({
               }}
             />
           )}
-          <ListItemText
-            primary={
-              <Typography fontWeight={600} noWrap>
-                {project.name}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography fontWeight={600} sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+              {project.name}
+            </Typography>
+            {project.description && (
+              <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                {project.description}
               </Typography>
-            }
-            secondary={project.description}
-          />
+            )}
+          </Box>
           <Chip
             size="small"
             label={taskCount}
-            sx={{ px: 1, width: 'fit-content', '& .MuiChip-label': { fontWeight: 700 } }}
+            sx={{ px: 1, mx: 2, width: 'fit-content', '& .MuiChip-label': { fontWeight: 700 } }}
           />
         </Box>
       </InteractiveListItemButton>

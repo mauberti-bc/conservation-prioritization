@@ -79,4 +79,28 @@ export class DashboardRepository extends BaseRepository {
 
     return response.rows[0];
   }
+
+  /**
+   * Fetches the access scheme for a dashboard without returning metadata.
+   *
+   * @param {string} dashboardId
+   * @return {*}  {Promise<string | null>}
+   * @memberof DashboardRepository
+   */
+  async findDashboardAccessScheme(dashboardId: string): Promise<string | null> {
+    const sqlStatement = SQL`
+      SELECT access_scheme
+      FROM dashboard
+      WHERE dashboard_id = ${dashboardId}
+      AND record_end_date IS NULL
+    `;
+
+    const response = await this.connection.sql<{ access_scheme: string }>(sqlStatement);
+
+    if (response.rowCount !== 1) {
+      return null;
+    }
+
+    return response.rows[0].access_scheme ?? null;
+  }
 }

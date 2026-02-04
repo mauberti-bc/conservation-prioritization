@@ -26,6 +26,7 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
   const reconnectAttemptRef = useRef(0);
   const latestStatusRef = useRef<TaskStatusValue | null>(null);
   const isTerminalRef = useRef(false);
+  const lastCloseReasonRef = useRef<string | null>(null);
 
   const closeSocket = () => {
     if (reconnectTimeoutRef.current) {
@@ -51,6 +52,7 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
     const wsUrl = buildWebSocketUrl(API_HOST, `/api/task/${taskId}/status`);
     isTerminalRef.current = false;
     latestStatusRef.current = null;
+    lastCloseReasonRef.current = null;
 
     const connect = async () => {
       closeSocket();
@@ -91,10 +93,18 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
 
       socket.onclose = () => {
         setIsConnected(false);
+        if (lastCloseReasonRef.current === 'terminal') {
+          isTerminalRef.current = true;
+        }
+
         if (!isTerminalRef.current) {
           scheduleReconnect();
         }
       };
+
+      socket.addEventListener('close', (event) => {
+        lastCloseReasonRef.current = event.reason ?? null;
+      });
     };
 
     const scheduleReconnect = () => {

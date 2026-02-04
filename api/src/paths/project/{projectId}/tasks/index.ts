@@ -6,7 +6,7 @@ import { AddProjectTasksSchema } from '../../../../openapi/schemas/project-task'
 import { authorizeRequestHandler } from '../../../../request-handlers/security/authorization';
 import { ProjectTaskService } from '../../../../services/project-task-service';
 import { getLogger } from '../../../../utils/logger';
-import { AddProjectTasksBody, AddProjectTasksParams } from './add-project-tasks.interface';
+import { AddProjectTasksBody } from './add-project-tasks.interface';
 
 const defaultLog = getLogger(__filename);
 
@@ -78,9 +78,8 @@ export function addProjectTasks(): RequestHandler {
   return async (req, res) => {
     defaultLog.debug({ label: 'addProjectTasks' });
 
-    const params = req.params as AddProjectTasksParams;
     const body = req.body as AddProjectTasksBody;
-    const projectId = params.projectId;
+    const projectId = req.params.projectId as string;
     const taskIds = body.taskIds;
 
     const connection = getDBConnection(req.keycloak_token);
