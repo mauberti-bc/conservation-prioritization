@@ -11,7 +11,6 @@ import pulp
 import rioxarray  # noqa: F401
 import xarray as xr
 from affine import Affine
-from distributed import get_client
 from morecantile import defaults
 from morecantile.commons import Tile
 from pmtiles.tile import Compression, TileType, zxy_to_tileid
@@ -951,14 +950,13 @@ def prepare_dataset(
 @task
 def execute_optimization(
     conditions: OptimizationParameters,
-) -> Optional[np.ndarray]:  # Changed: should return np.ndarray, not xr.DataArray
+) -> Optional[np.ndarray]:
     """
     Main optimization task that runs on the Dask cluster.
     Returns the final solution array.
     """
 
     logger = get_run_logger()
-    client = get_client()
 
     # Declare once with union type, then assign in branches
     british_columbia_geometry: Sequence[BaseGeometry]
@@ -979,7 +977,7 @@ def execute_optimization(
         if isinstance(
             unified_geom, (GeometryCollection, MultiPolygon, MultiLineString)
         ):
-            british_columbia_geometry: Sequence[BaseGeometry] = list(unified_geom.geoms)
+            british_columbia_geometry = list(unified_geom.geoms)
             logger.info(f"Split into {len(british_columbia_geometry)} geometries")
         else:
             british_columbia_geometry = [unified_geom]
@@ -996,16 +994,16 @@ def execute_optimization(
         raise ValueError("No layers provided in conditions.layers")
 
     # Load input data
+    logger.info("Loading input data...")
     layer_paths = list(layers.keys())
-    input_data_future = client.submit(
-        load_input_data,
+    input_datasets: Dict[str, xr.Dataset] = load_input_data(
         os.getenv("ZARR_STORE_PATH"),
         layer_paths,
         resolution=conditions.resolution,
         resampling=conditions.resampling,
         geometry=british_columbia_geometry,
     )
-    input_datasets: Dict[str, xr.Dataset] = input_data_future.result()
+    logger.info(f"Loaded {len(input_datasets)} dataset groups")
 
     # Pick a reference array
     reference_array_path = next(iter(layers))
@@ -1014,75 +1012,66 @@ def execute_optimization(
     reference_dataset: xr.Dataset = input_datasets[group_path]
     reference_array: xr.DataArray = reference_dataset[var]
 
-    # # Ensure CRS is set
-    # if reference_array.rio.crs is None:
-    #     reference_array = reference_array.rio.write_crs("EPSG:3005")
+    # Ensure CRS is set
+    if reference_array.rio.crs is None:
+        reference_array = reference_array.rio.write_crs("EPSG:3005")
 
     # Create boolean mask
-    mask_future = client.submit(
-        create_boolean_masks,
+    logger.info("Creating boolean mask...")
+    valid_mask, nrows, ncols, transform = create_boolean_masks(
         reference_array=reference_array,
         bounds=british_columbia_geometry,
     )
-    valid_mask, nrows, ncols, transform = mask_future.result()
-
     logger.info(
         f"Valid mask shape: {valid_mask.shape}, Valid cells: {np.sum(valid_mask)}"
     )
 
     # Build optimization model
-    model_future = client.submit(
-        build_pulp_model,
+    logger.info("Building optimization model...")
+    pulp_model, cell_vars = build_pulp_model(
         dataset=input_datasets,
         conditions=layers,
         valid_mask=valid_mask,
+        target_area=conditions.target_area,
+        is_percentage=conditions.is_percentage,
     )
-    pulp_model, cell_vars = model_future.result()
-
-    logger.info(f"Pulp model: {pulp_model}, {cell_vars}")
+    logger.info(f"Built model with {len(cell_vars)} decision variables")
 
     # Solve LP
-    solve_future = solve_lp(pulp_model)
-
-    logger.info(f"Solve: {solved_model}")
-
-    solution_values = {
-        k: float(v.varValue) if v.varValue is not None else 0.0
-        for k, v in cell_vars.items()
-    }
+    logger.info("Solving LP...")
+    status, solution_values = solve_lp(pulp_model, cell_vars)
+    logger.info(f"Solver status: {status}")
+    logger.info(f"Extracted {len(solution_values)} solution values")
 
     # Extract solution
-    solution_future = client.submit(
-        extract_solution,
+    logger.info("Extracting solution...")
+    solution_array: np.ndarray = extract_solution(
         solution_values=solution_values,
         nrows=nrows,
         ncols=ncols,
         geometry=british_columbia_geometry,
         transform=transform,
     )
-    solution_array: np.ndarray = solution_future.result()
-
-    logger.info(f"Solution Array: {solution_array}")
+    logger.info(f"Solution array sum: {np.sum(solution_array)}")
 
     if not np.any(solution_array > 0):
         logger.warning("No solution found")
         return None
 
     # Visualize
-    viz_future = client.submit(visualize, solution_array)
-    viz_future.result()
+    logger.info("Creating visualization...")
+    visualize(solution_array)
 
     # Create PMTiles
+    logger.info("Creating PMTiles archive...")
     max_zoom = resolution_to_max_zoom(conditions.resolution)
-    pmtiles_future = client.submit(
-        create_pmtiles_archive,
+    create_pmtiles_archive(
         array=solution_array,
         transform=transform,
         out_path="/data/outputs/solution.pmtiles",
         crs="EPSG:3005",
         max_zoom=max_zoom,
     )
-    pmtiles_future.result()
 
     logger.info("Optimization completed successfully")
     return solution_array
