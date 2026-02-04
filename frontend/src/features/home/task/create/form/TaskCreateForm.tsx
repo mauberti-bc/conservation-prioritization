@@ -32,22 +32,26 @@ const COST_LAYER_OPTION: TaskLayerOption = {
   group: COST_LAYER_PATH.split('/').slice(0, -1).join('/'),
 };
 
-export const TaskCreateForm = () => {
+interface TaskCreateFormProps {
+  isReadOnly?: boolean;
+}
+
+export const TaskCreateForm = ({ isReadOnly = false }: TaskCreateFormProps) => {
   const costLayer = COST_LAYER_OPTION;
 
   return (
     <>
-      <Paper
-        sx={{
-          px: 3,
-          py: 2,
-          borderRadius: 0,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.075)',
-        }}>
-        <TaskFormToolbar />
-      </Paper>
+      {!isReadOnly && (
+        <Paper
+          sx={{
+            borderRadius: 0,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.075)',
+          }}>
+          <TaskFormToolbar />
+        </Paper>
+      )}
 
       <Stack
         sx={{
@@ -57,7 +61,7 @@ export const TaskCreateForm = () => {
           gap: 5,
         }}>
         <Box>
-          <TaskAreaSection />
+          <TaskAreaSection isReadOnly={isReadOnly} />
         </Box>
 
         <Box flex={0}>
@@ -85,11 +89,11 @@ export const TaskCreateForm = () => {
               Layers
             </Typography>
           </TooltipStack>
-          <TaskLayerSection />
+          <TaskLayerSection isReadOnly={isReadOnly} />
         </Box>
 
         <Box>
-          <TaskAdvancedSection />
+          <TaskAdvancedSection isReadOnly={isReadOnly} />
         </Box>
       </Stack>
     </>

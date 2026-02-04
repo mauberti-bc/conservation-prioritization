@@ -12,11 +12,16 @@ type MapContainerProps = {
 export const MapContainer = ({ pmtilesUrls = [] }: MapContainerProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const { mapRef } = useMapContext();
+  const protocolRef = useRef<pmtiles.Protocol | null>(null);
 
   // Register PMTiles protocol once
   useEffect(() => {
-    const protocol = new pmtiles.Protocol();
-    maplibregl.addProtocol('pmtiles', protocol.tile);
+    if (protocolRef.current) {
+      return;
+    }
+
+    protocolRef.current = new pmtiles.Protocol();
+    maplibregl.addProtocol('pmtiles', protocolRef.current.tile);
   }, []);
 
   useEffect(() => {
@@ -67,10 +72,7 @@ export const MapContainer = ({ pmtilesUrls = [] }: MapContainerProps) => {
       updatePmtilesLayers(map, pmtilesUrls);
     });
 
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+    mapRef.current = map;
   }, [mapRef, pmtilesUrls]);
 
   useEffect(() => {

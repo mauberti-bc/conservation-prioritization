@@ -13,7 +13,11 @@ import { v4 } from 'uuid';
 import { TaskCreateFormValues } from '../TaskCreateForm';
 import { TaskGeometryForm } from './geometry/TaskGeometryForm';
 
-export const TaskAreaSection = () => {
+interface TaskAreaSectionProps {
+  isReadOnly?: boolean;
+}
+
+export const TaskAreaSection = ({ isReadOnly = false }: TaskAreaSectionProps) => {
   const { values, setFieldValue } = useFormikContext<TaskCreateFormValues>();
   const { drawControlsRef, mapRef, drawRef } = useMapContext();
   const [isDrawing, setIsDrawing] = useState(false);
@@ -78,27 +82,28 @@ export const TaskAreaSection = () => {
     return () => document.removeEventListener('keydown', handleKeydown);
   }, [handleKeydown]);
 
-  const floatingFinishButton = isDrawing
-    ? createPortal(
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 100,
-            right: '5%',
-            zIndex: 1300,
-          }}>
-          <Button
-            sx={{ py: 2, px: 4 }}
-            variant="contained"
-            color="primary"
-            startIcon={<Icon path={mdiCheck} size={1} />}
-            onClick={finishDrawing}>
-            Finish Drawing (Press Enter)
-          </Button>
-        </Box>,
-        document.body
-      )
-    : null;
+  const floatingFinishButton =
+    !isReadOnly && isDrawing
+      ? createPortal(
+          <Box
+            sx={{
+              position: 'fixed',
+              top: 100,
+              right: '5%',
+              zIndex: 1300,
+            }}>
+            <Button
+              sx={{ py: 2, px: 4 }}
+              variant="contained"
+              color="primary"
+              startIcon={<Icon path={mdiCheck} size={1} />}
+              onClick={finishDrawing}>
+              Finish Drawing (Press Enter)
+            </Button>
+          </Box>,
+          document.body
+        )
+      : null;
 
   return (
     <>
@@ -113,36 +118,40 @@ export const TaskAreaSection = () => {
             Areas
           </Typography>
         </TooltipStack>
-        <TooltipPopover tooltip={isDrawing ? 'Finish Drawing' : 'Add Area'}>
-          <span>
-            <Button
-              onClick={isDrawing ? finishDrawing : startDrawing}
-              aria-label={isDrawing ? 'Finish Drawing' : 'Add Area'}
-              color="primary"
-              startIcon={<Icon path={isDrawing ? mdiCheck : mdiShapePolygonPlus} size={0.9} />}
-              sx={{ whiteSpace: 'nowrap' }}>
-              {isDrawing ? 'Finish Drawing' : 'Draw Area'}
-            </Button>
-          </span>
-        </TooltipPopover>
+        {!isReadOnly && (
+          <TooltipPopover tooltip={isDrawing ? 'Finish Drawing' : 'Add Area'}>
+            <span>
+              <Button
+                onClick={isDrawing ? finishDrawing : startDrawing}
+                aria-label={isDrawing ? 'Finish Drawing' : 'Add Area'}
+                color="primary"
+                startIcon={<Icon path={isDrawing ? mdiCheck : mdiShapePolygonPlus} size={0.9} />}
+                sx={{ whiteSpace: 'nowrap' }}>
+                {isDrawing ? 'Finish Drawing' : 'Draw Area'}
+              </Button>
+            </span>
+          </TooltipPopover>
+        )}
       </Box>
 
-      <Box>
-        <FileDropzone
-          label="Upload areas of interest"
-          accept={{
-            'application/geo+json': ['.geojson'],
-            'application/json': ['.json'],
-            'application/zip': ['.zip'],
-            'application/x-zip-compressed': ['.zip'],
-          }}
-          onFilesSelected={(files) => console.log(files)}
-        />
-      </Box>
+      {!isReadOnly && (
+        <Box>
+          <FileDropzone
+            label="Upload areas of interest"
+            accept={{
+              'application/geo+json': ['.geojson'],
+              'application/json': ['.json'],
+              'application/zip': ['.zip'],
+              'application/x-zip-compressed': ['.zip'],
+            }}
+            onFilesSelected={(files) => console.log(files)}
+          />
+        </Box>
+      )}
 
       {values.geometry.length > 0 ? (
         <Box mt={1}>
-          <TaskGeometryForm geometry={values.geometry} onDelete={handleDelete} />
+          <TaskGeometryForm geometry={values.geometry} onDelete={handleDelete} isReadOnly={isReadOnly} />
         </Box>
       ) : null}
 

@@ -7,7 +7,7 @@ import { AuthContext } from 'context/authContext';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useMapContext, useTaskContext } from 'hooks/useContext';
 import useDataLoader from 'hooks/useDataLoader';
-import { useSearchParams } from 'hooks/useSearchParams';
+import { TypedURLSearchParams, useSearchParams } from 'hooks/useSearchParams';
 import { useContext, useEffect, useMemo } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
@@ -19,7 +19,7 @@ export type ACTIVE_VIEW = 'new' | 'tasks' | 'projects' | 'layers';
 export const HomePage = () => {
   const { searchParams, setSearchParams } = useSearchParams<HomeQueryParams>();
   const { drawControlsRef } = useMapContext();
-  const { taskId, taskDataLoader } = useTaskContext();
+  const { taskId, taskDataLoader, setFocusedTask } = useTaskContext();
   const { data: taskStatus } = useTaskStatusWebSocket(taskId);
   const authContext = useContext(AuthContext);
   const isAuthenticated = Boolean(authContext?.auth?.isAuthenticated);
@@ -50,8 +50,9 @@ export const HomePage = () => {
   }, [activeView, isAuthenticated, tasksDataLoader, projectsDataLoader]);
 
   const handleViewChange = (view: ACTIVE_VIEW | null) => {
-    searchParams.setOrDelete(QUERY_PARAM.VIEW, view);
-    setSearchParams(searchParams);
+    const nextParams = new TypedURLSearchParams<HomeQueryParams>(window.location.search);
+    nextParams.setOrDelete(QUERY_PARAM.VIEW, view);
+    setSearchParams(nextParams);
   };
 
   const pmtilesUrls = useMemo(() => {
@@ -106,6 +107,11 @@ export const HomePage = () => {
           tasksDataLoader={tasksDataLoader}
           projectsDataLoader={projectsDataLoader}
           isAuthenticated={isAuthenticated}
+          selectedTaskId={taskId}
+          onSelectTask={(task) => {
+            setFocusedTask(task);
+            handleViewChange('tasks');
+          }}
         />
       </Box>
 

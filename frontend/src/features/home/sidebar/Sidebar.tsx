@@ -1,13 +1,14 @@
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import { DataLoader } from 'hooks/useDataLoader';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
-import { CreateTaskPage } from '../task/create/CreateTaskPage';
+import { DataLoader } from 'hooks/useDataLoader';
 import { ACTIVE_VIEW } from '../HomePage';
 import { LayerPanel } from '../layer-panel/LayerPanel';
+import { CreateTaskPage } from '../task/create/CreateTaskPage';
 import { SidebarNavigation } from './navigation/SidebarNavigation';
 import { ProjectList } from './projects/ProjectList';
+import { TaskDetailsPanel } from './tasks/TaskDetailsPanel';
 import { TaskList } from './tasks/TaskList';
 
 interface SidebarProps {
@@ -16,6 +17,8 @@ interface SidebarProps {
   tasksDataLoader: DataLoader<[], GetTaskResponse[], unknown>;
   projectsDataLoader: DataLoader<[], GetProjectResponse[], unknown>;
   isAuthenticated: boolean;
+  selectedTaskId: string | null;
+  onSelectTask: (task: GetTaskResponse) => void;
 }
 
 export const Sidebar = ({
@@ -24,6 +27,8 @@ export const Sidebar = ({
   tasksDataLoader,
   projectsDataLoader,
   isAuthenticated,
+  selectedTaskId,
+  onSelectTask,
 }: SidebarProps) => {
   return (
     <Box display="flex" height="100%" zIndex={8} width="100%">
@@ -54,17 +59,31 @@ export const Sidebar = ({
         }}>
         {activeView === 'new' && <CreateTaskPage />}
         {activeView === 'tasks' && (
-          <Box p={3} sx={{ overflow: 'auto' }}>
-            <TaskList tasks={tasksDataLoader.data ?? []} isLoading={tasksDataLoader.isLoading} />
+          <Box sx={{ overflow: 'auto' }}>
+            {selectedTaskId ? (
+              <TaskDetailsPanel />
+            ) : (
+              <TaskList
+                tasks={tasksDataLoader.data ?? []}
+                isLoading={tasksDataLoader.isLoading}
+                selectedTaskId={selectedTaskId}
+                onSelectTask={onSelectTask}
+              />
+            )}
           </Box>
         )}
         {activeView === 'projects' && (
-          <Box p={3} sx={{ overflow: 'auto' }}>
-            <ProjectList projects={projectsDataLoader.data ?? []} isLoading={projectsDataLoader.isLoading} />
+          <Box sx={{ overflow: 'auto' }}>
+            <ProjectList
+              projects={projectsDataLoader.data ?? []}
+              isLoading={projectsDataLoader.isLoading}
+              selectedTaskId={selectedTaskId}
+              onSelectTask={onSelectTask}
+            />
           </Box>
         )}
         {activeView === 'layers' && (
-          <Box p={3} sx={{ overflow: 'auto' }}>
+          <Box sx={{ overflow: 'auto' }}>
             <LayerPanel canSearch={isAuthenticated} />
           </Box>
         )}
