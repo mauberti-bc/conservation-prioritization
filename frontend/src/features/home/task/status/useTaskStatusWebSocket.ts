@@ -27,6 +27,8 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
   const latestStatusRef = useRef<TaskStatusValue | null>(null);
   const isTerminalRef = useRef(false);
   const lastCloseReasonRef = useRef<string | null>(null);
+  const skipReconnectRef = useRef(false);
+  const isActiveRef = useRef(false);
 
   const closeSocket = () => {
     if (reconnectTimeoutRef.current) {
@@ -34,18 +36,22 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
     }
 
     if (socketRef.current) {
+      skipReconnectRef.current = true;
       socketRef.current.close();
       socketRef.current = null;
+      setIsConnected(false);
     }
   };
 
   useEffect(() => {
+    isActiveRef.current = true;
     if (!taskId) {
       closeSocket();
       setData(null);
       setIsConnected(false);
       setError(null);
       isTerminalRef.current = false;
+      isActiveRef.current = false;
       return;
     }
 
@@ -92,6 +98,11 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
       };
 
       socket.onclose = () => {
+        if (skipReconnectRef.current) {
+          skipReconnectRef.current = false;
+          return;
+        }
+
         setIsConnected(false);
         if (lastCloseReasonRef.current === 'terminal') {
           isTerminalRef.current = true;
@@ -109,6 +120,10 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
 
     const scheduleReconnect = () => {
       if (!taskId) {
+        return;
+      }
+
+      if (!isActiveRef.current) {
         return;
       }
 
@@ -141,6 +156,7 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
     void connect();
 
     return () => {
+      isActiveRef.current = false;
       closeSocket();
     };
   }, [API_HOST, taskId]);
