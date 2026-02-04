@@ -175,7 +175,7 @@ export const appTheme = createTheme({
         root: {
           fontWeight: 700,
           whiteSpace: 'nowrap',
-          padding: '6px 14px',
+          padding: '8px 16px',
           lineHeight: 1.4,
           '&:focus': {
             outline: '2px solid #3B99FC',
@@ -202,7 +202,7 @@ export const appTheme = createTheme({
         },
         sizeMedium: {
           fontSize: '0.875rem',
-          padding: '6px 14px',
+          padding: '8px 16px',
         },
         sizeLarge: {
           fontSize: '1rem',

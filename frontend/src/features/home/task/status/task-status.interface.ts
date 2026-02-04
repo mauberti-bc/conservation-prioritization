@@ -1,4 +1,4 @@
-import type { TaskStatusValue, TileStatusValue } from 'constants/status';
+import { TaskStatusValue, TileStatusValue } from 'constants/status';
 
 export interface TaskStatusMessage {
   task_id: string;
@@ -6,6 +6,6 @@ export interface TaskStatusMessage {
   updated_at?: string;
   tile?: {
     status: TileStatusValue;
-    uri?: string | null;
+    pmtiles_uri?: string | null;
   } | null;
 }

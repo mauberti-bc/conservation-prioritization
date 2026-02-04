@@ -2,7 +2,7 @@ import { createContext, PropsWithChildren, useCallback, useMemo } from 'react';
 import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
 import { TypedURLSearchParams, useSearchParams } from 'hooks/useSearchParams';
 
-export type SidebarView = 'new' | 'tasks' | 'projects' | 'layers';
+export type SidebarView = 'tasks' | 'projects' | 'layers';
 
 export interface ISidebarUIContext {
   activeView: SidebarView | null;

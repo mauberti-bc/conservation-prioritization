@@ -50,6 +50,8 @@ export interface CreateTaskRequest {
   target_area?: number; // Target area for optimization (percentage or absolute)
   is_percentage?: boolean; // Whether target_area is a percentage
   geometry?: {
+    name?: string;
+    description?: string | null;
     geojson: Feature<Geometry, GeoJsonProperties>;
   }[];
   budget?: {
@@ -69,6 +71,12 @@ export interface GetTaskResponse {
   name: string; // Name of the task
   description: string | null; // Description of the task
   tileset_uri?: string | null;
+  geometries?: {
+    geometry_id: string;
+    name: string;
+    description: string | null;
+    geojson: Feature<Geometry, GeoJsonProperties>;
+  }[];
   status: TaskStatusValue;
   status_message?: string | null;
   prefect_flow_run_id?: string | null;

@@ -1,4 +1,4 @@
-import { mdiClipboardClockOutline, mdiFolderOutline, mdiLayersTripleOutline, mdiPlus } from '@mdi/js';
+import { mdiClipboardClockOutline, mdiFolderOutline, mdiLayersTripleOutline } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Box, Tab, Tabs } from '@mui/material';
 import { SidebarView } from 'context/sidebarUIContext';
@@ -36,15 +36,6 @@ export const SidebarNavigation = ({ activeView, onViewChange }: SidebarNavigatio
             textTransform: 'none',
           },
         }}>
-        <Tab
-          value="new"
-          icon={<Icon path={mdiPlus} size={1} />}
-          iconPosition="start"
-          label="New Task"
-          onClick={() => {
-            handleTabClick('new');
-          }}
-        />
         <Tab
           value="tasks"
           icon={<Icon path={mdiClipboardClockOutline} size={1} />}
