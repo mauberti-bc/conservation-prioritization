@@ -260,6 +260,7 @@ export async function up(knex: Knex): Promise<void> {
       name                    varchar(100)      NOT NULL,
       description             varchar(500),
       tileset_uri             text,
+      output_uri              text,
       status                  task_status       NOT NULL DEFAULT 'pending',
       status_message          varchar(500),
       prefect_flow_run_id     uuid,
@@ -280,6 +281,7 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN task.name IS 'The name of the task.';
     COMMENT ON COLUMN task.description IS 'Task description.';
     COMMENT ON COLUMN task.tileset_uri IS 'URI for the latest tileset artifact.';
+    COMMENT ON COLUMN task.output_uri IS 'URI for the strict optimization output artifact.';
     COMMENT ON COLUMN task.status IS 'Execution status for the task lifecycle.';
     COMMENT ON COLUMN task.status_message IS 'Optional status message for diagnostics.';
     COMMENT ON COLUMN task.prefect_flow_run_id IS 'Prefect flow run ID associated with the task.';
@@ -478,7 +480,7 @@ export async function up(knex: Knex): Promise<void> {
       task_tile_id           uuid              DEFAULT gen_random_uuid(),
       task_id                uuid              NOT NULL,
       status                 task_tile_status  NOT NULL,
-      uri                    text,
+      pmtiles_uri            text,
       content_type           text,
       started_at             timestamptz(6),
       completed_at           timestamptz(6),
@@ -502,7 +504,7 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN task_tile.task_tile_id IS 'System generated UUID primary key.';
     COMMENT ON COLUMN task_tile.task_id IS 'Foreign key referencing task.';
     COMMENT ON COLUMN task_tile.status IS 'Status of the tiling job.';
-    COMMENT ON COLUMN task_tile.uri IS 'URI for the generated PMTiles archive.';
+    COMMENT ON COLUMN task_tile.pmtiles_uri IS 'URI for the generated PMTiles archive.';
     COMMENT ON COLUMN task_tile.content_type IS 'Content type for the PMTiles artifact.';
     COMMENT ON COLUMN task_tile.started_at IS 'Timestamp when tiling started.';
     COMMENT ON COLUMN task_tile.completed_at IS 'Timestamp when tiling completed.';

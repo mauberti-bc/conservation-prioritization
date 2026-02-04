@@ -68,7 +68,8 @@ export function updateTaskStatus(): RequestHandler {
 
       const updatedTask = await taskService.updateTaskStatus(taskId, {
         status: body.status,
-        status_message: body.message ?? null
+        status_message: body.message ?? null,
+        output_uri: body.output_uri ?? null
       });
 
       await connection.commit();

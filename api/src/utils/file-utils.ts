@@ -63,13 +63,13 @@ export const _getClamAvScanner = async (): Promise<NodeClam> => {
  */
 export const _getS3Client = (): S3Client => {
   return new S3Client({
-    endpoint: _getObjectStoreUrl(),
+    endpoint: _getObjectStoreEndpoint(),
     credentials: {
       accessKeyId: process.env.OBJECT_STORE_ACCESS_KEY_ID!,
       secretAccessKey: process.env.OBJECT_STORE_SECRET_KEY_ID!
     },
-    forcePathStyle: true,
-    region: 'ca-central-1'
+    forcePathStyle: _getObjectStoreForcePathStyle(),
+    region: _getObjectStoreRegion()
   });
 };
 
@@ -80,29 +80,47 @@ export const _getS3Client = (): S3Client => {
  */
 export const _getQuarantineS3Client = (): S3Client => {
   return new S3Client({
-    endpoint: _getObjectStoreUrl(),
+    endpoint: _getObjectStoreEndpoint(),
     credentials: {
       accessKeyId: process.env.QUARANTINE_OBJECT_STORE_ACCESS_KEY_ID!,
       secretAccessKey: process.env.QUARANTINE_OBJECT_STORE_SECRET_KEY_ID!
     },
-    forcePathStyle: true,
-    region: 'ca-central-1'
+    forcePathStyle: _getObjectStoreForcePathStyle(),
+    region: _getObjectStoreRegion()
   });
 };
 
 /**
- * Local getter for retrieving the S3 object store URL.
+ * Local getter for retrieving the S3 object store endpoint.
  *
- * @returns {*} {string} The object store URL
+ * @returns {*} {string} The object store endpoint
  */
-export const _getObjectStoreUrl = (): string => {
-  const url = process.env.OBJECT_STORE_URL || 'https://nrs.objectstore.gov.bc.ca';
+export const _getObjectStoreEndpoint = (): string => {
+  const url = process.env.OBJECT_STORE_ENDPOINT || process.env.OBJECT_STORE_URL || 'https://nrs.objectstore.gov.bc.ca';
 
   if (!['https://', 'http://'].some((protocol) => url.toLowerCase().startsWith(protocol))) {
     return `https://${url}`;
   }
 
   return url;
+};
+
+/**
+ * Local getter for retrieving the object store region.
+ *
+ * @returns {*} {string} The object store region
+ */
+export const _getObjectStoreRegion = (): string => {
+  return process.env.OBJECT_STORE_REGION || 'us-east-1';
+};
+
+/**
+ * Local getter for retrieving the object store force path style flag.
+ *
+ * @returns {*} {boolean} Whether to force path style
+ */
+export const _getObjectStoreForcePathStyle = (): boolean => {
+  return String(process.env.OBJECT_STORE_FORCE_PATH_STYLE || '').toLowerCase() === 'true';
 };
 
 /**
@@ -133,7 +151,7 @@ export const _getQuarantineObjectStoreBucketName = (): string => {
  */
 export const getS3HostUrl = (key?: string): string => {
   // Appends the given S3 object key, trimming between 0 and 2 trailing '/' characters
-  return `${_getObjectStoreUrl()}/${_getObjectStoreBucketName()}/${key || ''}`.replace(/\/{0,2}$/, '');
+  return `${_getObjectStoreEndpoint()}/${_getObjectStoreBucketName()}/${key || ''}`.replace(/\/{0,2}$/, '');
 };
 
 /**
@@ -142,7 +160,7 @@ export const getS3HostUrl = (key?: string): string => {
  * @returns {*} {string} The S3 key prefix
  */
 export const getS3KeyPrefix = (): string => {
-  return process.env.S3_KEY_PREFIX || 'biohub';
+  return process.env.OBJECT_STORE_PREFIX || process.env.S3_KEY_PREFIX || 'biohub';
 };
 
 /**

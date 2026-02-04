@@ -195,6 +195,11 @@ export const GetTaskSchema: OpenAPIV3.SchemaObject = {
       nullable: true,
       description: 'URI for the latest tileset artifact.'
     },
+    output_uri: {
+      type: 'string',
+      nullable: true,
+      description: 'URI for the strict optimization output artifact.'
+    },
     status: {
       type: 'string',
       description: 'Execution status for the task lifecycle.',
@@ -414,6 +419,11 @@ export const TaskStatusUpdateSchema: OpenAPIV3.SchemaObject = {
       type: 'string',
       nullable: true,
       description: 'Optional status message for diagnostics.'
+    },
+    output_uri: {
+      type: 'string',
+      nullable: true,
+      description: 'URI for the strict optimization output artifact.'
     }
   }
 };

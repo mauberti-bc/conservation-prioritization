@@ -16,7 +16,6 @@ from morecantile.commons import Tile
 from pmtiles.tile import Compression, TileType, zxy_to_tileid
 from pmtiles.writer import Writer
 from prefect import get_run_logger, task
-import boto3
 from pulp import LpStatus
 from pydantic import BaseModel, Field, field_validator
 from pyproj import Transformer
@@ -28,54 +27,6 @@ from scipy import stats
 from shapely import GeometryCollection, MultiLineString, MultiPolygon, unary_union
 from shapely.geometry import mapping, shape
 from shapely.geometry.base import BaseGeometry
-
-
-def _ensure_url_scheme(url: str) -> str:
-    if url.startswith("http://") or url.startswith("https://"):
-        return url
-    return f"https://{url}"
-
-
-def _get_object_store_client():
-    endpoint_url = os.getenv("OBJECT_STORE_URL")
-    access_key = os.getenv("OBJECT_STORE_ACCESS_KEY_ID")
-    secret_key = os.getenv("OBJECT_STORE_SECRET_KEY_ID")
-
-    if not endpoint_url or not access_key or not secret_key:
-        raise ValueError("Object storage credentials are not configured.")
-
-    return boto3.client(
-        "s3",
-        endpoint_url=_ensure_url_scheme(endpoint_url),
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
-        region_name="us-east-1",
-    )
-
-
-def _build_object_key(task_id: str, filename: str) -> str:
-    prefix = os.getenv("S3_KEY_PREFIX", "").strip("/")
-    base = f"tasks/{task_id}/{filename}"
-    return f"{prefix}/{base}" if prefix else base
-
-
-def upload_file_to_object_store(local_path: str, task_id: str, content_type: str) -> str:
-    bucket_name = os.getenv("OBJECT_STORE_BUCKET_NAME")
-
-    if not bucket_name:
-        raise ValueError("OBJECT_STORE_BUCKET_NAME is not configured.")
-
-    client = _get_object_store_client()
-    object_key = _build_object_key(task_id, Path(local_path).name)
-
-    client.upload_file(
-        local_path,
-        bucket_name,
-        object_key,
-        ExtraArgs={"ContentType": content_type},
-    )
-
-    return f"s3://{bucket_name}/{object_key}"
 
 
 class OptimizationConstraint(BaseModel):

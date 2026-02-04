@@ -309,7 +309,7 @@ export async function seed(knex: Knex): Promise<void> {
       await knex('task_tile').insert({
         task_id: demoTask.task_id,
         status: tile.status,
-        uri: tile.uri,
+        pmtiles_uri: tile.pmtiles_uri,
         content_type: tile.content_type
       });
     }

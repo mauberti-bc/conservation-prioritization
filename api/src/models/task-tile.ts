@@ -14,7 +14,7 @@ export const TaskTile = z.object({
   task_tile_id: z.string().uuid(),
   task_id: z.string().uuid(),
   status: TaskTileStatus,
-  uri: z.string().nullable(),
+  pmtiles_uri: z.string().nullable(),
   content_type: z.string().nullable(),
   started_at: z.string().nullable().optional(),
   completed_at: z.string().nullable().optional(),
@@ -31,7 +31,7 @@ export type TaskTile = z.infer<typeof TaskTile>;
 export const CreateTaskTile = z.object({
   task_id: z.string().uuid(),
   status: TaskTileStatus,
-  uri: z.string().nullable().optional(),
+  pmtiles_uri: z.string().nullable().optional(),
   content_type: z.string().nullable().optional()
 });
 
@@ -42,7 +42,7 @@ export type CreateTaskTile = z.infer<typeof CreateTaskTile>;
  */
 export const UpdateTaskTile = z.object({
   status: TaskTileStatus.optional(),
-  uri: z.string().nullable().optional(),
+  pmtiles_uri: z.string().nullable().optional(),
   content_type: z.string().nullable().optional(),
   error_code: z.string().nullable().optional(),
   error_message: z.string().max(500).nullable().optional()

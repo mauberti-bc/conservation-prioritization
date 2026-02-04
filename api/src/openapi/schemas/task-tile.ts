@@ -19,7 +19,7 @@ export const TaskTileSchema: OpenAPIV3.SchemaObject = {
       enum: ['DRAFT', 'STARTED', 'COMPLETED', 'FAILED'],
       description: 'Status of the tiling job.'
     },
-    uri: {
+    pmtiles_uri: {
       type: 'string',
       nullable: true,
       description: 'URI for the generated PMTiles archive.'
@@ -51,7 +51,7 @@ export const TaskTileStatusUpdateSchema: OpenAPIV3.SchemaObject = {
       enum: ['DRAFT', 'STARTED', 'COMPLETED', 'FAILED'],
       description: 'Updated task tile status.'
     },
-    uri: {
+    pmtiles_uri: {
       type: 'string',
       nullable: true,
       description: 'URI for the generated PMTiles archive.'

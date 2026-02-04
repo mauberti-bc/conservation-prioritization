@@ -1,11 +1,12 @@
-import type { TaskStatusValue, TileStatusValue } from './status';
+import { TaskStatusValue, TileStatusValue } from './status';
 
 export interface TaskStatusMessage {
   task_id: string;
   status: TaskStatusValue;
   updated_at?: string;
+  output_uri?: string | null;
   tile?: {
     status: TileStatusValue;
-    uri?: string | null;
+    pmtiles_uri?: string | null;
   } | null;
 }

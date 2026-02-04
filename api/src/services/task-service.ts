@@ -243,7 +243,7 @@ export class TaskService extends DBService {
     }
 
     const tile = await this.taskTileRepository.getLatestTaskTileByTaskId(taskId);
-    const tileUri = toPmtilesUrl(tile?.uri ?? null);
+    const tileUri = toPmtilesUrl(tile?.pmtiles_uri ?? null);
 
     const normalizedStatus = normalizeTaskStatus(task.status);
     const normalizedTileStatus = normalizeTileStatus(tile?.status ?? null);
@@ -255,10 +255,11 @@ export class TaskService extends DBService {
     return {
       task_id: task.task_id,
       status: normalizedStatus,
+      output_uri: task.output_uri ?? null,
       tile: tile
         ? {
             status: normalizedTileStatus ?? TILE_STATUS.FAILED,
-            uri: tileUri
+            pmtiles_uri: tileUri
           }
         : null
     };

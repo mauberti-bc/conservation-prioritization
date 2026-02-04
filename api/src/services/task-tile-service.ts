@@ -1,7 +1,7 @@
 import { SQL } from 'sql-template-strings';
 import { IDBConnection } from '../database/db';
 import { HTTP400 } from '../errors/http-error';
-import type { TaskTile } from '../models/task-tile';
+import { TaskTile } from '../models/task-tile';
 import { TaskRepository } from '../repositories/task-repository';
 import { TaskTileRepository } from '../repositories/task-tile-repository';
 import { PrefectService } from './prefect-service';
@@ -45,7 +45,7 @@ export class TaskTileService extends DBService {
     return this.taskTileRepository.createTaskTile({
       task_id: taskId,
       status: 'DRAFT',
-      uri: null,
+      pmtiles_uri: null,
       content_type: null
     });
   }
@@ -97,7 +97,7 @@ export class TaskTileService extends DBService {
 
     const updatedTile = await this.taskTileRepository.updateTaskTile(taskTileId, {
       status: 'COMPLETED',
-      uri,
+      pmtiles_uri: uri,
       content_type: contentType ?? null
     });
 
@@ -128,7 +128,7 @@ export class TaskTileService extends DBService {
    * Updates a task tile status and handles required fields.
    *
    * @param {string} taskTileId
-   * @param {{ status: 'STARTED' | 'COMPLETED' | 'FAILED' | 'DRAFT'; uri?: string | null; content_type?: string | null; error_code?: string | null; error_message?: string | null }} updates
+   * @param {{ status: 'STARTED' | 'COMPLETED' | 'FAILED' | 'DRAFT'; pmtiles_uri?: string | null; content_type?: string | null; error_code?: string | null; error_message?: string | null }} updates
    * @return {*}  {Promise<TaskTile>}
    * @memberof TaskTileService
    */
@@ -136,7 +136,7 @@ export class TaskTileService extends DBService {
     taskTileId: string,
     updates: {
       status: 'STARTED' | 'COMPLETED' | 'FAILED' | 'DRAFT';
-      uri?: string | null;
+      pmtiles_uri?: string | null;
       content_type?: string | null;
       error_code?: string | null;
       error_message?: string | null;
@@ -147,10 +147,10 @@ export class TaskTileService extends DBService {
     }
 
     if (updates.status === 'COMPLETED') {
-      if (!updates.uri) {
-        throw new HTTP400('Tile completion requires a uri.');
+      if (!updates.pmtiles_uri) {
+        throw new HTTP400('Tile completion requires a pmtiles_uri.');
       }
-      return this.markTileCompleted(taskTileId, updates.uri, updates.content_type ?? null);
+      return this.markTileCompleted(taskTileId, updates.pmtiles_uri, updates.content_type ?? null);
     }
 
     if (updates.status === 'FAILED') {

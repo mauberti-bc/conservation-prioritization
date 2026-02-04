@@ -8,12 +8,14 @@ from prefect import (
     flow,
     get_run_logger,
 )
+from prefect.runtime import flow_run
 from prefect_dask.task_runners import DaskTaskRunner
 
 from ..tasks.strict_optimization import (
     OptimizationParameters,
     execute_optimization,
 )
+from ..utils.object_store import build_object_key, get_object_store_config, put_object
 
 
 @flow(
@@ -45,8 +47,34 @@ def strict_optimization(
 
     try:
         future = execute_optimization.submit(task_id, conditions)
-        future.wait()
-        update_task_status(task_id, "completed")
+        artifact_path = future.result()
+
+        if not artifact_path:
+            raise RuntimeError("Optimization produced no output artifact.")
+
+        config = get_object_store_config()
+        run_id = str(flow_run.id)
+        object_key = build_object_key(
+            config.prefix,
+            f"tasks/{task_id}/strict_optimization/{run_id}/output.npz",
+        )
+
+        put_response = put_object(
+            local_path=artifact_path,
+            bucket=config.bucket,
+            key=object_key,
+            content_type="application/octet-stream",
+            metadata={
+                "task_id": task_id,
+                "prefect_flow_run_id": run_id,
+            },
+        )
+
+        update_task_status(
+            task_id,
+            "completed",
+            output_uri=put_response["uri"],
+        )
     except Exception as error:
         update_task_status(task_id, "failed", str(error))
         raise
@@ -54,7 +82,12 @@ def strict_optimization(
     return
 
 
-def update_task_status(task_id: str, status: str, message: Optional[str] = None) -> None:
+def update_task_status(
+    task_id: str,
+    status: str,
+    message: Optional[str] = None,
+    output_uri: Optional[str] = None,
+) -> None:
     api_url = os.getenv("CONSERVATION_API_URL")
     api_key = os.getenv("INTERNAL_API_KEY")
 
@@ -65,7 +98,7 @@ def update_task_status(task_id: str, status: str, message: Optional[str] = None)
         raise ValueError("INTERNAL_API_KEY is not configured for task status updates.")
 
     url = f"{api_url.rstrip('/')}/internal/task/{task_id}/status"
-    payload = {"status": status, "message": message}
+    payload = {"status": status, "message": message, "output_uri": output_uri}
 
     for attempt in range(1, 6):
         response = requests.post(
@@ -82,4 +115,3 @@ def update_task_status(task_id: str, status: str, message: Optional[str] = None)
             response.raise_for_status()
 
         time.sleep(0.5 * attempt)
-

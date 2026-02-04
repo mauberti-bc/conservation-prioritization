@@ -162,7 +162,7 @@ export const SEED_CONSTANTS = {
   TASK_TILES: [
     {
       status: 'DRAFT',
-      uri: null,
+      pmtiles_uri: null,
       content_type: null
     }
   ]

@@ -15,6 +15,7 @@ export const Task = z.object({
   name: z.string().max(100), // Task name (Max length 100)
   description: z.string().max(500).nullable(), // Task description (Max length 500, optional)
   tileset_uri: z.string().max(2000).nullable(), // Latest tileset URI
+  output_uri: z.string().max(2000).nullable(), // Strict optimization output URI
   status: TaskStatus, // Current task status
   status_message: z.string().max(500).nullable(), // Optional status message
   prefect_flow_run_id: z.string().uuid().nullable(), // Prefect flow run ID
@@ -29,6 +30,7 @@ export type Task = z.infer<typeof Task>;
 export const CreateTask = Task.omit({
   task_id: true,
   tileset_uri: true,
+  output_uri: true,
   status_message: true,
   prefect_flow_run_id: true,
   prefect_deployment_id: true
@@ -53,7 +55,8 @@ export const UpdateTaskExecution = z
     status_message: z.string().max(500).nullable().optional(),
     prefect_flow_run_id: z.string().uuid().nullable().optional(),
     prefect_deployment_id: z.string().uuid().nullable().optional(),
-    tileset_uri: z.string().max(2000).nullable().optional()
+    tileset_uri: z.string().max(2000).nullable().optional(),
+    output_uri: z.string().max(2000).nullable().optional()
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'At least one field must be provided to update task execution metadata.'
