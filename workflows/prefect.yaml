@@ -13,3 +13,11 @@ deployments:
   work_pool:
     name: "local"
     work_queue_name: null
+- name: "task-tile"
+  version: "1.0"
+  schedule: null
+  description: "Generate PMTiles artifacts for a task"
+  entrypoint: "src.flows.tile:tile_task"
+  work_pool:
+    name: "local"
+    work_queue_name: null

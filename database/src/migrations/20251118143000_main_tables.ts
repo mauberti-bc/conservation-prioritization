@@ -191,6 +191,7 @@ export async function up(knex: Knex): Promise<void> {
       task_id                 uuid              DEFAULT gen_random_uuid(),
       name                    varchar(100)      NOT NULL,
       description             varchar(500),
+      tileset_uri             text,
       record_effective_date   timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date         timestamptz(6),
       created_at             timestamptz(6)    DEFAULT now() NOT NULL,
@@ -204,6 +205,7 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN task.task_id IS 'System generated UUID primary key.';
     COMMENT ON COLUMN task.name IS 'The name of the task.';
     COMMENT ON COLUMN task.description IS 'Task description.';
+    COMMENT ON COLUMN task.tileset_uri IS 'URI for the latest tileset artifact.';
     COMMENT ON COLUMN task.record_effective_date IS 'Record level effective date.';
     COMMENT ON COLUMN task.record_end_date IS 'Record level end date.';
     COMMENT ON COLUMN task.created_at IS 'The datetime the record was created.';
@@ -391,6 +393,52 @@ export async function up(knex: Knex): Promise<void> {
     -- Add index for foreign key
     CREATE INDEX task_layer_constraint_idx1 ON task_layer_constraint(task_layer_id);
 
+    ----------------------------------------------------------------------------------------
+    -- Task Tile Table
+    ----------------------------------------------------------------------------------------
+
+    CREATE TYPE task_tile_status AS ENUM ('DRAFT', 'STARTED', 'COMPLETED', 'FAILED');
+
+    CREATE TABLE task_tile (
+      task_tile_id           uuid              DEFAULT gen_random_uuid(),
+      task_id                uuid              NOT NULL,
+      status                 task_tile_status  NOT NULL,
+      uri                    text,
+      content_type           text,
+      started_at             timestamptz(6),
+      completed_at           timestamptz(6),
+      failed_at              timestamptz(6),
+      error_code             text,
+      error_message          varchar(500),
+      created_at            timestamptz(6)    DEFAULT now() NOT NULL,
+      created_by             uuid              NOT NULL,
+      updated_at            timestamptz(6),
+      updated_by         uuid,
+      CONSTRAINT task_tile_pk PRIMARY KEY (task_tile_id)
+    );
+
+    COMMENT ON TABLE task_tile IS 'Tracks tiling artifacts for tasks.';
+    COMMENT ON COLUMN task_tile.task_tile_id IS 'System generated UUID primary key.';
+    COMMENT ON COLUMN task_tile.task_id IS 'Foreign key referencing task.';
+    COMMENT ON COLUMN task_tile.status IS 'Status of the tiling job.';
+    COMMENT ON COLUMN task_tile.uri IS 'URI for the generated PMTiles archive.';
+    COMMENT ON COLUMN task_tile.content_type IS 'Content type for the PMTiles artifact.';
+    COMMENT ON COLUMN task_tile.started_at IS 'Timestamp when tiling started.';
+    COMMENT ON COLUMN task_tile.completed_at IS 'Timestamp when tiling completed.';
+    COMMENT ON COLUMN task_tile.failed_at IS 'Timestamp when tiling failed.';
+    COMMENT ON COLUMN task_tile.error_code IS 'Optional error code for tiling failures.';
+    COMMENT ON COLUMN task_tile.error_message IS 'Optional error message for tiling failures.';
+    COMMENT ON COLUMN task_tile.created_at IS 'The datetime the record was created.';
+    COMMENT ON COLUMN task_tile.created_by IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN task_tile.updated_at IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN task_tile.updated_by IS 'The id of the profile who updated the record.';
+
+    ALTER TABLE task_tile ADD CONSTRAINT task_tile_fk1
+      FOREIGN KEY (task_id) REFERENCES task(task_id);
+
+    CREATE INDEX task_tile_idx1 ON task_tile(task_id);
+    CREATE UNIQUE INDEX task_tile_uk1 ON task_tile (task_id) WHERE status IN ('DRAFT', 'STARTED');
+
   `);
 }
 
@@ -403,10 +451,12 @@ export async function down(knex: Knex): Promise<void> {
     DROP TABLE IF EXISTS project_task;
     DROP TABLE IF EXISTS task_profile;
     DROP TABLE IF EXISTS task_permission;
+    DROP TABLE IF EXISTS task_tile;
     DROP TABLE IF EXISTS task;
     DROP TABLE IF EXISTS project_profile;
     DROP TABLE IF EXISTS project_permission;
     DROP TABLE IF EXISTS profile;
     DROP TABLE IF EXISTS role;
+    DROP TYPE IF EXISTS task_tile_status;
   `);
 }

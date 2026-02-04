@@ -43,7 +43,7 @@ def strict_optimization(
     update_task_status(task_id, "running")
 
     try:
-        future = execute_optimization.submit(conditions)
+        future = execute_optimization.submit(task_id, conditions)
         future.wait()
         update_task_status(task_id, "completed")
     except Exception as error:
