@@ -3,62 +3,120 @@ import { getDBConstants } from '../database/db-constants';
 import { Profile } from '../models/profile';
 
 /**
- * Extracts the user's GUID from the Keycloak token.
- * Now assumes the token contains `sub` which maps to `profile_guid`.
+ * Parses out the user's GUID from a Keycloak token.
  *
- * @param keycloakToken
- * @returns profile_guid or null
+ * @param {Record<string, any>} keycloakToken
+ * @return {string | null} The user GUID or null if not found.
  */
 export const getUserGuid = (keycloakToken: Record<string, any>): string | null => {
-  return keycloakToken?.sub ?? null;
+  const userGuid = keycloakToken?.['preferred_username']?.split('@')?.[0] ?? null;
+  return userGuid;
 };
 
 /**
- * Determines the user's identity source.
- * Assumes the token has `identity_provider` field, otherwise defaults to DATABASE.
+ * Parses out the identity source from the Keycloak token.
  *
- * @param keycloakToken
+ * @param {Record<string, any>} keycloakToken
+ * @return {IDENTITY_SOURCE} The identity source value from the token.
  */
 export const getUserIdentitySource = (keycloakToken: Record<string, any>): IDENTITY_SOURCE => {
-  const raw = keycloakToken?.identity_provider;
-  return coerceUserIdentitySource(raw);
+  const identitySource: string =
+    keycloakToken?.['identity_provider'] || keycloakToken?.['preferred_username']?.split('@')?.[1];
+
+  return coerceUserIdentitySource(identitySource);
 };
 
 /**
- * Coerces a raw identity provider string into IDENTITY_SOURCE enum.
- * Defaults to DATABASE if unrecognized.
+ * Coerces the raw Keycloak identity provider value into a system identity source enum value.
+ * Defaults to `DATABASE` if the value is not recognized.
+ *
+ * @param {string | null} identitySource - The raw identity provider string.
+ * @return {IDENTITY_SOURCE} The coerced system identity source.
  */
-export const coerceUserIdentitySource = (raw?: string | null): IDENTITY_SOURCE => {
-  if (!raw) return IDENTITY_SOURCE.DATABASE;
-
-  switch (raw.toUpperCase()) {
-    case IDENTITY_SOURCE.IDIR:
+export const coerceUserIdentitySource = (identitySource: string | null): IDENTITY_SOURCE => {
+  const source = identitySource?.toUpperCase() ?? 'DATABASE';
+  switch (source) {
+    case 'IDIR':
       return IDENTITY_SOURCE.IDIR;
-    case IDENTITY_SOURCE.SYSTEM:
+    case 'SYSTEM':
       return IDENTITY_SOURCE.SYSTEM;
-    case IDENTITY_SOURCE.DATABASE:
-      return IDENTITY_SOURCE.DATABASE;
     default:
       return IDENTITY_SOURCE.DATABASE;
   }
 };
 
 /**
- * Extracts the user's identifier.
- * Previously used `idir_username` or `bceid_username`.
- * Now fallback to `profile_identifier` in Keycloak token if available.
+ * Parses the user's identifier from the Keycloak token.
+ *
+ * @param {Record<string, any>} keycloakToken
+ * @return {string | null} The user's identifier or null if not found.
  */
 export const getUserIdentifier = (keycloakToken: Record<string, any>): string | null => {
-  return keycloakToken?.profile_identifier ?? null;
+  const userIdentifier = (keycloakToken?.['idir_username'] || keycloakToken?.['bceid_username']) ?? null;
+  return userIdentifier;
 };
 
 /**
- * Maps the Keycloak token `sub` field to a known service client user.
- * Uses `profile_guid` to find the user in DB constants.
+ * Parses out the `sub` field from the Keycloak token and returns a known service client if found.
+ *
+ * @param {Record<string, any>} keycloakToken
+ * @return {Profile | null} A matching service client system user or null if not found.
  */
 export const getServiceClientProfile = (keycloakToken: Record<string, any>): Profile | null => {
-  const guid = keycloakToken?.sub;
-  if (!guid) return null;
+  const sub = keycloakToken?.['sub'];
+  if (!sub) {
+    return null;
+  }
 
-  return getDBConstants().serviceClientUsers.find((p) => p.profile_guid === guid) ?? null;
+  return getDBConstants().serviceClientUsers.find((item) => item.user_guid === sub) ?? null;
+};
+
+/**
+ * Parses the user's display name from a Keycloak token.
+ *
+ * @param {Record<string, any>} keycloakToken
+ * @return {string | null} The display name or null if not found.
+ */
+export const getDisplayName = (keycloakToken: Record<string, any>): string | null => {
+  return keycloakToken?.['display_name'] ?? null;
+};
+
+/**
+ * Parses the user's email from a Keycloak token.
+ *
+ * @param {Record<string, any>} keycloakToken
+ * @return {string | null} The email address or null if not found.
+ */
+export const getEmail = (keycloakToken: Record<string, any>): string | null => {
+  return keycloakToken?.['email'] ?? null;
+};
+
+/**
+ * Parses the user's given name (first name) from a Keycloak token.
+ *
+ * @param {Record<string, any>} keycloakToken
+ * @return {string | null} The given name or null if not found.
+ */
+export const getGivenName = (keycloakToken: Record<string, any>): string | null => {
+  return keycloakToken?.['given_name'] ?? null;
+};
+
+/**
+ * Parses the user's family name (last name) from a Keycloak token.
+ *
+ * @param {Record<string, any>} keycloakToken
+ * @return {string | null} The family name or null if not found.
+ */
+export const getFamilyName = (keycloakToken: Record<string, any>): string | null => {
+  return keycloakToken?.['family_name'] ?? null;
+};
+
+/**
+ * Parses the user's agency from a Keycloak token (for BCeID Business users).
+ *
+ * @param {Record<string, any>} keycloakToken
+ * @return {string | null} The agency name or null if not found.
+ */
+export const getAgency = (keycloakToken: Record<string, any>): string | null => {
+  return keycloakToken?.['bceid_business_name'] ?? null;
 };
