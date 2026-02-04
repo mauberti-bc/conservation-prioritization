@@ -82,7 +82,7 @@ export const TaskList = ({
         isLoadingFallback={<SkeletonList numberOfLines={3} />}
         hasNoData={tasks.length === 0}
         hasNoDataFallback={
-          <Box display="flex" alignItems="center" justifyContent="center" p={5} bgcolor={grey[100]} mx={2}>
+          <Box display="flex" alignItems="center" justifyContent="center" p={5} bgcolor={grey[100]}>
             <Typography variant="body2" color="text.secondary" sx={{ px: 1 }}>
               No tasks yet
             </Typography>

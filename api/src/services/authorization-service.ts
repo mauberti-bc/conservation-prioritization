@@ -175,7 +175,12 @@ export class AuthorizationService extends DBService {
   private async authorizeByProfile(authorizeByProfile: AuthorizeByProfile): Promise<boolean> {
     const systemUserRoles = await this.getUserSystemRoles();
 
-    const allowedSystemRoles = authorizeByProfile.validSystemRoles ?? [SYSTEM_ROLE.MEMBER];
+    const allowedSystemRoles =
+      authorizeByProfile.validSystemRoles && authorizeByProfile.validSystemRoles.length > 0
+        ? authorizeByProfile.validSystemRoles
+        : [SYSTEM_ROLE.MEMBER];
+
+    console.log(allowedSystemRoles, systemUserRoles, 'allowed');
 
     return this.hasRequiredRoles(systemUserRoles, allowedSystemRoles);
   }
@@ -233,12 +238,16 @@ export class AuthorizationService extends DBService {
   private async getUserSystemRoles(): Promise<string[]> {
     const profileGuid = this.getProfileGuidFromRequest();
 
+    console.log(profileGuid);
+
     if (!profileGuid) {
       return []; // No GUID found in the token, return an empty array
     }
 
     // Fetch the profile using the GUID and return the system roles
-    const profile = await this.profileService.getProfileByGuid(profileGuid);
+    const profile = await this.profileService.findProfileByGuid(profileGuid);
+
+    console.log(profile, 'profile');
 
     if (!profile) {
       return [];

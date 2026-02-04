@@ -53,7 +53,7 @@ const layerSchema = yup.object({
 
 export const taskValidationSchema = yup.object({
   variant: yup.string().oneOf([OPTIMIZATION_VARIANT.APPROXIMATE, OPTIMIZATION_VARIANT.STRICT]),
-  layers: yup.array().of(layerSchema).required('Layers are required').min(1, 'At least one layer is required'),
+  layers: yup.array().of(layerSchema).optional(),
   name: yup.string().required('You must name the conservation scenario'),
   budget: yup
     .object({

@@ -2,10 +2,10 @@ import { SQL } from 'sql-template-strings';
 import { IDBConnection } from '../database/db';
 import { HTTP400 } from '../errors/http-error';
 import type { TaskTile } from '../models/task-tile';
+import { TaskRepository } from '../repositories/task-repository';
 import { TaskTileRepository } from '../repositories/task-tile-repository';
 import { PrefectService } from './prefect-service';
 import { DBService } from './db-service';
-import { TaskService } from './task-service';
 import { TILE_STATUS } from '../types/status';
 import { normalizeTileStatus } from '../utils/status';
 
@@ -18,7 +18,7 @@ import { normalizeTileStatus } from '../utils/status';
  */
 export class TaskTileService extends DBService {
   private taskTileRepository: TaskTileRepository;
-  private taskService: TaskService;
+  private taskRepository: TaskRepository;
   private prefectService: PrefectService;
 
   /**
@@ -30,7 +30,7 @@ export class TaskTileService extends DBService {
   constructor(connection: IDBConnection) {
     super(connection);
     this.taskTileRepository = new TaskTileRepository(connection);
-    this.taskService = new TaskService(connection);
+    this.taskRepository = new TaskRepository(connection);
     this.prefectService = new PrefectService();
   }
 
@@ -101,7 +101,7 @@ export class TaskTileService extends DBService {
       content_type: contentType ?? null
     });
 
-    await this.taskService.updateTaskExecution(updatedTile.task_id, { tileset_uri: uri });
+    await this.taskRepository.updateTaskExecution(updatedTile.task_id, { tileset_uri: uri });
 
     return updatedTile;
   }

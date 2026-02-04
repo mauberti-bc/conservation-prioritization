@@ -65,7 +65,7 @@ export const SEED_CONSTANTS = {
   ],
   PROFILES: [
     {
-      profile_guid: '62EC624E50844486A046DC9709854F8D',
+      profile_guid: '62ec624e50844486a046dc9709854f8d@azureidir',
       profile_identifier: 'MAUBERTI',
       identity_source: 'azureidir',
       display_name: 'mauberti',
