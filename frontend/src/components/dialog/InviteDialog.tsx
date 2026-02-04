@@ -1,6 +1,9 @@
+import { mdiPlus } from '@mdi/js';
+import Icon from '@mdi/react';
 import { LoadingButton } from '@mui/lab';
-import { Box, Chip, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
+import { FieldArray, Form, Formik } from 'formik';
+import { useEffect, useState } from 'react';
 
 interface InviteDialogProps {
   open: boolean;
@@ -12,8 +15,6 @@ interface InviteDialogProps {
   onClose: () => void;
   onSubmit: (emails: string[]) => void;
 }
-
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 
 /**
  * Dialog for inviting profiles by email address.
@@ -29,49 +30,28 @@ export const InviteDialog = ({
   isSubmitting = false,
   error,
   onClose,
-  onSubmit
+  onSubmit,
 }: InviteDialogProps) => {
-  const [emailInput, setEmailInput] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
       return;
     }
-    setEmailInput('');
     setLocalError(null);
   }, [open]);
 
-  const { validEmails, invalidEmails } = useMemo(() => {
-    const rawTokens = emailInput
-      .split(/[\s,;]+/)
-      .map((token) => token.trim())
-      .filter((token) => Boolean(token));
-
-    const uniqueEmails = Array.from(new Set(rawTokens.map((token) => token.toLowerCase())));
-    const valid: string[] = [];
-    const invalid: string[] = [];
-
-    uniqueEmails.forEach((email) => {
-      if (emailRegex.test(email)) {
-        valid.push(email);
-      } else {
-        invalid.push(email);
-      }
-    });
-
-    return { validEmails: valid, invalidEmails: invalid };
-  }, [emailInput]);
-
-  const handleSubmit = () => {
+  const handleSubmit = (emails: string[]) => {
     setLocalError(null);
 
-    if (!validEmails.length) {
+    const cleanedEmails = emails.map((email) => email.trim()).filter((value) => Boolean(value));
+
+    if (!cleanedEmails.length) {
       setLocalError('Enter at least one valid email address.');
       return;
     }
 
-    onSubmit(validEmails);
+    onSubmit(cleanedEmails);
   };
 
   return (
@@ -83,42 +63,56 @@ export const InviteDialog = ({
             {description}
           </Typography>
         )}
-        <TextField
-          label="Email addresses"
-          placeholder="Add emails separated by commas or new lines"
-          multiline
-          minRows={3}
-          value={emailInput}
-          onChange={(event) => {
-            setEmailInput(event.target.value);
-          }}
-          fullWidth
-          error={Boolean(localError || error || invalidEmails.length)}
-          helperText={
-            localError ??
-            error ??
-            (invalidEmails.length ? 'Some emails look invalid. They will be ignored.' : undefined)
-          }
-        />
-        {(validEmails.length > 0 || invalidEmails.length > 0) && (
-          <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {validEmails.map((email) => (
-              <Chip key={email} label={email} color="primary" variant="outlined" />
-            ))}
-            {invalidEmails.map((email) => (
-              <Chip key={email} label={email} color="warning" variant="outlined" />
-            ))}
-          </Box>
-        )}
+        <Formik
+          initialValues={{ emails: [''] }}
+          onSubmit={(values) => {
+            handleSubmit(values.emails);
+          }}>
+          {({ values, handleChange }) => (
+            <Form>
+              <FieldArray
+                name="emails"
+                render={(arrayHelpers) => (
+                  <Box display="flex" flexDirection="column" gap={2}>
+                    {values.emails.map((email, index) => (
+                      <TextField
+                        key={`email-${index}`}
+                        label={`Email ${index + 1}`}
+                        name={`emails.${index}`}
+                        value={email}
+                        onChange={handleChange}
+                        fullWidth
+                        error={Boolean(localError || error)}
+                      />
+                    ))}
+                    {(localError || error) && (
+                      <Typography variant="body2" color="error">
+                        {localError ?? error}
+                      </Typography>
+                    )}
+                    <Button
+                      variant="text"
+                      startIcon={<Icon path={mdiPlus} size={0.8} />}
+                      onClick={() => {
+                        arrayHelpers.push('');
+                      }}>
+                      Add Another
+                    </Button>
+                    <DialogActions sx={{ px: 0 }}>
+                      <LoadingButton variant="contained" type="submit" loading={isSubmitting}>
+                        {submitLabel}
+                      </LoadingButton>
+                      <LoadingButton variant="outlined" onClick={onClose} disabled={isSubmitting}>
+                        Cancel
+                      </LoadingButton>
+                    </DialogActions>
+                  </Box>
+                )}
+              />
+            </Form>
+          )}
+        </Formik>
       </DialogContent>
-      <DialogActions>
-        <LoadingButton variant="contained" onClick={handleSubmit} loading={isSubmitting}>
-          {submitLabel}
-        </LoadingButton>
-        <LoadingButton variant="outlined" onClick={onClose} disabled={isSubmitting}>
-          Cancel
-        </LoadingButton>
-      </DialogActions>
     </Dialog>
   );
 };
