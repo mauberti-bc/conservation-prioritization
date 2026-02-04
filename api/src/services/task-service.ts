@@ -7,6 +7,8 @@ import { TaskLayerService } from './task-layer-service';
 import { TaskLayerConstraintService } from './task-layer-constraint-service';
 import { DBService } from './db-service';
 import { toPmtilesUrl } from '../utils/pmtiles';
+import { normalizeTaskStatus, normalizeTileStatus } from '../utils/status';
+import { TILE_STATUS } from '../types/status';
 import type { TaskStatusMessage } from '../types/task-status';
 
 /**
@@ -146,12 +148,19 @@ export class TaskService extends DBService {
     const tile = await this.taskTileRepository.getLatestTaskTileByTaskId(taskId);
     const tileUri = toPmtilesUrl(tile?.uri ?? null);
 
+    const normalizedStatus = normalizeTaskStatus(task.status);
+    const normalizedTileStatus = normalizeTileStatus(tile?.status ?? null);
+
+    if (!normalizedStatus) {
+      throw new Error('Unrecognized task status value.');
+    }
+
     return {
       task_id: task.task_id,
-      status: task.status,
+      status: normalizedStatus,
       tile: tile
         ? {
-            status: tile.status,
+            status: normalizedTileStatus ?? TILE_STATUS.FAILED,
             uri: tileUri
           }
         : null

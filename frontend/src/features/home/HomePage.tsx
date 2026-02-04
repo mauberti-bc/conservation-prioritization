@@ -2,6 +2,7 @@ import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
+import { TASK_STATUS, TILE_STATUS } from 'constants/status';
 import { useMapContext, useTaskContext } from 'hooks/useContext';
 import { useSearchParams } from 'hooks/useSearchParams';
 import { useEffect, useMemo } from 'react';
@@ -32,7 +33,8 @@ export const HomePage = () => {
   };
 
   const pmtilesUrls = useMemo(() => {
-    const statusUri = taskStatus?.tile?.status === 'COMPLETED' && taskStatus.tile.uri ? taskStatus.tile.uri : null;
+    const statusUri =
+      taskStatus?.tile?.status === TILE_STATUS.COMPLETED && taskStatus.tile.uri ? taskStatus.tile.uri : null;
     const fallbackUri = taskDataLoader.data?.tileset_uri ?? null;
     const resolvedUri = statusUri ?? fallbackUri;
 
@@ -47,8 +49,8 @@ export const HomePage = () => {
       return null;
     }
 
-    if (activeStatus === 'completed' && tileStatus && tileStatus !== 'COMPLETED') {
-      return `${activeStatus} (tiling: ${tileStatus.toLowerCase()})`;
+    if (activeStatus === TASK_STATUS.COMPLETED && tileStatus && tileStatus !== TILE_STATUS.COMPLETED) {
+      return `${activeStatus} (tiling: ${tileStatus})`;
     }
 
     return activeStatus;

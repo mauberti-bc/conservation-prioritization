@@ -1,6 +1,7 @@
 import { useConfigContext } from 'hooks/useContext';
 import { useEffect, useRef, useState } from 'react';
 import { buildWebSocketUrl } from 'utils/websocket';
+import { TASK_STATUS } from 'constants/status';
 import { TaskStatusMessage } from './task-status.interface';
 
 export interface UseTaskStatusWebSocketReturn {
@@ -84,7 +85,10 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
         return;
       }
 
-      if (latestStatusRef.current && ['completed', 'failed', 'failed_to_submit'].includes(latestStatusRef.current)) {
+      if (
+        latestStatusRef.current &&
+        [TASK_STATUS.COMPLETED, TASK_STATUS.FAILED, TASK_STATUS.FAILED_TO_SUBMIT].includes(latestStatusRef.current)
+      ) {
         return;
       }
 

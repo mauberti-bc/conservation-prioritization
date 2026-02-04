@@ -12,7 +12,7 @@ import { authenticateRequest, authenticateRequestOptional } from './request-hand
 import { initRequestStorage } from './utils/async-request-storage';
 import { scanFileForVirus } from './utils/file-utils';
 import { getLogger } from './utils/logger';
-import { createTaskStatusWebSocketServer, handleTaskStatusConnection, parseTaskStatusPath } from './websockets/task-status-ws';
+import { handleWebSocketUpgrade } from './websocket/ws-server';
 
 const logger = getLogger('app');
 
@@ -25,7 +25,6 @@ const MAX_UPLOAD_FILE_SIZE = Number(process.env.MAX_UPLOAD_FILE_SIZE) || 50 * 10
 
 const app = express();
 const server = http.createServer(app);
-const taskStatusWebSocketServer = createTaskStatusWebSocketServer();
 
 // --- Middleware ---
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -88,17 +87,7 @@ app.use(
     await initDBConstants();
 
     server.on('upgrade', (req, socket, head) => {
-      const url = new URL(req.url ?? '', `http://${req.headers.host}`);
-      const taskId = parseTaskStatusPath(url.pathname);
-
-      if (!taskId) {
-        socket.destroy();
-        return;
-      }
-
-      taskStatusWebSocketServer.handleUpgrade(req, socket, head, (ws) => {
-        handleTaskStatusConnection(ws, req, taskId);
-      });
+      handleWebSocketUpgrade(req, socket, head);
     });
 
     server.listen(PORT, () => {

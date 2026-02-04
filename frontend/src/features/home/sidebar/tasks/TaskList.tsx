@@ -1,12 +1,13 @@
 import { Box, List, ListItem, ListItemText, Typography } from '@mui/material';
+import { TASK_STATUS, TaskStatusValue } from 'constants/status';
 
 interface Task {
   name: string;
-  status: 'completed' | 'in progress' | 'draft';
+  status: TaskStatusValue;
 }
 export const TaskList = () => {
   // For now, hardcoded empty array
-  const tasks: Task[] = [{ name: 'Sample', status: 'draft' }]; // Replace with API call later
+  const tasks: Task[] = [{ name: 'Sample', status: TASK_STATUS.PENDING }]; // Replace with API call later
 
   return (
     <Box

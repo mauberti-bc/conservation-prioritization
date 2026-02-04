@@ -27,9 +27,12 @@ export const registerMockDBConnection = (config?: Partial<IDBConnection>): IDBCo
 export const getMockDBConnection = (config?: Partial<IDBConnection>): IDBConnection => {
   return {
     systemUserId: () => {
-      return null as unknown as number;
+      return null as unknown as string;
     },
     open: async () => {
+      // do nothing
+    },
+    openWithoutTransaction: async () => {
       // do nothing
     },
     release: () => {
