@@ -11,7 +11,7 @@ export async function up(knex: Knex): Promise<void> {
     CREATE TABLE IF NOT EXISTS audit_log (
       audit_log_id       uuid            DEFAULT gen_random_uuid(),
       profile_id         uuid            NOT NULL,
-      create_date        timestamptz(6)  DEFAULT now() NOT NULL,
+      created_at        timestamptz(6)  DEFAULT now() NOT NULL,
       table_name         varchar(200)    NOT NULL,
       operation          varchar(20)     NOT NULL,
       before_value       json,
@@ -24,7 +24,7 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON TABLE audit_log IS 'Holds record level audit log data for the entire database.';
     COMMENT ON COLUMN audit_log.audit_log_id IS 'System generated surrogate primary key identifier.';
     COMMENT ON COLUMN audit_log.profile_id IS 'The system user id affecting the data change.';
-    COMMENT ON COLUMN audit_log.create_date IS 'The date and time of record creation.';
+    COMMENT ON COLUMN audit_log.created_at IS 'The date and time of record creation.';
     COMMENT ON COLUMN audit_log.table_name IS 'The table name of the data record.';
     COMMENT ON COLUMN audit_log.operation IS 'The operation that affected the data change (ie. INSERT, UPDATE, DELETE, TRUNCATE).';
     COMMENT ON COLUMN audit_log.before_value IS 'The JSON representation of the before value of the record.';
@@ -62,13 +62,13 @@ export async function up(knex: Knex): Promise<void> {
       END IF;
 
       IF (TG_OP = 'INSERT') THEN
-        NEW.create_profile = _profile_id;
+        NEW.created_by = _profile_id;
       ELSIF (TG_OP = 'UPDATE') THEN
-        NEW.update_profile = _profile_id;
-        NEW.update_date = now();
+        NEW.updated_by = _profile_id;
+        NEW.updated_at = now();
         -- Preserve immutable create fields
-        NEW.create_profile = OLD.create_profile;
-        NEW.create_date = OLD.create_date;
+        NEW.created_by = OLD.created_by;
+        NEW.created_at = OLD.created_at;
       END IF;
 
       IF (TG_OP = 'DELETE') THEN
@@ -97,7 +97,7 @@ export async function up(knex: Knex): Promise<void> {
       new_row json := NULL;
     BEGIN
       -- Get current user context
-      SELECT api_get_context_user_id() INTO STRICT _profile_id;
+      SELECT api_get_context_profile_id() INTO STRICT _profile_id;
 
       IF TG_OP IN ('UPDATE','DELETE') THEN
         old_row := row_to_json(OLD);

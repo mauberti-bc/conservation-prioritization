@@ -1,108 +1,64 @@
-import { SYSTEM_IDENTITY_SOURCE } from '../constants/database';
+import { IDENTITY_SOURCE } from '../constants/database';
 import { getDBConstants } from '../database/db-constants';
-import { SystemUser } from '../repositories/user-repository';
+import { Profile } from '../models/profile';
 
 /**
- * Parses out the user's GUID from a keycloak token, which is extracted from the
- * `preferred_username` property.
+ * Extracts the user's GUID from the Keycloak token.
+ * Now assumes the token contains `sub` which maps to `profile_guid`.
  *
- * @example getUserGuid({ preferred_username: '123-456-789@idir' }) // => '123-456-789'
- *
- * @param {Record<string, any>} keycloakToken
- * @return {*} {(string | null)}
+ * @param keycloakToken
+ * @returns profile_guid or null
  */
 export const getUserGuid = (keycloakToken: Record<string, any>): string | null => {
-  const userIdentifier = keycloakToken?.['preferred_username']?.split('@')?.[0];
-
-  if (!userIdentifier) {
-    return null;
-  }
-
-  return userIdentifier;
+  return keycloakToken?.sub ?? null;
 };
 
 /**
- * Parses out the preferred_username identity source ('idir', 'bceidbasic', etc.) from the token and maps it to a known
- * `SYSTEM_IDENTITY_SOURCE`. If the `identity_provider` field in the keycloak token object is undefined, then the
- * identity source is inferred from the `preferred_username` field as a contingency.
+ * Determines the user's identity source.
+ * Assumes the token has `identity_provider` field, otherwise defaults to DATABASE.
  *
- * @example getUserIdentitySource({ ...token, identity_provider: 'bceidbasic' }) => SYSTEM_IDENTITY_SOURCE.BCEID_BASIC
- * @example getUserIdentitySource({ preferred_username: '123-456-789@idir' }) => SYSTEM_IDENTITY_SOURCE.IDIR
- *
- * @param {Record<string, any>} keycloakToken
- * @return {*} {SYSTEM_IDENTITY_SOURCE}
+ * @param keycloakToken
  */
-export const getUserIdentitySource = (keycloakToken: Record<string, any>): SYSTEM_IDENTITY_SOURCE => {
-  const userIdentitySource: string =
-    keycloakToken?.['identity_provider'] || keycloakToken?.['preferred_username']?.split('@')?.[1];
-
-  return coerceUserIdentitySource(userIdentitySource);
+export const getUserIdentitySource = (keycloakToken: Record<string, any>): IDENTITY_SOURCE => {
+  const raw = keycloakToken?.identity_provider;
+  return coerceUserIdentitySource(raw);
 };
 
 /**
- * Coerce the raw keycloak token identity provider value into an system identity source enum value.
- * If the given user identity source string does not satisfy one of `SYSTEM_IDENTITY_SOURCE`, the return
- * value defaults to `SYSTEM_IDENTITY_SOURCE.DATABASE`.
- *
- * @example coerceUserIdentitySource('idir') => 'idir' satisfies SYSTEM_IDENTITY_SOURCE.IDIR
- *
- * @param userIdentitySource the identity source string
- * @returns {*} {SYSTEM_IDENTITY_SOURCE} the identity source belonging to type SYSTEM_IDENTITY_SOURCE
+ * Coerces a raw identity provider string into IDENTITY_SOURCE enum.
+ * Defaults to DATABASE if unrecognized.
  */
-export const coerceUserIdentitySource = (userIdentitySource: string | null): SYSTEM_IDENTITY_SOURCE => {
-  switch (userIdentitySource?.toUpperCase()) {
-    case SYSTEM_IDENTITY_SOURCE.BCEID_BASIC:
-      return SYSTEM_IDENTITY_SOURCE.BCEID_BASIC;
+export const coerceUserIdentitySource = (raw?: string | null): IDENTITY_SOURCE => {
+  if (!raw) return IDENTITY_SOURCE.DATABASE;
 
-    case SYSTEM_IDENTITY_SOURCE.BCEID_BUSINESS:
-      return SYSTEM_IDENTITY_SOURCE.BCEID_BUSINESS;
-
-    case SYSTEM_IDENTITY_SOURCE.IDIR:
-      return SYSTEM_IDENTITY_SOURCE.IDIR;
-
-    case SYSTEM_IDENTITY_SOURCE.SYSTEM:
-      return SYSTEM_IDENTITY_SOURCE.SYSTEM;
-
-    case SYSTEM_IDENTITY_SOURCE.DATABASE:
-      return SYSTEM_IDENTITY_SOURCE.DATABASE;
-
+  switch (raw.toUpperCase()) {
+    case IDENTITY_SOURCE.IDIR:
+      return IDENTITY_SOURCE.IDIR;
+    case IDENTITY_SOURCE.SYSTEM:
+      return IDENTITY_SOURCE.SYSTEM;
+    case IDENTITY_SOURCE.DATABASE:
+      return IDENTITY_SOURCE.DATABASE;
     default:
-      // Covers a user created directly in keycloak which wouldn't have an identity source
-      return SYSTEM_IDENTITY_SOURCE.DATABASE;
+      return IDENTITY_SOURCE.DATABASE;
   }
 };
 
 /**
- * Parses out the user's identifier from a keycloak token.
- *
- * @example getUserIdentifier({ ....token, bceid_username: 'jsmith@idir' }) => 'jsmith'
- *
- * @param {Record<string, any>} keycloakToken
- * @return {*} {(string | null)}
+ * Extracts the user's identifier.
+ * Previously used `idir_username` or `bceid_username`.
+ * Now fallback to `profile_identifier` in Keycloak token if available.
  */
 export const getUserIdentifier = (keycloakToken: Record<string, any>): string | null => {
-  const userIdentifier = keycloakToken?.['idir_username'] || keycloakToken?.['bceid_username'];
-
-  if (!userIdentifier) {
-    return null;
-  }
-
-  return userIdentifier;
+  return keycloakToken?.profile_identifier ?? null;
 };
 
 /**
- * Parses out the `sub` field from the token and maps them to a known service client system user.
- *
- * @param {Record<string, any>} keycloakToken
- * @return {*}  {(SystemUser | null)}
+ * Maps the Keycloak token `sub` field to a known service client user.
+ * Uses `profile_guid` to find the user in DB constants.
  */
-export const getServiceClientSystemUser = (keycloakToken: Record<string, any>): SystemUser | null => {
-  const sub = keycloakToken?.['sub'];
+export const getServiceClientProfile = (keycloakToken: Record<string, any>): Profile | null => {
+  const guid = keycloakToken?.sub;
+  if (!guid) return null;
 
-  if (!sub) {
-    return null;
-  }
-
-  // Find and return a matching known service client, if one exists
-  return getDBConstants().serviceClientUsers.find((item) => item.user_guid === sub) || null;
+  return getDBConstants().serviceClientUsers.find((p) => p.profile_guid === guid) ?? null;
 };

@@ -20,6 +20,9 @@ COPY .yarn/ .yarn/
 # Install all dependencies (including dev)
 RUN yarn install --immutable
 
+# Install `tsx` as a dev dependency
+RUN yarn add -D tsx
+
 # Ensure Yarn/Node binaries are in PATH
 ENV PATH="${HOME}/node_modules/.bin:${PATH}"
 
@@ -30,4 +33,4 @@ COPY . ./
 VOLUME ${HOME}
 
 # Start API with hot reload
-CMD ["yarn", "start-reload"]
+CMD ["yarn", "dev"]

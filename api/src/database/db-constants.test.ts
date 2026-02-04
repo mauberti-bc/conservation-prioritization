@@ -3,7 +3,6 @@ import { describe } from 'mocha';
 import { QueryResult } from 'pg';
 import sinon, { SinonStub } from 'sinon';
 import sinonChai from 'sinon-chai';
-import { SystemUser } from '../repositories/user-repository';
 import { getMockDBConnection } from '../__mocks__/db';
 import * as db from './db';
 import { getDBConstants, initDBConstants } from './db-constants';
@@ -48,19 +47,19 @@ describe('db-constants', () => {
 
     before(async () => {
       // Mock query response using the updated "profile" table fields
-      const mockQueryResponse: QueryResult<SystemUser> = {
+      const mockQueryResponse: QueryResult<any> = {
         rowCount: 1,
         rows: [
           {
-            system_user_id: 1,
-            user_identity_source_id: 2,
-            user_identifier: '123',
-            user_guid: 'service-account-123',
+            profile_id: '1',
+            profile_identity_source_id: 2,
+            profile_identifier: '123',
+            profile_guid: 'service-account-123',
             record_effective_date: '',
             record_end_date: '',
-            create_date: '2025-12-12',
+            created_at: '2025-12-12',
             create_user: 1,
-            update_date: null,
+            updated_at: null,
             update_user: null,
             revision_count: 0
           }

@@ -1,13 +1,19 @@
 import { SQL, SQLStatement } from 'sql-template-strings';
-import { SYSTEM_IDENTITY_SOURCE } from '../../constants/database';
+import { IDENTITY_SOURCE } from '../../constants/database';
 
-export const setSystemUserContextSQL = (
-  userGuid: string,
-  systemUserType: SYSTEM_IDENTITY_SOURCE
-): SQLStatement | null => {
+/**
+ * Build a SQL statement to set the profile context for a given user.
+ * Returns a SQLStatement or throws if invalid inputs are provided.
+ */
+export const setProfileContextSQL = (userGuid: string, systemUserType: IDENTITY_SOURCE): SQLStatement => {
   if (!userGuid) {
-    return null;
+    throw new Error('setProfileContextSQL: userGuid is required');
   }
 
-  return SQL`select api_set_context(${userGuid}, ${systemUserType});`;
+  if (!systemUserType) {
+    throw new Error('setProfileContextSQL: systemUserType is required');
+  }
+
+  // Use parameterized query to prevent SQL injection
+  return SQL`SELECT api_set_context(${userGuid}, ${systemUserType}) AS api_set_context;`;
 };

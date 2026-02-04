@@ -1,5 +1,5 @@
 import { OpenAPIV3 } from 'openapi-types';
-import { SystemUserWithRoles } from '../models/system-user-view';
+import { ProfileWithRoles } from '../models/system-user-view';
 import { AuthorizationScheme } from '../services/authorization-service';
 import { KeycloakUserInformation } from '../utils/keycloak-utils';
 
@@ -18,7 +18,7 @@ declare module 'express-serve-static-core' {
     /**
      * SIMS system user details object.
      */
-    system_user?: SystemUserWithRoles;
+    profile?: ProfileWithRoles;
 
     /**
      * Authorization Scheme object.

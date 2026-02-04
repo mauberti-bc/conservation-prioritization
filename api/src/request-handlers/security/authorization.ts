@@ -58,7 +58,7 @@ export const authorizeRequest = async (req: Request): Promise<boolean> => {
     await connection.open();
 
     const authorizationService = new AuthorizationService(connection, {
-      systemUser: req['system_user'],
+      systemUser: req['profile'],
       keycloakToken: req['keycloak_token']
     });
 
@@ -66,8 +66,8 @@ export const authorizeRequest = async (req: Request): Promise<boolean> => {
       (await authorizationService.authorizeSystemAdministrator()) ||
       (await authorizationService.executeAuthorizationScheme(authorizationScheme));
 
-    // Add the system_user to the request for future use, if needed
-    req['system_user'] = authorizationService.systemUser;
+    // Add the profile to the request for future use, if needed
+    req['profile'] = authorizationService.systemUser;
 
     await connection.commit();
 

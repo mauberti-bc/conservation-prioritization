@@ -1,4 +1,5 @@
 import { Knex } from 'knex';
+import { IDENTITY_SOURCE } from '../constants/profile';
 
 /**
  * Insert default API system profile and attach audit and journal triggers to all tables
@@ -14,32 +15,32 @@ export async function up(knex: Knex): Promise<void> {
     ----------------------------------------------------------------------------------------
     -- Insert default API system profile
     ----------------------------------------------------------------------------------------
-    -- Step 1: Insert first profile with NULL create_profile
+    -- Step 1: Insert first profile with NULL created_by
     INSERT INTO profile (
       identity_source,
       profile_identifier,
       profile_guid
     )
     VALUES (
-      'SYSTEM',
+      '${IDENTITY_SOURCE.DATABASE}',
       '${process.env.DB_USER_API}',
-      gen_random_uuid()::varchar
+      '${process.env.DB_USER_API}'
     )
     RETURNING profile_id;
 
     ----------------------------------------------------------------------------------------
-    -- Step 2: Update the profile so create_profile = profile_id
+    -- Step 2: Update the profile so created_by = profile_id
     ----------------------------------------------------------------------------------------
     UPDATE profile
-    SET create_profile = profile_id
-    WHERE identity_source = 'SYSTEM'
+    SET created_by = profile_id
+    WHERE identity_source = '${IDENTITY_SOURCE.DATABASE}'
       AND profile_identifier = '${process.env.DB_USER_API}';
 
     ----------------------------------------------------------------------------------------
-    -- Step 3: Now enforce NOT NULL on create_profile
+    -- Step 3: Now enforce NOT NULL on created_by
     ----------------------------------------------------------------------------------------
     ALTER TABLE profile
-      ALTER COLUMN create_profile SET NOT NULL;
+      ALTER COLUMN created_by SET NOT NULL;
 
     ----------------------------------------------------------------------------------------
     -- Attach audit and journal triggers to profile

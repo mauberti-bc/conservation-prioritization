@@ -9,11 +9,9 @@
     "url": "https://github.com/bcgov/biohubbc-platform.git"
   },
   "scripts": {
-    "start": "node dist/app.js",
+    "dev": "yarn tsx watch src/app.ts",
     "build": "tsc --project tsconfig.production.json",
-    "dev": "tsx watch src/app.ts",
-    "queue": "tsx src/queue.ts",
-    "queue-dev": "tsx watch src/queue.ts",
+    "start": "node dist/app.js",
     "test": "mocha",
     "test-watch": "mocha --watch",
     "coverage": "nyc mocha",
@@ -96,6 +94,7 @@
     "sinon": "^17.0.1",
     "sinon-chai": "^3.7.0",
     "ts-mocha": "^11.1.0",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0"
   }
 }
