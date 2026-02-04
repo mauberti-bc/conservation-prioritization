@@ -139,6 +139,92 @@ services:
         condition: service_healthy
     command: ["npm", "run", "setup"]
 
+  ## Build the api docker image
+  api:
+    image: ${DOCKER_PROJECT_NAME}-api-${DOCKER_NAMESPACE}-img
+    container_name: ${DOCKER_PROJECT_NAME}-api-${DOCKER_NAMESPACE}-container
+    build:
+      context: ./api
+      dockerfile: ./.docker/api/Dockerfile
+    ports:
+      - ${API_PORT}:${API_PORT}
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - NODE_OPTIONS=${API_NODE_OPTIONS}
+      # ITIS API
+      - ITIS_SOLR_URL=${ITIS_SOLR_URL}
+      - TZ=${API_TZ}
+      - API_HOST=${API_HOST}
+      - API_PORT=${API_PORT}
+      - DB_HOST=${DB_HOST}
+      - DB_USER_API=${DB_USER_API}
+      - DB_USER_API_PASS=${DB_USER_API_PASS}
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_SCHEMA=${DB_SCHEMA}
+      - DB_POOL_SIZE=${DB_POOL_SIZE}
+      - DB_CONNECTION_MAX_USES=${DB_CONNECTION_MAX_USES}
+      - DB_CONNECTION_TIMEOUT=${DB_CONNECTION_TIMEOUT}
+      - DB_IDLE_TIMEOUT=${DB_IDLE_TIMEOUT}
+      # Keycloak
+      - KEYCLOAK_HOST=${KEYCLOAK_HOST}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      # Keycloak Service client
+      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      # Keycloak CSS API
+      - KEYCLOAK_API_TOKEN_URL=${KEYCLOAK_API_TOKEN_URL}
+      - KEYCLOAK_API_CLIENT_ID=${KEYCLOAK_API_CLIENT_ID}
+      - KEYCLOAK_API_CLIENT_SECRET=${KEYCLOAK_API_CLIENT_SECRET}
+      - KEYCLOAK_API_HOST=${KEYCLOAK_API_HOST}
+      - KEYCLOAK_API_ENVIRONMENT=${KEYCLOAK_API_ENVIRONMENT}
+      # Object Store (S3)
+      - OBJECT_STORE_URL=${OBJECT_STORE_URL}
+      - OBJECT_STORE_ACCESS_KEY_ID=${OBJECT_STORE_ACCESS_KEY_ID}
+      - OBJECT_STORE_SECRET_KEY_ID=${OBJECT_STORE_SECRET_KEY_ID}
+      - OBJECT_STORE_BUCKET_NAME=${OBJECT_STORE_BUCKET_NAME}
+      - S3_KEY_PREFIX=${S3_KEY_PREFIX}
+      # Quarantine Object Store (S3)
+      - QUARANTINE_OBJECT_STORE_URL=${QUARANTINE_OBJECT_STORE_URL}
+      - QUARANTINE_OBJECT_STORE_ACCESS_KEY_ID=${QUARANTINE_OBJECT_STORE_ACCESS_KEY_ID}
+      - QUARANTINE_OBJECT_STORE_SECRET_KEY_ID=${QUARANTINE_OBJECT_STORE_SECRET_KEY_ID}
+      - QUARANTINE_OBJECT_STORE_BUCKET_NAME=${QUARANTINE_OBJECT_STORE_BUCKET_NAME}
+      - MAX_REQ_BODY_SIZE=${MAX_REQ_BODY_SIZE}
+      - MAX_UPLOAD_NUM_FILES=${MAX_UPLOAD_NUM_FILES}
+      - MAX_UPLOAD_FILE_SIZE=${MAX_UPLOAD_FILE_SIZE}
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL}
+      - LOG_LEVEL_FILE=${LOG_LEVEL_FILE}
+      - LOG_FILE_DIR=${LOG_FILE_DIR}
+      - LOG_FILE_NAME=${LOG_FILE_NAME}
+      - LOG_FILE_DATE_PATTERN=${LOG_FILE_DATE_PATTERN}
+      - LOG_FILE_MAX_SIZE=${LOG_FILE_MAX_SIZE}
+      - LOG_FILE_MAX_FILES=${LOG_FILE_MAX_FILES}
+      # Clamav
+      - CLAMAV_PORT=${CLAMAV_PORT}
+      - CLAMAV_HOST=${CLAMAV_HOST}
+      - ENABLE_FILE_VIRUS_SCAN=${ENABLE_FILE_VIRUS_SCAN}
+      # GCNotify
+      - GCNOTIFY_SECRET_API_KEY=${GCNOTIFY_SECRET_API_KEY}
+      - GCNOTIFY_ADMIN_EMAIL=${GCNOTIFY_ADMIN_EMAIL}
+      - GCNOTIFY_REQUEST_ACCESS_SECURE_DOCUMENTS=${GCNOTIFY_REQUEST_ACCESS_SECURE_DOCUMENTS}
+      - GCNOTIFY_ONBOARDING_REQUEST_EMAIL_TEMPLATE=${GCNOTIFY_ONBOARDING_REQUEST_EMAIL_TEMPLATE}
+      - GCNOTIFY_ONBOARDING_REQUEST_SMS_TEMPLATE=${GCNOTIFY_ONBOARDING_REQUEST_SMS_TEMPLATE}
+      - GCNOTIFY_EMAIL_URL=${GCNOTIFY_EMAIL_URL}
+      - GCNOTIFY_SMS_URL=${GCNOTIFY_SMS_URL}
+      - APP_HOST=${APP_HOST}
+    volumes:
+      - ./api:/opt/app-root/src
+      - /opt/app-root/src/node_modules # prevents local node_modules overriding container node_modules
+    networks:
+      - biohubbc-network
+    depends_on:
+      db:
+        condition: service_healthy
+      db_setup:
+        condition: service_completed_successfully
+
+
 networks:
   conservation-network:
     driver: bridge
