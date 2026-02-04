@@ -1,13 +1,15 @@
 import * as zarr from 'zarrita';
 import { ApiGeneralError } from '../errors/api-error';
+import { LayerMeta } from '../models/layer.interface';
 import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination';
 import { makePaginationResponse } from '../utils/pagination';
+import { parseArraysFromConsolidatedMetadata } from '../utils/zarr';
 
 /**
  * Cache entry for parsed Zarr layers
  */
 interface LayerCache {
-  layers: ZarrArrayMeta[];
+  layers: LayerMeta[];
   loadedAt: number;
 }
 
@@ -45,10 +47,10 @@ export class LayerService {
    * Load and parse all layers from the Zarr store.
    * Uses an in-memory cache to avoid repeated downloads of `.zmetadata`.
    *
-   * @returns {Promise<ZarrArrayMeta[]>}
+   * @returns {Promise<LayerMeta[]>}
    * @private
    */
-  private async loadAllLayers(): Promise<ZarrArrayMeta[]> {
+  private async loadAllLayers(): Promise<LayerMeta[]> {
     const now = Date.now();
 
     if (LayerService.cache && now - LayerService.cache.loadedAt < LayerService.CACHE_TTL) {
@@ -58,9 +60,30 @@ export class LayerService {
     const location = zarr.root(this.store);
     const metadataPath = location.resolve('.zmetadata').path;
 
-    const consolidatedMetadata = JSON.parse(new TextDecoder().decode(await this.store.get(metadataPath)));
+    let consolidatedMetadata: unknown;
+    try {
+      const metadataBytes = await this.store.get(metadataPath);
 
-    const layers = parseArraysFromConsolidatedMetadata(consolidatedMetadata.metadata);
+      if (!metadataBytes) {
+        throw new Error('No metadata bytes returned from Zarr store');
+      }
+
+      consolidatedMetadata = JSON.parse(new TextDecoder().decode(metadataBytes));
+    } catch (error) {
+      throw new ApiGeneralError('Failed to read consolidated Zarr metadata', [
+        { label: 'LayerService.loadAllLayers', error }
+      ]);
+    }
+
+    const metadataRecord = (consolidatedMetadata as { metadata?: unknown }).metadata;
+
+    if (!metadataRecord || typeof metadataRecord !== 'object') {
+      throw new ApiGeneralError('Invalid consolidated Zarr metadata payload', [{ label: 'LayerService.loadAllLayers' }]);
+    }
+
+    const layers = parseArraysFromConsolidatedMetadata(metadataRecord as Record<string, unknown>).sort((a, b) =>
+      a.path.localeCompare(b.path)
+    );
 
     LayerService.cache = {
       layers,
@@ -74,11 +97,11 @@ export class LayerService {
    * Fetch all layers with pagination.
    *
    * @param {ApiPaginationOptions} pagination Pagination options
-   * @returns {Promise<{ layers: ZarrArrayMeta[]; pagination: ApiPaginationResults }>}
+   * @returns {Promise<{ layers: LayerMeta[]; pagination: ApiPaginationResults }>}
    * @memberof LayerService
    */
   async listLayers(pagination: ApiPaginationOptions): Promise<{
-    layers: ZarrArrayMeta[];
+    layers: LayerMeta[];
     pagination: ApiPaginationResults;
   }> {
     const allLayers = await this.loadAllLayers();
@@ -98,14 +121,14 @@ export class LayerService {
    *
    * @param {string} searchTerm Optional search term
    * @param {ApiPaginationOptions} pagination Pagination options
-   * @returns {Promise<{ layers: ZarrArrayMeta[]; pagination: ApiPaginationResults }>}
+   * @returns {Promise<{ layers: LayerMeta[]; pagination: ApiPaginationResults }>}
    * @memberof LayerService
    */
   async findLayers(
     searchTerm: string,
     pagination?: ApiPaginationOptions
   ): Promise<{
-    layers: ZarrArrayMeta[];
+    layers: LayerMeta[];
     pagination: ApiPaginationResults | null;
   }> {
     const allLayers = await this.loadAllLayers();
@@ -141,10 +164,10 @@ export class LayerService {
    * Fetch metadata for a specific layer by its path.
    *
    * @param {string} path Layer path (e.g. "landcover/disturbance/mining")
-   * @returns {Promise<ZarrArrayMeta | null>}
+   * @returns {Promise<LayerMeta | null>}
    * @memberof LayerService
    */
-  async getLayerByPath(path: string): Promise<ZarrArrayMeta | null> {
+  async getLayerByPath(path: string): Promise<LayerMeta | null> {
     const layers = await this.loadAllLayers();
     return layers.find((layer) => layer.path === path) ?? null;
   }

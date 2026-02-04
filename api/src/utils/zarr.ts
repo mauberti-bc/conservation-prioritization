@@ -1,44 +1,68 @@
-/**
- * Layer metadata structure based on parsed Zarr metadata.
- */
-interface ZarrArrayMeta {
-  group: string; // e.g., 'landcover/disturbance'
-  path: string; // e.g., 'landcover/disturbance/mining'
-  name: string; // Display name (from zattrs.label)
-  description?: string;
+import { LayerMeta } from '../models/layer.interface';
+import { getLogger } from './logger';
+
+const defaultLog = getLogger('utils/zarr');
+
+const IGNORED_NAMES = new Set(['x', 'y', 'spatial_ref']);
+
+interface ZarrArrayMetadata {
   shape: number[];
   dtype: string;
 }
 
-const IGNORED_NAMES = new Set(['x', 'y', 'spatial_ref']);
+interface ZarrAttrsMetadata {
+  label?: string;
+  description?: string;
+}
+
+const parseMetadataValue = <T>(value: unknown): T | null => {
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as T;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  if (value && typeof value === 'object') {
+    return value as T;
+  }
+
+  return null;
+};
 
 /**
  * Parses arrays from the consolidated metadata of the Zarr store.
  *
  * @param {Record<string, any>} metadata - The consolidated metadata from Zarr store.
- * @returns {ZarrArrayMeta[]} - Array of parsed layer metadata.
+ * @returns {LayerMeta[]} - Array of parsed layer metadata.
  */
-function parseArraysFromConsolidatedMetadata(metadata: Record<string, any>): ZarrArrayMeta[] {
-  const arrays: ZarrArrayMeta[] = [];
+export function parseArraysFromConsolidatedMetadata(metadata: Record<string, unknown>): LayerMeta[] {
+  const arrays: LayerMeta[] = [];
 
   for (const path in metadata) {
+    // Skip malformed entries rather than fail the entire parse.
     if (!path.endsWith('/.zarray')) {
       continue;
     }
 
     const arrayPath = path.replace(/^\//, '').replace(/\/\.zarray$/, '');
-    const zarrayMeta = metadata[path];
+    const zarrayMeta = parseMetadataValue<ZarrArrayMetadata>(metadata[path]);
 
     if (!zarrayMeta || typeof zarrayMeta !== 'object') {
-      console.warn(`Skipping invalid zarray metadata at path: ${path}`);
+      defaultLog.debug({ label: 'parseArraysFromConsolidatedMetadata', message: 'Skipping invalid zarray metadata', path });
       continue;
     }
 
-    const zattrsMeta = metadata[`${arrayPath}/.zattrs`];
+    const zattrsMeta = parseMetadataValue<ZarrAttrsMetadata>(metadata[`${arrayPath}/.zattrs`]);
     const pathParts = arrayPath.split('/');
 
     if (!Array.isArray(pathParts) || pathParts.length === 0) {
-      console.warn(`Skipping malformed path: ${arrayPath}`);
+      defaultLog.debug({
+        label: 'parseArraysFromConsolidatedMetadata',
+        message: 'Skipping malformed path',
+        path: arrayPath
+      });
       continue;
     }
 
@@ -57,7 +81,11 @@ function parseArraysFromConsolidatedMetadata(metadata: Record<string, any>): Zar
     const dtype = zarrayMeta.dtype;
 
     if (!Array.isArray(shape) || typeof dtype !== 'string') {
-      console.warn(`Skipping array with invalid shape/dtype at: ${arrayPath}`);
+      defaultLog.debug({
+        label: 'parseArraysFromConsolidatedMetadata',
+        message: 'Skipping array with invalid shape/dtype',
+        path: arrayPath
+      });
       continue;
     }
 
@@ -65,16 +93,11 @@ function parseArraysFromConsolidatedMetadata(metadata: Record<string, any>): Zar
       group,
       path: arrayPath,
       name: typeof label === 'string' ? label : name,
-      description: typeof description === 'string' ? description : '',
+      description: typeof description === 'string' ? description : undefined,
       shape,
       dtype
     });
   }
 
-  // Sorting layers: Prioritize "landcover" layers
-  return arrays.sort((a, b) => {
-    const aPriority = a.path?.startsWith('landcover') ? -1 : 0;
-    const bPriority = b.path?.startsWith('landcover') ? -1 : 0;
-    return aPriority - bPriority;
-  });
+  return arrays;
 }
