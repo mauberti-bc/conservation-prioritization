@@ -55,8 +55,20 @@ export class ProfileService extends DBService {
    * @return {Promise<Profile>}
    * @memberof ProfileService
    */
-  async getProfileByGuid(profileGuid: string): Promise<Profile | null> {
+  async findProfileByGuid(profileGuid: string): Promise<Profile | null> {
     return this.profileRepository.findProfileByGuid(profileGuid);
+  }
+
+  /**
+   * Get a profile by identity source + identifier.
+   *
+   * @param {string} identitySource
+   * @param {string} profileIdentifier
+   * @return {Promise<Profile | null>}
+   * @memberof ProfileService
+   */
+  async getProfileByIdentifier(identitySource: string, profileIdentifier: string): Promise<Profile | null> {
+    return this.profileRepository.findProfileByIdentifier(identitySource, profileIdentifier);
   }
 
   /**

@@ -1,6 +1,5 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
-import { SYSTEM_ROLE } from '../../constants/roles';
 import { getDBConnection } from '../../database/db';
 import { HTTP500 } from '../../errors/http-error';
 import { PrefectSubmissionError } from '../../errors/prefect-error';
@@ -19,8 +18,7 @@ export const POST: Operation = [
     return {
       and: [
         {
-          discriminator: 'Profile',
-          validSystemRoles: [SYSTEM_ROLE.ADMIN]
+          discriminator: 'Profile'
         }
       ]
     };

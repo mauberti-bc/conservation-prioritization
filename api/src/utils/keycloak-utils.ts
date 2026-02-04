@@ -9,7 +9,11 @@ import { Profile } from '../models/profile';
  * @return {string | null} The user GUID or null if not found.
  */
 export const getUserGuid = (keycloakToken: Record<string, any>): string | null => {
-  const userGuid = keycloakToken?.['preferred_username']?.split('@')?.[0] ?? null;
+  const userGuid =
+    keycloakToken?.['sub'] ??
+    keycloakToken?.['user_guid'] ??
+    keycloakToken?.['preferred_username']?.split('@')?.[0] ??
+    null;
   return userGuid;
 };
 

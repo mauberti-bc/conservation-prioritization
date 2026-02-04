@@ -164,13 +164,53 @@ export class ProfileRepository extends BaseRepository {
 
     const response = await this.connection.sql(sqlStatement, Profile);
 
+    return response.rows[0] ?? null;
+  }
+
+  /**
+   * Fetches an active profile by identity source + profile identifier.
+   *
+   * @param {string} identitySource
+   * @param {string} profileIdentifier
+   * @return {*}  {Promise<Profile | null>}
+   * @memberof ProfileRepository
+   */
+  async findProfileByIdentifier(identitySource: string, profileIdentifier: string): Promise<Profile | null> {
+    const sqlStatement = SQL`
+      SELECT
+        p.profile_id,
+        p.identity_source,
+        p.profile_identifier,
+        p.profile_guid,
+        p.role_id,
+        p.display_name,
+        p.email,
+        p.given_name,
+        p.family_name,
+        p.agency,
+        p.notes,
+        r.name as role_name
+      FROM
+        profile p
+      JOIN role r ON r.role_id = p.role_id
+      WHERE
+        p.identity_source = ${identitySource}
+      AND
+        LOWER(p.profile_identifier) = LOWER(${profileIdentifier})
+      AND
+        p.record_end_date IS NULL
+      LIMIT 1;
+    `;
+
+    const response = await this.connection.sql(sqlStatement, Profile);
+
     if (!response.rowCount) {
       return null;
     }
 
     if (response.rowCount !== 1) {
-      throw new ApiExecuteSQLError('Failed to get profile by GUID', [
-        'ProfileRepository->findProfileByGuid',
+      throw new ApiExecuteSQLError('Failed to get profile by identifier', [
+        'ProfileRepository->findProfileByIdentifier',
         'Expected rowCount = 1'
       ]);
     }
