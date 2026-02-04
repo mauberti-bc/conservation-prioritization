@@ -7,7 +7,7 @@ import { TaskContextProvider } from 'context/taskContext';
 import { RequestAccessPage } from 'features/access/RequestAccessPage';
 import { DashboardPage } from 'features/dashboard/DashboardPage';
 import { HomePage } from 'features/home/HomePage';
-import { CreateTaskDialogRoute } from 'features/home/task/create/CreateTaskDialogRoute';
+import { CreateTaskDialog } from 'features/home/task/create/CreateTaskDialog';
 import { PublicTaskDashboardPage } from 'features/public/PublicTaskDashboardPage';
 import { AuthRedirectGuard } from 'guards/Guards';
 import { useAuthContext } from 'hooks/useContext';
@@ -57,7 +57,7 @@ export const AppRouter = () => {
                     <TaskContextProvider>
                       <ProjectContextProvider>
                         <LayerSelectionContextProvider>
-                          <CreateTaskDialogRoute />
+                          <CreateTaskDialog />
                         </LayerSelectionContextProvider>
                       </ProjectContextProvider>
                     </TaskContextProvider>

@@ -25,7 +25,20 @@ export const MapContainer = ({ pmtilesUrls = [] }: MapContainerProps) => {
   }, []);
 
   useEffect(() => {
-    if (mapRef.current || !containerRef.current) {
+    if (!containerRef.current) {
+      return;
+    }
+
+    if (mapRef.current) {
+      const map = mapRef.current;
+      const container = containerRef.current;
+      if (map.getContainer() !== container) {
+        const mapWithContainer = map as maplibregl.Map & { setContainer?: (nextContainer: HTMLElement) => void };
+        if (mapWithContainer.setContainer) {
+          mapWithContainer.setContainer(container);
+          map.resize();
+        }
+      }
       return;
     }
 
@@ -41,8 +54,6 @@ export const MapContainer = ({ pmtilesUrls = [] }: MapContainerProps) => {
       zoom: 5,
       maxZoom: 11,
     });
-
-    mapRef.current = map;
 
     // Add navigation controls
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
