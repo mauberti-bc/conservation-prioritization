@@ -9,9 +9,10 @@ export const ControlPanelToolbar = () => {
   const { values, setFieldValue, touched, errors } = useFormikContext<FormValues>();
 
   return (
-    <Stack direction="row" spacing={1} alignItems="center" width="100%" pt={0.25}>
+    <Stack direction="row" spacing={1} alignItems="center" width="100%" pt={1}>
       <TextField
         fullWidth
+        label="Name"
         placeholder="Scenario name"
         value={values.name || ''}
         onChange={(e) => setFieldValue('name', e.target.value)}

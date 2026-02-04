@@ -51,7 +51,7 @@ export const usePrefectApi = () => {
    */
   const submitStrictOptimizationRun = async (parameters: OptimizationParameters): Promise<any> => {
     const flowName = 'strict_optimization';
-    const deploymentName = 'local';
+    const deploymentName = 'strict-optimization';
 
     const deploymentId = await getDeploymentIdByName(flowName, deploymentName);
 

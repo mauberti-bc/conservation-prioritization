@@ -5,7 +5,7 @@ pull: null
 
 # prefect.yaml
 deployments:
-- name: "strict-optimization-project"
+- name: "strict-optimization"
   version: "1.0"
   schedule: null
   description: "Strict optimization where solutions respect constraints"

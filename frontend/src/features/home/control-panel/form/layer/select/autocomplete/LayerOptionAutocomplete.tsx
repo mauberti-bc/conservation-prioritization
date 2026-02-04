@@ -1,6 +1,6 @@
 import { mdiArrowExpand } from '@mdi/js';
 import Icon from '@mdi/react';
-import { Autocomplete, Button } from '@mui/material';
+import { Autocomplete, IconButton } from '@mui/material';
 import { useLayerSelectContext } from 'context/layerSelectContext';
 import { FormValues } from 'features/home/control-panel/ControlPanel';
 import { LayerOption } from 'features/home/control-panel/form/ControlPanelForm';
@@ -55,17 +55,16 @@ export const LayerOptionAutocomplete = (props: ILayerOptionAutocompleteProps) =>
               ])
             }
             customEndAdornment={
-              <Button
+              <IconButton
                 color="primary"
                 onClick={(e) => {
                   e.stopPropagation();
                   setDialogOpen(true);
                 }}
                 size="small"
-                sx={{ mr: 1, p: 1, fontSize: '0.75rem' }}
-                endIcon={<Icon path={mdiArrowExpand} size={0.75} />}>
-                Expand
-              </Button>
+                sx={{ mr: 1, p: 1, fontSize: '0.75rem' }}>
+                <Icon path={mdiArrowExpand} size={0.75} />
+              </IconButton>
             }
           />
         )}

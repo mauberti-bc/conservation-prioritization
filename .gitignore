@@ -123,3 +123,12 @@ dist
 workflows/notebooks
 
 .kube
+
+# Yarn Berry
+.yarn/*
+.yarn
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions

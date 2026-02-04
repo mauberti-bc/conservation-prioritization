@@ -15,6 +15,7 @@ export default [
       'dist/**/*',
       '.pipeline/**/*',
       '.docker/**/*',
+      '.cache/**/*',
       'node_modules/**/*'
     ]
   },

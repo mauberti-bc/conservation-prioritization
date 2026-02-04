@@ -1,3 +1,4 @@
+import { AuthContext } from 'context/authContext';
 import { DialogContext, IDialogContext } from 'context/dialogContext';
 import { MapContext } from 'context/mapContext';
 import { useContext } from 'react';
@@ -23,6 +24,14 @@ export const useMapContext = () => {
   const context = useContext(MapContext);
   if (!context) {
     throw new Error('useMapContext must be used within a MapProvider');
+  }
+  return context;
+};
+
+export const useAuthContext = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuthContext must be used within a AuthProvider');
   }
   return context;
 };

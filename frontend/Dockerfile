@@ -6,6 +6,11 @@ ARG VITE_ZARR_STORE_PATH
 
 # ---------- Build Stage ----------
 FROM node:22-alpine AS build
+
+# Enable Corepack and install Yarn 4.11.0
+RUN corepack enable && \
+    corepack prepare yarn@4.11.0 --activate
+
 WORKDIR /app
 
 # Re-declare args in this stage to receive values
@@ -20,9 +25,16 @@ ENV VITE_NODE_OPTIONS=$VITE_NODE_OPTIONS
 ENV VITE_PREFECT_API_URL=$VITE_PREFECT_API_URL
 ENV VITE_ZARR_STORE_PATH=$VITE_ZARR_STORE_PATH
 
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+# Copy Yarn configuration files
+COPY package.json yarn.lock .yarnrc.yml ./
+
+# Install dependencies with Yarn 4.11.0
+RUN yarn install --immutable
+
+# Copy application files
 COPY . .
+
+# Build the application
 RUN yarn build
 
 # ---------- Production Stage ----------

@@ -1,19 +1,33 @@
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import { useMapContext } from 'hooks/useContext';
-import { useMemo, useState } from 'react';
+import { useSearchParams } from 'hooks/useSearchParams';
+import { useEffect, useMemo } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
 import { Sidebar } from './sidebar/Sidebar';
 
-export type ACTIVE_VIEW = 'control-panel' | 'layers';
+export type ACTIVE_VIEW = 'new' | 'tasks' | 'projects' | 'layers';
 
 export const HomePage = () => {
+  const { searchParams, setSearchParams } = useSearchParams<{
+    v?: ACTIVE_VIEW;
+  }>();
   const { drawControlsRef } = useMapContext();
-  const [activeView, setActiveView] = useState<ACTIVE_VIEW | null>('control-panel');
 
+  useEffect(() => {
+    if (!searchParams.get('v')) {
+      setSearchParams(searchParams.set('v', 'new'));
+    }
+  });
+
+  // Read activeView from the "v" query param
+  const activeView = (searchParams.get('v') as ACTIVE_VIEW) ?? null;
+
+  // Update the URL when the view changes
   const handleViewChange = (view: ACTIVE_VIEW | null) => {
-    setActiveView(view);
+    searchParams.setOrDelete('v', view);
+    setSearchParams(searchParams);
   };
 
   const memoizedMap = useMemo(() => {
@@ -27,14 +41,11 @@ export const HomePage = () => {
 
   return (
     <Stack flex="1" direction="row" m={0} p={0} overflow="hidden" height="100%">
-      {/* NOTE: DISABLING LAYER HELPER, BUT THIS CONTROLS POPUPS TARGETTING HTML ELEMENTS WITH HELPFUL TIPS */}
-      {/* <LayerHelper open={showTips} /> */}
-
       {/* Sidebar with fixed width, full height */}
       <Box
         sx={{
           flexShrink: 0,
-          width: 780,
+          width: 900,
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -42,7 +53,7 @@ export const HomePage = () => {
         <Sidebar activeView={activeView} onViewChange={handleViewChange} />
       </Box>
 
-      {/* Map fills remaining space and height */}
+      {/* Map fills remaining space */}
       <Box flex="1" display="flex" flexDirection="column" overflow="hidden" height="100%">
         {memoizedMap}
       </Box>

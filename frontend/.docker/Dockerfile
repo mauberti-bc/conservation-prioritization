@@ -1,20 +1,21 @@
 # ########################################################################################################
 # This DockerFile is used for local development (via compose.yml) only.
 # ########################################################################################################
-
 FROM node:22.12.0
 
+# Enable Corepack and install Yarn 4.11.0
+RUN corepack enable && \
+    corepack prepare yarn@4.11.0 --activate
+
 ENV HOME=/opt/app-root/src
-
 RUN mkdir -p $HOME
-
 WORKDIR $HOME
 
-# Copy yarn.lock and package.json to leverage Docker cache
-COPY yarn.lock package.json ./
+# Copy Yarn configuration and lock files to leverage Docker cache
+COPY package.json yarn.lock .yarnrc.yml ./
 
-# Install dependencies with yarn, including dev dependencies
-RUN yarn install --frozen-lockfile
+# Install dependencies with Yarn 4.11.0
+RUN yarn install --immutable
 
 ENV PATH ${HOME}/node_modules/.bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
 

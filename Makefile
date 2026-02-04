@@ -74,13 +74,13 @@ build-web: ## Build containers for web
 	@echo "==============================================="
 	@echo "Make: build-web - building web images"
 	@echo "==============================================="
-	@docker compose build frontend
+	@docker compose build frontend db db_setup
 
 run-web: ## Run containers for web
 	@echo "==============================================="
 	@echo "Make: run-web - running web images"
 	@echo "==============================================="
-	@docker compose up -d frontend
+	@docker compose up -d frontend db db_setup
 
 
 ## ------------------------------------------------------------------------------
