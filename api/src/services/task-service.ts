@@ -208,6 +208,29 @@ export class TaskService extends DBService {
   }
 
   /**
+   * Adds the creator of a task as an admin.
+   *
+   * @param {string} taskId
+   * @param {string} profileId
+   * @return {*}  {Promise<void>}
+   * @memberof TaskService
+   */
+  async addCreatorAsAdmin(taskId: string, profileId: string): Promise<void> {
+    await this.taskProfileService.createTaskProfile({
+      task_id: taskId,
+      profile_id: profileId
+    });
+
+    const adminRoleId = await this.profileRepository.getRoleIdByNameAndScope(TASK_ROLE.TASK_ADMIN, 'task');
+
+    await this.taskPermissionService.createTaskPermission({
+      task_id: taskId,
+      profile_id: profileId,
+      role_id: adminRoleId
+    });
+  }
+
+  /**
    * Adds existing profiles to a task by email address.
    *
    * @param {string} taskId

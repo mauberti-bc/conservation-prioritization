@@ -70,8 +70,9 @@ export function createTask(): RequestHandler {
     try {
       await connection.open();
 
+      const profileId = connection.profileId();
       const taskService = new TaskOrchestratorService(connection);
-      const taskResponse = await taskService.createTaskAndSubmit(payload);
+      const taskResponse = await taskService.createTaskAndSubmit(payload, profileId);
 
       await connection.commit();
 
