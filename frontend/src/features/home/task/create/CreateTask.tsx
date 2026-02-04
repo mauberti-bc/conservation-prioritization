@@ -75,6 +75,11 @@ export const CreateTask = ({ onTaskCreated }: CreateTaskProps) => {
         resolution: values.resolution,
         resampling: values.resampling,
         layers: mappedLayers,
+        geometry: values.geometry.length
+          ? values.geometry.map((geometry) => ({
+              geojson: geometry.geojson,
+            }))
+          : undefined,
       };
 
       // Call the API to create the task

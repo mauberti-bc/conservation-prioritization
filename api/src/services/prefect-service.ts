@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { ApiGeneralError } from '../errors/api-error';
 import { getLogger } from '../utils/logger';
-import type { OptimizationParameters } from './prefect-service.interface';
+import { OptimizationParameters } from './prefect-service.interface';
 
 const defaultLog = getLogger(__filename);
 

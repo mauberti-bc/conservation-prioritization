@@ -8,6 +8,16 @@ export interface CreateTaskLayerConstraintRequest {
 }
 
 /**
+ * Interface for a geometry item within a task request.
+ */
+export interface CreateTaskGeometryRequest {
+  geojson: {
+    geometry: unknown;
+    [key: string]: unknown;
+  };
+}
+
+/**
  * Interface for a layer within a task.
  */
 export interface CreateTaskLayerRequest {
@@ -29,5 +39,8 @@ export interface CreateTaskRequest {
   resolution?: number;
   resampling?: 'mode' | 'min' | 'max';
   variant?: 'strict' | 'approximate';
+  target_area?: number;
+  is_percentage?: boolean;
+  geometry?: CreateTaskGeometryRequest[];
   budget?: CreateTaskLayerRequest;
 }

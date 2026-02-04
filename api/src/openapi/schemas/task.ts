@@ -1,4 +1,5 @@
 import { OpenAPIV3 } from 'openapi-types';
+import { GeoJSONFeature } from './geoJson';
 
 /**
  * OpenAPI Schema for creating a task.
@@ -25,6 +26,26 @@ export const CreateTaskSchema: OpenAPIV3.SchemaObject = {
       type: 'string',
       description: 'Resampling method for the task.',
       enum: ['mode', 'min', 'max']
+    },
+    target_area: {
+      type: 'number',
+      description: 'Target area for optimization (percentage or absolute).'
+    },
+    is_percentage: {
+      type: 'boolean',
+      description: 'Whether target_area is a percentage.',
+      default: true
+    },
+    geometry: {
+      type: 'array',
+      description: 'Optional geometries to constrain the analysis area.',
+      items: {
+        type: 'object',
+        required: ['geojson'],
+        properties: {
+          geojson: GeoJSONFeature
+        }
+      }
     },
     variant: {
       type: 'string',
