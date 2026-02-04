@@ -59,13 +59,34 @@ export const SEED_CONSTANTS = {
       given_name: 'Demo',
       family_name: 'User',
       agency: 'BC Government',
-      notes: null
+      notes: null,
+      system_role: 'member'
+    },
+    {
+      profile_guid: '62EC624E50844486A046DC9709854F8D',
+      profile_identifier: 'mauberti',
+      identity_source: 'idir',
+      display_name: 'mauberti',
+      email: null,
+      given_name: null,
+      family_name: null,
+      agency: null,
+      notes: null,
+      system_role: 'admin'
     }
   ],
   PROJECTS: [
     {
-      name: 'Demo Project',
-      description: 'Seeded project for local development'
+      name: 'Coastal Habitat Restoration',
+      description: 'Prioritizes shoreline habitats and estuaries for restoration planning.'
+    },
+    {
+      name: 'Interior Forest Connectivity',
+      description: 'Focuses on maintaining wildlife corridors across interior forest landscapes.'
+    },
+    {
+      name: 'Watershed Resilience',
+      description: 'Evaluates conservation targets for headwater protection and flood resilience.'
     }
   ],
   TASKS: [

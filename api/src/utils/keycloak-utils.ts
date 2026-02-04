@@ -40,6 +40,8 @@ export const coerceUserIdentitySource = (identitySource: string | null): IDENTIT
       return IDENTITY_SOURCE.DATABASE;
     case IDENTITY_SOURCE.SYSTEM:
       return IDENTITY_SOURCE.SYSTEM;
+    case IDENTITY_SOURCE.AZURE_IDIR:
+      return IDENTITY_SOURCE.AZURE_IDIR;
     default:
       return IDENTITY_SOURCE.IDIR;
   }

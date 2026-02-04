@@ -29,10 +29,15 @@ export const AuthContextProvider = (props: PropsWithChildren) => {
 
   // Add event listener for silent renew errors
   useEffect(() => {
-    auth.events.addSilentRenewError(() => {
-      // If the silent renew fails, ensure the user is signed out and redirect to the home page
-      auth.signoutRedirect();
-    });
+    const handleSilentRenewError = (error?: Error) => {
+      console.error('Silent renew error', error);
+    };
+
+    auth.events.addSilentRenewError(handleSilentRenewError);
+
+    return () => {
+      auth.events.removeSilentRenewError(handleSilentRenewError);
+    };
   }, [auth]);
 
   useEffect(() => {

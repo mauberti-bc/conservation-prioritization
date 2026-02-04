@@ -10,6 +10,10 @@ export enum IDENTITY_SOURCE {
    */
   IDIR = 'idir',
   /**
+   * Human users authenticating via Azure IDIR.
+   */
+  AZURE_IDIR = 'azureidir',
+  /**
    * Database connection user
    */
   DATABASE = 'database',

@@ -11,6 +11,9 @@ export const LayerPanel = () => {
     <Stack spacing={0} height="100%">
       <LayerSearch
         variant="list"
+        allowEmptySearch={true}
+        autoSearchOnMount={true}
+        initialSearchTerm=""
         renderResults={({ layers }) =>
           layers.length > 0 ? (
             <>
