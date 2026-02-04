@@ -50,6 +50,10 @@ export type DataLoader<AFArgs extends any[], AFResponse = unknown, AFError = unk
    * Clears any data as if the loader was just initialized.
    */
   clearData: () => void;
+  /**
+   * Sets data directly without triggering a fetch.
+   */
+  setData: (data: AFResponse | undefined) => void;
 };
 
 /**
@@ -156,6 +160,14 @@ export default function useDataLoader<AFArgs extends any[], AFResponse = unknown
     setOneTimeLoad(false);
   }, []);
 
+  const setDataDirect = useCallback((nextData: AFResponse | undefined) => {
+    setData(nextData);
+    setError(undefined);
+    setIsLoading(false);
+    setIsReady(true);
+    setHasLoaded(Boolean(nextData));
+  }, []);
+
   return useMemo(
     () => ({
       data,
@@ -167,7 +179,8 @@ export default function useDataLoader<AFArgs extends any[], AFResponse = unknown
       refresh,
       clearError,
       clearData,
+      setData: setDataDirect,
     }),
-    [clearData, clearError, data, error, hasLoaded, isLoading, isReady, load, refresh]
+    [clearData, clearError, data, error, hasLoaded, isLoading, isReady, load, refresh, setDataDirect]
   );
 }

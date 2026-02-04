@@ -3,6 +3,7 @@ import { IDBConnection } from '../database/db';
 import { HTTP400 } from '../errors/http-error';
 import type { TaskTile } from '../models/task-tile';
 import { TaskTileRepository } from '../repositories/task-tile-repository';
+import { PrefectService } from './prefect-service';
 import { DBService } from './db-service';
 import { TaskService } from './task-service';
 
@@ -16,6 +17,7 @@ import { TaskService } from './task-service';
 export class TaskTileService extends DBService {
   private taskTileRepository: TaskTileRepository;
   private taskService: TaskService;
+  private prefectService: PrefectService;
 
   /**
    * Creates an instance of TaskTileService.
@@ -27,6 +29,7 @@ export class TaskTileService extends DBService {
     super(connection);
     this.taskTileRepository = new TaskTileRepository(connection);
     this.taskService = new TaskService(connection);
+    this.prefectService = new PrefectService();
   }
 
   /**
@@ -43,6 +46,20 @@ export class TaskTileService extends DBService {
       uri: null,
       content_type: null
     });
+  }
+
+  /**
+   * Creates a draft tile record and submits a Prefect tiling flow.
+   *
+   * @param {string} taskId
+   * @return {*}  {Promise<TaskTile>}
+   * @memberof TaskTileService
+   */
+  async createDraftTileAndSubmit(taskId: string): Promise<TaskTile> {
+    const draftTile = await this.createDraftTileRecord(taskId);
+    await this.prefectService.submitTaskTile(taskId, draftTile.task_tile_id);
+
+    return draftTile;
   }
 
   /**

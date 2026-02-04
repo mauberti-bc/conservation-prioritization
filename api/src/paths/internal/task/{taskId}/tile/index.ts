@@ -63,7 +63,7 @@ export function createTaskTile(): RequestHandler {
     try {
       await connection.open();
       const taskTileService = new TaskTileService(connection);
-      const taskTile = await taskTileService.createDraftTileRecord(taskId);
+      const taskTile = await taskTileService.createDraftTileAndSubmit(taskId);
       await connection.commit();
 
       return res.status(201).json(taskTile);

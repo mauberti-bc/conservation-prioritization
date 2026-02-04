@@ -7,7 +7,7 @@ import Stack from '@mui/material/Stack';
 import { Formik } from 'formik';
 import { CreateTaskLayer, CreateTaskRequest } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useDialogContext, useMapContext } from 'hooks/useContext';
+import { useDialogContext, useMapContext, useTaskContext } from 'hooks/useContext';
 import { useEffect, useState } from 'react';
 import { taskValidationSchema } from './TaskCreateYup';
 import { OPTIMIZATION_VARIANT } from 'hooks/interfaces/useTaskApi.interface';
@@ -29,6 +29,7 @@ export const CreateTaskPage = () => {
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
   const { drawControlsRef, mapRef } = useMapContext();
+  const { setFocusedTask } = useTaskContext();
 
   // Clean up drawn features when component unmounts
   useEffect(() => {
@@ -69,7 +70,8 @@ export const CreateTaskPage = () => {
       };
 
       // Call the API to create the task
-      await conservationApi.task.createTask(taskData);
+      const createdTask = await conservationApi.task.createTask(taskData);
+      setFocusedTask(createdTask);
 
       // Success message
       dialogContext.setSnackbar({

@@ -75,17 +75,7 @@ export class PrefectService {
     taskId: string,
     parameters: OptimizationParameters
   ): Promise<string> {
-    try {
-      const { data } = await this.axios.post<PrefectFlowRunResponse>(
-        `/deployments/${deploymentId}/create_flow_run`,
-        { parameters: { task_id: taskId, conditions: parameters } }
-      );
-
-      return data.id;
-    } catch (error) {
-      defaultLog.error({ label: 'PrefectService.submitFlowRun', error });
-      throw new ApiGeneralError('Failed to submit Prefect flow run', ['PrefectService.submitFlowRun']);
-    }
+    return this.submitFlowRunWithParameters(deploymentId, { task_id: taskId, conditions: parameters });
   }
 
   /**
@@ -107,6 +97,52 @@ export class PrefectService {
     const flowRunId = await this.submitFlowRun(deploymentId, taskId, parameters);
 
     return { deploymentId, flowRunId };
+  }
+
+  /**
+   * Submits a task tile flow run and returns flow/deployment IDs.
+   *
+   * @param {string} taskId - The task ID being tiled.
+   * @param {string} taskTileId - The task tile ID to update.
+   * @return {*} {Promise<{ deploymentId: string; flowRunId: string }>} IDs for tracking the run.
+   * @memberof PrefectService
+   */
+  async submitTaskTile(taskId: string, taskTileId: string): Promise<{ deploymentId: string; flowRunId: string }> {
+    const flowName = 'task_tile';
+    const deploymentName = 'task-tile';
+
+    const deploymentId = await this.resolveDeploymentId(flowName, deploymentName);
+    const flowRunId = await this.submitFlowRunWithParameters(deploymentId, {
+      task_id: taskId,
+      task_tile_id: taskTileId
+    });
+
+    return { deploymentId, flowRunId };
+  }
+
+  /**
+   * Submits a Prefect flow run with raw parameters.
+   *
+   * @param {string} deploymentId - Prefect deployment ID.
+   * @param {Record<string, unknown>} parameters - Raw parameters for the run.
+   * @return {*} {Promise<string>} Prefect flow run ID.
+   * @memberof PrefectService
+   */
+  private async submitFlowRunWithParameters(
+    deploymentId: string,
+    parameters: Record<string, unknown>
+  ): Promise<string> {
+    try {
+      const { data } = await this.axios.post<PrefectFlowRunResponse>(
+        `/deployments/${deploymentId}/create_flow_run`,
+        { parameters }
+      );
+
+      return data.id;
+    } catch (error) {
+      defaultLog.error({ label: 'PrefectService.submitFlowRunWithParameters', error });
+      throw new ApiGeneralError('Failed to submit Prefect flow run', ['PrefectService.submitFlowRunWithParameters']);
+    }
   }
 
   private buildHeaders(): Record<string, string> | undefined {
