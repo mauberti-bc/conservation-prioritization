@@ -132,3 +132,5 @@ workflows/notebooks
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+**AGENTS.md
