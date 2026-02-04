@@ -27,24 +27,24 @@ export const SEED_CONSTANTS = {
   ],
   PROJECT_ROLES: [
     {
-      name: 'project_admin',
+      name: 'admin',
       description: 'Project administrator role',
       scope: 'profile'
     },
     {
-      name: 'project_user',
+      name: 'member',
       description: 'Project user role',
       scope: 'profile'
     }
   ],
   TASK_ROLES: [
     {
-      name: 'task_admin',
+      name: 'admin',
       description: 'Task administrator role',
       scope: 'task'
     },
     {
-      name: 'task_user',
+      name: 'member',
       description: 'Task user role',
       scope: 'task'
     }

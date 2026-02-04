@@ -15,9 +15,16 @@ interface SidebarProps {
   onViewChange: (newView: ACTIVE_VIEW | null) => void;
   tasksDataLoader: DataLoader<[], GetTaskResponse[], unknown>;
   projectsDataLoader: DataLoader<[], GetProjectResponse[], unknown>;
+  isAuthenticated: boolean;
 }
 
-export const Sidebar = ({ activeView, onViewChange, tasksDataLoader, projectsDataLoader }: SidebarProps) => {
+export const Sidebar = ({
+  activeView,
+  onViewChange,
+  tasksDataLoader,
+  projectsDataLoader,
+  isAuthenticated,
+}: SidebarProps) => {
   return (
     <Box display="flex" height="100%" zIndex={8} width="100%">
       {/* Sidebar navigation tabs */}
@@ -58,7 +65,7 @@ export const Sidebar = ({ activeView, onViewChange, tasksDataLoader, projectsDat
         )}
         {activeView === 'layers' && (
           <Box p={3} sx={{ overflow: 'auto' }}>
-            <LayerPanel />
+            <LayerPanel canSearch={isAuthenticated} />
           </Box>
         )}
       </Box>

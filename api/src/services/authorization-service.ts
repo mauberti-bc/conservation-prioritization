@@ -1,13 +1,13 @@
+import { SYSTEM_ROLE } from '../constants/roles';
 import { IDBConnection } from '../database/db';
+import { getUserGuid } from '../utils/keycloak-utils';
 import {
+  AuthorizationScheme,
   AuthorizeByProfile,
   AuthorizeByProject,
   AuthorizeByTask,
-  AuthorizeRule,
-  AuthorizationScheme
+  AuthorizeRule
 } from './authorization-service.interface';
-import { SYSTEM_ROLE } from '../constants/roles';
-import { getUserGuid } from '../utils/keycloak-utils';
 import { DBService } from './db-service';
 import { ProfileService } from './profile-service';
 import { ProjectProfileService } from './project-profile-service';

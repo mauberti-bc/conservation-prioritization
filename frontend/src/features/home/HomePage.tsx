@@ -3,11 +3,12 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
 import { TASK_STATUS, TILE_STATUS } from 'constants/status';
+import { AuthContext } from 'context/authContext';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useMapContext, useTaskContext } from 'hooks/useContext';
 import useDataLoader from 'hooks/useDataLoader';
 import { useSearchParams } from 'hooks/useSearchParams';
-import { useEffect, useMemo } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
 import { Sidebar } from './sidebar/Sidebar';
@@ -20,6 +21,8 @@ export const HomePage = () => {
   const { drawControlsRef } = useMapContext();
   const { taskId, taskDataLoader } = useTaskContext();
   const { data: taskStatus } = useTaskStatusWebSocket(taskId);
+  const authContext = useContext(AuthContext);
+  const isAuthenticated = Boolean(authContext?.auth?.isAuthenticated);
   const conservationApi = useConservationApi();
   const tasksDataLoader = useDataLoader(conservationApi.task.getAllTasks);
   const projectsDataLoader = useDataLoader(conservationApi.project.getAllProjects);
@@ -33,6 +36,10 @@ export const HomePage = () => {
   const activeView = (searchParams.get(QUERY_PARAM.VIEW) as ACTIVE_VIEW) ?? null;
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
     if (activeView === 'tasks') {
       void tasksDataLoader.load();
     }
@@ -40,7 +47,7 @@ export const HomePage = () => {
     if (activeView === 'projects') {
       void projectsDataLoader.load();
     }
-  }, [activeView, tasksDataLoader, projectsDataLoader]);
+  }, [activeView, isAuthenticated, tasksDataLoader, projectsDataLoader]);
 
   const handleViewChange = (view: ACTIVE_VIEW | null) => {
     searchParams.setOrDelete(QUERY_PARAM.VIEW, view);
@@ -98,6 +105,7 @@ export const HomePage = () => {
           onViewChange={handleViewChange}
           tasksDataLoader={tasksDataLoader}
           projectsDataLoader={projectsDataLoader}
+          isAuthenticated={isAuthenticated}
         />
       </Box>
 
