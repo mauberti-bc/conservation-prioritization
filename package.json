@@ -12,5 +12,8 @@
       "yarn --cwd frontend lint-fix"
     ]
   },
-  "packageManager": "yarn@4.11.0"
+  "packageManager": "yarn@4.11.0",
+  "dependencies": {
+    "@mui/x-data-grid": "^8.27.0"
+  }
 }

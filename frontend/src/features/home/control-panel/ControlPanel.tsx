@@ -7,88 +7,15 @@ import Stack from '@mui/material/Stack';
 import config from 'config/config';
 import { Formik } from 'formik';
 import { Feature } from 'geojson';
-import { OptimizationParameters } from 'hooks/api/usePrefectApi.interface';
+import { CreateTaskLayer, CreateTaskRequest } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useMapContext } from 'hooks/useContext';
 import { useZarr } from 'hooks/useZarr';
 import { useEffect, useMemo, useState } from 'react';
-import yup from 'utils/yup';
+import { taskValidationSchema } from './ControlPanelYup';
 import { OPTIMIZATION_VARIANT } from './form/advanced/form/ControlPanelAdvancedForm';
 import { ControlPanelForm, LayerOption } from './form/ControlPanelForm';
 import { Layer } from './form/layer/layer.interface';
-
-const constraintSchema = yup
-  .object({
-    min: yup.number().typeError('Minimum value must be a number').nullable(),
-
-    max: yup.number().typeError('Maximum value must be a number').nullable(),
-
-    type: yup
-      .mixed<'percent' | 'unit'>()
-      .oneOf(['percent', 'unit'], 'Invalid constraint type')
-      .required('Constraint type is required'),
-  })
-  .test({
-    name: 'at-least-one-of-min-max',
-    message: 'You must specify the min or max for each constraint',
-    test: function (value) {
-      const { min, max } = value || {};
-      return min != null || max != null;
-    },
-  });
-
-const layerSchema = yup.object({
-  name: yup.string().required('Layer name is required'),
-  path: yup.string().required('Array path is required'),
-  mode: yup.string().oneOf(['flexible', 'locked-in', 'locked-out']).required('Mode is required'),
-  importance: yup.number().when('mode', {
-    is: 'flexible',
-    then: (schema) =>
-      schema
-        .required('Importance is required when mode is flexible')
-        .test(
-          'importance-range',
-          'You must adjust the influence of the layer',
-          (value) =>
-            value !== undefined && value !== 0 && ((value >= -100 && value <= -1) || (value >= 1 && value <= 100))
-        ),
-    otherwise: (schema) => schema.notRequired(),
-  }),
-  threshold: yup
-    .number()
-    .when('mode', {
-      is: 'locked-in',
-      then: (schema) => schema.required('Threshold is required when mode is locked-in'),
-      otherwise: (schema) => schema.notRequired(),
-    })
-    .when('mode', {
-      is: 'locked-out',
-      then: (schema) => schema.required('Threshold is required when mode is locked-out'),
-      otherwise: (schema) => schema.notRequired(),
-    }),
-  constraints: yup.array().of(constraintSchema).optional(),
-});
-
-const validationSchema = yup.object({
-  variant: yup.string().oneOf([OPTIMIZATION_VARIANT.APPROXIMATE, OPTIMIZATION_VARIANT.STRICT]),
-  layers: yup.array().of(layerSchema).required('Layers are required').min(1, 'At least one layer is required'),
-  name: yup.string().required('You must name the conservation scenario'),
-  budget: yup
-    .object({
-      name: yup.string().required('Layer name is required'),
-      path: yup.string().required('Array path is required'),
-      constraints: yup.array().of(constraintSchema).optional(),
-    })
-    .nullable(),
-  resolution: yup
-    .number()
-    .oneOf([30, 100, 250, 500, 1000, 5000], 'Resolution must be an allowed value')
-    .required('Resolution is required'),
-  resampling: yup
-    .string()
-    .oneOf(['mode', 'min', 'max'], 'Resampling method must be an allowed value')
-    .required('Resampling method is required'),
-});
 
 type RESAMPLING = 'mode' | 'min' | 'max';
 
@@ -151,40 +78,48 @@ export const ControlPanel = () => {
     try {
       const { layers, variant, budget, ...formValues } = values;
 
-      const conditions: OptimizationParameters = {
-        ...formValues,
-        layers: {},
+      // Map layers to TaskLayer objects
+      const mappedLayers: CreateTaskLayer[] = layers.map((layer) => ({
+        name: layer.name,
+        description: null,
+        mode: layer.mode,
+        importance: layer.mode === 'flexible' ? layer.importance : undefined, // Only add importance if mode is flexible
+        threshold: layer.mode === 'locked-in' || layer.mode === 'locked-out' ? layer.threshold : undefined, // Only add threshold if mode is locked-in or locked-out
+        constraints: layer.constraints.map((constraint) => ({
+          min: constraint.min ?? null, // Ensure null for undefined min
+          max: constraint.max ?? null, // Ensure null for undefined max
+          type: constraint.type,
+        })),
+      }));
+
+      // Create the task payload
+      const taskData: CreateTaskRequest = {
+        name: values.name,
+        description: values.name, // If description is the same as name, adjust as needed
+        variant: values.variant,
+        resolution: values.resolution,
+        resampling: values.resampling,
+        layers: mappedLayers,
       };
 
-      const combinedLayers = [...layers, ...(budget ? [budget] : [])];
+      // Call the API to create the task
+      await conservationApi.task.createTask(taskData);
 
-      for (const layer of combinedLayers) {
-        conditions.layers[layer.path] = {
-          mode: layer.mode,
-          importance: layer.mode === 'flexible' ? layer.importance : undefined,
-          threshold: layer.mode === 'locked-in' || layer.mode === 'locked-out' ? layer.threshold : undefined,
-          constraints: layer.constraints.length > 0 ? layer.constraints : undefined,
-        };
-      }
-
-      if (variant === OPTIMIZATION_VARIANT.STRICT) {
-        await conservationApi.prefect.submitStrictOptimizationRun(conditions);
-
-        dialogContext.setSnackbar({
-          open: true,
-          snackbarMessage: (
-            <Stack flexDirection="row" gap={1}>
-              <Icon path={mdiCheck} size={1} />
-              Successfully started processing
-            </Stack>
-          ),
-        });
-      }
+      // Success message
+      dialogContext.setSnackbar({
+        open: true,
+        snackbarMessage: (
+          <Stack flexDirection="row" gap={1}>
+            <Icon path={mdiCheck} size={1} />
+            Successfully started task
+          </Stack>
+        ),
+      });
     } catch (error) {
       console.error(error);
       dialogContext.setSnackbar({
         open: true,
-        snackbarMessage: 'Failed to submit optimization run',
+        snackbarMessage: 'Failed to create task',
       });
     } finally {
       setTimeout(() => setIsSubmitting(false), 500);
@@ -195,7 +130,7 @@ export const ControlPanel = () => {
     <Formik
       initialValues={initialValues}
       onSubmit={handleSubmit}
-      validationSchema={validationSchema}
+      validationSchema={taskValidationSchema}
       validateOnChange={false}
       validateOnMount={false}
       validateOnBlur={false}>
