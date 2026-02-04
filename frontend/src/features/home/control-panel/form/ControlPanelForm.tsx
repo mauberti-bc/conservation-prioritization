@@ -3,13 +3,27 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { Stack } from '@mui/system';
 import { TooltipStack } from 'components/tooltip/TooltipStack';
+import { Feature } from 'geojson';
+import { OPTIMIZATION_VARIANT, RESAMPLING } from 'hooks/interfaces/useTaskApi.interface';
 import { ControlPanelAdvanced } from './advanced/ControlPanelAdvanced';
 import { ControlPanelAreaForm } from './area/ControlPanelAreaForm';
 import { ControlPanelBudgetForm } from './budget/ControlPanelBudgetForm';
 import { ControlPanelLayerForm } from './layer/ControlPanelLayerForm';
+import { Layer } from './layer/layer.interface';
 import { ControlPanelToolbar } from './toolbar/ControlPanelToolbar';
 
 export const COST_LAYER_PATH = 'financial/cost';
+
+export interface FormValues {
+  resolution: number;
+  resampling: RESAMPLING;
+  name: string;
+  description: string | null;
+  variant: OPTIMIZATION_VARIANT;
+  budget: Layer | null;
+  layers: Layer[];
+  geometry: { id: string; name: string; description: string | null; geojson: Feature; mapboxFeatureId: string }[];
+}
 
 export interface LayerOption {
   path: string;

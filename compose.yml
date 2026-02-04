@@ -184,6 +184,7 @@ services:
       OBJECT_STORE_BUCKET_NAME: ${OBJECT_STORE_BUCKET_NAME}
       S3_KEY_PREFIX: ${S3_KEY_PREFIX}
       APP_HOST: ${APP_HOST}
+      ZARR_STORE_PATH: ${ZARR_STORE_PATH}
     volumes:
       - ./api:/opt/app-root/src
       - /opt/app-root/src/node_modules

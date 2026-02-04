@@ -18,7 +18,7 @@ import {
 } from '../../../../utils/keycloak-utils';
 import { getLogger } from '../../../../utils/logger';
 
-const defaultLog = getLogger('paths/profile/self');
+const defaultLog = getLogger(__filename);
 
 export const PUT: Operation = [upsertProfile()];
 

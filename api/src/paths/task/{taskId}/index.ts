@@ -8,7 +8,7 @@ import { authorizeRequestHandler } from '../../../request-handlers/security/auth
 import { TaskService } from '../../../services/task-service';
 import { getLogger } from '../../../utils/logger';
 
-const defaultLog = getLogger('paths/task/getById');
+const defaultLog = getLogger(__filename);
 
 /**
  * GET /task/{taskId}

@@ -2520,6 +2520,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@zarrita/storage@npm:^0.1.4":
+  version: 0.1.4
+  resolution: "@zarrita/storage@npm:0.1.4"
+  dependencies:
+    reference-spec-reader: "npm:^0.2.0"
+    unzipit: "npm:1.4.3"
+  checksum: 10/3ffeceb411553301c07a21a2383fb98421d216feb7fc9b8f965cd1b5f9d42da800668e2fb0349b7f964951d74d9e07ad2ddb295ef1e192e78c4950aff42aa121
+  languageName: node
+  linkType: hard
+
 "abbrev@npm:^4.0.0":
   version: 4.0.0
   resolution: "abbrev@npm:4.0.0"
@@ -2957,6 +2967,7 @@ __metadata:
     winston: "npm:^3.3.3"
     winston-daily-rotate-file: "npm:^5.0.0"
     xlsx: "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+    zarrita: "npm:^0.6.1"
     zod: "npm:^3.23.8"
   languageName: unknown
   linkType: soft
@@ -4471,6 +4482,13 @@ __metadata:
   version: 4.2.3
   resolution: "fecha@npm:4.2.3"
   checksum: 10/534ce630c8f63c116292145607fc18c0f06bfa2fd74094357bf65daacc5d3f4f2b285bf8eb112c3bbf98c5caa6d386cced797f44b9b1b33da0c0a81020444826
+  languageName: node
+  linkType: hard
+
+"fflate@npm:^0.8.0":
+  version: 0.8.2
+  resolution: "fflate@npm:0.8.2"
+  checksum: 10/2bd26ba6d235d428de793c6a0cd1aaa96a06269ebd4e21b46c8fd1bd136abc631acf27e188d47c3936db090bf3e1ede11d15ce9eae9bffdc4bfe1b9dc66ca9cb
   languageName: node
   linkType: hard
 
@@ -6562,6 +6580,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"numcodecs@npm:^0.3.2":
+  version: 0.3.2
+  resolution: "numcodecs@npm:0.3.2"
+  dependencies:
+    fflate: "npm:^0.8.0"
+  checksum: 10/8ae6182ae4aacd574d40b57877b6627de6a0df14d4c4e0100d147770555c66d6fd5d6df15ef9a7e1f34a1413899f5772cf3decd3cd5c2a00f2cc8ff076fab8ad
+  languageName: node
+  linkType: hard
+
 "nyc@npm:^15.1.0":
   version: 15.1.0
   resolution: "nyc@npm:15.1.0"
@@ -7433,6 +7460,13 @@ __metadata:
   dependencies:
     resolve: "npm:^1.20.0"
   checksum: 10/ad3caed8afdefbc33fbc30e6d22b86c35b3d51c2005546f4e79bcc03c074df804b3640ad18945e6bef9ed12caedc035655ec1082f64a5e94c849ff939dc0a788
+  languageName: node
+  linkType: hard
+
+"reference-spec-reader@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "reference-spec-reader@npm:0.2.0"
+  checksum: 10/cd148828ccf18679654da88ebf9b2c73e7046d1c2b63071f5ba06c07fe15c50d734074ba654fdff872f3cab0895e04b55eaef9a74f2e68aae3db62afd3f04eee
   languageName: node
   linkType: hard
 
@@ -8681,6 +8715,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"unzipit@npm:1.4.3":
+  version: 1.4.3
+  resolution: "unzipit@npm:1.4.3"
+  dependencies:
+    uzip-module: "npm:^1.0.2"
+  checksum: 10/b499ac470dce6fe75f6b869fe59769535acd0c06e184e2880f4627ca80a33bfe38e9f72903d4ba785a2d5d6ee2ead51c7b6b2bfd1cb9b8070c73e900032495b7
+  languageName: node
+  linkType: hard
+
 "update-browserslist-db@npm:^1.1.4":
   version: 1.1.4
   resolution: "update-browserslist-db@npm:1.1.4"
@@ -8733,6 +8776,13 @@ __metadata:
   bin:
     uuid: dist/bin/uuid
   checksum: 10/9a5f7aa1d6f56dd1e8d5f2478f855f25c645e64e26e347a98e98d95781d5ed20062d6cca2eecb58ba7c84bc3910be95c0451ef4161906abaab44f9cb68ffbdd1
+  languageName: node
+  linkType: hard
+
+"uzip-module@npm:^1.0.2":
+  version: 1.0.3
+  resolution: "uzip-module@npm:1.0.3"
+  checksum: 10/d3a74411c9431289ae2e4595a93920f62e3f3b6a9ea962fc7dd5c516ca117edf0baf3c89856661e9b81ed6e69a36f6de340487d598a30ccc8a4cf781a27a04ca
   languageName: node
   linkType: hard
 
@@ -9117,6 +9167,16 @@ __metadata:
   version: 0.1.0
   resolution: "yocto-queue@npm:0.1.0"
   checksum: 10/f77b3d8d00310def622123df93d4ee654fc6a0096182af8bd60679ddcdfb3474c56c6c7190817c84a2785648cdee9d721c0154eb45698c62176c322fb46fc700
+  languageName: node
+  linkType: hard
+
+"zarrita@npm:^0.6.1":
+  version: 0.6.1
+  resolution: "zarrita@npm:0.6.1"
+  dependencies:
+    "@zarrita/storage": "npm:^0.1.4"
+    numcodecs: "npm:^0.3.2"
+  checksum: 10/374de0dc84ab730c9260562e1a31ff7761d49910b1ab5989d7ba2ac0c8c9a1e5300a50399680d67dfd9f34c5909668bd9166655811ed287b9c626681a02d3a57
   languageName: node
   linkType: hard
 

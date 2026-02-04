@@ -5,7 +5,7 @@ import { grey } from '@mui/material/colors';
 import Stack from '@mui/material/Stack';
 import { useFormikContext } from 'formik';
 import { useEffect, useState } from 'react';
-import { FormValues } from '../../ControlPanel';
+import { FormValues } from '../ControlPanelForm';
 
 export const ControlPanelToolbar = () => {
   const { values, setFieldValue, touched, errors, resetForm, submitForm } = useFormikContext<FormValues>();

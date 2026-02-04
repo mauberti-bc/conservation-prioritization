@@ -9,7 +9,7 @@ import { TaskOrchestratorService } from '../../services/task-orchestrator-servic
 import { TaskService } from '../../services/task-service';
 import { getLogger } from '../../utils/logger';
 
-const defaultLog = getLogger('paths/task/create');
+const defaultLog = getLogger(__filename);
 
 export const POST: Operation = [
   authorizeRequestHandler(() => {
