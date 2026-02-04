@@ -34,14 +34,14 @@ export const getUserIdentitySource = (keycloakToken: Record<string, any>): IDENT
  * @return {IDENTITY_SOURCE} The coerced system identity source.
  */
 export const coerceUserIdentitySource = (identitySource: string | null): IDENTITY_SOURCE => {
-  const source = identitySource?.toUpperCase() ?? 'DATABASE';
+  const source = identitySource?.toLowerCase() ?? IDENTITY_SOURCE.DATABASE;
   switch (source) {
-    case 'IDIR':
-      return IDENTITY_SOURCE.IDIR;
-    case 'SYSTEM':
+    case IDENTITY_SOURCE.DATABASE:
+      return IDENTITY_SOURCE.DATABASE;
+    case IDENTITY_SOURCE.SYSTEM:
       return IDENTITY_SOURCE.SYSTEM;
     default:
-      return IDENTITY_SOURCE.DATABASE;
+      return IDENTITY_SOURCE.IDIR;
   }
 };
 

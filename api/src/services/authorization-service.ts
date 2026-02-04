@@ -5,6 +5,7 @@ import {
   AuthorizeByTask,
   AuthorizeRule
 } from './authorization-service.interface';
+import { SYSTEM_ROLE } from '../constants/roles';
 import { DBService } from './db-service';
 import { ProfileService } from './profile-service';
 import { ProjectProfileService } from './project-profile-service';
@@ -106,7 +107,9 @@ export class AuthorizationService extends DBService {
   private async authorizeBySystemRole(authorizeBySystemRole: AuthorizeBySystemRole): Promise<boolean> {
     const systemUserRoles = await this.getUserSystemRoles();
 
-    return this.hasRequiredRoles(systemUserRoles, authorizeBySystemRole.validSystemRoles);
+    const allowedSystemRoles = [SYSTEM_ROLE.ADMIN, SYSTEM_ROLE.MEMBER];
+
+    return this.hasRequiredRoles(systemUserRoles, allowedSystemRoles);
   }
 
   /**
@@ -168,6 +171,10 @@ export class AuthorizationService extends DBService {
 
     // Fetch the profile using the GUID and return the system roles
     const profile = await this.profileService.getProfileByGuid(profileGuid);
+
+    if (!profile) {
+      return [];
+    }
 
     return profile.role_name ? [profile.role_name] : [];
   }

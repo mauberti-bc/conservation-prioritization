@@ -1,5 +1,6 @@
-import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
-import { useMemo } from 'react';
+import axios, { AxiosError, AxiosHeaders, AxiosInstance, AxiosResponse } from 'axios';
+import { AuthContext } from 'context/authContext';
+import { useContext, useEffect, useMemo, useRef } from 'react';
 
 /**
  * Custom API error class to wrap Axios errors with additional context.
@@ -36,20 +37,43 @@ const ensureProtocol = (url: string): string => {
  * @returns {AxiosInstance}
  */
 const useAxios = (baseUrl?: string): AxiosInstance => {
+  const authContext = useContext(AuthContext);
+  const accessToken = authContext?.auth?.user?.access_token;
+  const tokenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    tokenRef.current = accessToken ?? null;
+  }, [accessToken]);
+
   return useMemo(() => {
     const instance = axios.create({
+      headers: {
+        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
+      },
       baseURL: baseUrl && ensureProtocol(baseUrl),
+    });
+
+    instance.interceptors.request.use((config) => {
+      if (tokenRef.current) {
+        const headers = config.headers instanceof AxiosHeaders ? config.headers : AxiosHeaders.from(config.headers);
+        headers.set('Authorization', `Bearer ${tokenRef.current}`);
+        config.headers = headers;
+      }
+
+      return config;
     });
 
     instance.interceptors.response.use(
       (response: AxiosResponse) => response,
       (error: AxiosError) => {
-        throw new APIError(error);
+        if (error.response?.status !== 401) {
+          throw new APIError(error);
+        }
       }
     );
 
     return instance;
-  }, [baseUrl]);
+  }, [accessToken, baseUrl]);
 };
 
 export default useAxios;

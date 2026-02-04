@@ -1,9 +1,8 @@
 import { Box, Checkbox, Chip, Stack, Typography, alpha } from '@mui/material';
 import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
-import React from 'react';
 import { getRandomHexColor } from 'utils/util';
 
-interface LayerOptionItemProps extends React.HTMLAttributes<HTMLLIElement> {
+interface LayerOptionItemProps {
   showCheckbox: boolean;
   option: TaskLayerOption;
   isChecked: boolean;

@@ -8,13 +8,13 @@ export enum IDENTITY_SOURCE {
   /**
    * Human users authenticating via IDIR.
    */
-  IDIR = 'IDIR',
+  IDIR = 'idir',
   /**
    * Database connection user
    */
-  DATABASE = 'DATABASE',
+  DATABASE = 'database',
   /**
    * Service accounts
    */
-  SYSTEM = 'SYSTEM'
+  SYSTEM = 'system'
 }

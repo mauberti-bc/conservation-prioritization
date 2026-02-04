@@ -3,14 +3,14 @@ import { Operation } from 'express-openapi';
 import { getAPIUserDBConnection } from '../../../../database/db';
 import { defaultErrorResponses } from '../../../../openapi/schemas/http-responses';
 import { TaskTileSchema, TaskTileStatusUpdateSchema } from '../../../../openapi/schemas/task-tile';
+import { requireServiceKey } from '../../../../request-handlers/security/service-key';
 import { TaskTileService } from '../../../../services/task-tile-service';
-import { enforceInternalAuth } from '../../../../utils/internal-auth';
 import { getLogger } from '../../../../utils/logger';
 import { UpdateTaskTileStatusBody } from './task-tile-status.interface';
 
 const defaultLog = getLogger(__filename);
 
-export const POST: Operation = [updateTaskTileStatus()];
+export const POST: Operation = [requireServiceKey(), updateTaskTileStatus()];
 
 POST.apiDoc = {
   description: 'Endpoint for updating task tile status.',
@@ -57,8 +57,6 @@ export function updateTaskTileStatus(): RequestHandler {
   return async (req, res) => {
     const body = req.body as UpdateTaskTileStatusBody;
     const taskTileId = req.params.taskTileId;
-
-    enforceInternalAuth(req.headers as Record<string, string | string[] | undefined>);
 
     defaultLog.debug({ label: 'updateTaskTileStatus', message: `Updating task tile ${taskTileId} to ${body.status}` });
 

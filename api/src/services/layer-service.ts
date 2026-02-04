@@ -1,9 +1,10 @@
-import * as zarr from 'zarrita';
 import { ApiGeneralError } from '../errors/api-error';
 import { LayerMeta } from '../models/layer.interface';
 import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination';
 import { makePaginationResponse } from '../utils/pagination';
 import { parseArraysFromConsolidatedMetadata } from '../utils/zarr';
+
+type ZarrModule = typeof import('zarrita');
 
 /**
  * Cache entry for parsed Zarr layers
@@ -20,7 +21,9 @@ interface LayerCache {
  * @class LayerService
  */
 export class LayerService {
-  private store: zarr.FetchStore;
+  private store: any | null = null;
+  private zarrModulePromise: Promise<ZarrModule> | null = null;
+  private readonly zarrUrl: string;
 
   /** In-memory cache for parsed Zarr layers */
   private static cache: LayerCache | null = null;
@@ -40,7 +43,36 @@ export class LayerService {
       throw new ApiGeneralError('Zarr URL not defined', []);
     }
 
-    this.store = new zarr.FetchStore(zarrUrl);
+    this.zarrUrl = zarrUrl;
+  }
+
+  /**
+   * Lazily loads the Zarr module to avoid CJS import issues.
+   *
+   * @returns {Promise<ZarrModule>}
+   * @private
+   */
+  private async getZarrModule(): Promise<ZarrModule> {
+    if (!this.zarrModulePromise) {
+      this.zarrModulePromise = import('zarrita');
+    }
+
+    return this.zarrModulePromise;
+  }
+
+  /**
+   * Lazily constructs the Zarr FetchStore.
+   *
+   * @returns {Promise<any>}
+   * @private
+   */
+  private async getStore(): Promise<any> {
+    if (!this.store) {
+      const zarr = await this.getZarrModule();
+      this.store = new zarr.FetchStore(this.zarrUrl);
+    }
+
+    return this.store;
   }
 
   /**
@@ -57,12 +89,14 @@ export class LayerService {
       return LayerService.cache.layers;
     }
 
-    const location = zarr.root(this.store);
+    const zarr = await this.getZarrModule();
+    const store = await this.getStore();
+    const location = zarr.root(store);
     const metadataPath = location.resolve('.zmetadata').path;
 
     let consolidatedMetadata: unknown;
     try {
-      const metadataBytes = await this.store.get(metadataPath);
+      const metadataBytes = await store.get(metadataPath);
 
       if (!metadataBytes) {
         throw new Error('No metadata bytes returned from Zarr store');

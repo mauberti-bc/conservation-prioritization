@@ -6,16 +6,16 @@ import { grey } from '@mui/material/colors';
 import List from '@mui/material/List';
 import Stack from '@mui/material/Stack';
 import { TooltipPopover } from 'components/TooltipPopover';
+import { LayerSearch } from 'features/layer/search/LayerSearch';
 import { useFormikContext } from 'formik';
 import { useDialogContext } from 'hooks/useContext';
 import { useCallback, useMemo, useState } from 'react';
 import { collectFormikErrorMessages } from 'utils/formik-error';
 import { v4 } from 'uuid';
-import { TaskCreateFormValues } from '../TaskCreateForm';
 import { FormikErrorAlert } from '../error/FormikErrorAlert';
+import { TaskCreateFormValues } from '../TaskCreateForm';
 import { LayerConstraint } from './card/constraint/item/LayerConstraintItem';
 import { SelectedLayerItem } from './card/SelectedLayerItem';
-import { LayerSearch } from 'features/layer/search/LayerSearch';
 import { TaskLayerConfig, TaskLayerOption, initialTaskLayerValues } from './task-layer.interface';
 
 export const TaskLayerSection = () => {
@@ -73,9 +73,7 @@ export const TaskLayerSection = () => {
       setFieldValue(
         'layers',
         values.layers.map((layer) =>
-          layerNames.includes(layer.name)
-            ? { ...initialTaskLayerValues, name: layer.name, path: layer.path }
-            : layer
+          layerNames.includes(layer.name) ? { ...initialTaskLayerValues, name: layer.name, path: layer.path } : layer
         )
       );
       return;

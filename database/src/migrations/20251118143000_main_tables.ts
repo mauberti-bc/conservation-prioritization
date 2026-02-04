@@ -1,4 +1,5 @@
 import { Knex } from 'knex';
+import { IDENTITY_SOURCE, SYSTEM_ROLE } from '../constants/profile';
 
 /**
  * Create core tables for roles, profiles, projects, tasks, and task configuration.
@@ -11,7 +12,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.raw(`--sql
     SET search_path=conservation,public;
 
-    CREATE TYPE identity_source AS ENUM ('SYSTEM', 'IDIR', 'DATABASE');
+    CREATE TYPE identity_source AS ENUM ('${IDENTITY_SOURCE.SYSTEM}', '${IDENTITY_SOURCE.IDIR}', '${IDENTITY_SOURCE.DATABASE}');
     CREATE TYPE role_scope AS ENUM ('system', 'task', 'profile');
     CREATE TYPE task_status AS ENUM ('pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit');
     CREATE TYPE task_layer_mode AS ENUM ('flexible', 'locked-in', 'locked-out');
@@ -87,6 +88,49 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN profile.created_by IS 'The id of the profile who created the record.';
     COMMENT ON COLUMN profile.updated_at IS 'The datetime the record was updated.';
     COMMENT ON COLUMN profile.updated_by IS 'The id of the profile who updated the record.';
+
+    ----------------------------------------------------------------------------------------
+    -- Seed system roles + default API profile
+    ----------------------------------------------------------------------------------------
+
+    WITH bootstrap AS (
+      SELECT gen_random_uuid() AS profile_id
+    ),
+    insert_roles AS (
+      INSERT INTO role (
+        name,
+        description,
+        scope,
+        created_by
+      )
+      SELECT
+        role_name,
+        role_desc,
+        'system',
+        bootstrap.profile_id
+      FROM bootstrap,
+      (VALUES
+        ('${SYSTEM_ROLE.ADMIN}', 'System administrator role'),
+        ('${SYSTEM_ROLE.MEMBER}', 'System member role')
+      ) AS roles(role_name, role_desc)
+      RETURNING role_id, name
+    )
+    INSERT INTO profile (
+      profile_id,
+      identity_source,
+      profile_identifier,
+      profile_guid,
+      role_id,
+      created_by
+    )
+    SELECT
+      bootstrap.profile_id,
+      '${IDENTITY_SOURCE.DATABASE}',
+      '${process.env.DB_USER_API}',
+      '${process.env.DB_USER_API}',
+      (SELECT role_id FROM insert_roles WHERE name = '${SYSTEM_ROLE.ADMIN}' LIMIT 1),
+      bootstrap.profile_id
+    FROM bootstrap;
 
     ----------------------------------------------------------------------------------------
     -- Project Table

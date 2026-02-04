@@ -23,21 +23,31 @@ export class ProfileRepository extends BaseRepository {
    * @memberof ProfileRepository
    */
   async createProfile(profile: CreateProfile): Promise<Profile> {
+    console.log(profile, 'profile');
     const sqlStatement = SQL`
-      INSERT INTO profile (
-        identity_source,
-        profile_identifier,
-        profile_guid,
-        role_id,
-        role_name
-      ) VALUES (
-        ${profile.identity_source},
-        ${profile.profile_identifier},
-        ${profile.profile_guid},
-        ${profile.role_id},
-        ${profile.role_name}
+      WITH inserted AS (
+        INSERT INTO profile (
+          identity_source,
+          profile_identifier,
+          profile_guid,
+          role_id
+        ) VALUES (
+          ${profile.identity_source},
+          ${profile.profile_identifier},
+          ${profile.profile_guid},
+          ${profile.role_id}
+        )
+        RETURNING profile_id, identity_source, profile_identifier, profile_guid, role_id
       )
-      RETURNING profile_id, identity_source, profile_identifier, profile_guid, role_id, role_name
+      SELECT
+        inserted.profile_id,
+        inserted.identity_source,
+        inserted.profile_identifier,
+        inserted.profile_guid,
+        inserted.role_id,
+        r.name as role_name
+      FROM inserted
+      LEFT JOIN role r ON r.role_id = inserted.role_id
     `;
 
     const response = await this.connection.sql(sqlStatement, Profile);
@@ -66,13 +76,19 @@ export class ProfileRepository extends BaseRepository {
   async getProfileById(profileId: string): Promise<Profile> {
     const sqlStatement = SQL`
       SELECT
-        profile_id, identity_source, profile_identifier, profile_guid, role_id, role_name
+        p.profile_id,
+        p.identity_source,
+        p.profile_identifier,
+        p.profile_guid,
+        p.role_id,
+        r.name as role_name
       FROM
-        profile
+        profile p
+      JOIN role r ON r.role_id = p.role_id
       WHERE
-        profile_id = ${profileId}
+        p.profile_id = ${profileId}
       AND
-        record_end_date IS NULL
+        p.record_end_date IS NULL
     `;
 
     const response = await this.connection.sql(sqlStatement, Profile);
@@ -98,24 +114,34 @@ export class ProfileRepository extends BaseRepository {
    *
    * @memberof ProfileRepository
    */
-  async getProfileByGuid(profileGuid: string): Promise<Profile> {
+  async findProfileByGuid(profileGuid: string): Promise<Profile | null> {
     const sqlStatement = SQL`
       SELECT
-        profile_id, identity_source, profile_identifier, profile_guid, role_id, role_name
+        p.profile_id,
+        p.identity_source,
+        p.profile_identifier,
+        p.profile_guid,
+        p.role_id,
+        r.name as role_name
       FROM
-        profile
+        profile p
+      JOIN role r ON r.role_id = p.role_id
       WHERE
-        profile_guid = ${profileGuid}
+        p.profile_guid = ${profileGuid}
       AND
-        record_end_date IS NULL
+        p.record_end_date IS NULL
       LIMIT 1;
     `;
 
     const response = await this.connection.sql(sqlStatement, Profile);
 
+    if (!response.rowCount) {
+      return null;
+    }
+
     if (response.rowCount !== 1) {
       throw new ApiExecuteSQLError('Failed to get profile by GUID', [
-        'ProfileRepository->getProfileByGuid',
+        'ProfileRepository->findProfileByGuid',
         'Expected rowCount = 1'
       ]);
     }
@@ -142,18 +168,28 @@ export class ProfileRepository extends BaseRepository {
    */
   async updateProfile(profileId: string, updates: UpdateProfile): Promise<Profile> {
     const sqlStatement = SQL`
-      UPDATE profile
-      SET
-        identity_source = COALESCE(${updates.identity_source}, identity_source),
-        profile_identifier = COALESCE(${updates.profile_identifier}, profile_identifier),
-        profile_guid = COALESCE(${updates.profile_guid}, profile_guid),
-        role_id = COALESCE(${updates.role_id}, role_id),
-        role_name = COALESCE(${updates.role_name}, role_name)
-      WHERE
-        profile_id = ${profileId}
-      AND
-        record_end_date IS NULL
-      RETURNING profile_id, identity_source, profile_identifier, profile_guid, role_id, role_name
+      WITH updated AS (
+        UPDATE profile
+        SET
+          identity_source = COALESCE(${updates.identity_source}, identity_source),
+          profile_identifier = COALESCE(${updates.profile_identifier}, profile_identifier),
+          profile_guid = COALESCE(${updates.profile_guid}, profile_guid),
+          role_id = COALESCE(${updates.role_id}, role_id)
+        WHERE
+          profile_id = ${profileId}
+        AND
+          record_end_date IS NULL
+        RETURNING profile_id, identity_source, profile_identifier, profile_guid, role_id
+      )
+      SELECT
+        updated.profile_id,
+        updated.identity_source,
+        updated.profile_identifier,
+        updated.profile_guid,
+        updated.role_id,
+        r.name as role_name
+      FROM updated
+      JOIN role r ON r.role_id = updated.role_id
     `;
 
     const response = await this.connection.sql(sqlStatement, Profile);
@@ -197,5 +233,33 @@ export class ProfileRepository extends BaseRepository {
         'Expected rowCount = 1'
       ]);
     }
+  }
+
+  /**
+   * Fetches a role ID by role name.
+   *
+   * @param {string} roleName
+   * @return {*}  {Promise<string>}
+   * @memberof ProfileRepository
+   */
+  async getRoleIdByName(roleName: string): Promise<string> {
+    const sqlStatement = SQL`
+      SELECT role_id
+      FROM role
+      WHERE LOWER(name) = LOWER(${roleName})
+      AND record_end_date IS NULL
+      LIMIT 1
+    `;
+
+    const response = await this.connection.sql(sqlStatement);
+
+    if (!response.rowCount) {
+      throw new ApiExecuteSQLError('Failed to get role by name', [
+        'ProfileRepository->getRoleIdByName',
+        'Expected rowCount > 0'
+      ]);
+    }
+
+    return response.rows[0].role_id as string;
   }
 }

@@ -1,5 +1,5 @@
 import { Knex } from 'knex';
-import { IDENTITY_SOURCE, SYSTEM_ROLE } from '../constants/profile';
+import { IDENTITY_SOURCE } from '../constants/profile';
 
 /**
  * Create audit log structures, trigger functions, seed system profile, and attach triggers.
@@ -50,22 +50,29 @@ export async function up(knex: Knex): Promise<void> {
       _profile_id profile.profile_id%TYPE;
     BEGIN
       -- Create temp table for API/db users context
-      CREATE TEMP TABLE IF NOT EXISTS biohub_context_temp (tag varchar(200), value varchar(200));
+      CREATE TEMP TABLE IF NOT EXISTS conservation_context_temp (tag varchar(200), value varchar(200));
 
       SELECT value::uuid INTO _profile_id 
-      FROM biohub_context_temp 
+      FROM conservation_context_temp 
       WHERE tag = 'profile_id';
 
       IF (_profile_id IS NULL) THEN
         -- Look up database user -- fixed to match actual schema (identity_source is a TYPE, not a table)
-        SELECT p.profile_id INTO STRICT _profile_id
+        SELECT p.profile_id INTO _profile_id
         FROM profile p
-        WHERE p.identity_source = 'SYSTEM'
-          AND p.profile_identifier = user;
+        WHERE p.profile_identifier = user
+          AND p.identity_source IN ('${IDENTITY_SOURCE.DATABASE}', '${IDENTITY_SOURCE.SYSTEM}')
+        LIMIT 1;
 
         -- Populate temp table for subsequent calls
-        INSERT INTO biohub_context_temp (tag, value)
-        VALUES ('profile_id', _profile_id::varchar(200));
+        IF (_profile_id IS NOT NULL) THEN
+          INSERT INTO conservation_context_temp (tag, value)
+          VALUES ('profile_id', _profile_id::varchar(200));
+        END IF;
+      END IF;
+
+      IF (_profile_id IS NULL) THEN
+        RAISE EXCEPTION 'Audit trigger failed to resolve profile context for user %', user;
       END IF;
 
       IF (TG_OP = 'INSERT') THEN
@@ -131,34 +138,6 @@ export async function up(knex: Knex): Promise<void> {
       RETURN NEW;
     END;
     $$;
-
-    ----------------------------------------------------------------------------------------
-    -- Insert default API system profile
-    ----------------------------------------------------------------------------------------
-    WITH w_role AS (
-      SELECT role_id
-      FROM role
-      WHERE name = '${SYSTEM_ROLE.ADMIN}'
-    ),
-    new_profile AS (
-      SELECT gen_random_uuid() AS profile_id
-    )
-    INSERT INTO profile (
-      profile_id,
-      identity_source,
-      profile_identifier,
-      profile_guid,
-      role_id,
-      created_by
-    )
-    SELECT
-      new_profile.profile_id,
-      '${IDENTITY_SOURCE.DATABASE}',
-      '${process.env.DB_USER_API}',
-      '${process.env.DB_USER_API}',
-      w_role.role_id,
-      new_profile.profile_id
-    FROM w_role, new_profile;
 
     ----------------------------------------------------------------------------------------
     -- Attach audit and journal triggers to tables
@@ -304,9 +283,6 @@ export async function down(knex: Knex): Promise<void> {
     DROP TRIGGER IF EXISTS trg_journal_task_layer ON task_layer;
     DROP TRIGGER IF EXISTS trg_journal_task_layer_constraint ON task_layer_constraint;
     DROP TRIGGER IF EXISTS trg_journal_task_tile ON task_tile;
-
-    -- Delete default API profile
-    DELETE FROM profile WHERE profile_identifier = '${process.env.DB_USER_API}';
 
     DROP FUNCTION IF EXISTS tr_journal_trigger();
     DROP FUNCTION IF EXISTS tr_audit_trigger();

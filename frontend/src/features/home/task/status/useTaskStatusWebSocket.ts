@@ -1,7 +1,7 @@
+import { TASK_STATUS, TaskStatusValue } from 'constants/status';
 import { useConfigContext } from 'hooks/useContext';
 import { useEffect, useRef, useState } from 'react';
 import { buildWebSocketUrl } from 'utils/websocket';
-import { TASK_STATUS } from 'constants/status';
 import { TaskStatusMessage } from './task-status.interface';
 
 export interface UseTaskStatusWebSocketReturn {
@@ -24,7 +24,7 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptRef = useRef(0);
-  const latestStatusRef = useRef<string | null>(null);
+  const latestStatusRef = useRef<TaskStatusValue | null>(null);
 
   const closeSocket = () => {
     if (reconnectTimeoutRef.current) {
@@ -85,10 +85,13 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
         return;
       }
 
-      if (
-        latestStatusRef.current &&
-        [TASK_STATUS.COMPLETED, TASK_STATUS.FAILED, TASK_STATUS.FAILED_TO_SUBMIT].includes(latestStatusRef.current)
-      ) {
+      const terminalStatuses: TaskStatusValue[] = [
+        TASK_STATUS.COMPLETED,
+        TASK_STATUS.FAILED,
+        TASK_STATUS.FAILED_TO_SUBMIT,
+      ];
+
+      if (latestStatusRef.current && terminalStatuses.includes(latestStatusRef.current)) {
         return;
       }
 

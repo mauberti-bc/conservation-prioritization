@@ -8,7 +8,7 @@ export const Profile = z.object({
   identity_source: z.string(), // Identity source as string (e.g., 'SYSTEM', 'IDIR', 'DATABASE')
   profile_identifier: z.string().max(200), // Max length of 200 for profile_identifier
   profile_guid: z.string().max(200), // Max length of 200 for profile_guid
-  role_id: z.number().optional(), // Optional single role_id
+  role_id: z.string().uuid().optional(), // Optional role_id
   role_name: z.string().max(100).optional() // Optional role_name (max length 100)
 });
 

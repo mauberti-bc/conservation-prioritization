@@ -8,15 +8,15 @@ export enum IDENTITY_SOURCE {
   /**
    * Human users authenticating via IDIR.
    */
-  IDIR = 'IDIR',
+  IDIR = 'idir',
   /**
    * Database connection user
    */
-  DATABASE = 'DATABASE',
+  DATABASE = 'database',
   /**
    * Service accounts
    */
-  SYSTEM = 'SYSTEM'
+  SYSTEM = 'system'
 }
 
 /**
@@ -26,6 +26,6 @@ export enum IDENTITY_SOURCE {
  * @enum {string}
  */
 export enum SYSTEM_ROLE {
-  ADMIN = 'ADMIN',
-  MEMBER = 'MEMBER'
+  ADMIN = 'admin',
+  MEMBER = 'member'
 }

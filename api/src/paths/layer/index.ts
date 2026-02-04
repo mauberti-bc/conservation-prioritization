@@ -86,7 +86,8 @@ export function findLayers(): RequestHandler {
     try {
       const layerService = new LayerService();
 
-      const keyword = (req.query.keyword as string | undefined) ?? '';
+      const keyword = (req.query.keyword ?? '') as string;
+
       const pagination = ensureCompletePaginationOptions(makePaginationOptionsFromRequest(req));
 
       const { layers, pagination: paginationResult } = await layerService.findLayers(keyword, pagination);
