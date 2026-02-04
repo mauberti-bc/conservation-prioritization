@@ -46,6 +46,14 @@ export interface CreateTaskRequest {
   layers: CreateTaskLayer[]; // Layers for the task (each layer can have constraints)
   resolution: number; // Resolution for the task
   resampling: RESAMPLING; // Resampling method
+  target_area?: number; // Target area for optimization (percentage or absolute)
+  is_percentage?: boolean; // Whether target_area is a percentage
+  geometry?: {
+    geojson: {
+      geometry: unknown;
+      [key: string]: unknown;
+    };
+  }[];
   budget?: {
     name: string;
     path: string;

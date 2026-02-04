@@ -1,5 +1,5 @@
-import type { CreateTaskLayerRequest, CreateTaskRequest } from '../models/task-orchestrator';
-import type { OptimizationLayer, OptimizationParameters } from '../services/prefect-service.interface';
+import { CreateTaskLayerRequest, CreateTaskRequest } from '../models/task-orchestrator';
+import { OptimizationLayer, OptimizationParameters } from '../services/prefect-service.interface';
 
 /**
  * Builds optimization parameters for Prefect flow runs from a task creation request.
@@ -25,9 +25,19 @@ export const buildOptimizationParameters = (request: CreateTaskRequest): Optimiz
     addLayer(request.budget);
   }
 
-  return {
+  const parameters: OptimizationParameters = {
     resolution: request.resolution ?? 1000,
     resampling: request.resampling ?? 'mode',
-    layers
+    layers,
+    target_area: request.target_area ?? 50,
+    is_percentage: request.is_percentage ?? true
   };
+
+  if (request.geometry && request.geometry.length > 0) {
+    parameters.geometry = request.geometry.map((item) => ({
+      geojson: item.geojson
+    }));
+  }
+
+  return parameters;
 };

@@ -18,10 +18,23 @@ export interface OptimizationLayer {
 }
 
 /**
+ * Optimization geometry wrapper expected by Prefect.
+ */
+export interface OptimizationGeometry {
+  geojson: {
+    geometry: unknown;
+    [key: string]: unknown;
+  };
+}
+
+/**
  * Optimization parameters for Prefect flow runs.
  */
 export interface OptimizationParameters {
   resolution: number;
   resampling: 'mode' | 'min' | 'max';
   layers: Record<string, OptimizationLayer>;
+  target_area: number;
+  is_percentage: boolean;
+  geometry?: OptimizationGeometry[];
 }
