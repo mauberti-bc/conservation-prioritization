@@ -24,12 +24,13 @@ const publishDashboardSchema = Yup.object({
  * View-only task detail panel that renders the task form disabled.
  */
 export const TaskDetailsPanel = () => {
-  const { taskDataLoader, taskId, setFocusedTask } = useTaskContext();
   const conservationApi = useConservationApi();
+  const { taskDataLoader, taskId, setFocusedTask } = useTaskContext();
   const navigate = useNavigate();
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+  const dashboardId = taskDataLoader.data?.dashboard_id ?? null;
 
   const task = taskDataLoader.data;
 
@@ -45,21 +46,20 @@ export const TaskDetailsPanel = () => {
       return;
     }
 
+    if (dashboardId) {
+      navigate(`/p/${dashboardId}`);
+      return;
+    }
+
     setIsPublishing(true);
     setPublishError(null);
 
     try {
       const response = await conservationApi.task.publishTaskDashboard(task.task_id, values);
-      const dashboardUrl = response.dashboard_url ?? `/t/dashboard/${response.dashboard_id}`;
 
       setPublishOpen(false);
 
-      if (dashboardUrl.startsWith('http')) {
-        window.location.assign(dashboardUrl);
-        return;
-      }
-
-      navigate(dashboardUrl);
+      navigate(`/p/${response.dashboard_id}`);
     } catch (error) {
       console.error(error);
       setPublishError('Failed to publish dashboard.');
@@ -125,10 +125,15 @@ export const TaskDetailsPanel = () => {
               loading={isPublishing}
               disabled={!task}
               onClick={() => {
+                if (dashboardId) {
+                  navigate(`/p/${dashboardId}`);
+                  return;
+                }
+
                 setPublishOpen(true);
                 setPublishError(null);
               }}>
-              Publish
+              {dashboardId ? 'View Dashboard' : 'Publish'}
             </LoadingButton>
           </Box>
 

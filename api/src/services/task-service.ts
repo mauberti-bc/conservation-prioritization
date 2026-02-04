@@ -3,6 +3,7 @@ import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination
 import { CreateTask, DeleteTask, Task, TaskStatus, UpdateTask, UpdateTaskExecution } from '../models/task';
 import { TaskLayerConstraint } from '../models/task-layer-constraint';
 import { TaskLayerWithConstraints, TaskWithLayers } from '../models/task.interface';
+import { DashboardTaskRepository } from '../repositories/dashboard-task-repository';
 import { ProfileRepository } from '../repositories/profile-repository';
 import { ProjectRepository } from '../repositories/project-repository';
 import { TaskRepository } from '../repositories/task-repository';
@@ -41,6 +42,7 @@ export class TaskService extends DBService {
   taskPermissionService: TaskPermissionService;
   profileRepository: ProfileRepository;
   projectRepository: ProjectRepository;
+  dashboardTaskRepository: DashboardTaskRepository;
 
   /**
    * Creates an instance of TaskService.
@@ -60,6 +62,7 @@ export class TaskService extends DBService {
     this.taskPermissionService = new TaskPermissionService(connection);
     this.profileRepository = new ProfileRepository(connection);
     this.projectRepository = new ProjectRepository(connection);
+    this.dashboardTaskRepository = new DashboardTaskRepository(connection);
   }
 
   /**
@@ -85,6 +88,7 @@ export class TaskService extends DBService {
     const layers = await this.getTaskLayersWithConstraints(taskId);
     const geometries = await this.taskGeometryService.getGeometriesByTaskId(taskId);
     const taskProjects = await this.projectRepository.getProjectsByTaskIds([taskId]);
+    const dashboardId = await this.dashboardTaskRepository.getLatestDashboardIdForTask(taskId);
 
     return {
       ...task,
@@ -95,7 +99,8 @@ export class TaskService extends DBService {
         name: project.name,
         description: project.description,
         colour: project.colour
-      }))
+      })),
+      dashboard_id: dashboardId ?? null
     };
   }
 

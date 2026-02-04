@@ -14,19 +14,31 @@ import { useTaskStatusWebSocket } from 'features/home/task/status/useTaskStatusW
  * Public view-only task dashboard for sharing results.
  */
 export const PublicTaskDashboardPage = () => {
-  const { taskId } = useParams<{ taskId: string }>();
+  const { dashboardId } = useParams<{ dashboardId: string }>();
   const conservationApi = useConservationApi();
   const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
-  const { data: taskStatus } = useTaskStatusWebSocket(taskId ?? null);
+  const dashboardDataLoader = useDataLoader(conservationApi.dashboard.getDashboardById);
 
   useEffect(() => {
-    if (!taskId) {
+    if (!dashboardId) {
+      dashboardDataLoader.clearData();
+      return;
+    }
+
+    void dashboardDataLoader.load(dashboardId);
+  }, [dashboardDataLoader, dashboardId]);
+
+  const primaryTaskId = dashboardDataLoader.data?.task_ids?.[0] ?? null;
+  const { data: taskStatus } = useTaskStatusWebSocket(primaryTaskId);
+
+  useEffect(() => {
+    if (!primaryTaskId) {
       taskDataLoader.clearData();
       return;
     }
 
-    void taskDataLoader.load(taskId);
-  }, [taskId, taskDataLoader]);
+    void taskDataLoader.load(primaryTaskId);
+  }, [primaryTaskId, taskDataLoader]);
 
   const pmtilesUrls = useMemo(() => {
     const statusUri =
