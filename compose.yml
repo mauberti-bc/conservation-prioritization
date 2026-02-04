@@ -211,10 +211,51 @@ services:
     networks:
       - conservation-network
 
+  minio:
+    image: minio/minio:latest
+    container_name: ${DOCKER_PROJECT_NAME}-minio-${DOCKER_NAMESPACE}-container
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORE_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORE_SECRET_KEY_ID}
+    volumes:
+      - minio_data:/data
+    networks:
+      - biohubbc-network
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio_setup:
+    image: minio/mc:latest
+    container_name: ${DOCKER_PROJECT_NAME}-minio-setup-${DOCKER_NAMESPACE}-container
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - biohubbc-network
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set myminio http://minio:9000 ${OBJECT_STORE_ACCESS_KEY_ID} ${OBJECT_STORE_SECRET_KEY_ID};
+        mc mb --ignore-existing myminio/${OBJECT_STORE_BUCKET_NAME};
+        mc mb --ignore-existing myminio/${QUARANTINE_OBJECT_STORE_BUCKET_NAME};
+        mc admin config set myminio api cors_allow_origin='*' cors_allow_methods='GET,PUT,POST,DELETE,HEAD' cors_allow_headers='*' cors_expose_headers='ETag' cors_max_age=3000;
+        echo "Buckets created and global CORS configured successfully"
+
 networks:
   conservation-network:
+    driver: bridge
+  biohubbc-network:
     driver: bridge
 
 volumes:
   postgres:
     name: ${DOCKER_PROJECT_NAME}-db-${DOCKER_NAMESPACE}-vol
+  minio_data:
