@@ -45,9 +45,8 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
     drawLayerIds.forEach((layerId) => {
       if (map.getLayer(layerId)) {
         try {
-          map.moveLayer(layerId);
+          map.moveLayer(layerId, undefined);
         } catch (error) {
-          // Layer might not exist or already be at the top
           console.debug(`Could not move layer ${layerId}:`, error);
         }
       }
@@ -150,6 +149,25 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
       drawRef.current = draw;
       map.addControl(draw as unknown as maplibregl.IControl, 'top-right');
 
+      const ensureDrawSources = () => {
+        const sources = map.getStyle().sources ?? {};
+        if (sources['mapbox-gl-draw-cold'] && sources['mapbox-gl-draw-hot']) {
+          return true;
+        }
+        return false;
+      };
+
+      const waitForDrawSources = () => {
+        if (ensureDrawSources()) {
+          ensureDrawLayersOnTop();
+          return;
+        }
+
+        map.once('sourcedata', () => {
+          waitForDrawSources();
+        });
+      };
+
       // Ensure draw layers are on top after the map loads and layers are added
       const onMapLoad = () => {
         setTimeout(() => {
@@ -168,8 +186,12 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
 
       if (map.isStyleLoaded()) {
         onMapLoad();
+        waitForDrawSources();
       } else {
-        map.once('load', onMapLoad);
+        map.once('load', () => {
+          onMapLoad();
+          waitForDrawSources();
+        });
       }
 
       // Ensure draw layers stay on top when new sources/layers are added
