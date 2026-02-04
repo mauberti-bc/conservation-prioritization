@@ -1,3 +1,4 @@
+# Dockerfile.worker
 # Base image with Python and GDAL
 FROM ghcr.io/osgeo/gdal:ubuntu-small-3.10.0
 
@@ -18,6 +19,9 @@ RUN mkdir -p $HOME \
 ENV PREFECT_HOME=/home/app/.prefect
 ENV MPLCONFIGDIR=/home/app/.config/matplotlib
 
+# Set Python path to find src package (current directory is workflows root)
+ENV PYTHONPATH="/home/app:${PYTHONPATH}"
+
 # Install curl for debugging / networking
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
@@ -26,11 +30,31 @@ COPY pyproject.toml uv.lock ./
 
 # Install dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-install-project \
- && uv sync --locked
+    uv sync --locked --no-install-project && \
+    uv sync --locked
 
 # Copy application source
 COPY . ./
 
-# Add virtualenv to PATH
+RUN /home/app/.venv/bin/python - <<'EOF'
+import sys
+import pathlib
+
+src_path = pathlib.Path('/home/app/src')
+if src_path.exists():
+    print(f'✓ src directory found: {src_path}')
+else:
+    print('✗ src directory not found at /home/app/src')
+    sys.exit(1)
+
+try:
+    import rioxarray
+    import xarray as xr
+    print('✓ rioxarray imported successfully')
+except ImportError as e:
+    print(f'✗ Failed to import rioxarray: {e}')
+    sys.exit(1)
+EOF
+
+# Add virtualenv to PATH (should be last)
 ENV PATH="/home/app/.venv/bin:$PATH"

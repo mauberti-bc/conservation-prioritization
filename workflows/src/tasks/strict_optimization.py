@@ -1,84 +1,33 @@
 import json
-from collections import (
-    defaultdict,
-)
-from datetime import (
-    datetime,
-)
-from typing import (
-    Any,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-)
+import os
+from collections import defaultdict
+from datetime import datetime
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import pulp
+import rioxarray  # noqa: F401
 import xarray as xr
-from affine import (
-    Affine,
-)
-from morecantile import (
-    defaults,
-)
-from morecantile.commons import (
-    Tile,
-)
-from pmtiles.tile import (
-    Compression,
-    TileType,
-    zxy_to_tileid,
-)
-from pmtiles.writer import (
-    Writer,
-)
-from prefect import (
-    get_run_logger,
-    task,
-)
-from pulp import (
-    LpStatus,
-)
-
-# Type Definitions
-from pydantic import (
-    BaseModel,
-    Field,
-    field_validator,
-)
-from pyproj import (
-    Transformer,
-)
-from rasterio.enums import (
-    Resampling,
-)
-from rasterio.features import (
-    rasterize,
-)
-from rasterio.transform import (
-    array_bounds,
-)
-from rio_tiler.io.xarray import (
-    XarrayReader,
-)
-from scipy import (
-    stats,
-)
-from shapely import (
-    unary_union,
-)
-from shapely.geometry import (
-    mapping,
-    shape,
-)
-from shapely.geometry.base import (
-    BaseGeometry,
-)
+from affine import Affine
+from distributed import get_client
+from morecantile import defaults
+from morecantile.commons import Tile
+from pmtiles.tile import Compression, TileType, zxy_to_tileid
+from pmtiles.writer import Writer
+from prefect import get_run_logger, task
+from pulp import LpStatus
+from pydantic import BaseModel, Field, field_validator
+from pyproj import Transformer
+from rasterio.enums import Resampling
+from rasterio.features import rasterize
+from rasterio.transform import array_bounds
+from rio_tiler.io.xarray import XarrayReader
+from scipy import stats
+from shapely import GeometryCollection, MultiLineString, MultiPolygon, unary_union
+from shapely.geometry import mapping, shape
+from shapely.geometry.base import BaseGeometry
 
 
 class OptimizationConstraint(BaseModel):
@@ -98,13 +47,31 @@ OptimizationLayers = Dict[str, OptimizationLayer]
 
 
 class OptimizationParameters(BaseModel):
+    """
+    Parameters for conservation optimization.
+
+    Attributes:
+        geometry: Optional geometries to constrain the analysis area
+        resolution: Output resolution in meters (must be > 0)
+        resampling: How to resample input data ("mode", "min", "max")
+        layers: Dictionary of layers with optimization properties
+        target_area: Either:
+            - A percentage (0-100) if is_percentage=True
+            - An absolute number of cells if is_percentage=False
+            Default: 50 (50% of valid cells)
+        is_percentage: Whether target_area is a percentage or absolute count
+            Default: True
+    """
+
     geometry: Optional[Sequence[BaseGeometry]] = None
     resolution: int = Field(..., gt=0)
     resampling: Literal["mode", "min", "max"]
     layers: OptimizationLayers
-    model_config = {
-        "arbitrary_types_allowed": True,
-    }
+    target_area: float = Field(default=50.0, ge=0)
+    is_percentage: bool = Field(default=True)
+
+    class Config:
+        arbitrary_types_allowed = True
 
     @field_validator("geometry", mode="before")
     def convert_geojson_to_geometry(cls, v):
@@ -112,20 +79,32 @@ class OptimizationParameters(BaseModel):
             return None
 
         def extract_geometry(item):
-            # Extract the geometry from a GeoJSON Feature if necessary
-            if item.get("type") == "Feature":
-                item = item["geometry"]
-            return shape(item)
+            geojson = item.get("geojson") if isinstance(item, dict) else None
+            if geojson is None:
+                raise ValueError("Each geometry item must have a 'geojson' key")
+            geom_dict = geojson.get("geometry")
+            if geom_dict is None:
+                raise ValueError("geojson must contain a 'geometry' field")
+            return shape(geom_dict)
 
-        # Single item
         if isinstance(v, dict):
             return [extract_geometry(v)]
-
-        # List of items
-        if isinstance(v, (list, tuple)):
+        elif isinstance(v, (list, tuple)):
             return [extract_geometry(item) for item in v]
 
-        raise TypeError("geometry must be a GeoJSON geometry or list of them")
+        raise TypeError("geometry must be a dict or list/tuple of dicts with geojson")
+
+    @field_validator("target_area")
+    @classmethod
+    def validate_target_area(cls, v, info):
+        is_percentage = info.data.get("is_percentage", True)
+        if is_percentage and (v < 0 or v > 100):
+            raise ValueError(
+                "target_area must be between 0-100 when is_percentage=True"
+            )
+        if not is_percentage and v < 0:
+            raise ValueError("target_area must be >= 0 when is_percentage=False")
+        return v
 
 
 @task
@@ -144,20 +123,15 @@ def load_british_columbia_boundary(path: str) -> Sequence[BaseGeometry]:
 @task
 def load_input_data(
     zarr_path: str,
-    layer_paths: List[str],  # e.g., ["cultural/protected_areas/conservancy"]
+    layer_paths: List[str],
     resolution: int = 1000,
-    resampling: Literal[
-        "mode",
-        "min",
-        "max",
-    ] = "mode",
+    resampling: Literal["mode", "min", "max"] = "mode",
     crs: Optional[int] = 3005,
     geometry: Optional[Sequence[BaseGeometry]] = None,
 ) -> Dict[str, xr.Dataset]:
     """
     Load and optionally process variables from a zarr store, grouped by Zarr group path.
-    Each path must be in 'group/variable' form. Downsample factor is computed\
-          as resolution / source_resolution.
+    Each path must be in 'group/variable' form.
     """
     group_vars = defaultdict(list)
     for path in layer_paths:
@@ -172,36 +146,36 @@ def load_input_data(
     result = {}
 
     for group_path, variables in group_vars.items():
-        zarr_group = group_path if group_path else None  # Handle root group
+        zarr_group = group_path if group_path else None
         ds = xr.open_zarr(zarr_path, group=zarr_group, consolidated=True)
 
-        # Get transform and resolution before spatial filtering (when ds still has data)
-        original_transform = ds.rio.transform()
+        # Get transform from the first variable (DataArray)
+        first_var = variables[0]
+        if first_var not in ds:
+            raise KeyError(
+                f"No variable named '{first_var}' in group '{group_path}'. Found: {list(ds.data_vars)}"
+            )
 
-        # TODO: MULTIPOLYGONS should be efficiently processed separately;
-        # each polygon should have its own bbox
+        original_transform = ds[first_var].rio.transform()
+
         if geometry is not None:
-            print(geometry, "geometry")
-            unioned = unary_union(geometry)
-            bounds = unioned.bounds  # (minx, miny, maxx, maxy)
+            # FIX: Ensure geometry is properly handled as a sequence of BaseGeometry
+            geom_union: BaseGeometry = unary_union(list(geometry))
+            bounds = geom_union.bounds
 
-            # Check y-coordinate ordering
             y_ascending = ds.y[0] < ds.y[-1]
 
             if y_ascending:
-                # Y coordinates go from south to north (bottom to top)
                 ds = ds.sel(
                     x=slice(bounds[0], bounds[2]),
-                    y=slice(bounds[1], bounds[3]),  # miny to maxy
+                    y=slice(bounds[1], bounds[3]),
                 )
             else:
-                # Y coordinates go from north to south (top to bottom)
                 ds = ds.sel(
                     x=slice(bounds[0], bounds[2]),
-                    y=slice(bounds[3], bounds[1]),  # maxy to miny
+                    y=slice(bounds[3], bounds[1]),
                 )
 
-        # Calculate resolution once per group (using original transform)
         source_resolution_x = original_transform.a
         source_resolution_y = -original_transform.e
 
@@ -211,8 +185,8 @@ def load_input_data(
         source_resolution = (abs(source_resolution_x) + abs(source_resolution_y)) / 2
         downsample_factor = resolution / source_resolution
 
-        # Pre-calculate coarsening parameters if needed
         needs_coarsening = downsample_factor > 1
+        new_transform = None  # FIX: Initialize to None for type safety
         if needs_coarsening:
             factor = int(round(downsample_factor))
             new_transform = Affine(
@@ -224,44 +198,34 @@ def load_input_data(
                 original_transform.f,
             )
 
-        processed_vars = {}
-        empty_vars = []
+        processed_vars: Dict[str, xr.DataArray] = {}
+        empty_vars: List[str] = []
 
         for var in variables:
             if var not in ds:
                 raise KeyError(
-                    f"No variable named '{var}' in group '{group_path}'. \
-                        Found: {list(ds.data_vars)}"
+                    f"No variable named '{var}' in group '{group_path}'. Found: {list(ds.data_vars)}"
                 )
             da: xr.DataArray = ds[var]
 
-            # Skip variable if there's no data after spatial filtering
             if da.x.size == 0 or da.y.size == 0:
                 print(
-                    f"Variable '{var}' in group '{group_path}' has no data in \
-                        geometry — returning NaN array."
+                    f"Variable '{var}' in group '{group_path}' has no data in geometry — returning NaN array."
                 )
                 empty_vars.append(var)
 
-                # For dummy arrays, we need to estimate what the shape
-                # would be if there was data. We'll use the original full dataset
-                # bounds and apply the same resolution logic
-
-                # Get original dataset before any filtering
-                # to determine expected output shape
                 original_ds = xr.open_zarr(
                     zarr_path, group=zarr_group, consolidated=True
                 )
 
                 if geometry is not None:
-                    unioned = unary_union(geometry)
-                    bounds = unioned.bounds  # (minx, miny, maxx, maxy)
+                    geom_union = unary_union(list(geometry))
+                    bounds = geom_union.bounds
 
-                    # Estimate grid size based on bounds and resolution
-                    width = bounds[2] - bounds[0]  # max_x - min_x
-                    height = bounds[3] - bounds[1]  # max_y - min_y
+                    width = bounds[2] - bounds[0]
+                    height = bounds[3] - bounds[1]
 
-                    if needs_coarsening:
+                    if needs_coarsening and new_transform is not None:
                         effective_resolution = source_resolution * factor
                     else:
                         effective_resolution = source_resolution
@@ -269,8 +233,7 @@ def load_input_data(
                     ncols = max(1, int(np.ceil(width / effective_resolution)))
                     nrows = max(1, int(np.ceil(height / effective_resolution)))
 
-                    # Create coordinate arrays
-                    if needs_coarsening:
+                    if needs_coarsening and new_transform is not None:
                         transform_to_use = new_transform
                     else:
                         transform_to_use = original_transform
@@ -287,8 +250,8 @@ def load_input_data(
                     )
 
                 else:
-                    # No geometry filtering, use original dataset dimensions
                     if needs_coarsening:
+                        assert new_transform is not None  # Type guard
                         nrows = len(original_ds.y) // factor
                         ncols = len(original_ds.x) // factor
                         transform_to_use = new_transform
@@ -311,7 +274,7 @@ def load_input_data(
                     dims=("y", "x"),
                     coords=coords,
                     name=var,
-                    attrs=da.attrs,  # optional: copy metadata
+                    attrs=da.attrs,
                 )
                 dummy = dummy.rio.write_crs(crs).rio.write_transform(transform_to_use)
 
@@ -319,6 +282,8 @@ def load_input_data(
                 continue
 
             if needs_coarsening:
+                assert new_transform is not None  # Type guard
+                factor = int(round(downsample_factor))
                 coarsened = da.coarsen(x=factor, y=factor, boundary="pad")
 
                 if resampling == "min":
@@ -327,10 +292,8 @@ def load_input_data(
                     da = coarsened.reduce(np.nanmax)
                 elif resampling == "mode":
 
-                    def nanmode(data, axis):
-                        # Mask NaNs (scipy mode with nan_policy requires scipy >= 1.9)
+                    def nanmode(data: np.ndarray, axis: int) -> np.ndarray:
                         if np.isnan(data).all(axis=axis).any():
-                            # If all values are NaN along axis, return NaN
                             result = np.full(
                                 data.shape[:axis] + data.shape[axis + 1 :], np.nan
                             )
@@ -351,19 +314,15 @@ def load_input_data(
 
             processed_vars[var] = da
 
-        # Check if all variables in this group have no data
         if len(empty_vars) == len(variables):
             raise ValueError(
-                f"All variables in group '{group_path}' have no data\
-                      after spatial filtering. "
+                f"All variables in group '{group_path}' have no data after spatial filtering. "
                 f"Variables: {variables}. Check your geometry bounds."
             )
 
-        # Warn if some (but not all) variables are empty
         if empty_vars:
             print(
-                f"Warning: {len(empty_vars)}/{len(variables)} variables in \
-                    group '{group_path}' "
+                f"Warning: {len(empty_vars)}/{len(variables)} variables in group '{group_path}' "
                 f"have no data after spatial filtering: {empty_vars}"
             )
 
@@ -379,39 +338,66 @@ def create_boolean_masks(
 ) -> Tuple[np.ndarray, int, int, Any]:
     """
     Generate a boolean geometry mask for valid optimization area.
+
     Args:
-        reference_array: An xarray.DataArray with spatial coordinates.
-        bounds: A sequence of geometries (Polygon, MultiPolygon, etc.) to rasterize.
+        reference_array: DataArray with rio accessor (must have CRS set)
+        bounds: Sequence of geometries defining the valid area
+
     Returns:
-        - valid_mask: Boolean mask where optimization is allowed.
-        - nrows: Number of rows in the grid.
-        - ncols: Number of columns in the grid.
-        - transform: Affine transform from reference data layer.
+        Tuple of (geometry_mask, nrows, ncols, transform)
     """
+    # Ensure reference_array has rio accessor and CRS
+    if not hasattr(reference_array, "rio"):
+        raise ValueError("reference_array must have rio accessor (import rioxarray)")
+
+    if reference_array.rio.crs is None:
+        reference_array = reference_array.rio.write_crs("EPSG:3005")
+
     nrows, ncols = reference_array.shape
-    transform = reference_array.rio.transform()
+    transform: Affine = reference_array.rio.transform()
 
-    # Convert sequence to list for consistent handling
-    geoms = list(bounds)
+    # bounds should be an iterable of BaseGeometry objects
+    geoms: List[BaseGeometry] = list(bounds)
 
-    geometry_mask = rasterize(
+    if not geoms:
+        raise ValueError("bounds sequence is empty")
+
+    # Correctly rasterize the geometries passed in 'bounds'
+    geometry_mask: np.ndarray = rasterize(
         [(mapping(geom), 1) for geom in geoms],
         out_shape=(nrows, ncols),
         transform=transform,
         fill=0,
         dtype=np.uint8,
     )
-    print("MASK", geometry_mask)
+
     geometry_mask = geometry_mask.astype(bool)
     return geometry_mask, nrows, ncols, transform
 
 
 @task
 def build_pulp_model(
-    dataset: Dict[str, xr.Dataset],  # Updated type hint
+    dataset: Dict[str, xr.Dataset],
     conditions: OptimizationLayers,
     valid_mask: np.ndarray,
+    target_area: float = 50.0,
+    is_percentage: bool = True,
 ) -> Tuple[pulp.LpProblem, Dict[Tuple[int, int], pulp.LpVariable]]:
+    """
+    Build a PuLP optimization model that selects cells based on layer conditions.
+
+    Args:
+        dataset: Dictionary of xarray Datasets grouped by layer path
+        conditions: OptimizationLayers with mode, importance, threshold, constraints
+        valid_mask: Boolean mask of valid cells
+        target_area: Target selection area (percentage or absolute count)
+        is_percentage: Whether target_area is a percentage (True) or absolute count (False)
+
+    Returns:
+        Tuple of (solved problem, decision variables dict)
+    """
+    logger = get_run_logger()
+
     prob = pulp.LpProblem("ConservationOptimization", pulp.LpMaximize)
     nrows, ncols = valid_mask.shape
 
@@ -423,61 +409,18 @@ def build_pulp_model(
         (r, c): pulp.LpVariable(f"x_{r}_{c}", cat="Binary") for r, c in cell_indices
     }
 
-    print(f"DEBUG: Total decision variables created: {len(decision_vars)}")
-    print(f"DEBUG: Grid shape: {nrows}x{ncols}")
-    print(f"DEBUG: Valid mask cells: {np.sum(valid_mask)}")
+    logger.info(f"Created {len(decision_vars)} decision variables")
+    logger.info(f"Grid shape: {nrows}x{ncols}")
+    logger.info(f"Valid mask cells: {np.sum(valid_mask)}")
 
-    # Build objective function
-    objective_terms = []
-    for layer_name, props in conditions.items():
-        mode = props.mode
-        importance = props.importance
+    # Precompute layer data (arrays) - avoid loading same layer multiple times
+    layer_data_cache: Dict[str, np.ndarray] = {}
 
-        if mode != "flexible" or importance == 0 or importance is None:
-            continue
+    def get_layer_array(layer_name: str) -> np.ndarray:
+        """Get array for layer, with caching."""
+        if layer_name in layer_data_cache:
+            return layer_data_cache[layer_name]
 
-        # ✅ FIXED: split group and variable properly
-        *group_parts, var = layer_name.split("/")
-        group = "/".join(group_parts)
-
-        if group not in dataset:
-            raise ValueError(
-                f"Group '{group}' not found in dataset \
-                    for layer '{layer_name}'. "
-                f"Available groups: {list(dataset.keys())}"
-            )
-
-        if var not in dataset[group]:
-            raise ValueError(
-                f"Variable '{var}' not found in group '{group}' for\
-                      layer '{layer_name}'. "
-                f"Available variables: {list(dataset[group].data_vars.keys())}"
-            )
-
-        print(dataset)
-        print("LAYER NAME", layer_name)
-
-        arr = dataset[group][var].values
-
-        # Vectorized objective creation
-        for r, c in cell_indices:
-            val = arr[r, c]
-            if not np.isnan(val):
-                objective_terms.append(importance * val * decision_vars[(r, c)])
-            else:
-                print("Val is all nan: ", val)
-
-    print("OBJECTIVE TERMS@", objective_terms)
-
-    if objective_terms:
-        prob += pulp.lpSum(objective_terms), "WeightedObjective"
-    else:
-        prob += pulp.lpSum(decision_vars.values()), "DummyObjective"
-        print("WARNING: No objective terms found, using dummy objective")
-
-    # Add constraints
-    for layer_name, props in conditions.items():
-        # ✅ FIXED: split group and variable properly
         *group_parts, var = layer_name.split("/")
         group = "/".join(group_parts)
 
@@ -489,22 +432,78 @@ def build_pulp_model(
 
         if var not in dataset[group]:
             raise ValueError(
-                f"Variable '{var}' not found in group '{group}' for layer \
-                    '{layer_name}'. "
+                f"Variable '{var}' not found in group '{group}' for layer '{layer_name}'. "
                 f"Available variables: {list(dataset[group].data_vars.keys())}"
             )
 
-        arr = dataset[group][var].values
+        data_var = dataset[group][var]
+        if hasattr(data_var.data, "compute"):
+            arr = data_var.data.compute()
+        else:
+            arr = data_var.values
+
+        layer_data_cache[layer_name] = arr
+        return arr
+
+    # Build objective function
+    objective_terms = []
+    for layer_name, props in conditions.items():
+        mode = props.mode
+        importance = props.importance
+
+        # Skip non-flexible layers or those with zero importance
+        if mode != "flexible" or importance == 0 or importance is None:
+            logger.info(
+                f"Skipping '{layer_name}' for objective (mode={mode}, importance={importance})"
+            )
+            continue
+
+        logger.info(f"Processing objective layer '{layer_name}'")
+
+        # Get array (cached if already loaded)
+        arr = get_layer_array(layer_name)
+
+        logger.info(f"  Array shape: {arr.shape}, dtype: {arr.dtype}")
+        logger.info(f"  Min/Max: {np.nanmin(arr):.3f} / {np.nanmax(arr):.3f}")
+        logger.info(f"  Non-NaN values: {np.sum(~np.isnan(arr))}")
+
+        # Build objective terms for all valid cells
+        term_count = 0
+        for r, c in cell_indices:
+            val = arr[r, c]
+            if not np.isnan(val):
+                objective_terms.append(importance * val * decision_vars[(r, c)])
+                term_count += 1
+
+        logger.info(f"  Added {term_count} objective terms")
+
+    logger.info(f"Total objective terms: {len(objective_terms)}")
+
+    if objective_terms:
+        prob += pulp.lpSum(objective_terms), "WeightedObjective"
+        logger.info("Added weighted objective function")
+    else:
+        prob += pulp.lpSum(decision_vars.values()), "DummyObjective"
+        logger.warning("No objective terms found, using dummy objective")
+
+    # Track if explicit constraints were added
+    has_explicit_constraints = False
+
+    # Add constraints from all layers
+    for layer_name, props in conditions.items():
         mode = props.mode
         constraints = props.constraints or []
 
-        print(f"\nDEBUG: Processing layer '{layer_name}'")
-        print(f"Mode: {mode}")
-        print(f"Array shape: {arr.shape}")
-        print(f"Non-NaN values: {np.sum(~np.isnan(arr))}")
-        print(f"Min/Max values: {np.nanmin(arr):.3f} / {np.nanmax(arr):.3f}")
+        logger.info(f"Processing constraints for '{layer_name}' (mode={mode})")
 
-        # Handle locking constraints - FIXED: using hyphenated versions
+        # Get array (cached if already loaded)
+        arr = get_layer_array(layer_name)
+
+        logger.info(f"  Array shape: {arr.shape}")
+        logger.info(f"  Non-NaN values: {np.sum(~np.isnan(arr))}")
+        logger.info(f"  Min/Max values: {np.nanmin(arr):.3f} / {np.nanmax(arr):.3f}")
+
+        # Locked-in constraints
         if mode == "locked-in":
             threshold = props.threshold
             if threshold is None:
@@ -519,13 +518,13 @@ def build_pulp_model(
             ]
 
             if locked_cells:
-                # Add all locked_in constraints at once
-                locked_vars = [decision_vars[(r, c)] for r, c in locked_cells]
-                for var in locked_vars:
-                    prob += var == 1
+                for r, c in locked_cells:
+                    prob += decision_vars[(r, c)] == 1
+                has_explicit_constraints = True
 
-            print(f"Locked in: {len(locked_cells)} variables")
+            logger.info(f"  Locked in: {len(locked_cells)} variables")
 
+        # Locked-out constraints
         elif mode == "locked-out":
             threshold = props.threshold
             if threshold is None:
@@ -533,44 +532,33 @@ def build_pulp_model(
                     f"Threshold required for locked-out mode on layer '{layer_name}'"
                 )
 
-            # Use np.where to find cells that should be locked out
-            # Only consider cells that are in valid_mask
-            # AND meet the threshold condition
             locked_out_mask = valid_mask & (~np.isnan(arr)) & (arr > threshold)
             locked_rows, locked_cols = np.where(locked_out_mask)
 
-            # Add constraints for all locked out cells
             for r, c in zip(locked_rows, locked_cols, strict=False):
-                if (r, c) in decision_vars:  # Safety check
+                if (r, c) in decision_vars:
                     prob += decision_vars[(r, c)] == 0
+                    has_explicit_constraints = True
 
-            print(f"Locked out: {len(locked_rows)} variables")
-
-            # Optional: Show some stats for debugging
-            print(
-                f"Total cells > threshold:\
-                      {np.sum((arr > threshold) & (~np.isnan(arr)))}"
+            logger.info(f"  Locked out: {len(locked_rows)} variables")
+            logger.info(
+                f"  Total cells > threshold: {np.sum((arr > threshold) & (~np.isnan(arr)))}"
             )
-            print(f"Valid cells > threshold: {len(locked_rows)}")
-            print(f"Threshold: {threshold}")
-            print(f"Array range: [{np.nanmin(arr):.3f}, {np.nanmax(arr):.3f}]")
 
-        # Handle value constraints
+        # Value constraints
         for constr in constraints:
             min_val = constr.min
             max_val = constr.max
             typ = constr.type
 
-            # Create constraint terms for valid cells
             valid_cells = [(r, c) for r, c in cell_indices if not np.isnan(arr[r, c])]
 
             if not valid_cells:
-                print(
-                    f"WARNING: No valid values for constraint on layer '{layer_name}'"
+                logger.warning(
+                    f"  No valid values for constraint on layer '{layer_name}'"
                 )
                 continue
 
-            # Build sum expression
             constraint_terms = [
                 arr[r, c] * decision_vars[(r, c)] for r, c in valid_cells
             ]
@@ -578,59 +566,178 @@ def build_pulp_model(
 
             if typ == "percent":
                 total_possible = sum(arr[r, c] for r, c in valid_cells)
-                print(f"Constraint (percent): total_possible = {total_possible:.3f}")
+                logger.info(
+                    f"  Constraint (percent): total_possible = {total_possible:.3f}"
+                )
 
                 if total_possible == 0:
-                    print(
-                        f"WARNING: Total possible value is 0 for layer '{layer_name}'"
+                    logger.warning(
+                        f"  Total possible value is 0 for layer '{layer_name}'"
                     )
                     continue
 
                 if min_val is not None:
                     prob += total_sum >= (min_val / 100) * total_possible
-                    print(f"Added: total_sum >= {(min_val / 100) * total_possible:.3f}")
+                    has_explicit_constraints = True
+                    logger.info(
+                        f"  Added: total_sum >= {(min_val / 100) * total_possible:.3f}"
+                    )
 
                 if max_val is not None:
                     prob += total_sum <= (max_val / 100) * total_possible
-                    print(f"Added: total_sum <= {(max_val / 100) * total_possible:.3f}")
+                    has_explicit_constraints = True
+                    logger.info(
+                        f"  Added: total_sum <= {(max_val / 100) * total_possible:.3f}"
+                    )
 
             else:  # unit constraint
                 total_possible = sum(arr[r, c] for r, c in valid_cells)
-                print(f"Constraint (unit): total_possible = {total_possible:.3f}")
+                logger.info(
+                    f"  Constraint (unit): total_possible = {total_possible:.3f}"
+                )
 
                 if min_val is not None:
                     prob += total_sum >= min_val
-                    print(f"Added: total_sum >= {min_val}")
+                    has_explicit_constraints = True
+                    logger.info(f"  Added: total_sum >= {min_val}")
 
                 if max_val is not None:
                     prob += total_sum <= max_val
-                    print(f"Added: total_sum <= {max_val}")
+                    has_explicit_constraints = True
+                    logger.info(f"  Added: total_sum <= {max_val}")
 
-    print(f"\nDEBUG: Final objective terms: {len(objective_terms)}")
-    print(f"DEBUG: Total constraints added: {len(prob.constraints)}")
+    # Add target area constraint if no explicit constraints
+    if not has_explicit_constraints:
+        if is_percentage:
+            target_cells = int((target_area / 100) * len(cell_indices))
+        else:
+            target_cells = int(target_area)
+
+        target_cells = max(1, min(target_cells, len(cell_indices)))
+
+        prob += pulp.lpSum(decision_vars.values()) == target_cells
+        logger.warning(
+            f"No explicit constraints found. Using target area constraint: "
+            f"select exactly {target_cells} cells ({100 * target_cells / len(cell_indices):.1f}% of {len(cell_indices)} valid cells)"
+        )
+
+    logger.info(
+        f"Final model: {len(prob.variables())} variables, {len(prob.constraints)} constraints"
+    )
 
     return prob, decision_vars
 
 
 @task
-def solve_lp(prob: pulp.LpProblem) -> pulp.LpProblem:
-    prob.solve()
-    print("Status:", LpStatus[prob.status])
-    return prob
+def solve_lp(
+    prob: pulp.LpProblem,
+    cell_vars: Dict[Tuple[int, int], pulp.LpVariable],
+) -> Tuple[str, Dict[Tuple[int, int], float]]:
+    """
+    Solve LP problem and extract solution values.
+
+    Args:
+        prob: The PuLP problem to solve
+        cell_vars: Dictionary of decision variables
+
+    Returns:
+        Tuple of (solver_status, solution_values_dict)
+    """
+    logger = get_run_logger()
+
+    num_vars = len(prob.variables())
+    num_constraints = len(prob.constraints)
+    logger.info(
+        f"Solving LP with {num_vars} variables and {num_constraints} constraints"
+    )
+
+    # Solve the problem
+    prob.solve(pulp.PULP_CBC_CMD(msg=False))
+
+    # Log solver status
+    status = LpStatus[prob.status]
+    logger.info(f"Solver status: {status}")
+
+    obj_value = prob.objective.value()  # type: ignore
+    logger.info(f"Objective value: {obj_value}")
+
+    # Warn if not optimal
+    if status not in ["Optimal"]:
+        logger.warning(f"Solution is not optimal. Status: {status}")
+        if status == "Infeasible":
+            logger.error("Problem is infeasible - no valid solution exists")
+        elif status == "Unbounded":
+            logger.error("Problem is unbounded")
+
+    # Count and log selected variables
+    selected = sum(
+        1 for v in prob.variables() if v.varValue is not None and v.varValue > 0
+    )
+    logger.info(f"Selected variables: {selected} / {num_vars}")
+
+    # Log sample of variable values
+    sample_vars = list(prob.variables())[:5]
+    sample_values = [(v.name, v.varValue) for v in sample_vars]
+    logger.info(f"Sample variable values: {sample_values}")
+
+    # Extract solution values WHILE STILL IN THIS PROCESS
+    # This is crucial - do it before the object is serialized
+    solution_values: Dict[Tuple[int, int], float] = {}
+    for (r, c), var in cell_vars.items():
+        if var.varValue is not None:
+            solution_values[(r, c)] = float(var.varValue)
+        else:
+            solution_values[(r, c)] = 0.0
+
+    logger.info(f"Extracted {len(solution_values)} solution values")
+    logger.info(f"Non-zero cells: {sum(1 for v in solution_values.values() if v > 0)}")
+
+    return status, solution_values
+
+
+def _process_cell_chunk(
+    chunk: Dict[Tuple[int, int], pulp.LpVariable],
+    nrows: int,
+    ncols: int,
+) -> np.ndarray:
+    """
+    Process a chunk of decision variables and return a partial solution array.
+    This function is submitted to workers.
+    """
+    partial_array = np.zeros((nrows, ncols), dtype=float)
+    selected = 0
+
+    for (i, j), var in chunk.items():
+        if var.varValue is not None and var.varValue > 0:
+            partial_array[i, j] = 1.0
+            selected += 1
+        else:
+            partial_array[i, j] = 0.0
+
+    return partial_array
 
 
 @task
 def extract_solution(
-    cell_vars: Dict[Tuple[int, int], pulp.LpVariable],
+    solution_values: Dict[Tuple[int, int], float],
     nrows: int,
     ncols: int,
     geometry: Sequence[BaseGeometry],
     transform,
 ) -> np.ndarray:
-    selection = np.zeros((nrows, ncols), dtype=float)
-    for (i, j), var in cell_vars.items():
-        selection[i, j] = float(var.varValue) if var.varValue is not None else 0.0
+    """Extract solution from pre-computed values."""
+    logger = get_run_logger()
 
+    # Build solution array directly from values
+    solution_array = np.zeros((nrows, ncols), dtype=float)
+    for (i, j), value in solution_values.items():
+        solution_array[i, j] = value
+
+    logger.info(
+        f"Solution array BEFORE masking: sum={np.sum(solution_array)}, non-zero={np.count_nonzero(solution_array)}"
+    )
+
+    # Apply geometry mask
     geometry_mask = rasterize(
         [(mapping(geom), 1) for geom in geometry],
         out_shape=(nrows, ncols),
@@ -639,40 +746,12 @@ def extract_solution(
         dtype=np.uint8,
     )
 
-    return np.where(geometry_mask == 1, selection, 0)
+    masked_solution = np.where(geometry_mask == 1, solution_array, 0)
+    logger.info(
+        f"Solution array AFTER masking: sum={np.sum(masked_solution)}, non-zero={np.count_nonzero(masked_solution)}"
+    )
 
-
-@task
-def prepare_dataset(
-    zarr_path: str,  # path to root of Zarr store
-    layer_names: List[str],  # e.g., ["disturbance/roads", "species/moose"]
-    downsample_factor: int = 25,
-    crs: int = 3005,
-) -> Dict[str, xr.Dataset]:
-    group_map = defaultdict(list)
-    for layer in layer_names:
-        group, var = layer.split("/", 1)
-        group_map[group].append(var)
-
-    processed_groups = {}
-
-    for group, variables in group_map.items():
-        # Open that group of the Zarr store
-        group_ds = xr.open_zarr(zarr_path, group=group, consolidated=True)
-
-        # Process variables in the group
-        processed_vars = {}
-        for var in variables:
-            da = group_ds[var]
-            da = da.coarsen(
-                x=downsample_factor, y=downsample_factor, boundary="pad"
-            ).mean(skipna=True)
-            da = da.rio.write_crs(crs)
-            processed_vars[var] = da
-
-        processed_groups[group] = xr.Dataset(processed_vars)
-
-    return processed_groups
+    return masked_solution
 
 
 @task
@@ -683,7 +762,7 @@ def visualize(solution: np.ndarray):
     plt.colorbar(im)
     plt.tight_layout()
     plt.savefig(f"/data/outputs/{datetime.now().strftime('%Y%m%dT%H%M%S')}.png")
-    plt.show()
+    plt.close()
 
 
 @task
@@ -709,9 +788,8 @@ def create_pmtiles_archive(
     bounds = array_bounds(height, width, transform)
     logger.info(f"Input bounds in CRS {crs}: {bounds}")
 
-    # Set up xarray with correct coordinates
     x_coords = np.linspace(bounds[0], bounds[2], width)
-    y_coords = np.linspace(bounds[3], bounds[1], height)  # flip Y axis
+    y_coords = np.linspace(bounds[3], bounds[1], height)
 
     uint8_array = (array * 255).astype(np.uint8)
     da = xr.DataArray(
@@ -723,16 +801,13 @@ def create_pmtiles_archive(
     da.rio.write_crs(crs, inplace=True)
     da.rio.write_transform(transform, inplace=True)
 
-    # Reproject to Web Mercator (EPSG:3857)
     da_web = da.rio.reproject("EPSG:3857", resampling=Resampling.bilinear)
     wm_bounds = tuple(map(float, da_web.rio.bounds()))
     logger.info(f"Reprojected bounds (EPSG:3857): {wm_bounds}")
 
-    # Prepare transformer for tile bound conversion (4326 -> 3857)
     to_webmercator = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
     to_latlon = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
 
-    # Convert reprojected bounds to EPSG:4326 to use in tms.tile()
     minx, miny, maxx, maxy = wm_bounds
     min_lon, min_lat = to_latlon.transform(minx, miny)
     max_lon, max_lat = to_latlon.transform(maxx, maxy)
@@ -753,7 +828,6 @@ def create_pmtiles_archive(
                 for y in range(ul.y, lr.y + 1):
                     tile = Tile(x=x, y=y, z=z)
 
-                    # Get tile bounds in EPSG:4326, then convert to EPSG:3857
                     tile_bounds_4326 = tms.bounds(tile)
                     left, bottom = to_webmercator.transform(
                         tile_bounds_4326.left, tile_bounds_4326.bottom
@@ -762,7 +836,6 @@ def create_pmtiles_archive(
                         tile_bounds_4326.right, tile_bounds_4326.top
                     )
 
-                    # Skip if tile doesn't intersect with our EPSG:3857 bounds
                     if (
                         right < wm_bounds[0]
                         or left > wm_bounds[2]
@@ -774,12 +847,10 @@ def create_pmtiles_archive(
 
                     tile_data = reader.tile(x, y, z, tilesize=tile_size)
 
-                    # Skip fully masked tiles (no data)
                     if hasattr(tile_data.array, "mask") and tile_data.array.mask.all():
                         logger.warning(f"Skipping empty tile: {tile}")
                         continue
 
-                    # Encode tile and write
                     colormap = {
                         i: (255, 0, 0, 170) if i > 0 else (0, 0, 0, 0)
                         for i in range(256)
@@ -799,7 +870,6 @@ def create_pmtiles_archive(
 
         logger.info(f"Finished writing {tiles_written} tiles.")
 
-        # Finalize PMTiles archive
         metadata = {
             "format": "png",
             "bounds": list(wm_bounds),
@@ -835,13 +905,184 @@ def resolution_to_max_zoom(
     min_zoom: int = 7,
     max_zoom: int = 13,
 ) -> int:
-    # Clamp the resolution to expected range
+    """
+    Calculate appropriate max zoom level based on input resolution.
+    """
     res = np.clip(resolution, min_res, max_res)
-
-    # Normalize: 0 (high detail) → 1 (low detail)
     t = (np.log(res) - np.log(min_res)) / (np.log(max_res) - np.log(min_res))
-
-    # Invert and scale to zoom range
     zoom = max_zoom - t * (max_zoom - min_zoom)
-
     return int(round(zoom))
+
+
+@task
+def prepare_dataset(
+    zarr_path: str,
+    layer_names: List[str],
+    downsample_factor: int = 25,
+    crs: int = 3005,
+) -> Dict[str, xr.Dataset]:
+    """
+    Prepare dataset by loading and downsampling variables from zarr store.
+    """
+    group_map = defaultdict(list)
+    for layer in layer_names:
+        group, var = layer.split("/", 1)
+        group_map[group].append(var)
+
+    processed_groups = {}
+
+    for group, variables in group_map.items():
+        group_ds = xr.open_zarr(zarr_path, group=group, consolidated=True)
+
+        processed_vars = {}
+        for var in variables:
+            da = group_ds[var]
+            da = da.coarsen(
+                x=downsample_factor, y=downsample_factor, boundary="pad"
+            ).mean(skipna=True)
+            da = da.rio.write_crs(crs)
+            processed_vars[var] = da
+
+        processed_groups[group] = xr.Dataset(processed_vars)
+
+    return processed_groups
+
+
+@task
+def execute_optimization(
+    conditions: OptimizationParameters,
+) -> Optional[np.ndarray]:  # Changed: should return np.ndarray, not xr.DataArray
+    """
+    Main optimization task that runs on the Dask cluster.
+    Returns the final solution array.
+    """
+
+    logger = get_run_logger()
+    client = get_client()
+
+    # Declare once with union type, then assign in branches
+    british_columbia_geometry: Sequence[BaseGeometry]
+
+    if conditions.geometry:
+        geometry_list: Sequence[BaseGeometry] = conditions.geometry
+        logger.info(f"Converting {len(geometry_list)} geometries to BC CRS (EPSG:3005)")
+
+        # Convert to BC CRS and unify
+        gdf = gpd.GeoDataFrame(geometry=geometry_list, crs="EPSG:4326").to_crs(
+            "EPSG:3005"
+        )
+        unified_geom = gdf.geometry.unary_union  # Property, not method
+
+        logger.info(f"Unified geometry type: {type(unified_geom).__name__}")
+
+        # Ensure we always have a list of geometries
+        if isinstance(
+            unified_geom, (GeometryCollection, MultiPolygon, MultiLineString)
+        ):
+            british_columbia_geometry: Sequence[BaseGeometry] = list(unified_geom.geoms)
+            logger.info(f"Split into {len(british_columbia_geometry)} geometries")
+        else:
+            british_columbia_geometry = [unified_geom]
+            logger.info("Using single unified geometry")
+    else:
+        logger.info("No custom geometry provided, loading BC boundary")
+        british_columbia_geometry = load_british_columbia_boundary(
+            "/data/british_columbia.gdb"
+        )
+        logger.info(f"Loaded {len(british_columbia_geometry)} BC boundary geometries")
+
+    layers = conditions.layers
+    if not layers:
+        raise ValueError("No layers provided in conditions.layers")
+
+    # Load input data
+    layer_paths = list(layers.keys())
+    input_data_future = client.submit(
+        load_input_data,
+        os.getenv("ZARR_STORE_PATH"),
+        layer_paths,
+        resolution=conditions.resolution,
+        resampling=conditions.resampling,
+        geometry=british_columbia_geometry,
+    )
+    input_datasets: Dict[str, xr.Dataset] = input_data_future.result()
+
+    # Pick a reference array
+    reference_array_path = next(iter(layers))
+    *group_parts, var = reference_array_path.split("/")
+    group_path = "/".join(group_parts)
+    reference_dataset: xr.Dataset = input_datasets[group_path]
+    reference_array: xr.DataArray = reference_dataset[var]
+
+    # # Ensure CRS is set
+    # if reference_array.rio.crs is None:
+    #     reference_array = reference_array.rio.write_crs("EPSG:3005")
+
+    # Create boolean mask
+    mask_future = client.submit(
+        create_boolean_masks,
+        reference_array=reference_array,
+        bounds=british_columbia_geometry,
+    )
+    valid_mask, nrows, ncols, transform = mask_future.result()
+
+    logger.info(
+        f"Valid mask shape: {valid_mask.shape}, Valid cells: {np.sum(valid_mask)}"
+    )
+
+    # Build optimization model
+    model_future = client.submit(
+        build_pulp_model,
+        dataset=input_datasets,
+        conditions=layers,
+        valid_mask=valid_mask,
+    )
+    pulp_model, cell_vars = model_future.result()
+
+    logger.info(f"Pulp model: {pulp_model}, {cell_vars}")
+
+    # Solve LP
+    solve_future = solve_lp(pulp_model)
+
+    logger.info(f"Solve: {solved_model}")
+
+    solution_values = {
+        k: float(v.varValue) if v.varValue is not None else 0.0
+        for k, v in cell_vars.items()
+    }
+
+    # Extract solution
+    solution_future = client.submit(
+        extract_solution,
+        solution_values=solution_values,
+        nrows=nrows,
+        ncols=ncols,
+        geometry=british_columbia_geometry,
+        transform=transform,
+    )
+    solution_array: np.ndarray = solution_future.result()
+
+    logger.info(f"Solution Array: {solution_array}")
+
+    if not np.any(solution_array > 0):
+        logger.warning("No solution found")
+        return None
+
+    # Visualize
+    viz_future = client.submit(visualize, solution_array)
+    viz_future.result()
+
+    # Create PMTiles
+    max_zoom = resolution_to_max_zoom(conditions.resolution)
+    pmtiles_future = client.submit(
+        create_pmtiles_archive,
+        array=solution_array,
+        transform=transform,
+        out_path="/data/outputs/solution.pmtiles",
+        crs="EPSG:3005",
+        max_zoom=max_zoom,
+    )
+    pmtiles_future.result()
+
+    logger.info("Optimization completed successfully")
+    return solution_array
