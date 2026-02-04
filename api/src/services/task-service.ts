@@ -12,7 +12,7 @@ import { TASK_STATUS, TILE_STATUS } from '../types/status';
 import { TaskStatusMessage } from '../types/task-status';
 import { normalizeInviteEmails } from '../utils/invite';
 import { makePaginationResponse } from '../utils/pagination';
-import { toPmtilesUrl } from '../utils/pmtiles';
+import { toPresignedPmtilesUrl } from '../utils/pmtiles';
 import { normalizeTaskStatus, normalizeTileStatus } from '../utils/status';
 import { TASK_ROLE } from './authorization-service.interface';
 import { DBService } from './db-service';
@@ -475,7 +475,7 @@ export class TaskService extends DBService {
     }
 
     const tile = await this.taskTileRepository.getLatestTaskTileByTaskId(taskId);
-    const tileUri = toPmtilesUrl(tile?.pmtiles_uri ?? null);
+    const tileUri = await toPresignedPmtilesUrl(tile?.pmtiles_uri ?? null);
 
     const normalizedStatus = normalizeTaskStatus(task.status);
     const normalizedTileStatus = normalizeTileStatus(tile?.status ?? null);
