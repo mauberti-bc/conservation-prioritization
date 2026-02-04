@@ -1,5 +1,6 @@
 import { useAuthContext } from 'hooks/useContext';
 import { PropsWithChildren, ReactElement } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 
 interface IGuardProps {
   /**
@@ -9,6 +10,7 @@ interface IGuardProps {
    * @memberof IGuardProps
    */
   fallback?: ReactElement;
+  redirectTo?: string;
 }
 
 /**
@@ -46,6 +48,32 @@ export const AuthGuard = (props: PropsWithChildren<IGuardProps>) => {
     }
 
     return <></>;
+  }
+
+  return <>{props.children}</>;
+};
+
+/**
+ * Redirects to /login if the user is not authenticated.
+ *
+ * @param {*} props
+ * @return {*}
+ */
+export const AuthRedirectGuard = (props: PropsWithChildren<IGuardProps>) => {
+  const authContext = useAuthContext();
+  const location = useLocation();
+
+  if (authContext.auth.isLoading) {
+    return props.fallback ?? <></>;
+  }
+
+  if (!authContext.auth.isAuthenticated) {
+    if (props.fallback) {
+      return <>{props.fallback}</>;
+    }
+
+    const redirectTarget = props.redirectTo ?? '/auth/login';
+    return <Navigate to={redirectTarget} replace state={{ from: location.pathname }} />;
   }
 
   return <>{props.children}</>;

@@ -122,7 +122,7 @@ export class ProjectRepository extends BaseRepository {
       FROM project pr
       JOIN project_profile pp ON pp.project_id = pr.project_id
       JOIN profile p ON p.profile_id = pp.profile_id
-      JOIN project_permission pperm ON pperm.project_permission_id = pp.project_permission_id
+      JOIN project_permission pperm ON pperm.project_id = pr.project_id AND pperm.profile_id = pp.profile_id
       JOIN role r ON r.role_id = pperm.role_id
       WHERE p.profile_guid = ${profileGuid}
       AND p.record_end_date IS NULL

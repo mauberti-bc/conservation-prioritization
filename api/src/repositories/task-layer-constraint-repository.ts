@@ -92,6 +92,29 @@ export class TaskLayerConstraintRepository extends BaseRepository {
   }
 
   /**
+   * Fetches all task layer constraints for the provided task layer IDs.
+   *
+   * @param {string[]} taskLayerIds
+   * @return {*}  {Promise<TaskLayerConstraint[]>}
+   * @memberof TaskLayerConstraintRepository
+   */
+  async getTaskLayerConstraintsByTaskLayerIds(taskLayerIds: string[]): Promise<TaskLayerConstraint[]> {
+    if (!taskLayerIds.length) {
+      return [];
+    }
+
+    const sqlStatement = SQL`
+      SELECT task_layer_constraint_id, task_layer_id, type, min, max
+      FROM task_layer_constraint
+      WHERE task_layer_id IN (${taskLayerIds.join(',')})
+    `;
+
+    const response = await this.connection.sql(sqlStatement, TaskLayerConstraint);
+
+    return response.rows;
+  }
+
+  /**
    * Deletes a task layer constraint.
    *
    * @param {DeleteTaskLayerConstraint} data

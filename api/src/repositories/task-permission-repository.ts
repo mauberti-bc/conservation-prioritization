@@ -17,7 +17,7 @@ import { BaseRepository } from './base-repository';
  */
 export class TaskPermissionRepository extends BaseRepository {
   /**
-   * Create a new task permission.
+   * Create a new task permission scoped to a task and role.
    *
    * @param {CreateTaskPermission} permission
    * @return {*}  {Promise<TaskPermission>}
@@ -25,9 +25,9 @@ export class TaskPermissionRepository extends BaseRepository {
    */
   async createTaskPermission(permission: CreateTaskPermission): Promise<TaskPermission> {
     const sqlStatement = SQL`
-      INSERT INTO task_permission (role_id)
-      VALUES (${permission.role_id})
-      RETURNING task_permission_id, role_id
+      INSERT INTO task_permission (task_id, profile_id, role_id)
+      VALUES (${permission.task_id}, ${permission.profile_id}, ${permission.role_id})
+      RETURNING task_permission_id, task_id, profile_id, role_id
     `;
 
     const response = await this.connection.sql(sqlStatement, TaskPermission);
@@ -51,7 +51,7 @@ export class TaskPermissionRepository extends BaseRepository {
    */
   async getTaskPermissionById(taskPermissionId: string): Promise<TaskPermission> {
     const sqlStatement = SQL`
-      SELECT task_permission_id, role_id
+      SELECT task_permission_id, task_id, profile_id, role_id
       FROM task_permission
       WHERE task_permission_id = ${taskPermissionId}
       AND record_end_date IS NULL
@@ -77,7 +77,7 @@ export class TaskPermissionRepository extends BaseRepository {
    */
   async getAllTaskPermissions(): Promise<TaskPermission[]> {
     const sqlStatement = SQL`
-      SELECT task_permission_id, role_id
+      SELECT task_permission_id, task_id, profile_id, role_id
       FROM task_permission
       WHERE record_end_date IS NULL
     `;
@@ -99,10 +99,12 @@ export class TaskPermissionRepository extends BaseRepository {
     const sqlStatement = SQL`
       UPDATE task_permission
       SET
-        role_id = COALESCE(${updates.role_id}, role_id)  -- Optionally update the role_id
+        task_id = COALESCE(${updates.task_id}, task_id),
+        profile_id = COALESCE(${updates.profile_id}, profile_id),
+        role_id = COALESCE(${updates.role_id}, role_id)
       WHERE task_permission_id = ${taskPermissionId}
       AND record_end_date IS NULL
-      RETURNING task_permission_id, role_id
+      RETURNING task_permission_id, task_id, profile_id, role_id
     `;
 
     const response = await this.connection.sql(sqlStatement, TaskPermission);

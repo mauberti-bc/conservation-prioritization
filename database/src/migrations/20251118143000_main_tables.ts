@@ -81,6 +81,7 @@ export async function up(knex: Knex): Promise<void> {
 
     CREATE INDEX profile_idx1 ON profile (identity_source);
     CREATE INDEX profile_idx2 ON profile (role_id);
+    CREATE UNIQUE INDEX profile_identifier_uk1 ON profile (identity_source, profile_identifier) WHERE record_end_date IS NULL;
 
     COMMENT ON TABLE profile IS 'Tracks system profiles for auditing and permissions.';
     COMMENT ON COLUMN profile.profile_id IS 'System generated surrogate primary key identifier.';
@@ -95,8 +96,6 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN profile.family_name IS 'Family name for the profile.';
     COMMENT ON COLUMN profile.notes IS 'Notes for the profile.';
 
-    ALTER TABLE profile
-      ADD CONSTRAINT profile_guid_uk UNIQUE (profile_guid);
     COMMENT ON COLUMN profile.record_effective_date IS 'Record level effective date.';
     COMMENT ON COLUMN profile.record_end_date IS 'Record level end date.';
     COMMENT ON COLUMN profile.created_at IS 'The datetime the record was created.';
@@ -183,6 +182,8 @@ export async function up(knex: Knex): Promise<void> {
 
     CREATE TABLE project_permission (
       project_permission_id   uuid              DEFAULT gen_random_uuid(),
+      project_id              uuid              NOT NULL,
+      profile_id              uuid              NOT NULL,
       role_id                 uuid              NOT NULL,
       record_effective_date   timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date         timestamptz(6),
@@ -191,15 +192,21 @@ export async function up(knex: Knex): Promise<void> {
       updated_at              timestamptz(6),
       updated_by              uuid,
       CONSTRAINT project_permission_pk PRIMARY KEY (project_permission_id),
+      CONSTRAINT project_permission_project_fk FOREIGN KEY (project_id) REFERENCES project(project_id) ON DELETE CASCADE,
+      CONSTRAINT project_permission_profile_fk FOREIGN KEY (profile_id) REFERENCES profile(profile_id) ON DELETE CASCADE,
       CONSTRAINT project_permission_role_fk FOREIGN KEY (role_id) REFERENCES role(role_id) ON DELETE RESTRICT,
       CONSTRAINT project_permission_created_by_fk FOREIGN KEY (created_by) REFERENCES profile(profile_id) ON DELETE RESTRICT,
       CONSTRAINT project_permission_updated_by_fk FOREIGN KEY (updated_by) REFERENCES profile(profile_id) ON DELETE SET NULL
     );
 
-    CREATE UNIQUE INDEX project_permission_uk1 ON project_permission (role_id) WHERE record_end_date IS NULL;
+    CREATE UNIQUE INDEX project_permission_uk1 ON project_permission (project_id, profile_id) WHERE record_end_date IS NULL;
+    CREATE INDEX project_permission_idx1 ON project_permission (project_id);
+    CREATE INDEX project_permission_idx2 ON project_permission (profile_id);
 
     COMMENT ON TABLE project_permission IS 'Defines the roles/permissions available for a project.';
     COMMENT ON COLUMN project_permission.project_permission_id IS 'System generated surrogate primary key identifier.';
+    COMMENT ON COLUMN project_permission.project_id IS 'Foreign key referencing project.';
+    COMMENT ON COLUMN project_permission.profile_id IS 'Foreign key referencing profile.';
     COMMENT ON COLUMN project_permission.role_id IS 'Foreign key referencing the role associated with this permission.';
     COMMENT ON COLUMN project_permission.record_effective_date IS 'Record level effective date.';
     COMMENT ON COLUMN project_permission.record_end_date IS 'Record level end date.';
@@ -216,7 +223,6 @@ export async function up(knex: Knex): Promise<void> {
       project_profile_id      uuid              DEFAULT gen_random_uuid(),
       project_id              uuid              NOT NULL,
       profile_id              uuid              NOT NULL,
-      project_permission_id   uuid              NOT NULL,
       record_effective_date   timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date         timestamptz(6),
       created_at              timestamptz(6)    DEFAULT now() NOT NULL,
@@ -226,7 +232,6 @@ export async function up(knex: Knex): Promise<void> {
       CONSTRAINT project_profile_pk PRIMARY KEY (project_profile_id),
       CONSTRAINT project_profile_project_fk FOREIGN KEY (project_id) REFERENCES project(project_id) ON DELETE CASCADE,
       CONSTRAINT project_profile_profile_fk FOREIGN KEY (profile_id) REFERENCES profile(profile_id) ON DELETE CASCADE,
-      CONSTRAINT project_profile_permission_fk FOREIGN KEY (project_permission_id) REFERENCES project_permission(project_permission_id) ON DELETE CASCADE,
       CONSTRAINT project_profile_created_by_fk FOREIGN KEY (created_by) REFERENCES profile(profile_id) ON DELETE SET NULL,
       CONSTRAINT project_profile_updated_by_fk FOREIGN KEY (updated_by) REFERENCES profile(profile_id) ON DELETE SET NULL
     );
@@ -239,7 +244,6 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN project_profile.project_profile_id IS 'System generated surrogate primary key identifier.';
     COMMENT ON COLUMN project_profile.project_id IS 'Foreign key referencing project.';
     COMMENT ON COLUMN project_profile.profile_id IS 'Foreign key referencing profile.';
-    COMMENT ON COLUMN project_profile.project_permission_id IS 'Foreign key referencing project_permission.';
     COMMENT ON COLUMN project_profile.record_effective_date IS 'Record level effective date.';
     COMMENT ON COLUMN project_profile.record_end_date IS 'Record level end date.';
     COMMENT ON COLUMN project_profile.created_at IS 'The datetime the record was created.';
@@ -293,6 +297,8 @@ export async function up(knex: Knex): Promise<void> {
 
     CREATE TABLE task_permission (
       task_permission_id      uuid              DEFAULT gen_random_uuid(),
+      task_id                 uuid              NOT NULL,
+      profile_id              uuid              NOT NULL,
       role_id                 uuid              NOT NULL,
       record_effective_date   timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date         timestamptz(6),
@@ -301,15 +307,21 @@ export async function up(knex: Knex): Promise<void> {
       updated_at              timestamptz(6),
       updated_by              uuid,
       CONSTRAINT task_permission_pk PRIMARY KEY (task_permission_id),
+      CONSTRAINT task_permission_task_fk FOREIGN KEY (task_id) REFERENCES task(task_id) ON DELETE CASCADE,
+      CONSTRAINT task_permission_profile_fk FOREIGN KEY (profile_id) REFERENCES profile(profile_id) ON DELETE CASCADE,
       CONSTRAINT task_permission_role_fk FOREIGN KEY (role_id) REFERENCES role(role_id) ON DELETE RESTRICT,
       CONSTRAINT task_permission_created_by_fk FOREIGN KEY (created_by) REFERENCES profile(profile_id) ON DELETE RESTRICT,
       CONSTRAINT task_permission_updated_by_fk FOREIGN KEY (updated_by) REFERENCES profile(profile_id) ON DELETE SET NULL
     );
 
-    CREATE UNIQUE INDEX task_permission_uk1 ON task_permission (role_id) WHERE record_end_date IS NULL;
+    CREATE UNIQUE INDEX task_permission_uk1 ON task_permission (task_id, profile_id) WHERE record_end_date IS NULL;
+    CREATE INDEX task_permission_idx1 ON task_permission (task_id);
+    CREATE INDEX task_permission_idx2 ON task_permission (profile_id);
 
     COMMENT ON TABLE task_permission IS 'Defines the roles/permissions available for a task.';
     COMMENT ON COLUMN task_permission.task_permission_id IS 'System generated surrogate primary key identifier.';
+    COMMENT ON COLUMN task_permission.task_id IS 'Foreign key referencing task.';
+    COMMENT ON COLUMN task_permission.profile_id IS 'Foreign key referencing profile.';
     COMMENT ON COLUMN task_permission.role_id IS 'Foreign key referencing the role associated with this permission.';
     COMMENT ON COLUMN task_permission.record_effective_date IS 'Record level effective date.';
     COMMENT ON COLUMN task_permission.record_end_date IS 'Record level end date.';
@@ -326,7 +338,6 @@ export async function up(knex: Knex): Promise<void> {
       task_profile_id         uuid              DEFAULT gen_random_uuid(),
       task_id                 uuid              NOT NULL,
       profile_id              uuid              NOT NULL,
-      task_permission_id      uuid              NOT NULL,
       record_end_date         timestamptz(6),
       created_at              timestamptz(6)    DEFAULT now() NOT NULL,
       created_by              uuid              NOT NULL,
@@ -335,7 +346,6 @@ export async function up(knex: Knex): Promise<void> {
       CONSTRAINT task_profile_pk PRIMARY KEY (task_profile_id),
       CONSTRAINT task_profile_task_fk FOREIGN KEY (task_id) REFERENCES task(task_id) ON DELETE CASCADE,
       CONSTRAINT task_profile_profile_fk FOREIGN KEY (profile_id) REFERENCES profile(profile_id) ON DELETE CASCADE,
-      CONSTRAINT task_profile_permission_fk FOREIGN KEY (task_permission_id) REFERENCES task_permission(task_permission_id) ON DELETE CASCADE,
       CONSTRAINT task_profile_created_by_fk FOREIGN KEY (created_by) REFERENCES profile(profile_id) ON DELETE RESTRICT,
       CONSTRAINT task_profile_updated_by_fk FOREIGN KEY (updated_by) REFERENCES profile(profile_id) ON DELETE SET NULL
     );
@@ -348,7 +358,6 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN task_profile.task_profile_id IS 'System generated surrogate primary key identifier.';
     COMMENT ON COLUMN task_profile.task_id IS 'Foreign key referencing task.';
     COMMENT ON COLUMN task_profile.profile_id IS 'Foreign key referencing profile.';
-    COMMENT ON COLUMN task_profile.task_permission_id IS 'Foreign key referencing task_permission.';
     COMMENT ON COLUMN task_profile.record_end_date IS 'End date of the record for soft deletes.';
     COMMENT ON COLUMN task_profile.created_at IS 'The datetime the record was created.';
     COMMENT ON COLUMN task_profile.created_by IS 'The id of the profile who created the record.';

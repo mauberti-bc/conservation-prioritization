@@ -5,8 +5,9 @@ import { z } from 'zod';
  */
 export const ProjectPermission = z.object({
   project_permission_id: z.string().uuid(),
-  name: z.string().max(100),
-  description: z.string().max(500).optional()
+  project_id: z.string().uuid(),
+  profile_id: z.string().uuid(),
+  role_id: z.string().uuid()
 });
 
 export type ProjectPermission = z.infer<typeof ProjectPermission>;

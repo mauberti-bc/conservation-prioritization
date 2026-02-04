@@ -90,6 +90,29 @@ export class TaskLayerRepository extends BaseRepository {
   }
 
   /**
+   * Fetches all task layers for the provided task IDs.
+   *
+   * @param {string[]} taskIds
+   * @return {*}  {Promise<TaskLayer[]>}
+   * @memberof TaskLayerRepository
+   */
+  async getTaskLayersByTaskIds(taskIds: string[]): Promise<TaskLayer[]> {
+    if (!taskIds.length) {
+      return [];
+    }
+
+    const sqlStatement = SQL`
+      SELECT task_layer_id, task_id, layer_name, description, mode, importance, threshold
+      FROM task_layer
+      WHERE task_id IN (${taskIds.join(',')})
+    `;
+
+    const response = await this.connection.sql(sqlStatement, TaskLayer);
+
+    return response.rows;
+  }
+
+  /**
    * Deletes a task layer.
    *
    * @param {DeleteTaskLayer} data

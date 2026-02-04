@@ -1,15 +1,16 @@
 import { IDBConnection } from '../database/db';
 import { CreateTask, DeleteTask, Task, UpdateTask, UpdateTaskExecution } from '../models/task';
-import { TaskWithLayers, TaskLayerWithConstraints } from '../models/task.interface';
+import { TaskLayerConstraint } from '../models/task-layer-constraint';
+import { TaskLayerWithConstraints, TaskWithLayers } from '../models/task.interface';
 import { TaskRepository } from '../repositories/task-repository';
 import { TaskTileRepository } from '../repositories/task-tile-repository';
-import { TaskLayerService } from './task-layer-service';
-import { TaskLayerConstraintService } from './task-layer-constraint-service';
-import { DBService } from './db-service';
-import { toPmtilesUrl } from '../utils/pmtiles';
-import { normalizeTaskStatus, normalizeTileStatus } from '../utils/status';
 import { TILE_STATUS } from '../types/status';
 import type { TaskStatusMessage } from '../types/task-status';
+import { toPmtilesUrl } from '../utils/pmtiles';
+import { normalizeTaskStatus, normalizeTileStatus } from '../utils/status';
+import { DBService } from './db-service';
+import { TaskLayerConstraintService } from './task-layer-constraint-service';
+import { TaskLayerService } from './task-layer-service';
 
 /**
  * Service for managing task data.
@@ -89,26 +90,33 @@ export class TaskService extends DBService {
   }
 
   /**
-   * Gets all tasks available to the profile GUID.
+   * Gets all tasks available to the profile ID.
    *
-   * @param {string} profileGuid
+   * @param {string} profileId
    * @return {*}  {Promise<TaskWithLayers[]>}
    * @memberof TaskService
    */
-  async getTasksForProfileGuid(profileGuid: string): Promise<TaskWithLayers[]> {
-    const tasks = await this.taskRepository.getTasksByProfileGuid(profileGuid);
+  async getTasksForProfile(profileId: string): Promise<TaskWithLayers[]> {
+    const tasks = await this.taskRepository.getTasksByProfileId(profileId);
+    const taskIds = tasks.map((task) => task.task_id);
 
-    const tasksWithLayers = await Promise.all(
-      tasks.map(async (task) => {
-        const layers = await this.getTaskLayersWithConstraints(task.task_id);
-        return {
-          ...task,
-          layers
-        };
-      })
-    );
+    if (!taskIds.length) {
+      return [];
+    }
 
-    return tasksWithLayers;
+    const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
+
+    const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
+    for (const layer of layersWithConstraints) {
+      const existing = layersByTaskId.get(layer.task_id) ?? [];
+      existing.push(layer);
+      layersByTaskId.set(layer.task_id, existing);
+    }
+
+    return tasks.map((task) => ({
+      ...task,
+      layers: layersByTaskId.get(task.task_id) ?? []
+    }));
   }
 
   /**
@@ -214,5 +222,38 @@ export class TaskService extends DBService {
     );
 
     return layersWithConstraints;
+  }
+
+  /**
+   * Fetches configured task layers and their constraints for multiple tasks.
+   *
+   * @param {string[]} taskIds
+   * @return {*} {Promise<TaskLayerWithConstraints[]>}
+   * @memberof TaskService
+   */
+  private async getTaskLayersWithConstraintsForTasks(taskIds: string[]): Promise<TaskLayerWithConstraints[]> {
+    const layers = await this.taskLayerService.taskLayerRepository.getTaskLayersByTaskIds(taskIds);
+    const layerIds = layers.map((layer) => layer.task_layer_id);
+
+    if (!layerIds.length) {
+      return [];
+    }
+
+    const constraints =
+      await this.taskLayerConstraintService.taskLayerConstraintRepository.getTaskLayerConstraintsByTaskLayerIds(
+        layerIds
+      );
+
+    const constraintsByLayerId = new Map<string, TaskLayerConstraint[]>();
+    for (const constraint of constraints) {
+      const existing = constraintsByLayerId.get(constraint.task_layer_id) ?? [];
+      existing.push(constraint);
+      constraintsByLayerId.set(constraint.task_layer_id, existing);
+    }
+
+    return layers.map((layer) => ({
+      ...layer,
+      constraints: constraintsByLayerId.get(layer.task_layer_id) ?? []
+    }));
   }
 }
