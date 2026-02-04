@@ -37,7 +37,9 @@ export const HomePage = () => {
 
   const pmtilesUrls = useMemo(() => {
     const statusUri =
-      taskStatus?.tile?.status === TILE_STATUS.COMPLETED && taskStatus.tile.uri ? taskStatus.tile.uri : null;
+      taskStatus?.tile?.status === TILE_STATUS.COMPLETED && taskStatus.tile.pmtiles_uri
+        ? taskStatus.tile.pmtiles_uri
+        : null;
     const fallbackUri = taskDataLoader.data?.tileset_uri ?? null;
     const resolvedUri = statusUri ?? fallbackUri;
 

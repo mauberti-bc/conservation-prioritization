@@ -6,11 +6,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
  *
  * @example
  * const { searchParams, setSearchParams } = useSearchParams<HomeQueryParams>();
- * searchParams.set(QUERY_PARAM.VIEW, 'new');
+ * searchParams.set(QUERY_PARAM.VIEW, 'tasks');
  * setSearchParams(searchParams);
  *
  * @example
- * type MyType = { [QUERY_PARAM.VIEW]?: 'new' | 'tasks' }
+ * type MyType = { [QUERY_PARAM.VIEW]?: 'tasks' }
  * const { searchParams, setSearchParams } = useSearchParams<MyType>();
  * const key1Value = searchParams.get(QUERY_PARAM.VIEW);
  * setSearchParams(searchParams.set(QUERY_PARAM.VIEW, 'tasks'));

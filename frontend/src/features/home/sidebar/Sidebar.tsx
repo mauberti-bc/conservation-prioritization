@@ -1,6 +1,6 @@
-import { mdiArrowLeft } from '@mdi/js';
+import { mdiArrowLeft, mdiPlus } from '@mdi/js';
 import Icon from '@mdi/react';
-import { IconButton, Typography } from '@mui/material';
+import { Button, IconButton, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import { grey } from '@mui/material/colors';
 import Paper from '@mui/material/Paper';
@@ -9,14 +9,15 @@ import { SidebarView } from 'context/sidebarUIContext';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useTaskContext } from 'hooks/useContext';
+import { useProjectContext, useTaskContext } from 'hooks/useContext';
 import { DataLoader } from 'hooks/useDataLoader';
 import { useLayerSearch } from 'hooks/useLayerSearch';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LayerPanel } from '../layer-panel/LayerPanel';
-import { CreateTask } from '../task/create/CreateTask';
 import { EditTask } from '../task/create/EditTask';
 import { SidebarNavigation } from './navigation/SidebarNavigation';
+import { ProjectCreateDialog } from './projects/ProjectCreateDialog';
 import { ProjectList } from './projects/ProjectList';
 import { SidebarSection } from './SidebarSection';
 import { TaskDetailsPanel } from './tasks/TaskDetailsPanel';
@@ -37,11 +38,16 @@ export const Sidebar = ({
   projectsDataLoader,
   isAuthenticated,
 }: SidebarProps) => {
-  const { taskId, taskDataLoader, setFocusedTask, refreshTasks } = useTaskContext();
+  const { taskId, taskDataLoader, setFocusedTask } = useTaskContext();
   const conservationApi = useConservationApi();
+  const navigate = useNavigate();
+  const { refreshProjects } = useProjectContext();
   const [taskSearchTerm, setTaskSearchTerm] = useState('');
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
   const [taskPanelMode, setTaskPanelMode] = useState<'view' | 'edit'>('view');
+  const [projectCreateOpen, setProjectCreateOpen] = useState(false);
+  const [projectCreateError, setProjectCreateError] = useState<string | null>(null);
+  const [projectCreateSaving, setProjectCreateSaving] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedProjectTasks, setSelectedProjectTasks] = useState<GetTaskResponse[]>([]);
   const [projectTasksLoading, setProjectTasksLoading] = useState(false);
@@ -91,6 +97,26 @@ export const Sidebar = ({
 
     return (projectsDataLoader.data ?? []).find((project) => project.project_id === selectedProjectId) ?? null;
   }, [projectsDataLoader.data, selectedProjectId]);
+
+  const handleCreateProject = async (values: { name: string; description: string }) => {
+    try {
+      setProjectCreateSaving(true);
+      setProjectCreateError(null);
+
+      await conservationApi.project.createProject({
+        name: values.name,
+        description: values.description.trim() && values.description,
+      });
+
+      await refreshProjects();
+      setProjectCreateOpen(false);
+    } catch (error) {
+      console.error('Failed to create project', error);
+      setProjectCreateError('Failed to create project. Please try again.');
+    } finally {
+      setProjectCreateSaving(false);
+    }
+  };
 
   useEffect(() => {
     getProjectTasksRef.current = conservationApi.project.getProjectTasks;
@@ -184,18 +210,22 @@ export const Sidebar = ({
             <ComponentSwitch
               value={viewKey}
               map={{
-                new: (
-                  <CreateTask
-                    onTaskCreated={() => {
-                      void refreshTasks();
-                    }}
-                  />
-                ),
                 tasks: (
                   <>
                     {!taskId && (
                       <SidebarSection
                         title="Tasks"
+                        action={
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<Icon path={mdiPlus} size={0.8} />}
+                            onClick={() => {
+                              navigate('/t/new');
+                            }}>
+                            Create Task
+                          </Button>
+                        }
                         onSearch={(term) => {
                           setTaskSearchTerm(term);
                         }}>
@@ -250,6 +280,18 @@ export const Sidebar = ({
                     {!selectedProject && (
                       <SidebarSection
                         title="Projects"
+                        action={
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<Icon path={mdiPlus} size={0.8} />}
+                            onClick={() => {
+                              setProjectCreateError(null);
+                              setProjectCreateOpen(true);
+                            }}>
+                            Create Project
+                          </Button>
+                        }
                         onSearch={(term) => {
                           setProjectSearchTerm(term);
                         }}>
@@ -311,6 +353,16 @@ export const Sidebar = ({
           </Box>
         </Box>
       )}
+      <ProjectCreateDialog
+        open={projectCreateOpen}
+        onCancel={() => {
+          setProjectCreateOpen(false);
+          setProjectCreateError(null);
+        }}
+        onSave={handleCreateProject}
+        isSaving={projectCreateSaving}
+        error={projectCreateError}
+      />
     </Box>
   );
 };

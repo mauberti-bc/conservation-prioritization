@@ -4,14 +4,11 @@ import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import { SidebarView } from 'context/sidebarUIContext';
-import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { TaskDetailsPanel } from '../sidebar/tasks/TaskDetailsPanel';
-import { CreateTask } from '../task/create/CreateTask';
 import { EditTask } from '../task/create/EditTask';
 
 interface MainPanelProps {
   activeView: SidebarView;
-  onTaskCreated?: (task: GetTaskResponse) => void;
   onClose?: () => void;
   taskMode?: 'view' | 'edit';
   taskId?: string | null;
@@ -23,7 +20,7 @@ interface MainPanelProps {
  * @param {MainPanelProps} props
  * @returns {JSX.Element}
  */
-export const MainPanel = ({ activeView, onTaskCreated, onClose, taskMode = 'view', taskId }: MainPanelProps) => {
+export const MainPanel = ({ activeView, onClose, taskMode = 'view', taskId }: MainPanelProps) => {
   return (
     <Box sx={{ height: '100%', position: 'relative' }}>
       {onClose && (
@@ -33,23 +30,12 @@ export const MainPanel = ({ activeView, onTaskCreated, onClose, taskMode = 'view
           </IconButton>
         </Box>
       )}
-      <Box sx={{ height: '100%', overflow: 'hidden' }}>
-        {renderMainPanel(activeView, onTaskCreated, taskMode, taskId)}
-      </Box>
+      <Box sx={{ height: '100%', overflow: 'hidden' }}>{renderMainPanel(activeView, taskMode, taskId)}</Box>
     </Box>
   );
 };
 
-const renderMainPanel = (
-  activeView: SidebarView,
-  onTaskCreated?: (task: GetTaskResponse) => void,
-  taskMode: 'view' | 'edit' = 'view',
-  taskId?: string | null
-) => {
-  if (activeView === 'new') {
-    return <CreateTask onTaskCreated={onTaskCreated} />;
-  }
-
+const renderMainPanel = (activeView: SidebarView, taskMode: 'view' | 'edit' = 'view', taskId?: string | null) => {
   if (activeView === 'tasks') {
     if (taskMode === 'edit') {
       return <EditTask taskId={taskId ?? undefined} />;

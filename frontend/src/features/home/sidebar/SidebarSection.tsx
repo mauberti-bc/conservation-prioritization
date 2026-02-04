@@ -11,6 +11,7 @@ interface SidebarSectionProps {
   children: React.ReactNode;
   placeholder?: string;
   showSearch?: boolean;
+  action?: React.ReactNode;
 }
 
 /**
@@ -19,7 +20,14 @@ interface SidebarSectionProps {
  * @param {SidebarSectionProps} props
  * @returns {JSX.Element}
  */
-export const SidebarSection = ({ title, onSearch, children, placeholder, showSearch = true }: SidebarSectionProps) => {
+export const SidebarSection = ({
+  title,
+  onSearch,
+  children,
+  placeholder,
+  showSearch = true,
+  action,
+}: SidebarSectionProps) => {
   const [value, setValue] = useState('');
 
   const debouncedSearch = useMemo(() => {
@@ -36,9 +44,10 @@ export const SidebarSection = ({ title, onSearch, children, placeholder, showSea
 
   return (
     <Box display="flex" flexDirection="column" gap={2} px={3} py={2} height="100%">
-      <Typography variant="h3" py={1}>
-        {title}
-      </Typography>
+      <Box display="flex" alignItems="center" justifyContent="space-between" gap={2} py={1}>
+        <Typography variant="h3">{title}</Typography>
+        {action}
+      </Box>
       {showSearch && (
         <TextField
           value={value}

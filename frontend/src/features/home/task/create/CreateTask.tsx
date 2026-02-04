@@ -4,7 +4,7 @@ import { Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
-import { Formik } from 'formik';
+import { Formik, useFormikContext } from 'formik';
 import {
   CreateTaskLayer,
   CreateTaskRequest,
@@ -13,7 +13,7 @@ import {
 } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useMapContext, useTaskContext } from 'hooks/useContext';
-import { useEffect, useState } from 'react';
+import { MutableRefObject, useEffect, useState } from 'react';
 import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
 import { taskValidationSchema } from './TaskCreateYup';
 
@@ -32,7 +32,47 @@ interface CreateTaskProps {
   onTaskCreated?: (task: GetTaskResponse) => void;
 }
 
-export const CreateTask = ({ onTaskCreated }: CreateTaskProps) => {
+interface CreateTaskFormProps {
+  onSubmitSuccess?: (task: GetTaskResponse) => void;
+  submitRef?: MutableRefObject<(() => void) | null>;
+  hideInternalActions?: boolean;
+  onSubmittingChange?: (isSubmitting: boolean) => void;
+}
+
+const SubmitRefBinder = ({
+  submitRef,
+  onSubmittingChange,
+  isSubmitting,
+}: {
+  submitRef?: MutableRefObject<(() => void) | null>;
+  onSubmittingChange?: (isSubmitting: boolean) => void;
+  isSubmitting: boolean;
+}) => {
+  const { submitForm } = useFormikContext<TaskCreateFormValues>();
+
+  useEffect(() => {
+    if (!submitRef) {
+      return;
+    }
+    submitRef.current = submitForm;
+  }, [submitForm, submitRef]);
+
+  useEffect(() => {
+    if (!onSubmittingChange) {
+      return;
+    }
+    onSubmittingChange(isSubmitting);
+  }, [isSubmitting, onSubmittingChange]);
+
+  return null;
+};
+
+export const CreateTaskForm = ({
+  onSubmitSuccess,
+  submitRef,
+  hideInternalActions = false,
+  onSubmittingChange,
+}: CreateTaskFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
@@ -77,6 +117,8 @@ export const CreateTask = ({ onTaskCreated }: CreateTaskProps) => {
         layers: mappedLayers,
         geometry: values.geometry.length
           ? values.geometry.map((geometry) => ({
+              name: geometry.name,
+              description: geometry.description,
               geojson: geometry.geojson,
             }))
           : undefined,
@@ -85,7 +127,7 @@ export const CreateTask = ({ onTaskCreated }: CreateTaskProps) => {
       // Call the API to create the task
       const createdTask = await conservationApi.task.createTask(taskData);
       setFocusedTask(createdTask);
-      onTaskCreated?.(createdTask);
+      onSubmitSuccess?.(createdTask);
 
       // Success message
       dialogContext.setSnackbar({
@@ -122,6 +164,11 @@ export const CreateTask = ({ onTaskCreated }: CreateTaskProps) => {
             component="form"
             onSubmit={handleSubmit}
             sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            <SubmitRefBinder
+              submitRef={submitRef}
+              onSubmittingChange={onSubmittingChange}
+              isSubmitting={isSubmitting}
+            />
             <Box
               sx={{
                 flex: 1,
@@ -137,34 +184,40 @@ export const CreateTask = ({ onTaskCreated }: CreateTaskProps) => {
             </Box>
 
             {/* Sticky footer */}
-            <Box
-              mr={0.5}
-              py={2}
-              sx={{
-                boxShadow: '0px -2px 25px 0px rgba(0,0,0,0.05)',
-                position: 'sticky',
-                bottom: 0,
-                backgroundColor: 'white',
-              }}>
-              {/* Submit Button */}
-              <Box mx={3}>
-                <Button
-                  variant="contained"
-                  loading={isSubmitting}
-                  type="submit"
-                  color="primary"
-                  sx={{ flex: 1, py: 2 }}
-                  fullWidth>
-                  Submit
-                </Button>
+            {!hideInternalActions && (
+              <Box
+                mr={0.5}
+                py={2}
+                sx={{
+                  boxShadow: '0px -2px 25px 0px rgba(0,0,0,0.05)',
+                  position: 'sticky',
+                  bottom: 0,
+                  backgroundColor: 'white',
+                }}>
+                {/* Submit Button */}
+                <Box mx={3}>
+                  <Button
+                    variant="contained"
+                    loading={isSubmitting}
+                    type="submit"
+                    color="primary"
+                    sx={{ flex: 1, py: 2 }}
+                    fullWidth>
+                    Submit
+                  </Button>
+                </Box>
+                <Typography variant="body2" textAlign="center" mt={1.5} color="textSecondary">
+                  Your task will begin processing when you submit.
+                </Typography>
               </Box>
-              <Typography variant="body2" textAlign="center" mt={1.5} color="textSecondary">
-                Your task will begin processing when you submit.
-              </Typography>
-            </Box>
+            )}
           </Box>
         );
       }}
     </Formik>
   );
+};
+
+export const CreateTask = ({ onTaskCreated }: CreateTaskProps) => {
+  return <CreateTaskForm onSubmitSuccess={onTaskCreated} />;
 };
