@@ -154,7 +154,7 @@ export const CreateTaskSchema: OpenAPIV3.SchemaObject = {
  */
 export const GetTaskSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
-  required: ['task_id', 'name', 'description', 'layers'],
+  required: ['task_id', 'name', 'description', 'status', 'layers'],
   properties: {
     task_id: {
       type: 'string',
@@ -168,6 +168,28 @@ export const GetTaskSchema: OpenAPIV3.SchemaObject = {
     description: {
       type: 'string',
       description: 'A description of the task.'
+    },
+    status: {
+      type: 'string',
+      description: 'Execution status for the task lifecycle.',
+      enum: ['pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit']
+    },
+    status_message: {
+      type: 'string',
+      nullable: true,
+      description: 'Optional status message for diagnostics.'
+    },
+    prefect_flow_run_id: {
+      type: 'string',
+      format: 'uuid',
+      nullable: true,
+      description: 'Prefect flow run ID associated with the task.'
+    },
+    prefect_deployment_id: {
+      type: 'string',
+      format: 'uuid',
+      nullable: true,
+      description: 'Prefect deployment ID used to launch the task.'
     },
     layers: {
       type: 'array',
@@ -346,6 +368,26 @@ export const UpdateTaskSchema: OpenAPIV3.SchemaObject = {
           }
         }
       }
+    }
+  }
+};
+
+/**
+ * OpenAPI Schema for internal task status updates.
+ */
+export const TaskStatusUpdateSchema: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  required: ['status'],
+  properties: {
+    status: {
+      type: 'string',
+      description: 'Updated task status.',
+      enum: ['pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit']
+    },
+    message: {
+      type: 'string',
+      nullable: true,
+      description: 'Optional status message for diagnostics.'
     }
   }
 };

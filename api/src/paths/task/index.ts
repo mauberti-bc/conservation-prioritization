@@ -1,13 +1,17 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getDBConnection } from '../../database/db';
+import type { Task, UpdateTaskExecution } from '../../models/task';
 import { CreateTaskRequest } from '../../models/task-orchestrator';
+import type { TaskWithLayers } from '../../models/task.interface';
 import { defaultErrorResponses } from '../../openapi/schemas/http-responses';
 import { CreateTaskSchema, GetTaskSchema } from '../../openapi/schemas/task';
 import { authorizeRequestHandler } from '../../request-handlers/security/authorization';
+import { PrefectService } from '../../services/prefect-service';
 import { TaskOrchestratorService } from '../../services/task-orchestrator-service';
 import { TaskService } from '../../services/task-service';
 import { getLogger } from '../../utils/logger';
+import { buildOptimizationParameters } from '../../utils/task-optimization';
 
 const defaultLog = getLogger(__filename);
 
@@ -63,19 +67,17 @@ export function createTask(): RequestHandler {
     defaultLog.debug({ label: 'createTask' });
 
     const connection = getDBConnection(req.keycloak_token);
+    const payload = req.body as CreateTaskRequest;
+    let taskResponse: TaskWithLayers;
 
     try {
       await connection.open();
 
-      const payload = req.body as CreateTaskRequest;
-
       const taskService = new TaskOrchestratorService(connection);
 
-      const task = await taskService.createTask(payload);
+      taskResponse = await taskService.createTask(payload);
 
       await connection.commit();
-
-      return res.status(201).json(task);
     } catch (error) {
       defaultLog.error({ label: 'createTask', message: 'error', error });
       await connection.rollback();
@@ -83,7 +85,64 @@ export function createTask(): RequestHandler {
     } finally {
       connection.release();
     }
+
+    const prefectService = new PrefectService();
+    const optimizationParameters = buildOptimizationParameters(payload);
+
+    let deploymentId: string;
+    let flowRunId: string;
+
+    try {
+      ({ deploymentId, flowRunId } = await prefectService.submitStrictOptimization(
+        taskResponse.task_id,
+        optimizationParameters
+      ));
+    } catch (error) {
+      defaultLog.error({ label: 'createTask', message: 'prefect submission failed', error });
+
+      await updateTaskExecution(req.keycloak_token, taskResponse.task_id, {
+        status: 'failed_to_submit',
+        status_message: error instanceof Error ? error.message : 'Failed to submit task to Prefect.'
+      });
+
+      throw error;
+    }
+
+    const updatedTask = await updateTaskExecution(req.keycloak_token, taskResponse.task_id, {
+      status: 'submitted',
+      status_message: null,
+      prefect_flow_run_id: flowRunId,
+      prefect_deployment_id: deploymentId
+    });
+
+    return res.status(201).json({ ...taskResponse, ...updatedTask });
   };
+}
+
+/**
+ * Updates task execution metadata using a dedicated connection.
+ *
+ * @param {any} keycloakToken - Keycloak token payload.
+ * @param {string} taskId - Task ID to update.
+ * @param {UpdateTaskExecution} updates - Updates to apply.
+ * @return {*} {Promise<Task>} Updated task record.
+ */
+async function updateTaskExecution(keycloakToken: any, taskId: string, updates: UpdateTaskExecution): Promise<Task> {
+  const statusConnection = getDBConnection(keycloakToken);
+
+  try {
+    await statusConnection.open();
+    const taskService = new TaskService(statusConnection);
+    const updatedTask = await taskService.updateTaskExecution(taskId, updates);
+    await statusConnection.commit();
+    return updatedTask;
+  } catch (error) {
+    defaultLog.error({ label: 'updateTaskExecution', message: 'error', error });
+    await statusConnection.rollback();
+    throw error;
+  } finally {
+    statusConnection.release();
+  }
 }
 
 /**

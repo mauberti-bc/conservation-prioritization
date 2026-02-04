@@ -1,3 +1,7 @@
+import os
+from typing import Optional
+
+import requests
 from dask.distributed import LocalCluster
 from prefect import (
     flow,
@@ -23,6 +27,7 @@ from ..tasks.strict_optimization import (
     ),
 )
 def strict_optimization(
+    task_id: str,
     conditions: OptimizationParameters,
 ):
     """
@@ -35,8 +40,37 @@ def strict_optimization(
     logger.info("Starting strict optimization flow")
     logger.info("Dask dashboard available at http://localhost:8787")
 
-    future = execute_optimization.submit(conditions)
+    update_task_status(task_id, "running")
 
-    future.wait()
+    try:
+        future = execute_optimization.submit(conditions)
+        future.wait()
+        update_task_status(task_id, "completed")
+    except Exception as error:
+        update_task_status(task_id, "failed", str(error))
+        raise
 
     return
+
+
+def update_task_status(task_id: str, status: str, message: Optional[str] = None) -> None:
+    api_url = os.getenv("CONSERVATION_API_URL")
+    api_key = os.getenv("INTERNAL_API_KEY")
+
+    if not api_url:
+        raise ValueError("CONSERVATION_API_URL is not configured for task status updates.")
+
+    if not api_key:
+        raise ValueError("INTERNAL_API_KEY is not configured for task status updates.")
+
+    url = f"{api_url.rstrip('/')}/internal/task/{task_id}/status"
+    payload = {"status": status, "message": message}
+
+    response = requests.post(
+        url,
+        json=payload,
+        headers={"x-internal-api-key": api_key},
+        timeout=10,
+    )
+
+    response.raise_for_status()

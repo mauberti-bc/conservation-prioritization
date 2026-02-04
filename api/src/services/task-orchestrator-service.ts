@@ -42,7 +42,8 @@ export class TaskOrchestratorService {
     // Step 1: Create the task
     const taskData: CreateTask = {
       name: request.name,
-      description: request.description
+      description: request.description,
+      status: 'pending'
     };
     const task = await this.taskService.createTask(taskData);
 

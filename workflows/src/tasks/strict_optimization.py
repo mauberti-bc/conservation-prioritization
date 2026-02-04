@@ -8,7 +8,6 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import pulp
-import rioxarray  # noqa: F401
 import xarray as xr
 from affine import Affine
 from morecantile import defaults

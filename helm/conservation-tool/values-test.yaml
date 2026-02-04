@@ -334,4 +334,7 @@ backgroundServices:
 env:
   NODE_ENV: "development"
   PREFECT_API_URL: "http://prefect-server.fa9440-test.svc.cluster.local:4200/api"
+  PREFECT_API_KEY: ""
+  CONSERVATION_API_URL: ""
+  INTERNAL_API_KEY: ""
   ZARR_STORE_PATH: "/data/output_1000.zarr"

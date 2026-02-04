@@ -1,6 +1,6 @@
 import { SQL } from 'sql-template-strings';
 import { ApiExecuteSQLError } from '../errors/api-error';
-import { CreateTask, DeleteTask, Task, UpdateTask } from '../models/task';
+import { CreateTask, DeleteTask, Task, UpdateTask, UpdateTaskExecution } from '../models/task';
 import { BaseRepository } from './base-repository';
 
 /**
@@ -22,12 +22,14 @@ export class TaskRepository extends BaseRepository {
     const sqlStatement = SQL`
       INSERT INTO task (
         name,
-        description
+        description,
+        status
       ) VALUES (
         ${task.name},
-        ${task.description}
+        ${task.description},
+        ${task.status}
       )
-      RETURNING task_id, name, description, record_effective_date, record_end_date
+      RETURNING task_id, name, description, status, status_message, prefect_flow_run_id, prefect_deployment_id
     `;
 
     const response = await this.connection.sql(sqlStatement, Task);
@@ -49,7 +51,7 @@ export class TaskRepository extends BaseRepository {
   async getTaskById(taskId: string): Promise<Task> {
     const sqlStatement = SQL`
       SELECT
-        task_id, name, description, record_effective_date, record_end_date
+        task_id, name, description, status, status_message, prefect_flow_run_id, prefect_deployment_id
       FROM
         task
       WHERE
@@ -79,7 +81,7 @@ export class TaskRepository extends BaseRepository {
   async getAllTasks(): Promise<Task[]> {
     const sqlStatement = SQL`
       SELECT
-        task_id, name, description, record_effective_date, record_end_date
+        task_id, name, description, status, status_message, prefect_flow_run_id, prefect_deployment_id
       FROM
         task
       WHERE
@@ -109,7 +111,7 @@ export class TaskRepository extends BaseRepository {
         task_id = ${taskId}
       AND
         record_end_date IS NULL
-      RETURNING task_id, name, description, record_effective_date, record_end_date
+      RETURNING task_id, name, description, status, status_message, prefect_flow_run_id, prefect_deployment_id
     `;
 
     const response = await this.connection.sql(sqlStatement, Task);
@@ -144,5 +146,67 @@ export class TaskRepository extends BaseRepository {
     if (response.rowCount !== 1) {
       throw new ApiExecuteSQLError('Failed to delete task', ['TaskRepository->deleteTask', 'Expected rowCount = 1']);
     }
+  }
+
+  /**
+   * Updates task execution metadata like status and Prefect IDs.
+   *
+   * @param {string} taskId - The UUID of the task to update.
+   * @param {UpdateTaskExecution} updates - The execution metadata to update.
+   * @return {*} {Promise<Task>} The updated task.
+   * @memberof TaskRepository
+   */
+  async updateTaskExecution(taskId: string, updates: UpdateTaskExecution): Promise<Task> {
+    const sqlStatement = SQL`UPDATE task SET `;
+    const updateFragments: SQLStatement[] = [];
+
+    if (updates.status !== undefined) {
+      updateFragments.push(SQL`status = ${updates.status}`);
+    }
+
+    if (updates.status_message !== undefined) {
+      updateFragments.push(SQL`status_message = ${updates.status_message}`);
+    }
+
+    if (updates.prefect_flow_run_id !== undefined) {
+      updateFragments.push(SQL`prefect_flow_run_id = ${updates.prefect_flow_run_id}`);
+    }
+
+    if (updates.prefect_deployment_id !== undefined) {
+      updateFragments.push(SQL`prefect_deployment_id = ${updates.prefect_deployment_id}`);
+    }
+
+    if (!updateFragments.length) {
+      throw new ApiExecuteSQLError('No task execution metadata provided to update', [
+        'TaskRepository->updateTaskExecution',
+        'Expected at least one update field'
+      ]);
+    }
+
+    updateFragments.forEach((fragment, index) => {
+      if (index > 0) {
+        sqlStatement.append(SQL`, `);
+      }
+      sqlStatement.append(fragment);
+    });
+
+    sqlStatement.append(SQL`
+      WHERE
+        task_id = ${taskId}
+      AND
+        record_end_date IS NULL
+      RETURNING task_id, name, description, status, status_message, prefect_flow_run_id, prefect_deployment_id
+    `);
+
+    const response = await this.connection.sql(sqlStatement, Task);
+
+    if (response.rowCount !== 1) {
+      throw new ApiExecuteSQLError('Failed to update task execution metadata', [
+        'TaskRepository->updateTaskExecution',
+        'Expected rowCount = 1'
+      ]);
+    }
+
+    return response.rows[0];
   }
 }

@@ -1,5 +1,5 @@
 import { IDBConnection } from '../database/db';
-import { CreateTask, DeleteTask, Task, UpdateTask } from '../models/task';
+import { CreateTask, DeleteTask, Task, UpdateTask, UpdateTaskExecution } from '../models/task';
 import { TaskWithLayers, TaskLayerWithConstraints } from '../models/task.interface';
 import { TaskRepository } from '../repositories/task-repository';
 import { TaskLayerService } from './task-layer-service';
@@ -91,6 +91,18 @@ export class TaskService extends DBService {
    */
   async updateTask(taskId: string, updates: UpdateTask): Promise<Task> {
     return this.taskRepository.updateTask(taskId, updates);
+  }
+
+  /**
+   * Updates task execution metadata including status and Prefect IDs.
+   *
+   * @param {string} taskId - The UUID of the task to update.
+   * @param {UpdateTaskExecution} updates - Execution metadata updates.
+   * @return {*} {Promise<Task>} The updated task.
+   * @memberof TaskService
+   */
+  async updateTaskExecution(taskId: string, updates: UpdateTaskExecution): Promise<Task> {
+    return this.taskRepository.updateTaskExecution(taskId, updates);
   }
 
   /**

@@ -33,5 +33,9 @@ spec:
               value: "{{ .Values.env.PREFECT_API_URL }}"
             - name: ZARR_STORE_PATH
               value: "{{ .Values.env.ZARR_STORE_PATH }}"
+            - name: CONSERVATION_API_URL
+              value: "{{ .Values.env.CONSERVATION_API_URL }}"
+            - name: INTERNAL_API_KEY
+              value: "{{ .Values.env.INTERNAL_API_KEY }}"
           resources:
             {{- toYaml .Values.services.workflows.worker.resources | nindent 12 }}

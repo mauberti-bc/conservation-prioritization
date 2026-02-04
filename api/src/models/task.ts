@@ -1,12 +1,23 @@
 import { z } from 'zod';
 
 /**
+ * Task status enum for lifecycle tracking.
+ */
+export const TaskStatus = z.enum(['pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit']);
+
+export type TaskStatus = z.infer<typeof TaskStatus>;
+
+/**
  * Task Model with core fields.
  */
 export const Task = z.object({
   task_id: z.string().uuid(), // UUID type for task_id
   name: z.string().max(100), // Task name (Max length 100)
-  description: z.string().max(500).nullable() // Task description (Max length 500, optional)
+  description: z.string().max(500).nullable(), // Task description (Max length 500, optional)
+  status: TaskStatus, // Current task status
+  status_message: z.string().max(500).nullable(), // Optional status message
+  prefect_flow_run_id: z.string().uuid().nullable(), // Prefect flow run ID
+  prefect_deployment_id: z.string().uuid().nullable() // Prefect deployment ID
 });
 
 export type Task = z.infer<typeof Task>;
@@ -14,7 +25,12 @@ export type Task = z.infer<typeof Task>;
 /**
  * Type for creating a new task (Excludes `task_id` which is auto-generated).
  */
-export const CreateTask = Task.omit({ task_id: true });
+export const CreateTask = Task.omit({
+  task_id: true,
+  status_message: true,
+  prefect_flow_run_id: true,
+  prefect_deployment_id: true
+});
 
 export type CreateTask = z.infer<typeof CreateTask>;
 
@@ -25,6 +41,22 @@ export const UpdateTask = Task.pick({
   name: true,
   description: true
 }).partial();
+
+/**
+ * Type for updating task execution metadata.
+ */
+export const UpdateTaskExecution = z
+  .object({
+    status: TaskStatus.optional(),
+    status_message: z.string().max(500).nullable().optional(),
+    prefect_flow_run_id: z.string().uuid().nullable().optional(),
+    prefect_deployment_id: z.string().uuid().nullable().optional()
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided to update task execution metadata.'
+  });
+
+export type UpdateTaskExecution = z.infer<typeof UpdateTaskExecution>;
 
 export type UpdateTask = z.infer<typeof UpdateTask>;
 
