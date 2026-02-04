@@ -67,4 +67,16 @@ export class ProjectTaskService extends DBService {
   async deleteProjectTask(data: DeleteProjectTask): Promise<void> {
     return this.projectTaskRepository.deleteProjectTask(data);
   }
+
+  /**
+   * Add one or more tasks to a project.
+   *
+   * @param {string} projectId
+   * @param {string[]} taskIds
+   * @return {*}  {Promise<ProjectTask[]>}
+   * @memberof ProjectTaskService
+   */
+  async addTasksToProject(projectId: string, taskIds: string[]): Promise<ProjectTask[]> {
+    return this.projectTaskRepository.createProjectTasks(projectId, taskIds);
+  }
 }

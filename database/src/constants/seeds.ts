@@ -81,8 +81,53 @@ export const SEED_CONSTANTS = {
   ],
   TASKS: [
     {
-      name: 'Demo Task',
-      description: 'Seeded task for local development',
+      name: 'Coastal Priorities',
+      description: 'Seeded task: coastal habitats and estuaries.',
+      status: 'pending'
+    },
+    {
+      name: 'Interior Corridors',
+      description: 'Seeded task: interior connectivity corridors.',
+      status: 'pending'
+    },
+    {
+      name: 'Watershed Buffers',
+      description: 'Seeded task: riparian buffer prioritization.',
+      status: 'pending'
+    },
+    {
+      name: 'Old Growth Refugia',
+      description: 'Seeded task: old growth persistence areas.',
+      status: 'pending'
+    },
+    {
+      name: 'Wetland Integrity',
+      description: 'Seeded task: wetland condition and services.',
+      status: 'pending'
+    },
+    {
+      name: 'Fire Risk Mitigation',
+      description: 'Seeded task: fuel reduction priority zones.',
+      status: 'pending'
+    },
+    {
+      name: 'Species Richness',
+      description: 'Seeded task: biodiversity hotspots.',
+      status: 'pending'
+    },
+    {
+      name: 'Carbon Storage',
+      description: 'Seeded task: high carbon stock areas.',
+      status: 'pending'
+    },
+    {
+      name: 'Urban Edge Protection',
+      description: 'Seeded task: urban interface conservation.',
+      status: 'pending'
+    },
+    {
+      name: 'Floodplain Resilience',
+      description: 'Seeded task: floodplain function restoration.',
       status: 'pending'
     }
   ],

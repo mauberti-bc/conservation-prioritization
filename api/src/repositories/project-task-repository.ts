@@ -38,6 +38,31 @@ export class ProjectTaskRepository extends BaseRepository {
   }
 
   /**
+   * Create multiple project-task associations.
+   *
+   * @param {string} projectId
+   * @param {string[]} taskIds
+   * @return {*}  {Promise<ProjectTask[]>}
+   * @memberof ProjectTaskRepository
+   */
+  async createProjectTasks(projectId: string, taskIds: string[]): Promise<ProjectTask[]> {
+    if (!taskIds.length) {
+      return [];
+    }
+
+    const sqlStatement = SQL`
+      INSERT INTO project_task (project_id, task_id)
+      SELECT ${projectId}::uuid, unnest(${taskIds}::uuid[])
+      ON CONFLICT (project_id, task_id) DO NOTHING
+      RETURNING project_task_id, project_id, task_id
+    `;
+
+    const response = await this.connection.sql(sqlStatement, ProjectTask);
+
+    return response?.rows || [];
+  }
+
+  /**
    * Fetch a project-task association by its ID.
    *
    * @param {string} projectTaskId

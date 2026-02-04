@@ -4,8 +4,8 @@ import { TaskLayerConstraint } from '../models/task-layer-constraint';
 import { TaskLayerWithConstraints, TaskWithLayers } from '../models/task.interface';
 import { TaskRepository } from '../repositories/task-repository';
 import { TaskTileRepository } from '../repositories/task-tile-repository';
-import { TILE_STATUS } from '../types/status';
-import type { TaskStatusMessage } from '../types/task-status';
+import { TASK_STATUS, TILE_STATUS } from '../types/status';
+import { TaskStatusMessage } from '../types/task-status';
 import { toPmtilesUrl } from '../utils/pmtiles';
 import { normalizeTaskStatus, normalizeTileStatus } from '../utils/status';
 import { DBService } from './db-service';
@@ -175,7 +175,16 @@ export class TaskService extends DBService {
    * @memberof TaskService
    */
   async getTaskStatusSnapshot(taskId: string): Promise<TaskStatusMessage> {
-    const task = await this.taskRepository.getTaskById(taskId);
+    const task = await this.taskRepository.findTaskById(taskId);
+
+    if (!task) {
+      return {
+        task_id: taskId,
+        status: TASK_STATUS.PENDING,
+        tile: null
+      };
+    }
+
     const tile = await this.taskTileRepository.getLatestTaskTileByTaskId(taskId);
     const tileUri = toPmtilesUrl(tile?.uri ?? null);
 

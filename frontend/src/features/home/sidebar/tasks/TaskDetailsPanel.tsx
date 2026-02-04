@@ -1,4 +1,4 @@
-import { mdiArrowLeft, mdiClose } from '@mdi/js';
+import { mdiArrowLeft } from '@mdi/js';
 import Icon from '@mdi/react';
 import { IconButton, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
@@ -54,7 +54,7 @@ export const TaskDetailsPanel = () => {
           {() => {
             return (
               <Box sx={{ overflow: 'auto' }}>
-                <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                <Box display="flex" alignItems="center" justifyContent="space-between" mb={2} p={2}>
                   <IconButton
                     aria-label="Back to tasks"
                     size="small"
@@ -62,14 +62,6 @@ export const TaskDetailsPanel = () => {
                       setFocusedTask(null);
                     }}>
                     <Icon path={mdiArrowLeft} size={1} />
-                  </IconButton>
-                  <IconButton
-                    aria-label="Close task details"
-                    size="small"
-                    onClick={() => {
-                      setFocusedTask(null);
-                    }}>
-                    <Icon path={mdiClose} size={1} />
                   </IconButton>
                 </Box>
                 <Box component="fieldset" disabled sx={{ border: 0, p: 0, m: 0 }}>

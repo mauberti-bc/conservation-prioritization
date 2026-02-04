@@ -4,12 +4,12 @@ import Stack from '@mui/material/Stack';
 import { TASK_STATUS, TILE_STATUS } from 'constants/status';
 import { AuthContext } from 'context/authContext';
 import { useMapContext, useProjectContext, useSidebarUIContext, useTaskContext } from 'hooks/useContext';
-import { useContext, useEffect, useMemo } from 'react';
-import { MainPanel } from './main-panel/MainPanel';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
 import { Sidebar } from './sidebar/Sidebar';
 import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
+import { MainPanel } from './main-panel/MainPanel';
 
 export const HomePage = () => {
   const { drawControlsRef } = useMapContext();
@@ -19,6 +19,8 @@ export const HomePage = () => {
   const { data: taskStatus } = useTaskStatusWebSocket(taskId);
   const authContext = useContext(AuthContext);
   const isAuthenticated = Boolean(authContext?.auth?.isAuthenticated);
+  const [isMainPanelOpen, setIsMainPanelOpen] = useState(false);
+  const [taskPanelMode, setTaskPanelMode] = useState<'view' | 'edit'>('view');
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -33,6 +35,15 @@ export const HomePage = () => {
       void projectsDataLoader.load();
     }
   }, [activeView, isAuthenticated, tasksDataLoader, projectsDataLoader]);
+
+  useEffect(() => {
+    if (activeView === 'tasks') {
+      setIsMainPanelOpen(Boolean(taskId));
+      return;
+    }
+
+    setIsMainPanelOpen(false);
+  }, [activeView, taskId]);
 
   const pmtilesUrls = useMemo(() => {
     const statusUri =
@@ -69,27 +80,46 @@ export const HomePage = () => {
 
   return (
     <Stack flex="1" direction="row" m={0} p={0} overflow="hidden" height="100%">
-      <Box sx={{ width: 360, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ width: 900, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Sidebar
           activeView={activeView}
           onViewChange={setActiveView}
           tasksDataLoader={tasksDataLoader}
           projectsDataLoader={projectsDataLoader}
           isAuthenticated={isAuthenticated}
-          selectedTaskId={taskId}
           onSelectTask={(task) => {
             setFocusedTask(task);
             setActiveView('tasks');
+            setTaskPanelMode('view');
+            setIsMainPanelOpen(true);
           }}
-        />
-      </Box>
-
-      <Box sx={{ width: 520, flexShrink: 0, height: '100%', borderRight: '1px solid', borderColor: 'divider' }}>
-        <MainPanel
-          activeView={activeView}
           onTaskCreated={() => {
             void refreshTasks();
           }}
+          onEditTask={(task) => {
+            setFocusedTask(task);
+            setActiveView('tasks');
+            setTaskPanelMode('edit');
+            setIsMainPanelOpen(true);
+          }}
+          isOverlayOpen={isMainPanelOpen}
+          overlay={
+            <MainPanel
+              activeView={activeView}
+              onTaskCreated={() => {
+                void refreshTasks();
+              }}
+              taskMode={taskPanelMode}
+              taskId={taskId}
+              onClose={() => {
+                if (activeView === 'tasks') {
+                  setFocusedTask(null);
+                  setTaskPanelMode('view');
+                }
+                setIsMainPanelOpen(false);
+              }}
+            />
+          }
         />
       </Box>
 

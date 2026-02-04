@@ -1,5 +1,6 @@
 import { IncomingMessage } from 'http';
 import { Socket } from 'net';
+import { Duplex } from 'stream';
 import { WebSocket, WebSocketServer } from 'ws';
 import { handleTaskStatusChannel, matchTaskStatusChannel } from './websocket-channel/channels/task-status-channel';
 import { getLogger } from '../utils/logger';
@@ -29,17 +30,19 @@ export const webSocketServer = new WebSocketServer({ noServer: true });
  * @param {Socket} socket
  * @param {Buffer} head
  */
-export const handleWebSocketUpgrade = (req: IncomingMessage, socket: Socket, head: Buffer): void => {
+export const handleWebSocketUpgrade = (req: IncomingMessage, socket: Duplex, head: Buffer): void => {
+  // `server.on('upgrade')` provides a Duplex, but ws expects a net.Socket.
+  const netSocket = socket as unknown as Socket;
   const matchedRoute = routes
     .map((route) => ({ route, params: route.match(req) }))
     .find((entry) => entry.params !== null);
 
   if (!matchedRoute || !matchedRoute.params) {
-    socket.destroy();
+    netSocket.destroy();
     return;
   }
 
-  webSocketServer.handleUpgrade(req, socket, head, (ws) => {
+  webSocketServer.handleUpgrade(req, netSocket, head, (ws) => {
     defaultLog.debug({ label: 'websocket-upgrade', route: matchedRoute.route.name });
     void matchedRoute.route.handle(ws, req, matchedRoute.params);
   });

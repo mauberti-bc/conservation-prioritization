@@ -106,7 +106,7 @@ export class TaskLayerConstraintRepository extends BaseRepository {
     const sqlStatement = SQL`
       SELECT task_layer_constraint_id, task_layer_id, type, min, max
       FROM task_layer_constraint
-      WHERE task_layer_id IN (${taskLayerIds.join(',')})
+      WHERE task_layer_id = ANY(${taskLayerIds}::uuid[])
     `;
 
     const response = await this.connection.sql(sqlStatement, TaskLayerConstraint);

@@ -13,6 +13,7 @@ export interface PollingWebsocketChannelOptions<TPayload> {
   fetchPayload: () => Promise<TPayload>;
   shouldClose?: (payload: TPayload) => boolean;
   getFingerprint?: (payload: TPayload) => string;
+  isNonFatalError?: (error: unknown) => boolean;
 }
 
 /**
@@ -32,7 +33,8 @@ export const startPollingWebsocketChannel = async <TPayload>(
     pingIntervalMs = 15000,
     fetchPayload,
     shouldClose,
-    getFingerprint
+    getFingerprint,
+    isNonFatalError
   } = options;
 
   let lastFingerprint: string | null = null;
@@ -84,6 +86,16 @@ export const startPollingWebsocketChannel = async <TPayload>(
         closeSocket();
       }
     } catch (error) {
+      if (isNonFatalError && isNonFatalError(error)) {
+        defaultLog.warn({
+          label,
+          message: 'poll warning',
+          error,
+          remoteAddress: req.socket.remoteAddress
+        });
+        return;
+      }
+
       defaultLog.error({ label, message: 'poll error', error, remoteAddress: req.socket.remoteAddress });
       closeSocket();
     }

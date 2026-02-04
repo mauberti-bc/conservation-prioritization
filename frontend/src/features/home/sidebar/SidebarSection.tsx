@@ -1,7 +1,7 @@
-import { debounce, InputAdornment, TextField, Typography } from '@mui/material';
-import Box from '@mui/material/Box';
 import { mdiMagnify } from '@mdi/js';
 import Icon from '@mdi/react';
+import { debounce, InputAdornment, TextField, Typography } from '@mui/material';
+import Box from '@mui/material/Box';
 import { grey } from '@mui/material/colors';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -36,7 +36,7 @@ export const SidebarSection = ({ title, onSearch, children, placeholder, showSea
 
   return (
     <Box display="flex" flexDirection="column" gap={2} px={3} py={2} height="100%">
-      <Typography variant="h5">{title}</Typography>
+      <Typography variant="h3">{title}</Typography>
       {showSearch && (
         <TextField
           value={value}

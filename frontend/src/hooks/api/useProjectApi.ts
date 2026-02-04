@@ -54,6 +54,17 @@ export const useProjectApi = (axios: AxiosInstance) => {
   };
 
   /**
+   * Add one or more tasks to a project.
+   *
+   * @param {string} projectId - The project UUID.
+   * @param {string[]} taskIds - Task UUIDs to attach to the project.
+   * @return {Promise<void>} Resolves when the tasks are added.
+   */
+  const addTasksToProject = async (projectId: string, taskIds: string[]): Promise<void> => {
+    await axios.post(`/api/project/${projectId}/tasks`, { taskIds });
+  };
+
+  /**
    * Update a project by its ID.
    *
    * @param {string} projectId - The UUID of the project to update.
@@ -85,5 +96,6 @@ export const useProjectApi = (axios: AxiosInstance) => {
     getAllProjects,
     updateProject,
     deleteProject,
+    addTasksToProject,
   };
 };
