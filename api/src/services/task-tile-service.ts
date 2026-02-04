@@ -6,6 +6,8 @@ import { TaskTileRepository } from '../repositories/task-tile-repository';
 import { PrefectService } from './prefect-service';
 import { DBService } from './db-service';
 import { TaskService } from './task-service';
+import { TILE_STATUS } from '../types/status';
+import { normalizeTileStatus } from '../utils/status';
 
 /**
  * Service for managing task tile records.
@@ -56,6 +58,13 @@ export class TaskTileService extends DBService {
    * @memberof TaskTileService
    */
   async createDraftTileAndSubmit(taskId: string): Promise<TaskTile> {
+    const existingTile = await this.taskTileRepository.getLatestTaskTileByTaskId(taskId);
+    const normalizedStatus = normalizeTileStatus(existingTile?.status ?? null);
+
+    if (existingTile && normalizedStatus && [TILE_STATUS.DRAFT, TILE_STATUS.STARTED].includes(normalizedStatus)) {
+      return existingTile;
+    }
+
     const draftTile = await this.createDraftTileRecord(taskId);
     await this.prefectService.submitTaskTile(taskId, draftTile.task_tile_id);
 

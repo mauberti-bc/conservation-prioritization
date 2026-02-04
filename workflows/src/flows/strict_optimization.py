@@ -47,7 +47,6 @@ def strict_optimization(
         future = execute_optimization.submit(task_id, conditions)
         future.wait()
         update_task_status(task_id, "completed")
-        trigger_tile_job(task_id)
     except Exception as error:
         update_task_status(task_id, "failed", str(error))
         raise
@@ -84,26 +83,3 @@ def update_task_status(task_id: str, status: str, message: Optional[str] = None)
 
         time.sleep(0.5 * attempt)
 
-
-def trigger_tile_job(task_id: str) -> None:
-    api_url = os.getenv("CONSERVATION_API_URL")
-    api_key = os.getenv("INTERNAL_API_KEY")
-
-    if not api_url:
-        raise ValueError("CONSERVATION_API_URL is not configured for task tile submission.")
-
-    if not api_key:
-        raise ValueError("INTERNAL_API_KEY is not configured for task tile submission.")
-
-    url = f"{api_url.rstrip('/')}/internal/task/{task_id}/tile"
-
-    for attempt in range(1, 6):
-        response = requests.post(url, headers={"x-internal-api-key": api_key}, timeout=10)
-
-        if response.ok:
-            return
-
-        if attempt == 5:
-            response.raise_for_status()
-
-        time.sleep(0.5 * attempt)
