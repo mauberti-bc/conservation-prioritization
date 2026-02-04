@@ -254,6 +254,7 @@ services:
         mc mb --ignore-existing myminio/${OBJECT_STORE_BUCKET_NAME};
         mc mb --ignore-existing myminio/${QUARANTINE_OBJECT_STORE_BUCKET_NAME};
         mc admin config set myminio api cors_allow_origin='*' cors_allow_methods='GET,PUT,POST,DELETE,HEAD' cors_allow_headers='*' cors_expose_headers='ETag,Content-Range,Accept-Ranges,Content-Length' cors_max_age=3000;
+        mc admin service restart myminio;
         echo "Buckets created and global CORS configured successfully"
 
 networks:
