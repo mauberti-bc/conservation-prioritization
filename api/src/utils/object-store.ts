@@ -7,6 +7,7 @@ import {
   PutObjectCommandOutput,
   S3Client
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'stream';
 
 export interface ObjectStoreConfig {
@@ -50,6 +51,19 @@ export const getObjectStoreConfig = (): ObjectStoreConfig => {
     prefix,
     forcePathStyle
   };
+};
+
+/**
+ * Returns the public endpoint used by clients (e.g. localhost for MinIO in dev).
+ */
+export const getObjectStorePublicEndpoint = (): string | null => {
+  const endpoint = process.env.OBJECT_STORE_PUBLIC_ENDPOINT;
+
+  if (!endpoint) {
+    return null;
+  }
+
+  return normalizeEndpoint(endpoint);
 };
 
 /**
@@ -105,6 +119,65 @@ export const parseUri = (uri: string): { bucket: string; key: string } => {
     bucket: parts[0],
     key: parts.slice(1).join('/')
   };
+};
+
+/**
+ * Generate a presigned GET URL for an object in the configured object store.
+ *
+ * @param {string} bucket
+ * @param {string} key
+ * @param {number} [expiresInSeconds]
+ * @return {*}  {Promise<string | null>}
+ */
+export const getPresignedObjectUrl = async (
+  bucket: string,
+  key: string,
+  expiresInSeconds = 300
+): Promise<string | null> => {
+  if (!bucket || !key) {
+    return null;
+  }
+
+  const client = getObjectStoreClient();
+
+  const signedUrl = await getSignedUrl(
+    client,
+    new GetObjectCommand({
+      Bucket: bucket,
+      Key: key
+    }),
+    {
+      expiresIn: expiresInSeconds
+    }
+  );
+
+  return rewriteSignedUrlForPublicEndpoint(signedUrl);
+};
+
+/**
+ * Rewrites a signed URL to use a public endpoint when configured.
+ *
+ * @param {string} signedUrl
+ * @return {*}  {string}
+ */
+const rewriteSignedUrlForPublicEndpoint = (signedUrl: string): string => {
+  const publicEndpoint = getObjectStorePublicEndpoint();
+
+  if (!publicEndpoint) {
+    return signedUrl;
+  }
+
+  try {
+    const signed = new URL(signedUrl);
+    const publicUrl = new URL(publicEndpoint);
+
+    signed.protocol = publicUrl.protocol;
+    signed.host = publicUrl.host;
+
+    return signed.toString();
+  } catch {
+    return signedUrl;
+  }
 };
 
 /**
