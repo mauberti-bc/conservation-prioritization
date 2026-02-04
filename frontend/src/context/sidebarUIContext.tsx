@@ -1,16 +1,16 @@
-import { createContext, PropsWithChildren, useCallback, useEffect, useMemo } from 'react';
+import { createContext, PropsWithChildren, useCallback, useMemo } from 'react';
 import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
 import { TypedURLSearchParams, useSearchParams } from 'hooks/useSearchParams';
 
 export type SidebarView = 'new' | 'tasks' | 'projects' | 'layers';
 
 export interface ISidebarUIContext {
-  activeView: SidebarView;
-  setActiveView: (view: SidebarView) => void;
+  activeView: SidebarView | null;
+  setActiveView: (view: SidebarView | null) => void;
 }
 
 export const SidebarUIContext = createContext<ISidebarUIContext>({
-  activeView: 'new',
+  activeView: null,
   setActiveView: () => undefined,
 });
 
@@ -19,18 +19,12 @@ export const SidebarUIContext = createContext<ISidebarUIContext>({
  */
 export const SidebarUIContextProvider = (props: PropsWithChildren<Record<never, any>>) => {
   const { searchParams, setSearchParams } = useSearchParams<HomeQueryParams>();
-  const activeView = (searchParams.get(QUERY_PARAM.VIEW) as SidebarView) ?? 'new';
-
-  useEffect(() => {
-    if (!searchParams.get(QUERY_PARAM.VIEW)) {
-      setSearchParams(searchParams.set(QUERY_PARAM.VIEW, 'new'));
-    }
-  }, [searchParams, setSearchParams]);
+  const activeView = (searchParams.get(QUERY_PARAM.VIEW) as SidebarView) ?? null;
 
   const setActiveView = useCallback(
-    (view: SidebarView) => {
+    (view: SidebarView | null) => {
       const nextParams = new TypedURLSearchParams<HomeQueryParams>(window.location.search);
-      nextParams.setOrDelete(QUERY_PARAM.VIEW, view);
+      nextParams.setOrDelete(QUERY_PARAM.VIEW, view ?? undefined);
       setSearchParams(nextParams);
     },
     [setSearchParams]

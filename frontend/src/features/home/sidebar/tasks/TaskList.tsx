@@ -112,7 +112,7 @@ export const TaskList = ({
             No tasks available
           </Typography>
         }>
-        <List dense>
+        <List dense sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {tasks.map((task) => (
             <TaskListItem
               key={task.task_id}
@@ -139,7 +139,7 @@ export const TaskList = ({
             <ProjectList
               projects={projectOptions}
               isLoading={projectsDataLoader.isLoading}
-              onSelectTask={() => {
+              onSelectProject={() => {
                 return;
               }}
               selectable

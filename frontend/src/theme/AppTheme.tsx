@@ -230,7 +230,6 @@ export const appTheme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          minWidth: '6rem',
           borderRadius: '4px',
           textTransform: 'capitalize',
           padding: '10px 5px !important',

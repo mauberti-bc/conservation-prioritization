@@ -5,12 +5,17 @@ import { SidebarView } from 'context/sidebarUIContext';
 import React from 'react';
 
 interface SidebarNavigationProps {
-  activeView: SidebarView;
-  onViewChange: (newView: SidebarView) => void;
+  activeView: SidebarView | null;
+  onViewChange: (newView: SidebarView | null) => void;
 }
 
 export const SidebarNavigation = ({ activeView, onViewChange }: SidebarNavigationProps) => {
-  const handleChange = (_event: React.SyntheticEvent, newValue: SidebarView) => {
+  const handleTabClick = (newValue: SidebarView) => {
+    if (activeView === newValue) {
+      onViewChange(null);
+      return;
+    }
+
     onViewChange(newValue);
   };
 
@@ -18,8 +23,7 @@ export const SidebarNavigation = ({ activeView, onViewChange }: SidebarNavigatio
     <Box>
       <Tabs
         orientation="vertical"
-        value={activeView}
-        onChange={handleChange}
+        value={activeView ?? false}
         indicatorColor="primary"
         textColor="primary"
         sx={{
@@ -32,19 +36,41 @@ export const SidebarNavigation = ({ activeView, onViewChange }: SidebarNavigatio
             textTransform: 'none',
           },
         }}>
-        <Tab value="new" icon={<Icon path={mdiPlus} size={1} />} iconPosition="start" label="New Task" />
+        <Tab
+          value="new"
+          icon={<Icon path={mdiPlus} size={1} />}
+          iconPosition="start"
+          label="New Task"
+          onClick={() => {
+            handleTabClick('new');
+          }}
+        />
         <Tab
           value="tasks"
           icon={<Icon path={mdiClipboardClockOutline} size={1} />}
           iconPosition="start"
           label="Tasks"
+          onClick={() => {
+            handleTabClick('tasks');
+          }}
         />
-        <Tab value="projects" icon={<Icon path={mdiFolderOutline} size={1} />} iconPosition="start" label="Projects" />
+        <Tab
+          value="projects"
+          icon={<Icon path={mdiFolderOutline} size={1} />}
+          iconPosition="start"
+          label="Projects"
+          onClick={() => {
+            handleTabClick('projects');
+          }}
+        />
         <Tab
           value="layers"
           icon={<Icon path={mdiLayersTripleOutline} size={1} />}
           iconPosition="start"
           label="Layers"
+          onClick={() => {
+            handleTabClick('layers');
+          }}
         />
       </Tabs>
     </Box>

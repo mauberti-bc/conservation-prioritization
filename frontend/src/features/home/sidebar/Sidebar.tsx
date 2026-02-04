@@ -1,29 +1,31 @@
+import { mdiArrowLeft } from '@mdi/js';
+import Icon from '@mdi/react';
+import { IconButton, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
+import { ComponentSwitch } from 'components/ComponentSwitch';
 import { SidebarView } from 'context/sidebarUIContext';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
+import { useTaskContext } from 'hooks/useContext';
 import { DataLoader } from 'hooks/useDataLoader';
 import { useLayerSearch } from 'hooks/useLayerSearch';
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { LayerPanel } from '../layer-panel/LayerPanel';
 import { CreateTask } from '../task/create/CreateTask';
+import { EditTask } from '../task/create/EditTask';
 import { SidebarNavigation } from './navigation/SidebarNavigation';
 import { ProjectList } from './projects/ProjectList';
 import { SidebarSection } from './SidebarSection';
+import { TaskDetailsPanel } from './tasks/TaskDetailsPanel';
 import { TaskList } from './tasks/TaskList';
 
 interface SidebarProps {
-  activeView: SidebarView;
-  onViewChange: (newView: SidebarView) => void;
+  activeView: SidebarView | null;
+  onViewChange: (newView: SidebarView | null) => void;
   tasksDataLoader: DataLoader<[], GetTaskResponse[], unknown>;
   projectsDataLoader: DataLoader<[], GetProjectResponse[], unknown>;
   isAuthenticated: boolean;
-  onSelectTask: (task: GetTaskResponse) => void;
-  onTaskCreated?: () => void;
-  onEditTask?: (task: GetTaskResponse) => void;
-  overlay?: ReactNode;
-  isOverlayOpen?: boolean;
 }
 
 export const Sidebar = ({
@@ -32,15 +34,12 @@ export const Sidebar = ({
   tasksDataLoader,
   projectsDataLoader,
   isAuthenticated,
-  onSelectTask,
-  onTaskCreated,
-  onEditTask,
-  overlay,
-  isOverlayOpen = false,
 }: SidebarProps) => {
-  // Task selection state comes from TaskContext; Sidebar only renders lists.
+  const { taskId, taskDataLoader, setFocusedTask, refreshTasks } = useTaskContext();
   const [taskSearchTerm, setTaskSearchTerm] = useState('');
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const [taskPanelMode, setTaskPanelMode] = useState<'view' | 'edit'>('view');
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const {
     layers,
     loading: layersLoading,
@@ -79,6 +78,14 @@ export const Sidebar = ({
     });
   }, [projectSearchTerm, projectsDataLoader.data]);
 
+  const selectedProject = useMemo(() => {
+    if (!selectedProjectId) {
+      return null;
+    }
+
+    return (projectsDataLoader.data ?? []).find((project) => project.project_id === selectedProjectId) ?? null;
+  }, [projectsDataLoader.data, selectedProjectId]);
+
   useEffect(() => {
     if (activeView !== 'layers') {
       return;
@@ -91,7 +98,14 @@ export const Sidebar = ({
     searchLayers('');
   }, [activeView, isAuthenticated, searchLayers]);
 
+  useEffect(() => {
+    if (activeView !== 'projects') {
+      setSelectedProjectId(null);
+    }
+  }, [activeView]);
+
   const navWidth = 180;
+  const viewKey = activeView ?? 'none';
 
   return (
     <Box display="flex" height="100%" zIndex={8} width="100%" position="relative">
@@ -109,80 +123,147 @@ export const Sidebar = ({
         <SidebarNavigation activeView={activeView} onViewChange={onViewChange} />
       </Paper>
 
-      {/* Sidebar content */}
-      <Box
-        component={Paper}
-        elevation={1}
-        sx={{
-          boxSizing: 'border-box',
-          flex: 1,
-          minWidth: 0,
-          borderRadius: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}>
-        <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-          {activeView === 'new' && (
-            <CreateTask
-              onTaskCreated={() => {
-                onTaskCreated?.();
+      {activeView && (
+        <Box
+          component={Paper}
+          elevation={1}
+          sx={{
+            boxSizing: 'border-box',
+            flex: 1,
+            minWidth: 0,
+            borderRadius: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+          <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <ComponentSwitch
+              value={viewKey}
+              map={{
+                new: (
+                  <CreateTask
+                    onTaskCreated={() => {
+                      void refreshTasks();
+                    }}
+                  />
+                ),
+                tasks: (
+                  <>
+                    {!taskId && (
+                      <SidebarSection
+                        title="Tasks"
+                        onSearch={(term) => {
+                          setTaskSearchTerm(term);
+                        }}>
+                        <TaskList
+                          tasks={filteredTasks}
+                          isLoading={tasksDataLoader.isLoading}
+                          onSelectTask={(task) => {
+                            setFocusedTask(task);
+                            setTaskPanelMode('view');
+                            onViewChange('tasks');
+                          }}
+                          onEditTask={(task) => {
+                            setFocusedTask(task);
+                            setTaskPanelMode('edit');
+                            onViewChange('tasks');
+                          }}
+                        />
+                      </SidebarSection>
+                    )}
+                    {taskId && taskPanelMode === 'view' && <TaskDetailsPanel />}
+                    {taskId && taskPanelMode === 'edit' && (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                        <Box display="flex" alignItems="center" gap={1} mb={2} p={2}>
+                          <IconButton
+                            aria-label="Back to tasks"
+                            size="small"
+                            onClick={() => {
+                              setFocusedTask(null);
+                              setTaskPanelMode('view');
+                            }}>
+                            <Icon path={mdiArrowLeft} size={1} />
+                          </IconButton>
+                          <Typography
+                            variant="subtitle1"
+                            fontWeight={600}
+                            sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {taskDataLoader.data?.name ?? 'Edit task'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, minHeight: 0 }}>
+                          <EditTask taskId={taskId} />
+                        </Box>
+                      </Box>
+                    )}
+                  </>
+                ),
+                projects: (
+                  <>
+                    {!selectedProject && (
+                      <SidebarSection
+                        title="Projects"
+                        onSearch={(term) => {
+                          setProjectSearchTerm(term);
+                        }}>
+                        <ProjectList
+                          projects={filteredProjects}
+                          isLoading={projectsDataLoader.isLoading}
+                          onSelectProject={(project) => {
+                            setSelectedProjectId(project.project_id);
+                          }}
+                        />
+                      </SidebarSection>
+                    )}
+                    {selectedProject && (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                        <Box display="flex" alignItems="center" gap={1} mb={2} p={2}>
+                          <IconButton
+                            aria-label="Back to projects"
+                            size="small"
+                            onClick={() => {
+                              setSelectedProjectId(null);
+                            }}>
+                            <Icon path={mdiArrowLeft} size={1} />
+                          </IconButton>
+                          <Typography
+                            variant="subtitle1"
+                            fontWeight={600}
+                            sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {selectedProject.name}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                          <TaskList
+                            tasks={selectedProject.tasks ?? []}
+                            isLoading={false}
+                            onSelectTask={(task) => {
+                              setFocusedTask(task);
+                              setTaskPanelMode('view');
+                              onViewChange('tasks');
+                            }}
+                            enableActions={false}
+                            enableProjectDialog={false}
+                          />
+                        </Box>
+                      </Box>
+                    )}
+                  </>
+                ),
+                layers: (
+                  <SidebarSection
+                    title="Layers"
+                    onSearch={(term) => {
+                      if (isAuthenticated) {
+                        searchLayers(term);
+                      }
+                    }}>
+                    <LayerPanel layers={layers} isLoading={layersLoading} error={layersError} />
+                  </SidebarSection>
+                ),
               }}
             />
-          )}
-          {activeView === 'tasks' && (
-            <SidebarSection
-              title="Tasks"
-              onSearch={(term) => {
-                setTaskSearchTerm(term);
-              }}>
-              <TaskList
-                tasks={filteredTasks}
-                isLoading={tasksDataLoader.isLoading}
-                onSelectTask={onSelectTask}
-                onEditTask={onEditTask}
-              />
-            </SidebarSection>
-          )}
-          {activeView === 'projects' && (
-            <SidebarSection
-              title="Projects"
-              onSearch={(term) => {
-                setProjectSearchTerm(term);
-              }}>
-              <ProjectList
-                projects={filteredProjects}
-                isLoading={projectsDataLoader.isLoading}
-                onSelectTask={onSelectTask}
-              />
-            </SidebarSection>
-          )}
-          {activeView === 'layers' && (
-            <SidebarSection
-              title="Layers"
-              onSearch={(term) => {
-                if (isAuthenticated) {
-                  searchLayers(term);
-                }
-              }}>
-              <LayerPanel layers={layers} isLoading={layersLoading} error={layersError} />
-            </SidebarSection>
-          )}
-        </Box>
-      </Box>
-
-      {isOverlayOpen && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: `${navWidth}px`,
-            right: 0,
-            zIndex: 10,
-            backgroundColor: 'background.paper',
-          }}>
-          {overlay}
+          </Box>
         </Box>
       )}
     </Box>

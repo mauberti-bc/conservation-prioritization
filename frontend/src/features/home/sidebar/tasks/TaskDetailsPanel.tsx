@@ -1,13 +1,9 @@
 import { mdiArrowLeft } from '@mdi/js';
 import Icon from '@mdi/react';
-import { IconButton, Typography } from '@mui/material';
+import { Chip, Divider, IconButton, Stack, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
-import { TaskCreateForm, TaskCreateFormValues } from 'features/home/task/create/form/TaskCreateForm';
-import { Formik } from 'formik';
 import { useTaskContext } from 'hooks/useContext';
-import { useMemo } from 'react';
-import { mapTaskResponseToCreateFormValues } from 'utils/task-mapping';
 
 /**
  * View-only task detail panel that renders the task form disabled.
@@ -15,12 +11,7 @@ import { mapTaskResponseToCreateFormValues } from 'utils/task-mapping';
 export const TaskDetailsPanel = () => {
   const { taskDataLoader, taskId, setFocusedTask } = useTaskContext();
 
-  const initialValues = useMemo<TaskCreateFormValues | null>(() => {
-    if (!taskDataLoader.data) {
-      return null;
-    }
-    return mapTaskResponseToCreateFormValues(taskDataLoader.data);
-  }, [taskDataLoader.data]);
+  const task = taskDataLoader.data;
 
   return (
     <LoadingGuard
@@ -38,45 +29,111 @@ export const TaskDetailsPanel = () => {
       }>
       <LoadingGuard
         isLoading={false}
-        hasNoData={Boolean(taskDataLoader.error || !initialValues)}
+        hasNoData={Boolean(taskDataLoader.error || !task)}
         hasNoDataFallback={
           <Box p={3}>
             <Typography color="error">Failed to load task.</Typography>
           </Box>
         }>
-        <Formik
-          initialValues={initialValues as TaskCreateFormValues}
-          enableReinitialize
-          onSubmit={() => undefined}
-          validateOnChange={false}
-          validateOnMount={false}
-          validateOnBlur={false}>
-          {() => {
-            return (
-              <Box sx={{ overflow: 'auto' }}>
-                <Box display="flex" alignItems="center" gap={1} mb={2} p={2}>
-                  <IconButton
-                    aria-label="Back to tasks"
-                    size="small"
-                    onClick={() => {
-                      setFocusedTask(null);
+        <Box sx={{ overflow: 'auto' }}>
+          <Box display="flex" alignItems="center" gap={1} mb={2} p={2}>
+            <IconButton
+              aria-label="Back to tasks"
+              size="small"
+              onClick={() => {
+                setFocusedTask(null);
+              }}>
+              <Icon path={mdiArrowLeft} size={1} />
+            </IconButton>
+            <Typography
+              variant="subtitle1"
+              fontWeight={600}
+              sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {task?.name ?? 'Task details'}
+            </Typography>
+          </Box>
+
+          <Box px={3} pb={3} display="flex" flexDirection="column" gap={3}>
+            <Stack gap={1}>
+              <Typography variant="overline" color="text.secondary">
+                Summary
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                {task?.status && <Chip size="small" label={task.status} color="primary" />}
+                {task?.variant && <Chip size="small" label={`Variant: ${task.variant}`} />}
+                {task?.resampling && <Chip size="small" label={`Resampling: ${task.resampling}`} />}
+                {typeof task?.resolution === 'number' && <Chip size="small" label={`Resolution: ${task.resolution}`} />}
+              </Stack>
+              <Typography variant="body2" color="text.secondary">
+                {task?.description || 'No description provided.'}
+              </Typography>
+            </Stack>
+
+            <Divider />
+
+            <Stack gap={2}>
+              <Typography variant="overline" color="text.secondary">
+                Layers
+              </Typography>
+              {(task?.layers ?? []).length === 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  No layers configured.
+                </Typography>
+              )}
+              {(task?.layers ?? []).map((layer) => {
+                const constraints = layer.constraints ?? [];
+                return (
+                  <Box
+                    key={layer.task_layer_id}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      p: 2,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1,
                     }}>
-                    <Icon path={mdiArrowLeft} size={1} />
-                  </IconButton>
-                  <Typography
-                    variant="subtitle1"
-                    fontWeight={600}
-                    sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {taskDataLoader.data?.name ?? 'Task details'}
-                  </Typography>
-                </Box>
-                <Box component="fieldset" disabled sx={{ border: 0, p: 0, m: 0 }}>
-                  <TaskCreateForm isReadOnly />
-                </Box>
-              </Box>
-            );
-          }}
-        </Formik>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                      <Typography fontWeight={600}>{layer.layer_name}</Typography>
+                      <Chip size="small" label={layer.mode} />
+                      {typeof layer.importance === 'number' && (
+                        <Chip size="small" label={`Importance: ${layer.importance}`} />
+                      )}
+                      {typeof layer.threshold === 'number' && (
+                        <Chip size="small" label={`Threshold: ${layer.threshold}`} />
+                      )}
+                    </Stack>
+                    {layer.description && (
+                      <Typography variant="body2" color="text.secondary">
+                        {layer.description}
+                      </Typography>
+                    )}
+                    <Stack gap={0.5}>
+                      <Typography variant="caption" color="text.secondary">
+                        Constraints
+                      </Typography>
+                      {constraints.length === 0 && (
+                        <Typography variant="body2" color="text.secondary">
+                          None
+                        </Typography>
+                      )}
+                      {constraints.map((constraint) => {
+                        const min = constraint.min ?? '–';
+                        const max = constraint.max ?? '–';
+                        return (
+                          <Typography key={constraint.task_layer_constraint_id} variant="body2">
+                            {constraint.type}: {min} to {max}
+                          </Typography>
+                        );
+                      })}
+                    </Stack>
+                  </Box>
+                );
+              })}
+            </Stack>
+          </Box>
+        </Box>
       </LoadingGuard>
     </LoadingGuard>
   );
