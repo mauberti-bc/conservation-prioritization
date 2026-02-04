@@ -3,6 +3,7 @@ import { InviteProfilesRequest, InviteProfilesResponse } from 'hooks/interfaces/
 import {
   CreateTaskRequest,
   GetTaskResponse,
+  GetTasksResponse,
   PublishDashboardRequest,
   PublishDashboardResponse,
   UpdateTaskStatusRequest,
@@ -49,8 +50,8 @@ export const useTaskApi = (axios: AxiosInstance) => {
    * @param {ApiPaginationRequestOptions} [pagination] - Optional pagination parameters.
    * @return {Promise<GetTaskResponse[]>} A list of tasks.
    */
-  const getAllTasks = async (pagination?: ApiPaginationRequestOptions): Promise<GetTaskResponse[]> => {
-    const { data } = await axios.get<GetTaskResponse[]>('/api/task', {
+  const getAllTasks = async (pagination?: ApiPaginationRequestOptions): Promise<GetTasksResponse> => {
+    const { data } = await axios.get<GetTasksResponse>('/api/task', {
       params: pagination,
       paramsSerializer: (params) => qs.stringify(params),
     });
@@ -77,7 +78,7 @@ export const useTaskApi = (axios: AxiosInstance) => {
    * @return {Promise<GetTaskResponse>} The updated task.
    */
   const updateTaskStatus = async (taskId: string, updates: UpdateTaskStatusRequest): Promise<GetTaskResponse> => {
-    const { data } = await axios.put<GetTaskResponse>(`/api/task/${taskId}/status`, updates);
+    const { data } = await axios.put<GetTaskResponse>(`/api/task/${taskId}/status/`, updates);
     return data;
   };
 

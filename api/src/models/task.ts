@@ -4,7 +4,15 @@ import { Geometry } from './geometry';
 /**
  * Task status enum for lifecycle tracking.
  */
-export const TaskStatus = z.enum(['pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit']);
+export const TaskStatus = z.enum([
+  'draft',
+  'pending',
+  'submitted',
+  'running',
+  'completed',
+  'failed',
+  'failed_to_submit'
+]);
 
 export type TaskStatus = z.infer<typeof TaskStatus>;
 

@@ -5,11 +5,13 @@ import { HTTP500 } from '../../errors/http-error';
 import { PrefectSubmissionError } from '../../errors/prefect-error';
 import { CreateTaskRequest } from '../../models/task-orchestrator';
 import { defaultErrorResponses } from '../../openapi/schemas/http-responses';
+import { paginationRequestQueryParamSchema, paginationResponseSchema } from '../../openapi/schemas/pagination';
 import { CreateTaskSchema, GetTaskSchema } from '../../openapi/schemas/task';
 import { authorizeRequestHandler } from '../../request-handlers/security/authorization';
 import { TaskOrchestratorService } from '../../services/task-orchestrator-service';
 import { TaskService } from '../../services/task-service';
 import { getLogger } from '../../utils/logger';
+import { ensureCompletePaginationOptions, makePaginationOptionsFromRequest } from '../../utils/pagination';
 
 const defaultLog = getLogger(__filename);
 
@@ -119,14 +121,22 @@ GET.apiDoc = {
       Bearer: []
     }
   ],
+  parameters: [...paginationRequestQueryParamSchema],
   responses: {
     200: {
       description: 'List of tasks returned successfully.',
       content: {
         'application/json': {
           schema: {
-            type: 'array',
-            items: GetTaskSchema
+            type: 'object',
+            required: ['tasks', 'pagination'],
+            properties: {
+              tasks: {
+                type: 'array',
+                items: GetTaskSchema
+              },
+              pagination: paginationResponseSchema
+            }
           }
         }
       }
@@ -152,8 +162,21 @@ export function getTasks(): RequestHandler {
       const profileId = connection.profileId();
 
       const taskService = new TaskService(connection);
+      const paginationRequest = makePaginationOptionsFromRequest(req);
+      const pagination =
+        ensureCompletePaginationOptions({
+          page: paginationRequest.page ?? 1,
+          limit: paginationRequest.limit ?? 25,
+          sort: paginationRequest.sort ?? 'created_at',
+          order: paginationRequest.order ?? 'desc'
+        }) ?? {
+          page: 1,
+          limit: 25,
+          sort: 'created_at',
+          order: 'desc'
+        };
 
-      const tasks = await taskService.getTasksForProfile(profileId);
+      const tasks = await taskService.getTasksForProfilePaginated(profileId, pagination);
 
       await connection.commit();
 

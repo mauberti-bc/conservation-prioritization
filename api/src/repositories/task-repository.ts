@@ -1,5 +1,6 @@
 import { SQL, SQLStatement } from 'sql-template-strings';
 import { ApiExecuteSQLError } from '../errors/api-error';
+import { ApiPaginationOptions } from '../models/pagination';
 import { CreateTask, DeleteTask, Task, UpdateTask, UpdateTaskExecution } from '../models/task';
 import { BaseRepository } from './base-repository';
 
@@ -154,6 +155,86 @@ export class TaskRepository extends BaseRepository {
     const response = await this.connection.sql(sqlStatement, Task);
 
     return response.rows;
+  }
+
+  /**
+   * Fetches tasks available to a profile ID via task permissions with pagination.
+   *
+   * @param {string} profileId
+   * @param {ApiPaginationOptions} pagination
+   * @return {*}  {Promise<{ tasks: Task[]; total: number }>}
+   * @memberof TaskRepository
+   */
+  async getTasksByProfileIdPaginated(
+    profileId: string,
+    pagination: ApiPaginationOptions
+  ): Promise<{ tasks: Task[]; total: number }> {
+    const sortField = this.resolveTaskSortField(pagination.sort);
+    const sortOrder = pagination.order === 'asc' ? 'ASC' : 'DESC';
+    const offset = (pagination.page - 1) * pagination.limit;
+
+    const countStatement = SQL`
+      SELECT COUNT(*)::int AS total
+      FROM task t
+      JOIN task_profile tp ON tp.task_id = t.task_id
+      JOIN task_permission tperm ON tperm.task_id = t.task_id AND tperm.profile_id = tp.profile_id
+      JOIN role r ON r.role_id = tperm.role_id
+      WHERE tp.profile_id = ${profileId}
+      AND tp.record_end_date IS NULL
+      AND tperm.record_end_date IS NULL
+      AND r.record_end_date IS NULL
+      AND t.record_end_date IS NULL
+    `;
+
+    const countResponse = await this.connection.sql(countStatement);
+    const total = countResponse.rows?.[0]?.total ?? 0;
+
+    const sqlStatement = SQL`
+      SELECT
+        t.task_id,
+        t.name,
+        t.description,
+        t.tileset_uri,
+        t.output_uri,
+        t.status,
+        t.status_message,
+        t.prefect_flow_run_id,
+        t.prefect_deployment_id
+      FROM task t
+      JOIN task_profile tp ON tp.task_id = t.task_id
+      JOIN task_permission tperm ON tperm.task_id = t.task_id AND tperm.profile_id = tp.profile_id
+      JOIN role r ON r.role_id = tperm.role_id
+      WHERE tp.profile_id = ${profileId}
+      AND tp.record_end_date IS NULL
+      AND tperm.record_end_date IS NULL
+      AND r.record_end_date IS NULL
+      AND t.record_end_date IS NULL
+    `;
+
+    sqlStatement.append(` ORDER BY ${sortField} ${sortOrder}`);
+    sqlStatement.append(SQL` LIMIT ${pagination.limit} OFFSET ${offset}`);
+
+    const response = await this.connection.sql(sqlStatement, Task);
+
+    return {
+      tasks: response.rows,
+      total
+    };
+  }
+
+  /**
+   * Resolve a safe task sort field from the provided sort key.
+   *
+   * @param {string | undefined} sort
+   * @return {*}  {string}
+   * @memberof TaskRepository
+   */
+  private resolveTaskSortField(sort?: string): string {
+    if (sort === 'created_at') {
+      return 't.created_at';
+    }
+
+    return 't.created_at';
   }
 
   /**

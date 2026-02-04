@@ -1,7 +1,7 @@
 import { IDBConnection } from '../database/db';
 import { PrefectSubmissionError } from '../errors/prefect-error';
 import { CreateGeometry } from '../models/geometry';
-import { CreateTask } from '../models/task';
+import { CreateTask, TaskStatus } from '../models/task';
 import { CreateTaskLayer } from '../models/task-layer';
 import { CreateTaskLayerConstraint } from '../models/task-layer-constraint';
 import { CreateTaskRequest } from '../models/task-orchestrator';
@@ -164,5 +164,101 @@ export class TaskOrchestratorService {
     }
 
     return this.taskService.getTaskById(task.task_id);
+  }
+
+  /**
+   * Resubmits a failed task by re-using its saved configuration.
+   *
+   * @param {string} taskId
+   * @return {*}  {Promise<TaskWithLayers>}
+   * @memberof TaskOrchestratorService
+   */
+  async resubmitTask(taskId: string): Promise<TaskWithLayers> {
+    const task = await this.taskService.getTaskById(taskId);
+
+    const request: CreateTaskRequest = {
+      name: task.name,
+      description: task.description ?? '',
+      layers: task.layers.map((layer) => ({
+        layer_name: layer.layer_name,
+        description: layer.description ?? null,
+        mode: layer.mode,
+        importance: layer.importance ?? null,
+        threshold: layer.threshold ?? null,
+        constraints: layer.constraints.map((constraint) => ({
+          type: constraint.type,
+          min: constraint.min ?? null,
+          max: constraint.max ?? null
+        }))
+      })),
+      resolution: task.resolution ?? undefined,
+      resampling: task.resampling ?? undefined,
+      variant: task.variant ?? undefined,
+      geometry: task.geometries?.map((geometry) => ({
+        name: geometry.name ?? null,
+        description: geometry.description ?? null,
+        geojson: geometry.geojson
+      })),
+      budget: task.budget
+        ? {
+            layer_name: task.budget.layer_name,
+            description: task.budget.description ?? null,
+            mode: task.budget.mode,
+            importance: task.budget.importance ?? null,
+            threshold: task.budget.threshold ?? null,
+            constraints: task.budget.constraints.map((constraint) => ({
+              type: constraint.type,
+              min: constraint.min ?? null,
+              max: constraint.max ?? null
+            }))
+          }
+        : undefined
+    };
+
+    const optimizationParameters = buildOptimizationParameters(request);
+
+    try {
+      const { deploymentId, flowRunId } = await this.prefectService.submitStrictOptimization(
+        task.task_id,
+        optimizationParameters
+      );
+
+      await this.taskService.updateTaskExecution(task.task_id, {
+        status: TASK_STATUS.SUBMITTED,
+        status_message: null,
+        prefect_flow_run_id: flowRunId,
+        prefect_deployment_id: deploymentId
+      });
+    } catch (error) {
+      await this.taskService.updateTaskExecution(task.task_id, {
+        status: TASK_STATUS.FAILED_TO_SUBMIT,
+        status_message: error instanceof Error ? error.message : 'Failed to submit task to Prefect.'
+      });
+
+      throw new PrefectSubmissionError('Failed to submit task to Prefect.');
+    }
+
+    return this.taskService.getTaskById(task.task_id);
+  }
+
+  /**
+   * Retry a task by either resetting it to draft or resubmitting to Prefect.
+   *
+   * @param {string} taskId
+   * @param {TaskStatus} status
+   * @return {*}  {Promise<TaskWithLayers>}
+   * @memberof TaskOrchestratorService
+   */
+  async retryTask(taskId: string, status: TaskStatus): Promise<TaskWithLayers> {
+    if (status !== 'pending' && status !== 'draft') {
+      throw new Error('Status must be pending or draft to retry task.');
+    }
+
+    if (status === 'draft') {
+      await this.taskService.resetExecutionState(taskId, 'draft');
+      return this.taskService.getTaskById(taskId);
+    }
+
+    return this.resubmitTask(taskId);
   }
 }

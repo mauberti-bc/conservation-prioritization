@@ -1,5 +1,6 @@
 import { TaskStatusValue } from 'constants/status';
-import { Feature, Geometry, GeoJsonProperties } from 'geojson';
+import { Feature, GeoJsonProperties, Geometry } from 'geojson';
+import { ApiPaginationResponseParams } from 'types/pagination';
 import { DashboardAccessScheme, DashboardResponse } from './useDashboardApi.interface';
 
 export enum OPTIMIZATION_VARIANT {
@@ -43,7 +44,7 @@ export interface ITask {
  */
 export interface CreateTaskRequest {
   name: string; // Name of the task
-  description: string; // Description of the task
+  description: string | null; // Description of the task
   layers: CreateTaskLayer[]; // Layers for the task (each layer can have constraints)
   resolution: number; // Resolution for the task
   resampling: RESAMPLING; // Resampling method
@@ -88,6 +89,14 @@ export interface GetTaskResponse {
   variant?: OPTIMIZATION_VARIANT;
   layers: TaskLayer[]; // List of layers with constraints
   budget?: TaskLayer | null;
+}
+
+/**
+ * Response interface for a paginated task list.
+ */
+export interface GetTasksResponse {
+  tasks: GetTaskResponse[];
+  pagination: ApiPaginationResponseParams;
 }
 
 /**

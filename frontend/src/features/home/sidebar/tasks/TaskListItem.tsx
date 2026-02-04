@@ -1,4 +1,12 @@
-import { mdiAccountPlus, mdiAlertCircleOutline, mdiDelete, mdiFolderPlusOutline, mdiPencil } from '@mdi/js';
+import {
+  mdiAccountPlus,
+  mdiAlertCircleOutline,
+  mdiDelete,
+  mdiFolderPlusOutline,
+  mdiPencil,
+  mdiPlay,
+  mdiProgressClock,
+} from '@mdi/js';
 import Icon from '@mdi/react';
 import { Box, Chip, CircularProgress, IconButton, ListItem, ListItemText, Typography } from '@mui/material';
 import { IconMenuButton } from 'components/button/IconMenuButton';
@@ -86,9 +94,87 @@ export const TaskListItem = ({
     });
   };
 
+  const handleStopTask = async () => {
+    dialogContext.setYesNoDialog({
+      open: true,
+      dialogTitle: 'Stop task?',
+      dialogText: `Stop "${task.name}" and save it as a draft?`,
+      onYes: async () => {
+        try {
+          dialogContext.setYesNoDialog({ open: false });
+          await conservationApi.task.updateTaskStatus(task.task_id, { status: TASK_STATUS.DRAFT });
+          await refreshTasks();
+        } catch (error) {
+          console.error(error);
+          dialogContext.setSnackbar({
+            open: true,
+            snackbarMessage: 'Failed to stop task.',
+          });
+        }
+      },
+      onNo: () => {
+        dialogContext.setYesNoDialog({ open: false });
+      },
+    });
+  };
+
+  const handleStartDraftTask = async () => {
+    dialogContext.setYesNoDialog({
+      open: true,
+      dialogTitle: 'Submit task?',
+      dialogText: `Submit "${task.name}" to Prefect?`,
+      onYes: async () => {
+        try {
+          dialogContext.setYesNoDialog({ open: false });
+          await conservationApi.task.updateTaskStatus(task.task_id, { status: TASK_STATUS.PENDING });
+          await refreshTasks();
+        } catch (error) {
+          console.error(error);
+          dialogContext.setSnackbar({
+            open: true,
+            snackbarMessage: 'Failed to submit task.',
+          });
+        }
+      },
+      onNo: () => {
+        dialogContext.setYesNoDialog({ open: false });
+      },
+    });
+  };
+
   const renderStatusIndicator = () => {
+    if (task.status === TASK_STATUS.DRAFT) {
+      return (
+        <IconButton
+          size="small"
+          onClick={(event) => {
+            event.stopPropagation();
+            void handleStartDraftTask();
+          }}>
+          <Icon path={mdiPlay} size={1} />
+        </IconButton>
+      );
+    }
+
     if (task.status === TASK_STATUS.PENDING) {
-      return <CircularProgress size={16} thickness={7} />;
+      return (
+        <IconButton
+          size="small"
+          onClick={(event) => {
+            event.stopPropagation();
+            void handleStopTask();
+          }}>
+          <Icon path={mdiProgressClock} size={1} />
+        </IconButton>
+      );
+    }
+
+    if (task.status === TASK_STATUS.SUBMITTED) {
+      return <CircularProgress size={20} thickness={5} />;
+    }
+
+    if (task.status === TASK_STATUS.RUNNING) {
+      return <CircularProgress size={20} thickness={5} />;
     }
 
     if (task.status === TASK_STATUS.FAILED || task.status === TASK_STATUS.FAILED_TO_SUBMIT) {
@@ -133,6 +219,7 @@ export const TaskListItem = ({
           setHoveredTilesetUri(null);
         }}
         onClick={() => {
+          setHoveredTilesetUri(null);
           onSelectTask(task);
         }}>
         <ListItemText
@@ -143,7 +230,7 @@ export const TaskListItem = ({
           }
           secondary={task.description ?? undefined}
         />
-        <Box display="flex" alignItems="center" ml="auto" mx={3}>
+        <Box display="flex" alignItems="center" justifyContent="center" ml="auto" mx={3} sx={{ minWidth: 32 }}>
           {renderStatusIndicator()}
         </Box>
       </InteractiveListItemButton>

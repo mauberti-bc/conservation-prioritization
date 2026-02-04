@@ -7,10 +7,11 @@ import Paper from '@mui/material/Paper';
 import { ComponentSwitch } from 'components/ComponentSwitch';
 import { SidebarView } from 'context/sidebarUIContext';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
-import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
+import { GetTaskResponse, GetTasksResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useProjectContext, useTaskContext } from 'hooks/useContext';
 import { DataLoader } from 'hooks/useDataLoader';
+import { ApiPaginationRequestOptions } from 'types/pagination';
 import { useLayerSearch } from 'hooks/useLayerSearch';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +27,7 @@ import { TaskList } from './tasks/TaskList';
 interface SidebarProps {
   activeView: SidebarView | null;
   onViewChange: (newView: SidebarView | null) => void;
-  tasksDataLoader: DataLoader<[], GetTaskResponse[], unknown>;
+  tasksDataLoader: DataLoader<[pagination?: ApiPaginationRequestOptions], GetTasksResponse, unknown>;
   projectsDataLoader: DataLoader<[], GetProjectResponse[], unknown>;
   isAuthenticated: boolean;
 }
@@ -64,7 +65,7 @@ export const Sidebar = ({
 
   const filteredTasks = useMemo(() => {
     const term = taskSearchTerm.trim().toLowerCase();
-    const tasks = tasksDataLoader.data ?? [];
+    const tasks = tasksDataLoader.data?.tasks ?? [];
 
     if (!term) {
       return tasks;
