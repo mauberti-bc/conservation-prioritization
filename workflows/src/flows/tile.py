@@ -6,11 +6,18 @@ import numpy as np
 import requests
 from affine import Affine
 from prefect import flow, get_run_logger
+from prefect.runtime import flow_run
 
 from ..tasks.strict_optimization import (
     create_pmtiles_archive,
     resolution_to_max_zoom,
-    upload_file_to_object_store,
+)
+from ..utils.object_store import (
+    build_object_key,
+    download_object,
+    get_object_store_config,
+    parse_uri,
+    put_object,
 )
 
 
@@ -30,7 +37,7 @@ def _get_internal_api_config() -> tuple[str, str]:
 def _update_task_tile_status(
     task_tile_id: str,
     status: str,
-    uri: Optional[str] = None,
+    pmtiles_uri: Optional[str] = None,
     content_type: Optional[str] = None,
     error_code: Optional[str] = None,
     error_message: Optional[str] = None,
@@ -39,8 +46,8 @@ def _update_task_tile_status(
     url = f"{api_url}/tile/{task_tile_id}/status"
 
     payload: Dict[str, Any] = {"status": status}
-    if uri is not None:
-        payload["uri"] = uri
+    if pmtiles_uri is not None:
+        payload["pmtiles_uri"] = pmtiles_uri
     if content_type is not None:
         payload["content_type"] = content_type
     if error_code is not None:
@@ -52,9 +59,7 @@ def _update_task_tile_status(
     response.raise_for_status()
 
 
-def _load_solution_artifacts(task_id: str) -> tuple[np.ndarray, Affine, str, int]:
-    artifact_path = Path("/data/outputs") / task_id / "solution.npz"
-
+def _load_solution_artifacts(artifact_path: Path) -> tuple[np.ndarray, Affine, str, int]:
     if not artifact_path.exists():
         raise FileNotFoundError(f"Solution artifact not found at {artifact_path}")
 
@@ -69,6 +74,32 @@ def _load_solution_artifacts(task_id: str) -> tuple[np.ndarray, Affine, str, int
     return solution, transform, crs, resolution
 
 
+def _get_task_output_uri(task_id: str) -> str:
+    api_url, api_key = _get_internal_api_config()
+    url = f"{api_url}/internal/task/{task_id}"
+    response = requests.get(url, headers={"x-internal-api-key": api_key}, timeout=10)
+    response.raise_for_status()
+
+    data = response.json()
+    output_uri = data.get("output_uri")
+
+    if not output_uri:
+        raise ValueError("Task output_uri is missing; strict optimization has not completed.")
+
+    return output_uri
+
+
+def _download_solution_artifact(task_id: str, output_uri: str) -> Path:
+    bucket, key = parse_uri(output_uri)
+    output_dir = Path("/data/outputs") / task_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+    artifact_path = output_dir / "solution.npz"
+
+    download_object(bucket=bucket, key=key, local_path=str(artifact_path))
+
+    return artifact_path
+
+
 @flow(name="task_tile")
 def tile_task(task_id: str, task_tile_id: str):
     """
@@ -79,7 +110,9 @@ def tile_task(task_id: str, task_tile_id: str):
     try:
         _update_task_tile_status(task_tile_id, "STARTED")
 
-        solution, transform, crs, resolution = _load_solution_artifacts(task_id)
+        output_uri = _get_task_output_uri(task_id)
+        artifact_path = _download_solution_artifact(task_id, output_uri)
+        solution, transform, crs, resolution = _load_solution_artifacts(artifact_path)
 
         output_dir = Path("/data/outputs") / task_id
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -97,13 +130,29 @@ def tile_task(task_id: str, task_tile_id: str):
         future.wait()
 
         logger.info("Uploading PMTiles to object storage...")
-        uri = upload_file_to_object_store(
+        config = get_object_store_config()
+        run_id = str(flow_run.id)
+        object_key = build_object_key(
+            config.prefix,
+            f"tasks/{task_id}/tile/{run_id}/tiles.pmtiles",
+        )
+        put_response = put_object(
             local_path=str(pmtiles_path),
-            task_id=task_id,
+            bucket=config.bucket,
+            key=object_key,
             content_type="application/vnd.pmtiles",
+            metadata={
+                "task_id": task_id,
+                "prefect_flow_run_id": run_id,
+            },
         )
 
-        _update_task_tile_status(task_tile_id, "COMPLETED", uri=uri, content_type="application/vnd.pmtiles")
+        _update_task_tile_status(
+            task_tile_id,
+            "COMPLETED",
+            pmtiles_uri=put_response["uri"],
+            content_type="application/vnd.pmtiles",
+        )
 
         logger.info("Tiling completed successfully")
     except Exception as error:

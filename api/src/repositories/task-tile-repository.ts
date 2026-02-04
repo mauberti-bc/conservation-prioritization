@@ -23,15 +23,15 @@ export class TaskTileRepository extends BaseRepository {
       INSERT INTO task_tile (
         task_id,
         status,
-        uri,
+        pmtiles_uri,
         content_type
       ) VALUES (
         ${taskTile.task_id},
         ${taskTile.status},
-        ${taskTile.uri ?? null},
+        ${taskTile.pmtiles_uri ?? null},
         ${taskTile.content_type ?? null}
       )
-      RETURNING task_tile_id, task_id, status, uri, content_type, started_at, completed_at, failed_at, error_code, error_message
+      RETURNING task_tile_id, task_id, status, pmtiles_uri, content_type, started_at, completed_at, failed_at, error_code, error_message
     `;
 
     const response = await this.connection.sql(sqlStatement, TaskTile);
@@ -62,8 +62,8 @@ export class TaskTileRepository extends BaseRepository {
       updateFragments.push(SQL`status = ${updates.status}`);
     }
 
-    if (updates.uri !== undefined) {
-      updateFragments.push(SQL`uri = ${updates.uri}`);
+    if (updates.pmtiles_uri !== undefined) {
+      updateFragments.push(SQL`pmtiles_uri = ${updates.pmtiles_uri}`);
     }
 
     if (updates.content_type !== undefined) {
@@ -94,7 +94,7 @@ export class TaskTileRepository extends BaseRepository {
 
     sqlStatement.append(SQL`
       WHERE task_tile_id = ${taskTileId}
-      RETURNING task_tile_id, task_id, status, uri, content_type, started_at, completed_at, failed_at, error_code, error_message
+      RETURNING task_tile_id, task_id, status, pmtiles_uri, content_type, started_at, completed_at, failed_at, error_code, error_message
     `);
 
     const response = await this.connection.sql(sqlStatement, TaskTile);
@@ -118,7 +118,7 @@ export class TaskTileRepository extends BaseRepository {
    */
   async getTaskTileById(taskTileId: string): Promise<TaskTile> {
     const sqlStatement = SQL`
-      SELECT task_tile_id, task_id, status, uri, content_type, started_at, completed_at, failed_at, error_code, error_message
+      SELECT task_tile_id, task_id, status, pmtiles_uri, content_type, started_at, completed_at, failed_at, error_code, error_message
       FROM task_tile
       WHERE task_tile_id = ${taskTileId}
     `;
@@ -144,7 +144,7 @@ export class TaskTileRepository extends BaseRepository {
    */
   async getLatestTaskTileByTaskId(taskId: string): Promise<TaskTile | null> {
     const sqlStatement = SQL`
-      SELECT task_tile_id, task_id, status, uri, content_type, started_at, completed_at, failed_at, error_code, error_message
+      SELECT task_tile_id, task_id, status, pmtiles_uri, content_type, started_at, completed_at, failed_at, error_code, error_message
       FROM task_tile
       WHERE task_id = ${taskId}
       ORDER BY created_at DESC
