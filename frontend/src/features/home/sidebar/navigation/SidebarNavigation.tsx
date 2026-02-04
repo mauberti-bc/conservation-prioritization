@@ -1,16 +1,16 @@
 import { mdiClipboardClockOutline, mdiFolderOutline, mdiLayersTripleOutline, mdiPlus } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Box, Tab, Tabs } from '@mui/material';
-import { ACTIVE_VIEW } from 'features/home/HomePage';
+import { SidebarView } from 'context/sidebarUIContext';
 import React from 'react';
 
 interface SidebarNavigationProps {
-  activeView: ACTIVE_VIEW | null;
-  onViewChange: (newView: ACTIVE_VIEW | null) => void;
+  activeView: SidebarView;
+  onViewChange: (newView: SidebarView) => void;
 }
 
 export const SidebarNavigation = ({ activeView, onViewChange }: SidebarNavigationProps) => {
-  const handleChange = (_event: React.SyntheticEvent, newValue: ACTIVE_VIEW | null) => {
+  const handleChange = (_event: React.SyntheticEvent, newValue: SidebarView) => {
     onViewChange(newValue);
   };
 

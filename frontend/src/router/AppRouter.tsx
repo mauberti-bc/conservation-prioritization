@@ -1,5 +1,8 @@
 import { DialogContextProvider } from 'context/dialogContext';
+import { LayerSelectionContextProvider } from 'context/layerSelectionContext';
 import { MapContextProvider } from 'context/mapContext';
+import { ProjectContextProvider } from 'context/projectContext';
+import { SidebarUIContextProvider } from 'context/sidebarUIContext';
 import { TaskContextProvider } from 'context/taskContext';
 import { RequestAccessPage } from 'features/access/RequestAccessPage';
 import { HomePage } from 'features/home/HomePage';
@@ -27,9 +30,15 @@ export const AppRouter = () => {
             <DialogContextProvider>
               <MapContextProvider>
                 <BaseLayout>
-                  <TaskContextProvider>
-                    <HomePage />
-                  </TaskContextProvider>
+                  <SidebarUIContextProvider>
+                    <TaskContextProvider>
+                      <ProjectContextProvider>
+                        <LayerSelectionContextProvider>
+                          <HomePage />
+                        </LayerSelectionContextProvider>
+                      </ProjectContextProvider>
+                    </TaskContextProvider>
+                  </SidebarUIContextProvider>
                 </BaseLayout>
               </MapContextProvider>
             </DialogContextProvider>
