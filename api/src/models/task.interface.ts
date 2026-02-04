@@ -16,4 +16,10 @@ export interface TaskLayerWithConstraints extends TaskLayer {
 export interface TaskWithLayers extends Task {
   layers: TaskLayerWithConstraints[];
   geometries: Geometry[];
+  projects?: {
+    project_id: string;
+    name: string;
+    description: string | null;
+    colour: string;
+  }[];
 }

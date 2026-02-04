@@ -17,6 +17,11 @@ export const CreateProjectSchema: OpenAPIV3.SchemaObject = {
       maxLength: 500,
       nullable: true,
       description: 'Project description.'
+    },
+    colour: {
+      type: 'string',
+      maxLength: 7,
+      description: 'Hex colour code for the project.'
     }
   }
 };
@@ -26,7 +31,7 @@ export const CreateProjectSchema: OpenAPIV3.SchemaObject = {
  */
 export const GetProjectSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
-  required: ['project_id', 'name', 'description'],
+  required: ['project_id', 'name', 'description', 'colour'],
   properties: {
     project_id: {
       type: 'string',
@@ -43,6 +48,11 @@ export const GetProjectSchema: OpenAPIV3.SchemaObject = {
       maxLength: 500,
       nullable: true,
       description: 'Project description.'
+    },
+    colour: {
+      type: 'string',
+      maxLength: 7,
+      description: 'Hex colour code for the project.'
     }
   }
 };
@@ -63,6 +73,11 @@ export const UpdateProjectSchema: OpenAPIV3.SchemaObject = {
       maxLength: 500,
       nullable: true,
       description: 'Project description.'
+    },
+    colour: {
+      type: 'string',
+      maxLength: 7,
+      description: 'Hex colour code for the project.'
     }
   }
 };

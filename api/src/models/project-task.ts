@@ -25,3 +25,16 @@ export const DeleteProjectTask = z.object({
 });
 
 export type DeleteProjectTask = z.infer<typeof DeleteProjectTask>;
+
+/**
+ * Project summary joined to a task.
+ */
+export const TaskProjectSummary = z.object({
+  task_id: z.string().uuid(),
+  project_id: z.string().uuid(),
+  name: z.string().max(100),
+  description: z.string().max(500).nullable(),
+  colour: z.string().max(7)
+});
+
+export type TaskProjectSummary = z.infer<typeof TaskProjectSummary>;

@@ -1,6 +1,7 @@
 import { SQL } from 'sql-template-strings';
 import { ApiExecuteSQLError } from '../errors/api-error';
 import { CreateProject, DeleteProject, Project, UpdateProject } from '../models/project';
+import { TaskProjectSummary } from '../models/project-task';
 import { BaseRepository } from './base-repository';
 
 /**
@@ -26,12 +27,14 @@ export class ProjectRepository extends BaseRepository {
     const sqlStatement = SQL`
       INSERT INTO project (
         name,
-        description
+        description,
+        colour
       ) VALUES (
         ${project.name},
-        ${project.description ?? null}
+        ${project.description ?? null},
+        ${project.colour ?? null}
       )
-      RETURNING project_id, name, description
+      RETURNING project_id, name, description, colour
     `;
 
     const response = await this.connection.sql(sqlStatement, Project);
@@ -60,7 +63,7 @@ export class ProjectRepository extends BaseRepository {
   async getProjectById(projectId: string): Promise<Project> {
     const sqlStatement = SQL`
       SELECT
-        project_id, name, description
+        project_id, name, description, colour
       FROM
         project
       WHERE
@@ -95,6 +98,7 @@ export class ProjectRepository extends BaseRepository {
         project.project_id,
         project.name,
         project.description,
+        project.colour,
         COALESCE(task_counts.task_count, 0) AS task_count
       FROM
         project
@@ -127,6 +131,7 @@ export class ProjectRepository extends BaseRepository {
         pr.project_id,
         pr.name,
         pr.description,
+        pr.colour,
         COALESCE(task_counts.task_count, 0) AS task_count
       FROM project pr
       JOIN project_profile pp ON pp.project_id = pr.project_id
@@ -171,7 +176,7 @@ export class ProjectRepository extends BaseRepository {
    */
   async updateProject(projectId: string, updates: UpdateProject): Promise<Project> {
     const sqlStatement = SQL`UPDATE project SET `;
-    const updateFragments: SQLStatement[] = [];
+    const updateFragments = [];
 
     if (updates.name !== undefined) {
       updateFragments.push(SQL`name = ${updates.name}`);
@@ -179,6 +184,10 @@ export class ProjectRepository extends BaseRepository {
 
     if (updates.description !== undefined) {
       updateFragments.push(SQL`description = ${updates.description}`);
+    }
+
+    if (updates.colour !== undefined) {
+      updateFragments.push(SQL`colour = ${updates.colour}`);
     }
 
     if (!updateFragments.length) {
@@ -200,7 +209,7 @@ export class ProjectRepository extends BaseRepository {
         project_id = ${projectId}
       AND
         record_end_date IS NULL
-      RETURNING project_id, name, description
+      RETURNING project_id, name, description, colour
     `);
 
     const response = await this.connection.sql(sqlStatement, Project);
@@ -244,5 +253,35 @@ export class ProjectRepository extends BaseRepository {
         'Expected rowCount = 1'
       ]);
     }
+  }
+
+  /**
+   * Fetch projects associated with the provided task IDs.
+   *
+   * @param {string[]} taskIds
+   * @return {*}  {Promise<TaskProjectSummary[]>}
+   * @memberof ProjectRepository
+   */
+  async getProjectsByTaskIds(taskIds: string[]): Promise<TaskProjectSummary[]> {
+    if (!taskIds.length) {
+      return [];
+    }
+
+    const sqlStatement = SQL`
+      SELECT
+        pt.task_id,
+        p.project_id,
+        p.name,
+        p.description,
+        p.colour
+      FROM project_task pt
+      JOIN project p ON p.project_id = pt.project_id
+      WHERE pt.task_id = ANY(${taskIds}::uuid[])
+      AND p.record_end_date IS NULL
+    `;
+
+    const response = await this.connection.sql(sqlStatement, TaskProjectSummary);
+
+    return response.rows;
   }
 }

@@ -98,7 +98,7 @@ export const TaskListItem = ({
     dialogContext.setYesNoDialog({
       open: true,
       dialogTitle: 'Stop task?',
-      dialogText: `Stop "${task.name}" and save it as a draft?`,
+      dialogText: `Stop "${task.name}"?`,
       onYes: async () => {
         try {
           dialogContext.setYesNoDialog({ open: false });
@@ -224,9 +224,26 @@ export const TaskListItem = ({
         }}>
         <ListItemText
           primary={
-            <Typography fontWeight={700} noWrap>
-              {task.name}
-            </Typography>
+            <Box display="flex" alignItems="center" gap={1} sx={{ minWidth: 0 }}>
+              <Typography fontWeight={700} noWrap>
+                {task.name}
+              </Typography>
+              {task.projects?.length ? (
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  {task.projects.map((project) => (
+                    <Box
+                      key={project.project_id}
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: project.colour,
+                      }}
+                    />
+                  ))}
+                </Box>
+              ) : null}
+            </Box>
           }
           secondary={task.description ?? undefined}
         />

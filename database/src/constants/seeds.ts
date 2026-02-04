@@ -80,15 +80,18 @@ export const SEED_CONSTANTS = {
   PROJECTS: [
     {
       name: 'Coastal Habitat Restoration',
-      description: 'Prioritizes shoreline habitats and estuaries for restoration planning.'
+      description: 'Prioritizes shoreline habitats and estuaries for restoration planning.',
+      colour: '#2f9f90'
     },
     {
       name: 'Interior Forest Connectivity',
-      description: 'Focuses on maintaining wildlife corridors across interior forest landscapes.'
+      description: 'Focuses on maintaining wildlife corridors across interior forest landscapes.',
+      colour: '#6f7fd9'
     },
     {
       name: 'Watershed Resilience',
-      description: 'Evaluates conservation targets for headwater protection and flood resilience.'
+      description: 'Evaluates conservation targets for headwater protection and flood resilience.',
+      colour: '#d47f42'
     }
   ],
   TASKS: [

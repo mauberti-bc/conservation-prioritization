@@ -4,6 +4,7 @@ import { ProfileRepository } from '../repositories/profile-repository';
 import { ProjectRepository } from '../repositories/project-repository';
 import { ProjectPermissionService } from '../services/project-permission-service';
 import { ProjectProfileService } from '../services/project-profile-service';
+import { generateHexColourFromSeed } from '../utils/colour';
 import { normalizeInviteEmails } from '../utils/invite';
 import { PROJECT_ROLE } from './authorization-service.interface';
 import { DBService } from './db-service';
@@ -45,7 +46,8 @@ export class ProjectService extends DBService {
    * @memberof ProjectService
    */
   async createProject(project: CreateProject): Promise<Project> {
-    return this.projectRepository.createProject(project);
+    const colour = project.colour ?? generateHexColourFromSeed(project.name);
+    return this.projectRepository.createProject({ ...project, colour });
   }
 
   /**
@@ -57,7 +59,8 @@ export class ProjectService extends DBService {
    * @memberof ProjectService
    */
   async createProjectWithCreator(project: CreateProject, profileId?: string | null): Promise<Project> {
-    const createdProject = await this.projectRepository.createProject(project);
+    const colour = project.colour ?? generateHexColourFromSeed(project.name);
+    const createdProject = await this.projectRepository.createProject({ ...project, colour });
 
     if (!profileId) {
       return createdProject;

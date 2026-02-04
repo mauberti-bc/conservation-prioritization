@@ -47,7 +47,7 @@ export const ProjectList = ({
     setEditProject(null);
   };
 
-  const handleEditSave = async (values: { name: string; description: string }) => {
+  const handleEditSave = async (values: { name: string; description: string; colour: string }) => {
     if (!editProject) {
       return;
     }
@@ -59,6 +59,7 @@ export const ProjectList = ({
       await conservationApi.project.updateProject(editProject.project_id, {
         name: values.name,
         description: values.description.trim() ? values.description : undefined,
+        colour: values.colour.trim() ? values.colour : undefined,
       });
 
       await refreshProjects();

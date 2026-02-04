@@ -89,9 +89,13 @@ export function updateProject(): RequestHandler {
         updates.name = body.name;
       }
 
-      if (body.description !== undefined) {
-        updates.description = body.description;
-      }
+    if (body.description !== undefined) {
+      updates.description = body.description;
+    }
+
+    if (body.colour !== undefined) {
+      updates.colour = body.colour ?? undefined;
+    }
 
       const project = await projectService.updateProject(projectId, updates);
 

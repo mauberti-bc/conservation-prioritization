@@ -1,14 +1,16 @@
 import { IDBConnection } from '../database/db';
 import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination';
-import { CreateTask, DeleteTask, Task, UpdateTask, UpdateTaskExecution } from '../models/task';
+import { CreateTask, DeleteTask, Task, TaskStatus, UpdateTask, UpdateTaskExecution } from '../models/task';
 import { TaskLayerConstraint } from '../models/task-layer-constraint';
 import { TaskLayerWithConstraints, TaskWithLayers } from '../models/task.interface';
 import { ProfileRepository } from '../repositories/profile-repository';
+import { ProjectRepository } from '../repositories/project-repository';
 import { TaskRepository } from '../repositories/task-repository';
 import { TaskTileRepository } from '../repositories/task-tile-repository';
 import { TASK_STATUS, TILE_STATUS } from '../types/status';
 import { TaskStatusMessage } from '../types/task-status';
 import { normalizeInviteEmails } from '../utils/invite';
+import { makePaginationResponse } from '../utils/pagination';
 import { toPmtilesUrl } from '../utils/pmtiles';
 import { normalizeTaskStatus, normalizeTileStatus } from '../utils/status';
 import { TASK_ROLE } from './authorization-service.interface';
@@ -20,7 +22,6 @@ import { TaskLayerService } from './task-layer-service';
 import { TaskPermissionService } from './task-permission-service';
 import { TaskProfileService } from './task-profile-service';
 import { TaskTileService } from './task-tile-service';
-import { makePaginationResponse } from '../utils/pagination';
 
 /**
  * Service for managing task data.
@@ -39,6 +40,7 @@ export class TaskService extends DBService {
   taskProfileService: TaskProfileService;
   taskPermissionService: TaskPermissionService;
   profileRepository: ProfileRepository;
+  projectRepository: ProjectRepository;
 
   /**
    * Creates an instance of TaskService.
@@ -57,6 +59,7 @@ export class TaskService extends DBService {
     this.taskProfileService = new TaskProfileService(connection);
     this.taskPermissionService = new TaskPermissionService(connection);
     this.profileRepository = new ProfileRepository(connection);
+    this.projectRepository = new ProjectRepository(connection);
   }
 
   /**
@@ -81,11 +84,18 @@ export class TaskService extends DBService {
     const task = await this.taskRepository.getTaskById(taskId);
     const layers = await this.getTaskLayersWithConstraints(taskId);
     const geometries = await this.taskGeometryService.getGeometriesByTaskId(taskId);
+    const taskProjects = await this.projectRepository.getProjectsByTaskIds([taskId]);
 
     return {
       ...task,
       layers,
-      geometries
+      geometries,
+      projects: taskProjects.map((project) => ({
+        project_id: project.project_id,
+        name: project.name,
+        description: project.description,
+        colour: project.colour
+      }))
     };
   }
 
@@ -113,11 +123,13 @@ export class TaskService extends DBService {
     }
 
     const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
+    const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
 
     return tasks.map((task) => ({
       ...task,
       layers: layersByTaskId.get(task.task_id) ?? [],
-      geometries: geometriesByTaskId.get(task.task_id) ?? []
+      geometries: geometriesByTaskId.get(task.task_id) ?? [],
+      projects: projectsByTaskId.get(task.task_id) ?? []
     }));
   }
 
@@ -138,6 +150,7 @@ export class TaskService extends DBService {
 
     const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
     const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
+    const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
 
     const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
     for (const layer of layersWithConstraints) {
@@ -149,7 +162,8 @@ export class TaskService extends DBService {
     return tasks.map((task) => ({
       ...task,
       layers: layersByTaskId.get(task.task_id) ?? [],
-      geometries: geometriesByTaskId.get(task.task_id) ?? []
+      geometries: geometriesByTaskId.get(task.task_id) ?? [],
+      projects: projectsByTaskId.get(task.task_id) ?? []
     }));
   }
 
@@ -174,6 +188,7 @@ export class TaskService extends DBService {
 
     const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
     const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
+    const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
 
     const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
     for (const layer of layersWithConstraints) {
@@ -185,7 +200,8 @@ export class TaskService extends DBService {
     const populatedTasks = tasks.map((task) => ({
       ...task,
       layers: layersByTaskId.get(task.task_id) ?? [],
-      geometries: geometriesByTaskId.get(task.task_id) ?? []
+      geometries: geometriesByTaskId.get(task.task_id) ?? [],
+      projects: projectsByTaskId.get(task.task_id) ?? []
     }));
 
     return {
@@ -212,6 +228,7 @@ export class TaskService extends DBService {
     const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
     const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
     const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
+    const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
 
     for (const layer of layersWithConstraints) {
       const existing = layersByTaskId.get(layer.task_id) ?? [];
@@ -222,8 +239,39 @@ export class TaskService extends DBService {
     return tasks.map((task) => ({
       ...task,
       layers: layersByTaskId.get(task.task_id) ?? [],
-      geometries: geometriesByTaskId.get(task.task_id) ?? []
+      geometries: geometriesByTaskId.get(task.task_id) ?? [],
+      projects: projectsByTaskId.get(task.task_id) ?? []
     }));
+  }
+
+  /**
+   * Build a map of task IDs to project summaries.
+   *
+   * @param {string[]} taskIds
+   * @return {*}  {Promise<Map<string, { project_id: string; name: string; description: string | null; colour: string }[]>>}
+   * @memberof TaskService
+   */
+  private async buildProjectsByTaskId(
+    taskIds: string[]
+  ): Promise<Map<string, { project_id: string; name: string; description: string | null; colour: string }[]>> {
+    const taskProjects = await this.projectRepository.getProjectsByTaskIds(taskIds);
+    const projectsByTaskId = new Map<
+      string,
+      { project_id: string; name: string; description: string | null; colour: string }[]
+    >();
+
+    for (const project of taskProjects) {
+      const existing = projectsByTaskId.get(project.task_id) ?? [];
+      existing.push({
+        project_id: project.project_id,
+        name: project.name,
+        description: project.description,
+        colour: project.colour
+      });
+      projectsByTaskId.set(project.task_id, existing);
+    }
+
+    return projectsByTaskId;
   }
 
   /**
@@ -385,7 +433,7 @@ export class TaskService extends DBService {
     const existingTile = await this.taskTileRepository.getLatestTaskTileByTaskId(taskId);
     const normalizedStatus = normalizeTileStatus(existingTile?.status ?? null);
 
-    if (normalizedStatus && [TILE_STATUS.DRAFT, TILE_STATUS.STARTED].includes(normalizedStatus)) {
+    if (normalizedStatus && (normalizedStatus === TILE_STATUS.DRAFT || normalizedStatus === TILE_STATUS.STARTED)) {
       return;
     }
 

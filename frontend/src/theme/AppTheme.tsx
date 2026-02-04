@@ -31,7 +31,7 @@ export const appTheme = createTheme({
     error: { light: '#e9898cff', main: '#d72f2fff', dark: '#8c0a0eff' },
     text: {
       primary: '#313132',
-      secondary: '#999999ff',
+      secondary: 'rgb(112, 112, 112)',
     },
     action: {
       selected: grey[200],

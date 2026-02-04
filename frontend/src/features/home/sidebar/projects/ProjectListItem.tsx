@@ -80,9 +80,20 @@ export const ProjectListItem = ({
             />
           )}
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography fontWeight={600} sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
-              {project.name}
-            </Typography>
+            <Box display="flex" alignItems="center" gap={1} sx={{ minWidth: 0 }}>
+              <Typography fontWeight={600} sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                {project.name}
+              </Typography>
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  bgcolor: project.colour,
+                  flexShrink: 0,
+                }}
+              />
+            </Box>
             {project.description && (
               <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
                 {project.description}
