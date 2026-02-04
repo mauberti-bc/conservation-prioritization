@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import { ControlPanel } from '../control-panel/ControlPanel';
+import { CreateTaskPage } from '../task/create/CreateTaskPage';
 import { ACTIVE_VIEW } from '../HomePage';
 import { LayerPanel } from '../layer-panel/LayerPanel';
 import { SidebarNavigation } from './navigation/SidebarNavigation';
@@ -38,7 +38,7 @@ export const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
           flexDirection: 'column',
           overflow: 'hidden',
         }}>
-        {activeView === 'new' && <ControlPanel />}
+        {activeView === 'new' && <CreateTaskPage />}
         {activeView === 'layers' && (
           <Box p={3} sx={{ overflow: 'auto' }}>
             <LayerPanel />

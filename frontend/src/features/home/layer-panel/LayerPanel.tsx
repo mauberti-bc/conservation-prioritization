@@ -10,7 +10,7 @@ export const LayerPanel = () => {
   const [searchInput, setSearchInput] = useState('');
 
   // Call the new useLayerSearch hook
-  const { filtered, handleSearch } = useLayerSearch({ debounceMs: 300 });
+  const { layers, search } = useLayerSearch({ debounceMs: 300 });
 
   return (
     <Stack spacing={0} height="100%">
@@ -19,18 +19,18 @@ export const LayerPanel = () => {
         value={searchInput}
         handleChange={(e) => {
           setSearchInput(e.target.value);
-          handleSearch(e.target.value);
+          search(e.target.value);
         }}
       />
 
       {/* Display layers if they are available */}
-      {filtered.length > 0 && (
+      {layers.length > 0 && (
         <>
           <Box display="flex" alignItems="center" my={1}>
             <Checkbox
-              onChange={() => setSelected((prev) => (prev.length < filtered.length ? filtered.map((l) => l.name) : []))}
-              indeterminate={selected.length > 0 && selected.length < filtered.length}
-              checked={selected.length === filtered.length}
+              onChange={() => setSelected((prev) => (prev.length < layers.length ? layers.map((l) => l.name) : []))}
+              indeterminate={selected.length > 0 && selected.length < layers.length}
+              checked={selected.length === layers.length}
             />
             <Typography
               ml={3}
@@ -39,12 +39,12 @@ export const LayerPanel = () => {
               textTransform="uppercase"
               letterSpacing={0.5}
               variant="body2">
-              Layers ({filtered.length})
+              Layers ({layers.length})
             </Typography>
           </Box>
 
           <Box display="flex" flexWrap="wrap" gap={2} sx={{ overflowY: 'auto', maxHeight: '100%' }}>
-            {filtered.map((layer) => (
+            {layers.map((layer) => (
               <LayerCardItem layer={layer} checked={false} />
             ))}
           </Box>
