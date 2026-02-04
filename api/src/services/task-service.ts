@@ -1,6 +1,9 @@
 import { IDBConnection } from '../database/db';
 import { CreateTask, DeleteTask, Task, UpdateTask } from '../models/task';
+import { TaskWithLayers, TaskLayerWithConstraints } from '../models/task.interface';
 import { TaskRepository } from '../repositories/task-repository';
+import { TaskLayerService } from './task-layer-service';
+import { TaskLayerConstraintService } from './task-layer-constraint-service';
 import { DBService } from './db-service';
 
 /**
@@ -12,6 +15,8 @@ import { DBService } from './db-service';
  */
 export class TaskService extends DBService {
   taskRepository: TaskRepository;
+  taskLayerService: TaskLayerService;
+  taskLayerConstraintService: TaskLayerConstraintService;
 
   /**
    * Creates an instance of TaskService.
@@ -22,6 +27,8 @@ export class TaskService extends DBService {
   constructor(connection: IDBConnection) {
     super(connection);
     this.taskRepository = new TaskRepository(connection);
+    this.taskLayerService = new TaskLayerService(connection);
+    this.taskLayerConstraintService = new TaskLayerConstraintService(connection);
   }
 
   /**
@@ -42,8 +49,14 @@ export class TaskService extends DBService {
    * @return {*} {Promise<Task>} The task with the provided ID.
    * @memberof TaskService
    */
-  async getTaskById(taskId: string): Promise<Task> {
-    return this.taskRepository.getTaskById(taskId);
+  async getTaskById(taskId: string): Promise<TaskWithLayers> {
+    const task = await this.taskRepository.getTaskById(taskId);
+    const layers = await this.getTaskLayersWithConstraints(taskId);
+
+    return {
+      ...task,
+      layers
+    };
   }
 
   /**
@@ -52,8 +65,20 @@ export class TaskService extends DBService {
    * @return {*} {Promise<Task[]>} A list of all active tasks.
    * @memberof TaskService
    */
-  async getAllTasks(): Promise<Task[]> {
-    return this.taskRepository.getAllTasks();
+  async getAllTasks(): Promise<TaskWithLayers[]> {
+    const tasks = await this.taskRepository.getAllTasks();
+
+    const tasksWithLayers = await Promise.all(
+      tasks.map(async (task) => {
+        const layers = await this.getTaskLayersWithConstraints(task.task_id);
+        return {
+          ...task,
+          layers
+        };
+      })
+    );
+
+    return tasksWithLayers;
   }
 
   /**
@@ -77,5 +102,31 @@ export class TaskService extends DBService {
    */
   async deleteTask(data: DeleteTask): Promise<void> {
     return this.taskRepository.deleteTask(data);
+  }
+
+  /**
+   * Fetches configured task layers and their constraints.
+   *
+   * @param {string} taskId
+   * @return {*} {Promise<TaskLayerWithConstraints[]>}
+   * @memberof TaskService
+   */
+  private async getTaskLayersWithConstraints(taskId: string): Promise<TaskLayerWithConstraints[]> {
+    const layers = await this.taskLayerService.getTaskLayersByTaskId(taskId);
+
+    const layersWithConstraints = await Promise.all(
+      layers.map(async (layer) => {
+        const constraints = await this.taskLayerConstraintService.getTaskLayerConstraintsByTaskLayerId(
+          layer.task_layer_id
+        );
+
+        return {
+          ...layer,
+          constraints
+        };
+      })
+    );
+
+    return layersWithConstraints;
   }
 }

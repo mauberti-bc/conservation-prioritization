@@ -6,8 +6,9 @@ import { z } from 'zod';
 export const TaskLayerConstraint = z.object({
   task_layer_constraint_id: z.string().uuid(),
   task_layer_id: z.string().uuid(),
-  constraint_name: z.string().max(100),
-  constraint_value: z.string().max(500).nullable()
+  type: z.enum(['percent', 'unit']),
+  min: z.number().nullable().optional(),
+  max: z.number().nullable().optional()
 });
 
 export type TaskLayerConstraint = z.infer<typeof TaskLayerConstraint>;
@@ -15,8 +16,9 @@ export type TaskLayerConstraint = z.infer<typeof TaskLayerConstraint>;
 /** Type for creating a new task layer constraint */
 export const CreateTaskLayerConstraint = z.object({
   task_layer_id: z.string().uuid(),
-  constraint_name: z.string().max(100),
-  constraint_value: z.string().max(500).nullable()
+  type: z.enum(['percent', 'unit']),
+  min: z.number().nullable().optional(),
+  max: z.number().nullable().optional()
 });
 
 export type CreateTaskLayerConstraint = z.infer<typeof CreateTaskLayerConstraint>;

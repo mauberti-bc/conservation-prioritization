@@ -20,9 +20,16 @@ export class TaskLayerRepository extends BaseRepository {
    */
   async createTaskLayer(taskLayer: CreateTaskLayer): Promise<TaskLayer> {
     const sqlStatement = SQL`
-      INSERT INTO task_layer (task_id, layer_name, description)
-      VALUES (${taskLayer.task_id}, ${taskLayer.layer_name}, ${taskLayer.description})
-      RETURNING task_layer_id, task_id, layer_name, description
+      INSERT INTO task_layer (task_id, layer_name, description, mode, importance, threshold)
+      VALUES (
+        ${taskLayer.task_id},
+        ${taskLayer.layer_name},
+        ${taskLayer.description},
+        ${taskLayer.mode},
+        ${taskLayer.importance ?? null},
+        ${taskLayer.threshold ?? null}
+      )
+      RETURNING task_layer_id, task_id, layer_name, description, mode, importance, threshold
     `;
 
     const response = await this.connection.sql(sqlStatement, TaskLayer);
@@ -46,7 +53,7 @@ export class TaskLayerRepository extends BaseRepository {
    */
   async getTaskLayerById(taskLayerId: string): Promise<TaskLayer> {
     const sqlStatement = SQL`
-      SELECT task_layer_id, task_id, layer_name, description
+      SELECT task_layer_id, task_id, layer_name, description, mode, importance, threshold
       FROM task_layer
       WHERE task_layer_id = ${taskLayerId}
     `;
@@ -72,7 +79,7 @@ export class TaskLayerRepository extends BaseRepository {
    */
   async getTaskLayersByTaskId(taskId: string): Promise<TaskLayer[]> {
     const sqlStatement = SQL`
-      SELECT task_layer_id, task_id, layer_name, description
+      SELECT task_layer_id, task_id, layer_name, description, mode, importance, threshold
       FROM task_layer
       WHERE task_id = ${taskId}
     `;

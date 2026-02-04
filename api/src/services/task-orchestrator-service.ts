@@ -1,6 +1,9 @@
 import { IDBConnection } from '../database/db';
-import { CreateTask, Task } from '../models/task';
-import { CreateTaskLayer, CreateTaskLayerConstraint, CreateTaskRequest } from '../models/task-orchestrator';
+import { CreateTask } from '../models/task';
+import { TaskWithLayers } from '../models/task.interface';
+import { CreateTaskRequest } from '../models/task-orchestrator';
+import { CreateTaskLayer } from '../models/task-layer';
+import { CreateTaskLayerConstraint } from '../models/task-layer-constraint';
 import { TaskLayerConstraintService } from './task-layer-constraint-service';
 import { TaskLayerService } from './task-layer-service';
 import { TaskService } from './task-service';
@@ -35,7 +38,7 @@ export class TaskOrchestratorService {
    * @return {*} {Promise<Task>} - The newly created task.
    * @memberof TaskOrchestratorService
    */
-  async createTask(request: CreateTaskRequest): Promise<Task> {
+  async createTask(request: CreateTaskRequest): Promise<TaskWithLayers> {
     // Step 1: Create the task
     const taskData: CreateTask = {
       name: request.name,
@@ -43,24 +46,54 @@ export class TaskOrchestratorService {
     };
     const task = await this.taskService.createTask(taskData);
 
-    // Step 2: Create each layer for the task
+    // Step 2: Create each configured layer for the task
     for (const layer of request.layers) {
       const layerData: CreateTaskLayer = {
-        ...layer,
-        task_id: task.task_id
+        task_id: task.task_id,
+        layer_name: layer.layer_name,
+        description: layer.description ?? null,
+        mode: layer.mode,
+        importance: layer.importance ?? null,
+        threshold: layer.threshold ?? null
       };
       const createdLayer = await this.taskLayerService.createTaskLayer(layerData);
 
       // Step 3: Create constraints for the layer
       for (const constraint of layer.constraints) {
         const constraintData: CreateTaskLayerConstraint = {
-          ...constraint,
-          task_layer_id: createdLayer.task_layer_id
+          task_layer_id: createdLayer.task_layer_id,
+          type: constraint.type,
+          min: constraint.min ?? null,
+          max: constraint.max ?? null
         };
         await this.taskLayerConstraintService.createTaskLayerConstraint(constraintData);
       }
     }
 
-    return task;
+    // Step 3: Optionally persist budget layer as a configured task layer
+    if (request.budget) {
+      const budgetLayerData: CreateTaskLayer = {
+        task_id: task.task_id,
+        layer_name: request.budget.layer_name,
+        description: request.budget.description ?? null,
+        mode: request.budget.mode,
+        importance: request.budget.importance ?? null,
+        threshold: request.budget.threshold ?? null
+      };
+
+      const createdBudgetLayer = await this.taskLayerService.createTaskLayer(budgetLayerData);
+
+      for (const constraint of request.budget.constraints) {
+        const constraintData: CreateTaskLayerConstraint = {
+          task_layer_id: createdBudgetLayer.task_layer_id,
+          type: constraint.type,
+          min: constraint.min ?? null,
+          max: constraint.max ?? null
+        };
+        await this.taskLayerConstraintService.createTaskLayerConstraint(constraintData);
+      }
+    }
+
+    return this.taskService.getTaskById(task.task_id);
   }
 }

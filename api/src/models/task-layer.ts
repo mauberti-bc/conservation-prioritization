@@ -7,7 +7,10 @@ export const TaskLayer = z.object({
   task_layer_id: z.string().uuid(),
   task_id: z.string().uuid(),
   layer_name: z.string().max(100),
-  description: z.string().max(500).nullable()
+  description: z.string().max(500).nullable(),
+  mode: z.enum(['flexible', 'locked-in', 'locked-out']),
+  importance: z.number().nullable().optional(),
+  threshold: z.number().nullable().optional()
 });
 
 export type TaskLayer = z.infer<typeof TaskLayer>;
@@ -16,7 +19,10 @@ export type TaskLayer = z.infer<typeof TaskLayer>;
 export const CreateTaskLayer = z.object({
   task_id: z.string().uuid(),
   layer_name: z.string().max(100),
-  description: z.string().max(500).nullable()
+  description: z.string().max(500).nullable(),
+  mode: z.enum(['flexible', 'locked-in', 'locked-out']),
+  importance: z.number().nullable().optional(),
+  threshold: z.number().nullable().optional()
 });
 
 export type CreateTaskLayer = z.infer<typeof CreateTaskLayer>;
