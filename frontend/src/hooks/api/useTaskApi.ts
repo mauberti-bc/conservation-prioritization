@@ -1,5 +1,11 @@
 import { AxiosInstance } from 'axios';
-import { CreateTaskRequest, GetTaskResponse, UpdateTaskStatusRequest } from 'hooks/interfaces/useTaskApi.interface';
+import {
+  CreateTaskRequest,
+  GetTaskResponse,
+  PublishDashboardRequest,
+  PublishDashboardResponse,
+  UpdateTaskStatusRequest,
+} from 'hooks/interfaces/useTaskApi.interface';
 import qs from 'qs';
 import { ApiPaginationRequestOptions } from 'types/pagination';
 
@@ -75,6 +81,21 @@ export const useTaskApi = (axios: AxiosInstance) => {
   };
 
   /**
+   * Publish a task to a new dashboard.
+   *
+   * @param {string} taskId - The UUID of the task to publish.
+   * @param {PublishDashboardRequest} payload - Dashboard publish payload.
+   * @return {Promise<PublishDashboardResponse>} The created dashboard response.
+   */
+  const publishTaskDashboard = async (
+    taskId: string,
+    payload: PublishDashboardRequest
+  ): Promise<PublishDashboardResponse> => {
+    const { data } = await axios.post<PublishDashboardResponse>(`/api/task/${taskId}/dashboard`, payload);
+    return data;
+  };
+
+  /**
    * Add one or more projects to a task.
    *
    * @param {string} taskId - The UUID of the task.
@@ -103,6 +124,7 @@ export const useTaskApi = (axios: AxiosInstance) => {
     getAllTasks,
     updateTask,
     updateTaskStatus,
+    publishTaskDashboard,
     addProjectsToTask,
     deleteTask,
   };

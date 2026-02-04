@@ -1,18 +1,110 @@
 import { mdiArrowLeft } from '@mdi/js';
 import Icon from '@mdi/react';
-import { Chip, Divider, IconButton, Stack, Typography } from '@mui/material';
+import { LoadingButton } from '@mui/lab';
+import { Chip, Divider, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import { grey } from '@mui/material/colors';
+import { EditDialog } from 'components/dialog/EditDialog';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
+import { useFormikContext } from 'formik';
+import { useConservationApi } from 'hooks/useConservationApi';
 import { useTaskContext } from 'hooks/useContext';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import * as Yup from 'yup';
+
+interface PublishDashboardFormValues {
+  name: string;
+  access_scheme: 'ANYONE_WITH_LINK' | 'MEMBERS_ONLY' | 'NOBODY';
+}
+
+const publishDashboardSchema = Yup.object({
+  name: Yup.string().required('Dashboard name is required').max(100, 'Name must be 100 characters or less'),
+  access_scheme: Yup.mixed<'ANYONE_WITH_LINK' | 'MEMBERS_ONLY' | 'NOBODY'>()
+    .oneOf(['ANYONE_WITH_LINK', 'MEMBERS_ONLY', 'NOBODY'])
+    .required('Access scheme is required'),
+});
+
+const PublishDashboardForm = () => {
+  const { values, errors, touched, handleChange } = useFormikContext<PublishDashboardFormValues>();
+
+  return (
+    <Stack spacing={2}>
+      <TextField
+        name="name"
+        label="Dashboard name"
+        required
+        fullWidth
+        value={values.name}
+        onChange={handleChange}
+        error={Boolean(touched.name && errors.name)}
+        helperText={touched.name && errors.name ? errors.name : ' '}
+      />
+      <TextField
+        name="access_scheme"
+        label="Access scheme"
+        select
+        required
+        fullWidth
+        value={values.access_scheme}
+        onChange={handleChange}
+        error={Boolean(touched.access_scheme && errors.access_scheme)}
+        helperText={touched.access_scheme && errors.access_scheme ? errors.access_scheme : ' '}>
+        <MenuItem value="ANYONE_WITH_LINK">Anyone with link</MenuItem>
+        <MenuItem value="MEMBERS_ONLY">Members only</MenuItem>
+        <MenuItem value="NOBODY">Nobody</MenuItem>
+      </TextField>
+    </Stack>
+  );
+};
 
 /**
  * View-only task detail panel that renders the task form disabled.
  */
 export const TaskDetailsPanel = () => {
   const { taskDataLoader, taskId, setFocusedTask } = useTaskContext();
+  const conservationApi = useConservationApi();
+  const navigate = useNavigate();
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const task = taskDataLoader.data;
+
+  const publishInitialValues = useMemo<PublishDashboardFormValues>(() => {
+    return {
+      name: task?.name ? `${task.name} Dashboard` : 'New Dashboard',
+      access_scheme: 'MEMBERS_ONLY',
+    };
+  }, [task?.name]);
+
+  const handlePublish = async (values: PublishDashboardFormValues) => {
+    if (!task) {
+      return;
+    }
+
+    setIsPublishing(true);
+    setPublishError(null);
+
+    try {
+      const response = await conservationApi.task.publishTaskDashboard(task.task_id, values);
+      const dashboardUrl = response.dashboard_url ?? `/t/dashboard/${response.dashboard_id}`;
+
+      setPublishOpen(false);
+
+      if (dashboardUrl.startsWith('http')) {
+        window.location.assign(dashboardUrl);
+        return;
+      }
+
+      navigate(dashboardUrl);
+    } catch (error) {
+      console.error(error);
+      setPublishError('Failed to publish dashboard.');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   return (
     <LoadingGuard
@@ -52,9 +144,20 @@ export const TaskDetailsPanel = () => {
             <Typography
               variant="subtitle1"
               fontWeight={600}
-              sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
               {task?.name ?? 'Task details'}
             </Typography>
+            <LoadingButton
+              variant="contained"
+              size="small"
+              loading={isPublishing}
+              disabled={!task}
+              onClick={() => {
+                setPublishOpen(true);
+                setPublishError(null);
+              }}>
+              Publish
+            </LoadingButton>
           </Box>
 
           <Box px={3} pb={3} display="flex" flexDirection="column" gap={3}>
@@ -139,6 +242,27 @@ export const TaskDetailsPanel = () => {
           </Box>
         </Box>
       </LoadingGuard>
+
+      <EditDialog<PublishDashboardFormValues>
+        key={task?.task_id ?? 'publish-dashboard'}
+        open={publishOpen}
+        size="sm"
+        dialogTitle="Publish dashboard"
+        dialogSaveButtonLabel="Publish"
+        dialogText="Create a dashboard from this task."
+        dialogError={publishError ?? undefined}
+        dialogLoading={isPublishing}
+        onCancel={() => {
+          setPublishOpen(false);
+          setPublishError(null);
+        }}
+        onSave={handlePublish}
+        component={{
+          initialValues: publishInitialValues,
+          validationSchema: publishDashboardSchema,
+          element: <PublishDashboardForm />,
+        }}
+      />
     </LoadingGuard>
   );
 };

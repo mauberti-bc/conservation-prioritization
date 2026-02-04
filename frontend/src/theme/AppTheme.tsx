@@ -174,7 +174,8 @@ export const appTheme = createTheme({
       styleOverrides: {
         root: {
           whiteSpace: 'nowrap',
-          padding: '10px 15px',
+          padding: '6px 14px',
+          lineHeight: 1.4,
           '&:focus': {
             outline: '2px solid #3B99FC',
             outlineOffset: '-1px',
@@ -182,33 +183,31 @@ export const appTheme = createTheme({
         },
         contained: {
           fontWeight: 700,
+          letterSpacing: '0.02rem',
         },
         outlined: {
           borderWidth: 1,
           borderColor: 'inherit',
         },
         text: {
-          fontWeight: 700,
+          fontWeight: 600,
           fontSize: '0.8rem',
         },
         startIcon: {
           marginBottom: '1px',
           mr: 0,
         },
+        sizeSmall: {
+          fontSize: '0.9rem',
+          padding: '8px 12px',
+        },
+        sizeMedium: {
+          fontSize: '0.875rem',
+          padding: '6px 14px',
+        },
         sizeLarge: {
           fontSize: '1rem',
-        },
-        containedPrimary: {
-          fontWeight: 700,
-          letterSpacing: '0.02rem',
-        },
-        containedError: {
-          fontWeight: 700,
-          letterSpacing: '0.02rem',
-        },
-        outlinedPrimary: {
-          fontWeight: 700,
-          letterSpacing: '0.02rem',
+          padding: '10px 18px',
         },
       },
     },

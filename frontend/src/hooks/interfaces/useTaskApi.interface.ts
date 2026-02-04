@@ -1,3 +1,6 @@
+import { TaskStatusValue } from 'constants/status';
+import { DashboardAccessScheme, DashboardResponse } from './useDashboardApi.interface';
+
 export enum OPTIMIZATION_VARIANT {
   STRICT = 'strict',
   APPROXIMATE = 'approximate',
@@ -54,7 +57,6 @@ export interface CreateTaskRequest {
 /**
  * Response interface for a task (including layers and constraints).
  */
-import type { TaskStatusValue } from 'constants/status';
 
 export interface GetTaskResponse {
   task_id: string; // UUID of the task
@@ -81,6 +83,19 @@ export interface UpdateTaskStatusRequest {
   status: TaskStatusValue;
   message?: string | null;
 }
+
+/**
+ * Request interface for publishing a task to a dashboard.
+ */
+export interface PublishDashboardRequest {
+  name: string;
+  access_scheme: DashboardAccessScheme;
+}
+
+/**
+ * Response interface for dashboard publish operations.
+ */
+export interface PublishDashboardResponse extends DashboardResponse {}
 
 /**
  * Interface for the task layer (with task_layer_id and task_id as primary keys).

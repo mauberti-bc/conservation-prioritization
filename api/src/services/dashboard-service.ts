@@ -54,7 +54,12 @@ export class DashboardService extends DBService {
    * @return {*}  {Promise<DashboardResponse>}
    * @memberof DashboardService
    */
-  async publishTaskToDashboard(taskId: string, profileId: string): Promise<DashboardResponse> {
+  async publishTaskToDashboard(
+    taskId: string,
+    profileId: string,
+    name: string,
+    accessScheme: 'ANYONE_WITH_LINK' | 'MEMBERS_ONLY' | 'NOBODY'
+  ): Promise<DashboardResponse> {
     const task = await this.taskRepository.getTaskById(taskId);
     const role = await this.taskProfileService.getRoleForTaskProfile(taskId, profileId);
 
@@ -63,9 +68,9 @@ export class DashboardService extends DBService {
     }
 
     const dashboardPayload: CreateDashboard = {
-      name: `${task.name} Dashboard`,
+      name,
       description: task.description ?? null,
-      access_scheme: 'MEMBERS_ONLY'
+      access_scheme: accessScheme
     };
 
     const dashboard = await this.dashboardRepository.createDashboard(dashboardPayload);

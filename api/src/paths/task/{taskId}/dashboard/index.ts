@@ -5,7 +5,9 @@ import { DashboardSchema } from '../../../../openapi/schemas/dashboard';
 import { defaultErrorResponses } from '../../../../openapi/schemas/http-responses';
 import { authorizeRequestHandler } from '../../../../request-handlers/security/authorization';
 import { DashboardService } from '../../../../services/dashboard-service';
+import { HTTP400 } from '../../../../errors/http-error';
 import { getLogger } from '../../../../utils/logger';
+import { PublishDashboardBody } from './publish-dashboard.interface';
 
 const defaultLog = getLogger(__filename);
 
@@ -42,6 +44,26 @@ POST.apiDoc = {
       description: 'UUID of the task to publish.'
     }
   ],
+  requestBody: {
+    required: true,
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          required: ['name', 'access_scheme'],
+          properties: {
+            name: {
+              type: 'string'
+            },
+            access_scheme: {
+              type: 'string',
+              enum: ['ANYONE_WITH_LINK', 'MEMBERS_ONLY', 'NOBODY']
+            }
+          }
+        }
+      }
+    }
+  },
   responses: {
     201: {
       description: 'Dashboard created successfully.',
@@ -64,22 +86,34 @@ export function publishDashboard(): RequestHandler {
   return async (req, res) => {
     defaultLog.debug({ label: 'publishDashboard' });
 
+    const body = req.body as PublishDashboardBody;
+
+    const taskId = req.params.taskId as string;
+    const name = body?.name?.trim();
+
+    if (!name) {
+      throw new HTTP400('Dashboard name is required.');
+    }
+
+    const accessScheme = body?.access_scheme ?? 'MEMBERS_ONLY';
+
     const connection = getDBConnection(req.keycloak_token);
 
     try {
       await connection.open();
       const profileId = connection.profileId();
 
-      const taskId = req.params.taskId;
-
       const dashboardService = new DashboardService(connection);
-      const response = await dashboardService.publishTaskToDashboard(taskId, profileId);
+      const response = await dashboardService.publishTaskToDashboard(taskId, profileId, name, accessScheme);
 
       await connection.commit();
 
+      const dashboardUrl = `/t/dashboard/${response.dashboard.dashboard_id}`;
+
       return res.status(201).json({
         ...response.dashboard,
-        task_ids: response.task_ids
+        task_ids: response.task_ids,
+        dashboard_url: dashboardUrl
       });
     } catch (error) {
       defaultLog.error({ label: 'publishDashboard', message: 'error', error });

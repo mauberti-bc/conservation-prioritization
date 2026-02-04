@@ -22,17 +22,37 @@ export class DashboardTaskRepository extends BaseRepository {
       INSERT INTO dashboard_task (
         dashboard_id,
         task_id
-      ) VALUES (
+      )
+      SELECT
         ${dashboardTask.dashboard_id},
         ${dashboardTask.task_id}
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM dashboard_task
+        WHERE dashboard_id = ${dashboardTask.dashboard_id}
+        AND task_id = ${dashboardTask.task_id}
+        AND record_end_date IS NULL
       )
-      ON CONFLICT (dashboard_id, task_id) DO NOTHING
       RETURNING dashboard_task_id, dashboard_id, task_id
     `;
 
     const response = await this.connection.sql(sqlStatement, DashboardTask);
 
-    return response.rows[0];
+    if (response.rowCount > 0) {
+      return response.rows[0];
+    }
+
+    const selectStatement = SQL`
+      SELECT dashboard_task_id, dashboard_id, task_id
+      FROM dashboard_task
+      WHERE dashboard_id = ${dashboardTask.dashboard_id}
+      AND task_id = ${dashboardTask.task_id}
+      AND record_end_date IS NULL
+    `;
+
+    const selectResponse = await this.connection.sql(selectStatement, DashboardTask);
+
+    return selectResponse.rows[0];
   }
 
   /**

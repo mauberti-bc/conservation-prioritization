@@ -12,7 +12,7 @@ interface ComponentSwitchProps<T extends string | number> {
 export const ComponentSwitch = <T extends string | number>({
   value,
   map,
-  fallback = null
+  fallback = null,
 }: ComponentSwitchProps<T>) => {
   return map[value] ?? fallback;
 };

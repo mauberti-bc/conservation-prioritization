@@ -2,7 +2,7 @@ import { OpenAPIV3 } from 'openapi-types';
 
 export const DashboardSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
-  required: ['dashboard_id', 'public_id', 'name', 'access_scheme', 'task_ids'],
+  required: ['dashboard_id', 'public_id', 'name', 'access_scheme', 'task_ids', 'dashboard_url'],
   properties: {
     dashboard_id: {
       type: 'string',
@@ -38,6 +38,9 @@ export const DashboardSchema: OpenAPIV3.SchemaObject = {
         type: 'string',
         format: 'uuid'
       }
+    },
+    dashboard_url: {
+      type: 'string'
     }
   }
 };
