@@ -899,10 +899,10 @@ def create_pmtiles_archive(
 
         metadata = {
             "format": "png",
-            "bounds": list(wm_bounds),
+            "bounds": [min_lon, min_lat, max_lon, max_lat],
             "center": [
-                (wm_bounds[0] + wm_bounds[2]) / 2,
-                (wm_bounds[1] + wm_bounds[3]) / 2,
+                (min_lon + max_lon) / 2,
+                (min_lat + max_lat) / 2,
                 min_zoom,
             ],
             "tilejson": "2.2.0",

@@ -300,7 +300,7 @@ const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[]): void =
     map.addSource(sourceId, {
       type: 'raster',
       url: resolvedUrl,
-      tileSize: 256,
+      tileSize: 512,
     });
 
     map.addLayer({
