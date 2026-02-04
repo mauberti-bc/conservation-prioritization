@@ -23,6 +23,9 @@ export const Task = z.object({
   task_id: z.string().uuid(), // UUID type for task_id
   name: z.string().max(100), // Task name (Max length 100)
   description: z.string().max(500).nullable(), // Task description (Max length 500, optional)
+  resolution: z.number().int().nullable().optional(), // Requested resolution in meters
+  resampling: z.enum(['mode', 'min', 'max']).nullable().optional(), // Resampling method
+  variant: z.enum(['strict', 'approximate']).nullable().optional(), // Optimization variant
   tileset_uri: z.string().max(2000).nullable(), // Latest tileset URI
   output_uri: z.string().max(2000).nullable(), // Strict optimization output URI
   status: TaskStatus, // Current task status
@@ -54,7 +57,10 @@ export type CreateTask = z.infer<typeof CreateTask>;
  */
 export const UpdateTask = Task.pick({
   name: true,
-  description: true
+  description: true,
+  resolution: true,
+  resampling: true,
+  variant: true
 }).partial();
 
 /**

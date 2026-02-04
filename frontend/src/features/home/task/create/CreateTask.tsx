@@ -63,9 +63,6 @@ const SubmitRefBinder = ({
   return null;
 };
 
-/**
- * @deprecated Standalone CreateTask page is deprecated. This component is used inside CreateTaskDialog.
- */
 export const CreateTask = ({
   onSubmitSuccess,
   submitRef,

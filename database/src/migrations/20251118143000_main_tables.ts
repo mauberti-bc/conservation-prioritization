@@ -261,6 +261,9 @@ export async function up(knex: Knex): Promise<void> {
       task_id                 uuid              DEFAULT gen_random_uuid(),
       name                    varchar(100)      NOT NULL,
       description             varchar(500),
+      resolution              integer,
+      resampling              varchar(10),
+      variant                 varchar(20),
       tileset_uri             text,
       output_uri              text,
       status                  task_status       NOT NULL DEFAULT 'pending',
@@ -282,6 +285,9 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN task.task_id IS 'System generated UUID primary key.';
     COMMENT ON COLUMN task.name IS 'The name of the task.';
     COMMENT ON COLUMN task.description IS 'Task description.';
+    COMMENT ON COLUMN task.resolution IS 'Requested output resolution in meters.';
+    COMMENT ON COLUMN task.resampling IS 'Resampling strategy used for the task.';
+    COMMENT ON COLUMN task.variant IS 'Optimization variant for the task.';
     COMMENT ON COLUMN task.tileset_uri IS 'URI for the latest tileset artifact.';
     COMMENT ON COLUMN task.output_uri IS 'URI for the strict optimization output artifact.';
     COMMENT ON COLUMN task.status IS 'Execution status for the task lifecycle.';
