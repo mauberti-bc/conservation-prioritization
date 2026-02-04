@@ -6,7 +6,8 @@ import { z } from 'zod';
 export const Project = z.object({
   project_id: z.string().uuid(), // UUID type for project_id
   name: z.string().max(100), // Max length of 100 for project name
-  description: z.string().max(500).nullable() // Optional project description
+  description: z.string().max(500).nullable(), // Optional project description
+  task_count: z.number().int().nonnegative().optional() // Optional task count for listings
 });
 
 export type Project = z.infer<typeof Project>;

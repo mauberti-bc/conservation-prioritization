@@ -1,5 +1,5 @@
 import { AxiosInstance } from 'axios';
-import { CreateTaskRequest, GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
+import { CreateTaskRequest, GetTaskResponse, UpdateTaskStatusRequest } from 'hooks/interfaces/useTaskApi.interface';
 import qs from 'qs';
 import { ApiPaginationRequestOptions } from 'types/pagination';
 
@@ -63,6 +63,30 @@ export const useTaskApi = (axios: AxiosInstance) => {
   };
 
   /**
+   * Update a task execution status by its ID.
+   *
+   * @param {string} taskId - The UUID of the task to update.
+   * @param {UpdateTaskStatusRequest} updates - Status update payload.
+   * @return {Promise<GetTaskResponse>} The updated task.
+   */
+  const updateTaskStatus = async (taskId: string, updates: UpdateTaskStatusRequest): Promise<GetTaskResponse> => {
+    const { data } = await axios.put<GetTaskResponse>(`/api/task/${taskId}/status`, updates);
+    return data;
+  };
+
+  /**
+   * Add one or more projects to a task.
+   *
+   * @param {string} taskId - The UUID of the task.
+   * @param {string[]} projectIds - Project UUIDs to add.
+   * @return {Promise<void>} The created project-task associations.
+   */
+  const addProjectsToTask = async (taskId: string, projectIds: string[]): Promise<any> => {
+    const { data } = await axios.post(`/api/task/${taskId}/project`, { projectIds });
+    return data;
+  };
+
+  /**
    * Delete a task by its ID.
    *
    * @param {string} taskId - The UUID of the task to delete.
@@ -78,6 +102,8 @@ export const useTaskApi = (axios: AxiosInstance) => {
     getTaskById,
     getAllTasks,
     updateTask,
+    updateTaskStatus,
+    addProjectsToTask,
     deleteTask,
   };
 };

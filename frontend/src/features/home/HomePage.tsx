@@ -11,7 +11,7 @@ import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
 
 export const HomePage = () => {
   const { drawControlsRef } = useMapContext();
-  const { taskId, taskDataLoader, tasksDataLoader } = useTaskContext();
+  const { taskId, taskDataLoader, tasksDataLoader, hoveredTilesetUri } = useTaskContext();
   const { projectsDataLoader } = useProjectContext();
   const { activeView, setActiveView } = useSidebarUIContext();
   const { data: taskStatus } = useTaskStatusWebSocket(taskId);
@@ -41,8 +41,17 @@ export const HomePage = () => {
     const fallbackUri = taskDataLoader.data?.tileset_uri ?? null;
     const resolvedUri = statusUri ?? fallbackUri;
 
-    return resolvedUri ? [resolvedUri] : [];
-  }, [taskStatus, taskDataLoader.data]);
+    const baseUrls = resolvedUri ? [resolvedUri] : [];
+
+    if (hoveredTilesetUri) {
+      if (baseUrls.includes(hoveredTilesetUri)) {
+        return baseUrls;
+      }
+      return [hoveredTilesetUri, ...baseUrls];
+    }
+
+    return baseUrls;
+  }, [taskStatus, taskDataLoader.data, hoveredTilesetUri]);
 
   const statusLabel = useMemo(() => {
     const activeStatus = taskStatus?.status ?? taskDataLoader.data?.status;

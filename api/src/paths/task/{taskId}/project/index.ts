@@ -2,11 +2,11 @@ import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getDBConnection } from '../../../../database/db';
 import { defaultErrorResponses } from '../../../../openapi/schemas/http-responses';
-import { AddProjectTasksSchema } from '../../../../openapi/schemas/project-task';
+import { AddTaskProjectsSchema } from '../../../../openapi/schemas/task-project';
 import { authorizeRequestHandler } from '../../../../request-handlers/security/authorization';
 import { ProjectTaskService } from '../../../../services/project-task-service';
 import { getLogger } from '../../../../utils/logger';
-import { AddProjectTasksBody, AddProjectTasksParams } from './add-project-tasks.interface';
+import { AddTaskProjectsBody, AddTaskProjectsParams } from './add-task-projects.interface';
 
 const defaultLog = getLogger(__filename);
 
@@ -20,12 +20,12 @@ export const POST: Operation = [
       ]
     };
   }),
-  addProjectTasks()
+  addProjectsToTask()
 ];
 
 POST.apiDoc = {
-  description: 'Adds one or more tasks to a project.',
-  tags: ['projects', 'tasks'],
+  description: 'Adds one or more projects to a task.',
+  tags: ['tasks', 'projects'],
   security: [
     {
       Bearer: []
@@ -35,25 +35,25 @@ POST.apiDoc = {
     required: true,
     content: {
       'application/json': {
-        schema: AddProjectTasksSchema
+        schema: AddTaskProjectsSchema
       }
     }
   },
   parameters: [
     {
       in: 'path',
-      name: 'projectId',
+      name: 'taskId',
       required: true,
       schema: {
         type: 'string',
         format: 'uuid'
       },
-      description: 'UUID of the project to update.'
+      description: 'UUID of the task to update.'
     }
   ],
   responses: {
     201: {
-      description: 'Tasks added to project.',
+      description: 'Projects added to task.',
       content: {
         'application/json': {
           schema: {
@@ -70,18 +70,18 @@ POST.apiDoc = {
 };
 
 /**
- * Express request handler to add tasks to a project.
+ * Express request handler to add projects to a task.
  *
  * @returns {RequestHandler}
  */
-export function addProjectTasks(): RequestHandler {
+export function addProjectsToTask(): RequestHandler {
   return async (req, res) => {
-    defaultLog.debug({ label: 'addProjectTasks' });
+    defaultLog.debug({ label: 'addProjectsToTask' });
 
-    const params = req.params as AddProjectTasksParams;
-    const body = req.body as AddProjectTasksBody;
-    const projectId = params.projectId;
-    const taskIds = body.taskIds;
+    const params = req.params as AddTaskProjectsParams;
+    const body = req.body as AddTaskProjectsBody;
+    const taskId = params.taskId;
+    const projectIds = body.projectIds;
 
     const connection = getDBConnection(req.keycloak_token);
 
@@ -89,13 +89,13 @@ export function addProjectTasks(): RequestHandler {
       await connection.open();
 
       const projectTaskService = new ProjectTaskService(connection);
-      const projectTasks = await projectTaskService.addTasksToProject(projectId, taskIds);
+      const projectTasks = await projectTaskService.addProjectsToTask(taskId, projectIds);
 
       await connection.commit();
 
       return res.status(201).json(projectTasks);
     } catch (error) {
-      defaultLog.error({ label: 'addProjectTasks', message: 'error', error });
+      defaultLog.error({ label: 'addProjectsToTask', message: 'error', error });
       await connection.rollback();
       throw error;
     } finally {
