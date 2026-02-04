@@ -9,7 +9,8 @@ export const Profile = z.object({
   profile_identifier: z.string().max(200), // Max length of 200 for profile_identifier
   profile_guid: z.string().max(200), // Max length of 200 for profile_guid
   role_id: z.string().uuid().optional(), // Optional role_id
-  role_name: z.string().max(100).optional() // Optional role_name (max length 100)
+  role_name: z.string().max(100).optional(), // Optional role_name (max length 100)
+  agency: z.string().max(200).nullable().optional()
 });
 
 export type Profile = z.infer<typeof Profile>;

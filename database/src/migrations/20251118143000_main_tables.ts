@@ -61,6 +61,12 @@ export async function up(knex: Knex): Promise<void> {
       profile_identifier          varchar(200)      NOT NULL,
       profile_guid                varchar(200)      NOT NULL,
       role_id                     uuid              NOT NULL,
+      agency                      varchar(200),
+      display_name                varchar(200),
+      email                       varchar(200),
+      given_name                  varchar(200),
+      family_name                 varchar(200),
+      notes                       varchar(500),
       record_effective_date       timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date             timestamptz(6),
       created_at                  timestamptz(6)    DEFAULT now() NOT NULL,
@@ -82,6 +88,15 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN profile.identity_source IS 'Identifier for the source of the profile identity.';
     COMMENT ON COLUMN profile.profile_identifier IS 'The identifier of the profile.';
     COMMENT ON COLUMN profile.profile_guid IS 'The globally unique identifier for the profile.';
+    COMMENT ON COLUMN profile.agency IS 'Agency name for the profile.';
+    COMMENT ON COLUMN profile.display_name IS 'Display name for the profile.';
+    COMMENT ON COLUMN profile.email IS 'Email address for the profile.';
+    COMMENT ON COLUMN profile.given_name IS 'Given name for the profile.';
+    COMMENT ON COLUMN profile.family_name IS 'Family name for the profile.';
+    COMMENT ON COLUMN profile.notes IS 'Notes for the profile.';
+
+    ALTER TABLE profile
+      ADD CONSTRAINT profile_guid_uk UNIQUE (profile_guid);
     COMMENT ON COLUMN profile.record_effective_date IS 'Record level effective date.';
     COMMENT ON COLUMN profile.record_end_date IS 'Record level end date.';
     COMMENT ON COLUMN profile.created_at IS 'The datetime the record was created.';

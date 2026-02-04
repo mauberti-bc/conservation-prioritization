@@ -36,18 +36,8 @@ export async function seed(knex: Knex): Promise<void> {
         AND profile_guid = p_profile_guid
         AND record_end_date IS NULL;  -- Ensure we're only working with active records
 
-      -- Create temporary table to store the context data (if it doesn't exist)
-      CREATE TEMP TABLE IF NOT EXISTS conservation_context_temp (
-        tag VARCHAR(200),
-        value VARCHAR(200)
-      );
-
-      -- Delete any existing context for 'profile_id' tag
-      DELETE FROM conservation_context_temp WHERE tag = 'profile_id';
-
-      -- Insert the new profile ID into the context table
-      INSERT INTO conservation_context_temp (tag, value)
-      VALUES ('profile_id', _profile_id::varchar(200));  -- Cast UUID to string for context
+      -- Set per-transaction session context (equivalent to SET LOCAL)
+      PERFORM set_config('app.profile_id', _profile_id::text, true);
 
       -- Return the system profile ID
       RETURN _profile_id;
@@ -69,9 +59,7 @@ export async function seed(knex: Knex): Promise<void> {
     DECLARE
       _profile_id uuid;
     BEGIN
-      SELECT value::uuid INTO _profile_id
-      FROM conservation_context_temp
-      WHERE tag = 'profile_id';
+      _profile_id := NULLIF(current_setting('app.profile_id', true), '')::uuid;
 
       IF (_profile_id IS NULL) THEN
         RAISE EXCEPTION 'No profile_id found in conservation_context_temp';

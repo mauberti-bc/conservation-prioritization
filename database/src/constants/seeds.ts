@@ -1,6 +1,7 @@
 export const SEED_CONSTANTS = {
   TABLES_TO_CLEAR: [
     'audit_log',
+    'role',
     'task_layer_constraint',
     'task_layer',
     'task_tile',
@@ -10,9 +11,7 @@ export const SEED_CONSTANTS = {
     'task',
     'project_profile',
     'project_permission',
-    'project',
-    'profile',
-    'role'
+    'project'
   ],
   SYSTEM_ROLES: [
     {

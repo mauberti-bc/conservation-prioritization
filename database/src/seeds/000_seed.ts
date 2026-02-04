@@ -23,6 +23,17 @@ export async function seed(knex: Knex): Promise<void> {
     SET SEARCH_PATH=${DB_SCHEMA},public;
   `);
 
+  const apiProfile = await knex('profile')
+    .select('profile_id')
+    .where({ profile_identifier: DB_USER_API, identity_source: 'database', record_end_date: null })
+    .first();
+
+  if (!apiProfile?.profile_id) {
+    throw new Error('Seed requires the API profile to exist. Run migrations first.');
+  }
+
+  await knex.raw(`SELECT api_set_context('${DB_USER_API}', 'database');`);
+
   /* ==========================================================================
    * CLEAR DATA (demo-only tables)
    * ========================================================================== */
@@ -33,42 +44,49 @@ export async function seed(knex: Knex): Promise<void> {
     await knex(table).del();
   }
 
-  /* ==========================================================================
-   * SYSTEM ROLES + API PROFILE (bootstrap context)
-   * ========================================================================== */
-
-  for (const role of C.SYSTEM_ROLES) {
-    await knex('role').insert(role);
-  }
-
-  const adminRole = await knex('role')
-    .select('role_id')
-    .where({ name: 'admin', scope: 'system', record_end_date: null })
-    .first();
-
-  if (adminRole?.role_id) {
-    await knex('profile').insert({
-      profile_guid: DB_USER_API,
-      profile_identifier: DB_USER_API,
-      identity_source: 'database',
-      role_id: adminRole.role_id
-    });
-  }
-
   await knex.raw(`SET session_replication_role = 'origin';`);
-
-  await knex.raw(`SELECT api_set_context('${DB_USER_API}', 'database');`);
 
   /* ==========================================================================
    * ROLES (from SEED_CONSTANTS)
    * ========================================================================== */
 
+  for (const role of C.SYSTEM_ROLES) {
+    await knex.raw(
+      `
+        INSERT INTO role (name, description, scope)
+        SELECT ?, ?, ?
+        WHERE NOT EXISTS (
+          SELECT 1 FROM role WHERE name = ? AND scope = ? AND record_end_date IS NULL
+        )
+      `,
+      [role.name, role.description, role.scope, role.name, role.scope]
+    );
+  }
+
   for (const role of C.PROJECT_ROLES) {
-    await knex('role').insert(role);
+    await knex.raw(
+      `
+        INSERT INTO role (name, description, scope)
+        SELECT ?, ?, ?
+        WHERE NOT EXISTS (
+          SELECT 1 FROM role WHERE name = ? AND scope = ? AND record_end_date IS NULL
+        )
+      `,
+      [role.name, role.description, role.scope, role.name, role.scope]
+    );
   }
 
   for (const role of C.TASK_ROLES) {
-    await knex('role').insert(role);
+    await knex.raw(
+      `
+        INSERT INTO role (name, description, scope)
+        SELECT ?, ?, ?
+        WHERE NOT EXISTS (
+          SELECT 1 FROM role WHERE name = ? AND scope = ? AND record_end_date IS NULL
+        )
+      `,
+      [role.name, role.description, role.scope, role.name, role.scope]
+    );
   }
 
   /* ==========================================================================
@@ -125,7 +143,8 @@ export async function seed(knex: Knex): Promise<void> {
     .first();
 
   for (const profile of C.PROFILES) {
-    await knex('profile').insert({
+    await knex('profile')
+      .insert({
       profile_guid: profile.profile_guid,
       profile_identifier: profile.profile_identifier,
       identity_source: profile.identity_source,
@@ -136,7 +155,9 @@ export async function seed(knex: Knex): Promise<void> {
       family_name: profile.family_name,
       agency: profile.agency,
       notes: profile.notes
-    });
+      })
+      .onConflict(['profile_guid'])
+      .ignore();
   }
 
   /* ==========================================================================
