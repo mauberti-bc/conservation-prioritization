@@ -1,3 +1,4 @@
+import { Paper } from '@mui/material';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { Stack } from '@mui/system';
@@ -28,9 +29,21 @@ export const ControlPanelForm = (props: IControlPanelFormProps) => {
 
   return (
     <>
-      <ControlPanelToolbar />
+      <Paper
+        sx={{
+          px: 3,
+          py: 2,
+          borderRadius: 0,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.075)',
+        }}>
+        <ControlPanelToolbar />
+      </Paper>
+
       <Stack
         sx={{
+          px: 3,
           display: 'flex',
           flexDirection: 'column',
           gap: 5,
@@ -39,7 +52,7 @@ export const ControlPanelForm = (props: IControlPanelFormProps) => {
           <ControlPanelAreaForm />
         </Box>
 
-        <Box>
+        <Box flex={0}>
           <TooltipStack tooltip="Enter the amount of money you have to spend" mb={1}>
             <Typography
               color="textSecondary"

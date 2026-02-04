@@ -5,22 +5,21 @@ FROM ghcr.io/osgeo/gdal:ubuntu-small-3.10.0
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Define safe default paths
-ENV HOME=/opt/app-root/src
+ENV HOME=/home/app
 WORKDIR $HOME
 
 # Create necessary directories with permissive access
 RUN mkdir -p $HOME \
-    && mkdir -p /tmp/.prefect /tmp/.config/matplotlib \
-    && chmod -R 777 $HOME /tmp/.prefect /tmp/.config/matplotlib
+    && mkdir -p /home/app/.prefect \
+    && mkdir -p /home/app/.config/matplotlib \
+    && chmod -R 777 $HOME /home/app/.prefect /home/app/.config/matplotlib
 
-# Prefect and Matplotlib will use these paths unless overridden at runtime
-ENV PREFECT_HOME=/tmp/.prefect
-ENV MPLCONFIGDIR=/tmp/.config/matplotlib
+# Set Prefect environment variables
+ENV PREFECT_HOME=/home/app/.prefect
+ENV MPLCONFIGDIR=/home/app/.config/matplotlib
 
 # Install curl for debugging / networking
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Copy Python project config
 COPY pyproject.toml uv.lock ./
@@ -34,4 +33,4 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY . ./
 
 # Add virtualenv to PATH
-ENV PATH="$HOME/.venv/bin:$PATH"
+ENV PATH="/home/app/.venv/bin:$PATH"

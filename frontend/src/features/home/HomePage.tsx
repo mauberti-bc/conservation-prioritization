@@ -41,8 +41,9 @@ export const HomePage = () => {
       <Box
         sx={{
           flexShrink: 0,
-          width: '900px',
-          maxWidth: '50vw',
+          width: '70vw',
+          maxWidth: '800px',
+          minWidth: '700px',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',

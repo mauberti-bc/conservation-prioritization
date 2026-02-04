@@ -9,9 +9,10 @@ interface FileDropzoneProps {
   onFilesSelected: (files: File[]) => void;
   label?: string;
   accept?: Record<string, string[]>;
+  showExtensions?: boolean;
 }
 
-export const FileDropzone = ({ onFilesSelected, label, accept }: FileDropzoneProps) => {
+export const FileDropzone = ({ onFilesSelected, label, accept, showExtensions }: FileDropzoneProps) => {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length > 0) {
@@ -61,9 +62,11 @@ export const FileDropzone = ({ onFilesSelected, label, accept }: FileDropzonePro
         <Icon path={mdiCloudUploadOutline} size={1} color={grey[600]} />
         <Typography variant="body2" color={grey[600]} fontWeight={600}>
           {isDragActive ? 'Drop files to upload' : label} &zwnj;
-          <Typography component="span" variant="caption">
-            ({acceptedExtensions})
-          </Typography>
+          {showExtensions && (
+            <Typography component="span" variant="caption">
+              ({acceptedExtensions})
+            </Typography>
+          )}
         </Typography>
       </Stack>
     </Paper>
