@@ -2,16 +2,16 @@ import { mdiClose } from '@mdi/js';
 import Icon from '@mdi/react';
 import { LoadingButton } from '@mui/lab';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography } from '@mui/material';
+import { MapContextProvider } from 'context/mapContext';
 import { useMapContext } from 'hooks/useContext';
-import { useRef, useState } from 'react';
+import { MutableRefObject, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DrawControls } from '../../map/draw/DrawControls';
 import { MapContainer } from '../../map/MapContainer';
 import { CreateTaskForm } from './CreateTask';
 
-export const CreateTaskDialogRoute = () => {
+export const CreateTaskDialog = () => {
   const navigate = useNavigate();
-  const { drawControlsRef } = useMapContext();
   const submitRef = useRef<(() => void) | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -27,11 +27,42 @@ export const CreateTaskDialogRoute = () => {
   };
 
   return (
+    <MapContextProvider>
+      <CreateTaskDialogContent
+        submitRef={submitRef}
+        isSubmitting={isSubmitting}
+        onSubmittingChange={setIsSubmitting}
+        onClose={handleClose}
+        onSubmit={handleSubmit}
+      />
+    </MapContextProvider>
+  );
+};
+
+interface CreateTaskDialogContentProps {
+  submitRef: MutableRefObject<(() => void) | null>;
+  isSubmitting: boolean;
+  onSubmittingChange: (isSubmitting: boolean) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}
+
+const CreateTaskDialogContent = ({
+  submitRef,
+  isSubmitting,
+  onSubmittingChange,
+  onClose,
+  onSubmit,
+}: CreateTaskDialogContentProps) => {
+  const navigate = useNavigate();
+  const { drawControlsRef } = useMapContext();
+
+  return (
     <Dialog
       open
       fullWidth
       maxWidth="xl"
-      onClose={handleClose}
+      onClose={onClose}
       PaperProps={{
         sx: {
           height: 'calc(100vh - 64px)',
@@ -43,7 +74,7 @@ export const CreateTaskDialogRoute = () => {
           <Typography variant="h6" fontWeight={600}>
             Create Task
           </Typography>
-          <IconButton aria-label="Close create task" onClick={handleClose} size="small">
+          <IconButton aria-label="Close create task" onClick={onClose} size="small">
             <Icon path={mdiClose} size={1} />
           </IconButton>
         </Box>
@@ -66,7 +97,7 @@ export const CreateTaskDialogRoute = () => {
             <CreateTaskForm
               submitRef={submitRef}
               hideInternalActions
-              onSubmittingChange={setIsSubmitting}
+              onSubmittingChange={onSubmittingChange}
               onSubmitSuccess={() => {
                 navigate('/t/?v=tasks');
               }}
@@ -79,10 +110,10 @@ export const CreateTaskDialogRoute = () => {
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2, justifyContent: 'flex-end' }}>
-        <Button variant="outlined" onClick={handleClose}>
+        <Button variant="outlined" onClick={onClose}>
           Close
         </Button>
-        <LoadingButton variant="contained" onClick={handleSubmit} loading={isSubmitting}>
+        <LoadingButton variant="contained" onClick={onSubmit} loading={isSubmitting}>
           Submit
         </LoadingButton>
       </DialogActions>

@@ -1,17 +1,13 @@
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { DrawControlsProps } from 'features/home/map/draw/DrawControls';
 import { Map } from 'maplibre-gl';
-import { createContext, createRef } from 'react';
+import { createContext, useRef } from 'react';
 
 interface MapContextType {
   mapRef: React.RefObject<Map | null>;
   drawRef: React.RefObject<MapboxDraw | null>;
   drawControlsRef: React.RefObject<DrawControlsProps | null>;
 }
-
-const mapRef = createRef<Map | null>();
-const drawRef = createRef<MapboxDraw | null>();
-const drawControlsRef = createRef<DrawControlsProps | null>();
 
 export const MapContext = createContext<MapContextType | undefined>(undefined);
 
@@ -23,5 +19,9 @@ interface MapContextProviderProps {
  * Provides mapRef and drawRef to all children components via context.
  */
 export const MapContextProvider = ({ children }: MapContextProviderProps) => {
+  const mapRef = useRef<Map | null>(null);
+  const drawRef = useRef<MapboxDraw | null>(null);
+  const drawControlsRef = useRef<DrawControlsProps | null>(null);
+
   return <MapContext.Provider value={{ mapRef, drawRef, drawControlsRef }}>{children}</MapContext.Provider>;
 };

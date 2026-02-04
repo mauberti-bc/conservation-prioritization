@@ -55,6 +55,7 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
       return;
     }
 
+    setData(null);
     const wsUrl = buildWebSocketUrl(API_HOST, `/api/task/${taskId}/status`);
     isTerminalRef.current = false;
     latestStatusRef.current = null;
