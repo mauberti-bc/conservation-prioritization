@@ -97,6 +97,9 @@ def _download_solution_artifact(task_id: str, output_uri: str) -> Path:
 
     download_object(bucket=bucket, key=key, local_path=str(artifact_path))
 
+    if not artifact_path.exists() or artifact_path.stat().st_size == 0:
+        raise FileNotFoundError(f"Downloaded artifact is missing or empty: {artifact_path}")
+
     return artifact_path
 
 
@@ -129,6 +132,9 @@ def tile_task(task_id: str, task_tile_id: str):
         )
         future.wait()
 
+        if not pmtiles_path.exists() or pmtiles_path.stat().st_size == 0:
+            raise RuntimeError("PMTiles archive was not created or is empty.")
+
         logger.info("Uploading PMTiles to object storage...")
         config = get_object_store_config()
         run_id = str(flow_run.id)
@@ -147,10 +153,14 @@ def tile_task(task_id: str, task_tile_id: str):
             },
         )
 
+        pmtiles_uri = put_response.get("uri")
+        if not pmtiles_uri:
+            raise RuntimeError("Object storage did not return a PMTiles URI.")
+
         _update_task_tile_status(
             task_tile_id,
             "COMPLETED",
-            pmtiles_uri=put_response["uri"],
+            pmtiles_uri=pmtiles_uri,
             content_type="application/vnd.pmtiles",
         )
 
