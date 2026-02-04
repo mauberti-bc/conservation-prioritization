@@ -1,8 +1,8 @@
-import { LayerOption } from 'features/home/control-panel/form/ControlPanelForm';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
 
 export interface UseLayerSearchReturn {
-  filtered: LayerOption[];
+  layers: TaskLayerOption[];
   loading: boolean;
   error: string | null;
-  handleSearch: (term: string) => void;
+  search: (term: string) => void;
 }

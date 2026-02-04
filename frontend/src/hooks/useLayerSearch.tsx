@@ -1,10 +1,10 @@
 import { debounce } from '@mui/material';
-import { LayerOption } from 'features/home/control-panel/form/ControlPanelForm';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useCallback, useRef, useState } from 'react';
 
 export interface UseLayerSearchReturn {
-  layers: LayerOption[];
+  layers: TaskLayerOption[];
   loading: boolean;
   error: string | null;
   search: (term: string) => void;
@@ -19,7 +19,7 @@ interface UseLayerSearchProps {
  * Handles loading state, errors, and caches results.
  */
 export const useLayerSearch = ({ debounceMs = 300 }: UseLayerSearchProps = {}): UseLayerSearchReturn => {
-  const [layers, setLayers] = useState<LayerOption[]>([]);
+  const [layers, setLayers] = useState<TaskLayerOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

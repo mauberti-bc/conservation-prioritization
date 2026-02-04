@@ -1,9 +1,9 @@
 import { Box, Card, CardContent, Checkbox, Chip, Stack, Typography } from '@mui/material';
-import { LayerOption } from 'features/home/control-panel/form/ControlPanelForm';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
 import { getRandomHexColor } from 'utils/util';
 
 interface LayerCardItemProps {
-  layer: LayerOption;
+  layer: TaskLayerOption;
   checked: boolean;
   onToggle?: () => void;
 }

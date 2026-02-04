@@ -1,4 +1,4 @@
-import { LayerOption } from 'features/home/control-panel/form/ControlPanelForm';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import useIsMounted from 'hooks/useIsMounted';
 import { createContext, PropsWithChildren, useCallback, useMemo, useRef, useState } from 'react';
@@ -8,18 +8,18 @@ export interface ILayerContext {
    * Returns cached layer data if available.
    * If not cached and not already requested, dispatches a fetch and returns null.
    */
-  getCachedLayerByPath: (path: string) => LayerOption | null;
+  getCachedLayerByPath: (path: string) => TaskLayerOption | null;
 
   /**
    * Always resolves layer data.
    * Returns cached value, pending promise, or dispatches a request.
    */
-  getCachedLayerByPathAsync: (path: string) => Promise<LayerOption | null>;
+  getCachedLayerByPathAsync: (path: string) => Promise<TaskLayerOption | null>;
 
   /**
    * Fetches and caches layers for the given search terms.
    */
-  cacheLayersBySearchTerms: (terms: string[]) => Promise<LayerOption[] | null>;
+  cacheLayersBySearchTerms: (terms: string[]) => Promise<TaskLayerOption[] | null>;
 }
 
 export const LayerContext = createContext<ILayerContext | undefined>(undefined);
@@ -29,14 +29,14 @@ export const LayerContextProvider = ({ children }: PropsWithChildren) => {
   const isMounted = useIsMounted();
 
   /**
-   * path → LayerOption | null
+   * path → TaskLayerOption | null
    */
-  const [layerCache, setLayerCache] = useState<Record<string, LayerOption | null>>({});
+  const [layerCache, setLayerCache] = useState<Record<string, TaskLayerOption | null>>({});
 
   /**
    * path → in-flight promise
    */
-  const dispatchedLayerPromises = useRef<Record<string, Promise<LayerOption | null>>>({});
+  const dispatchedLayerPromises = useRef<Record<string, Promise<TaskLayerOption | null>>>({});
 
   /**
    * Fetch layers by search terms and cache them.
@@ -87,7 +87,7 @@ export const LayerContextProvider = ({ children }: PropsWithChildren) => {
    * Sync accessor — returns cached layer or triggers fetch.
    */
   const getCachedLayerByPath = useCallback(
-    (path: string): LayerOption | null => {
+    (path: string): TaskLayerOption | null => {
       if (Object.prototype.hasOwnProperty.call(layerCache, path)) {
         return layerCache[path] ?? null;
       }
@@ -106,7 +106,7 @@ export const LayerContextProvider = ({ children }: PropsWithChildren) => {
    * Async accessor — always resolves layer data.
    */
   const getCachedLayerByPathAsync = useCallback(
-    async (path: string): Promise<LayerOption | null> => {
+    async (path: string): Promise<TaskLayerOption | null> => {
       if (dispatchedLayerPromises.current[path]) {
         return dispatchedLayerPromises.current[path];
       }

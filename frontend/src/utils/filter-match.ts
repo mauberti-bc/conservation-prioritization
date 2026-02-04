@@ -1,6 +1,6 @@
-import { LayerOption } from 'features/home/control-panel/form/ControlPanelForm';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
 
-export function doesLayerMatchFilters(layer: LayerOption, inputValue: string, groupFilters: string[]): boolean {
+export function doesLayerMatchFilters(layer: TaskLayerOption, inputValue: string, groupFilters: string[]): boolean {
   const search = inputValue.trim().toLowerCase();
 
   if (groupFilters.length === 0) {
@@ -15,7 +15,7 @@ export function doesLayerMatchFilters(layer: LayerOption, inputValue: string, gr
 }
 
 export function createInputValueAndDetectFiltersHandler(
-  availableLayers: LayerOption[],
+  availableLayers: TaskLayerOption[],
   setInputValue: (val: string) => void,
   setGroupFilters: React.Dispatch<React.SetStateAction<string[]>>
 ) {
