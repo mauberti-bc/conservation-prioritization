@@ -120,6 +120,36 @@ export class TaskService extends DBService {
   }
 
   /**
+   * Gets all tasks associated with a project.
+   *
+   * @param {string} projectId
+   * @return {*}  {Promise<TaskWithLayers[]>}
+   * @memberof TaskService
+   */
+  async getTasksForProject(projectId: string): Promise<TaskWithLayers[]> {
+    const tasks = await this.taskRepository.getTasksByProjectId(projectId);
+    const taskIds = tasks.map((task) => task.task_id);
+
+    if (!taskIds.length) {
+      return [];
+    }
+
+    const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
+    const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
+
+    for (const layer of layersWithConstraints) {
+      const existing = layersByTaskId.get(layer.task_id) ?? [];
+      existing.push(layer);
+      layersByTaskId.set(layer.task_id, existing);
+    }
+
+    return tasks.map((task) => ({
+      ...task,
+      layers: layersByTaskId.get(task.task_id) ?? []
+    }));
+  }
+
+  /**
    * Updates an existing task.
    *
    * @param {string} taskId - The UUID of the task to update.

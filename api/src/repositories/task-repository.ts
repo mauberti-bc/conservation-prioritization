@@ -156,6 +156,35 @@ export class TaskRepository extends BaseRepository {
   }
 
   /**
+   * Fetches tasks associated with a project.
+   *
+   * @param {string} projectId
+   * @return {*}  {Promise<Task[]>}
+   * @memberof TaskRepository
+   */
+  async getTasksByProjectId(projectId: string): Promise<Task[]> {
+    const sqlStatement = SQL`
+      SELECT
+        t.task_id,
+        t.name,
+        t.description,
+        t.tileset_uri,
+        t.status,
+        t.status_message,
+        t.prefect_flow_run_id,
+        t.prefect_deployment_id
+      FROM task t
+      JOIN project_task pt ON pt.task_id = t.task_id
+      WHERE pt.project_id = ${projectId}
+      AND t.record_end_date IS NULL
+    `;
+
+    const response = await this.connection.sql(sqlStatement, Task);
+
+    return response.rows;
+  }
+
+  /**
    * Updates an existing task record.
    *
    * @param {string} taskId - The UUID of the task to update.

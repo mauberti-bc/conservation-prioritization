@@ -111,7 +111,6 @@ export const TaskDetailsPanel = () => {
             </Typography>
             <LoadingButton
               variant="contained"
-              size="small"
               loading={isPublishing}
               disabled={!task}
               onClick={() => {
