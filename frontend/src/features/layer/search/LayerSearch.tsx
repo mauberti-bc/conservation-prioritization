@@ -2,7 +2,7 @@ import { Box, TextField, InputAdornment } from '@mui/material';
 import { mdiMagnify } from '@mdi/js';
 import Icon from '@mdi/react';
 import { grey } from '@mui/material/colors';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLayerSearch } from 'hooks/useLayerSearch';
 import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
 import { LayerOptionAutocomplete } from './select/LayerOptionAutocomplete';
@@ -28,6 +28,9 @@ interface LayerSearchProps {
   renderResults?: (state: LayerSearchRenderState) => React.ReactNode;
   placeholder?: string;
   debounceMs?: number;
+  allowEmptySearch?: boolean;
+  autoSearchOnMount?: boolean;
+  initialSearchTerm?: string;
 }
 
 /**
@@ -42,9 +45,21 @@ export const LayerSearch = ({
   renderResults,
   placeholder,
   debounceMs = 300,
+  allowEmptySearch = false,
+  autoSearchOnMount = false,
+  initialSearchTerm = '',
 }: LayerSearchProps) => {
   const [inputValue, setInputValue] = useState('');
-  const { layers, loading, error, search } = useLayerSearch({ debounceMs });
+  const { layers, loading, error, search } = useLayerSearch({ debounceMs, allowEmptySearch });
+
+  useEffect(() => {
+    if (!autoSearchOnMount) {
+      return;
+    }
+
+    setInputValue(initialSearchTerm);
+    search(initialSearchTerm);
+  }, [autoSearchOnMount, initialSearchTerm, search]);
 
   if (variant === 'list') {
     return (

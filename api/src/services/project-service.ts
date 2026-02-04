@@ -58,6 +58,17 @@ export class ProjectService extends DBService {
   }
 
   /**
+   * Get all active projects available to a specific profile GUID.
+   *
+   * @param {string} profileGuid
+   * @return {*}  {Promise<Project[]>}
+   * @memberof ProjectService
+   */
+  async getProjectsForProfileGuid(profileGuid: string): Promise<Project[]> {
+    return this.projectRepository.getProjectsByProfileGuid(profileGuid);
+  }
+
+  /**
    * Update an existing project.
    *
    * @param {string} projectId

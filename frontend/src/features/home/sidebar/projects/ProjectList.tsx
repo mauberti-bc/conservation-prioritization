@@ -1,12 +1,12 @@
 import { Box, List, ListItem, ListItemText, Typography } from '@mui/material';
-import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
+import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 
-interface TaskListProps {
-  tasks: GetTaskResponse[];
+interface ProjectListProps {
+  projects: GetProjectResponse[];
   isLoading: boolean;
 }
 
-export const TaskList = ({ tasks, isLoading }: TaskListProps) => {
+export const ProjectList = ({ projects, isLoading }: ProjectListProps) => {
   return (
     <Box
       sx={{
@@ -17,20 +17,20 @@ export const TaskList = ({ tasks, isLoading }: TaskListProps) => {
         maxHeight: '300px',
         overflowY: 'auto',
       }}>
-      <Typography sx={{ mb: 1, px: 1 }}>Tasks</Typography>
+      <Typography sx={{ mb: 1, px: 1 }}>Projects</Typography>
       {isLoading ? (
         <Typography variant="body2" color="text.secondary" sx={{ px: 1 }}>
-          Loading tasks...
+          Loading projects...
         </Typography>
-      ) : tasks.length === 0 ? (
+      ) : projects.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ px: 1 }}>
-          No tasks available
+          No projects available
         </Typography>
       ) : (
         <List dense>
-          {tasks.map((task) => (
-            <ListItem key={task.task_id}>
-              <ListItemText primary={task.name} secondary={task.status} />
+          {projects.map((project) => (
+            <ListItem key={project.project_id}>
+              <ListItemText primary={project.name} secondary={project.description} />
             </ListItem>
           ))}
         </List>

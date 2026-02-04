@@ -3,7 +3,9 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
 import { TASK_STATUS, TILE_STATUS } from 'constants/status';
+import { useConservationApi } from 'hooks/useConservationApi';
 import { useMapContext, useTaskContext } from 'hooks/useContext';
+import useDataLoader from 'hooks/useDataLoader';
 import { useSearchParams } from 'hooks/useSearchParams';
 import { useEffect, useMemo } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
@@ -18,6 +20,9 @@ export const HomePage = () => {
   const { drawControlsRef } = useMapContext();
   const { taskId, taskDataLoader } = useTaskContext();
   const { data: taskStatus } = useTaskStatusWebSocket(taskId);
+  const conservationApi = useConservationApi();
+  const tasksDataLoader = useDataLoader(conservationApi.task.getAllTasks);
+  const projectsDataLoader = useDataLoader(conservationApi.project.getAllProjects);
 
   useEffect(() => {
     if (!searchParams.get(QUERY_PARAM.VIEW)) {
@@ -26,6 +31,16 @@ export const HomePage = () => {
   }, [searchParams, setSearchParams]);
 
   const activeView = (searchParams.get(QUERY_PARAM.VIEW) as ACTIVE_VIEW) ?? null;
+
+  useEffect(() => {
+    if (activeView === 'tasks') {
+      void tasksDataLoader.load();
+    }
+
+    if (activeView === 'projects') {
+      void projectsDataLoader.load();
+    }
+  }, [activeView, tasksDataLoader, projectsDataLoader]);
 
   const handleViewChange = (view: ACTIVE_VIEW | null) => {
     searchParams.setOrDelete(QUERY_PARAM.VIEW, view);
@@ -78,7 +93,12 @@ export const HomePage = () => {
           display: 'flex',
           flexDirection: 'column',
         }}>
-        <Sidebar activeView={activeView} onViewChange={handleViewChange} />
+        <Sidebar
+          activeView={activeView}
+          onViewChange={handleViewChange}
+          tasksDataLoader={tasksDataLoader}
+          projectsDataLoader={projectsDataLoader}
+        />
       </Box>
 
       {/* Map fills remaining space */}

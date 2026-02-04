@@ -107,6 +107,38 @@ export class ProjectRepository extends BaseRepository {
   }
 
   /**
+   * Fetches projects available to a profile GUID via project permissions.
+   *
+   * @param {string} profileGuid
+   * @return {*}  {Promise<Project[]>}
+   * @memberof ProjectRepository
+   */
+  async getProjectsByProfileGuid(profileGuid: string): Promise<Project[]> {
+    const sqlStatement = SQL`
+      SELECT
+        pr.project_id,
+        pr.name,
+        pr.description
+      FROM project pr
+      JOIN project_profile pp ON pp.project_id = pr.project_id
+      JOIN profile p ON p.profile_id = pp.profile_id
+      JOIN project_permission pperm ON pperm.project_permission_id = pp.project_permission_id
+      JOIN role r ON r.role_id = pperm.role_id
+      WHERE p.profile_guid = ${profileGuid}
+      AND p.record_end_date IS NULL
+      AND pp.record_end_date IS NULL
+      AND pperm.record_end_date IS NULL
+      AND r.record_end_date IS NULL
+      AND pr.record_end_date IS NULL
+      ORDER BY pr.name
+    `;
+
+    const response = await this.connection.sql(sqlStatement, Project);
+
+    return response.rows;
+  }
+
+  /**
    * Updates an existing active project.
    *
    * Only supplied fields will be updated; all others remain unchanged.

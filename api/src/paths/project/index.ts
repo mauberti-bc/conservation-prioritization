@@ -1,14 +1,11 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getDBConnection } from '../../database/db';
-import { HTTP500 } from '../../errors/http-error';
-import { PrefectSubmissionError } from '../../errors/prefect-error';
-import { CreateTaskRequest } from '../../models/task-orchestrator';
+import { CreateProject } from '../../models/project';
 import { defaultErrorResponses } from '../../openapi/schemas/http-responses';
-import { CreateTaskSchema, GetTaskSchema } from '../../openapi/schemas/task';
+import { CreateProjectSchema, GetProjectSchema } from '../../openapi/schemas/project';
 import { authorizeRequestHandler } from '../../request-handlers/security/authorization';
-import { TaskOrchestratorService } from '../../services/task-orchestrator-service';
-import { TaskService } from '../../services/task-service';
+import { ProjectService } from '../../services/project-service';
 import { getUserGuid } from '../../utils/keycloak-utils';
 import { getLogger } from '../../utils/logger';
 
@@ -24,12 +21,12 @@ export const POST: Operation = [
       ]
     };
   }),
-  createTask()
+  createProject()
 ];
 
 POST.apiDoc = {
-  description: 'Creates a new task in the system, with optional layers and constraints.',
-  tags: ['tasks'],
+  description: 'Creates a new project in the system.',
+  tags: ['projects'],
   security: [
     {
       Bearer: []
@@ -39,16 +36,16 @@ POST.apiDoc = {
     required: true,
     content: {
       'application/json': {
-        schema: CreateTaskSchema
+        schema: CreateProjectSchema
       }
     }
   },
   responses: {
     201: {
-      description: 'Task created successfully.',
+      description: 'Project created successfully.',
       content: {
         'application/json': {
-          schema: GetTaskSchema
+          schema: GetProjectSchema
         }
       }
     },
@@ -57,34 +54,28 @@ POST.apiDoc = {
 };
 
 /**
- * Create a new task in the system, including optional layers and constraints.
+ * Create a new project in the system.
  *
  * @returns {RequestHandler}
  */
-export function createTask(): RequestHandler {
+export function createProject(): RequestHandler {
   return async (req, res) => {
-    defaultLog.debug({ label: 'createTask' });
+    defaultLog.debug({ label: 'createProject' });
 
     const connection = getDBConnection(req.keycloak_token);
-    const payload = req.body as CreateTaskRequest;
+    const payload = req.body as CreateProject;
 
     try {
       await connection.open();
 
-      const taskService = new TaskOrchestratorService(connection);
-      const taskResponse = await taskService.createTaskAndSubmit(payload);
+      const projectService = new ProjectService(connection);
+      const project = await projectService.createProject(payload);
 
       await connection.commit();
 
-      return res.status(201).json(taskResponse);
+      return res.status(201).json(project);
     } catch (error) {
-      defaultLog.error({ label: 'createTask', message: 'error', error });
-
-      if (error instanceof PrefectSubmissionError) {
-        await connection.commit();
-        throw new HTTP500(error.message);
-      }
-
+      defaultLog.error({ label: 'createProject', message: 'error', error });
       await connection.rollback();
       throw error;
     } finally {
@@ -94,9 +85,9 @@ export function createTask(): RequestHandler {
 }
 
 /**
- * GET /tasks
+ * GET /project
  *
- * Returns all tasks in the system.
+ * Returns all projects available to the authenticated user.
  */
 export const GET: Operation = [
   authorizeRequestHandler(() => {
@@ -108,12 +99,12 @@ export const GET: Operation = [
       ]
     };
   }),
-  getTasks()
+  getProjects()
 ];
 
 GET.apiDoc = {
-  description: 'Fetches all tasks in the system.',
-  tags: ['tasks'],
+  description: 'Fetches projects available to the authenticated user.',
+  tags: ['projects'],
   security: [
     {
       Bearer: []
@@ -121,12 +112,12 @@ GET.apiDoc = {
   ],
   responses: {
     200: {
-      description: 'List of tasks returned successfully.',
+      description: 'List of projects returned successfully.',
       content: {
         'application/json': {
           schema: {
             type: 'array',
-            items: GetTaskSchema
+            items: GetProjectSchema
           }
         }
       }
@@ -136,30 +127,28 @@ GET.apiDoc = {
 };
 
 /**
- * Express request handler to fetch all tasks.
+ * Express request handler to fetch all projects available to the authenticated user.
  *
  * @returns {RequestHandler}
  */
-export function getTasks(): RequestHandler {
+export function getProjects(): RequestHandler {
   return async (req, res) => {
-    defaultLog.debug({ label: 'getTasks' });
+    defaultLog.debug({ label: 'getProjects' });
 
     const connection = getDBConnection(req.keycloak_token);
-
     const profileGuid = getUserGuid(req.keycloak_token);
 
     try {
       await connection.open();
 
-      const taskService = new TaskService(connection);
-
-      const tasks = profileGuid ? await taskService.getTasksForProfileGuid(profileGuid) : [];
+      const projectService = new ProjectService(connection);
+      const projects = profileGuid ? await projectService.getProjectsForProfileGuid(profileGuid) : [];
 
       await connection.commit();
 
-      return res.status(200).json(tasks);
+      return res.status(200).json(projects);
     } catch (error) {
-      defaultLog.error({ label: 'getTasks', message: 'error', error });
+      defaultLog.error({ label: 'getProjects', message: 'error', error });
       await connection.rollback();
       throw error;
     } finally {

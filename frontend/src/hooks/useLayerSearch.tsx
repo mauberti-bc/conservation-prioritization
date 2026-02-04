@@ -12,13 +12,17 @@ export interface UseLayerSearchReturn {
 
 interface UseLayerSearchProps {
   debounceMs?: number;
+  allowEmptySearch?: boolean;
 }
 
 /**
  * Custom hook for searching layers with debounced API requests.
  * Handles loading state, errors, and caches results.
  */
-export const useLayerSearch = ({ debounceMs = 300 }: UseLayerSearchProps = {}): UseLayerSearchReturn => {
+export const useLayerSearch = ({
+  debounceMs = 300,
+  allowEmptySearch = false,
+}: UseLayerSearchProps = {}): UseLayerSearchReturn => {
   const [layers, setLayers] = useState<TaskLayerOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +33,7 @@ export const useLayerSearch = ({ debounceMs = 300 }: UseLayerSearchProps = {}): 
   const debouncedSearch = useRef(
     debounce(async (term: string) => {
       const trimmed = term.trim();
-      if (!trimmed) {
+      if (!trimmed && !allowEmptySearch) {
         setLayers([]);
         setError(null);
         setLoading(false);
