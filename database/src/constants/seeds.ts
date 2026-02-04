@@ -51,6 +51,18 @@ export const SEED_CONSTANTS = {
       scope: 'task'
     }
   ],
+  DASHBOARD_ROLES: [
+    {
+      name: 'admin',
+      description: 'Dashboard administrator role',
+      scope: 'dashboard'
+    },
+    {
+      name: 'member',
+      description: 'Dashboard member role',
+      scope: 'dashboard'
+    }
+  ],
   PROFILES: [
     {
       profile_guid: '62EC624E50844486A046DC9709854F8D',

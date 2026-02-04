@@ -35,7 +35,7 @@ export const appTheme = createTheme({
     },
     action: {
       selected: grey[200],
-      hover: grey[50],
+      hover: grey[100],
     },
     divider: '#f2f2f2',
   },
@@ -220,7 +220,6 @@ export const appTheme = createTheme({
     MuiListItemButton: {
       styleOverrides: {
         root: {
-          backgroundColor: grey[50],
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: '8px',
