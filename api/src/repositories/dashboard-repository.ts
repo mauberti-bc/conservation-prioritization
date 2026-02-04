@@ -81,6 +81,39 @@ export class DashboardRepository extends BaseRepository {
   }
 
   /**
+   * Fetches a single active dashboard by its ID, returning null if not found.
+   *
+   * @param {string} dashboardId
+   * @return {*}  {Promise<Dashboard | null>}
+   * @memberof DashboardRepository
+   */
+  async findDashboardById(dashboardId: string): Promise<Dashboard | null> {
+    const sqlStatement = SQL`
+      SELECT
+        dashboard_id,
+        public_id,
+        name,
+        description,
+        access_scheme,
+        created_at,
+        created_by,
+        updated_at,
+        updated_by
+      FROM dashboard
+      WHERE dashboard_id = ${dashboardId}
+      AND record_end_date IS NULL
+    `;
+
+    const response = await this.connection.sql(sqlStatement, Dashboard);
+
+    if (response.rowCount !== 1) {
+      return null;
+    }
+
+    return response.rows[0];
+  }
+
+  /**
    * Fetches the access scheme for a dashboard without returning metadata.
    *
    * @param {string} dashboardId

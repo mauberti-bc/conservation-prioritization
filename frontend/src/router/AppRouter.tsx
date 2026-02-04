@@ -9,10 +9,9 @@ import { DashboardPage } from 'features/dashboard/DashboardPage';
 import { HomePage } from 'features/home/HomePage';
 import { PublicTaskDashboardPage } from 'features/public/PublicTaskDashboardPage';
 import { AuthRedirectGuard } from 'guards/Guards';
-import { DashboardAccessGuard } from 'guards/DashboardAccessGuard';
 import { useAuthContext } from 'hooks/useContext';
 import { BaseLayout } from 'layouts/BaseLayout';
-import { Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthRouter } from './AuthRouter';
 
 export const AppRouter = () => {
@@ -26,7 +25,26 @@ export const AppRouter = () => {
           </BaseLayout>
         }
       />
-      <Route path="/t/dashboard/:dashboardId" element={<DashboardRoute />} />
+      <Route
+        path="/t/dashboard/:dashboardId"
+        element={
+          <DialogContextProvider>
+            <MapContextProvider>
+              <BaseLayout>
+                <SidebarUIContextProvider>
+                  <TaskContextProvider>
+                    <ProjectContextProvider>
+                      <LayerSelectionContextProvider>
+                        <DashboardPage />
+                      </LayerSelectionContextProvider>
+                    </ProjectContextProvider>
+                  </TaskContextProvider>
+                </SidebarUIContextProvider>
+              </BaseLayout>
+            </MapContextProvider>
+          </DialogContextProvider>
+        }
+      />
       <Route
         path="/t/*"
         element={
@@ -73,22 +91,6 @@ export const AppRouter = () => {
       <Route path="/" element={<AuthEntryRedirect />} />
       <Route path="*" element={<AuthEntryRedirect />} />
     </Routes>
-  );
-};
-
-const DashboardRoute = () => {
-  const { dashboardId } = useParams<{ dashboardId: string }>();
-
-  return (
-    <DashboardAccessGuard dashboardId={dashboardId ?? null} redirectTo="/auth/login">
-      <DialogContextProvider>
-        <MapContextProvider>
-          <BaseLayout>
-            <DashboardPage />
-          </BaseLayout>
-        </MapContextProvider>
-      </DialogContextProvider>
-    </DashboardAccessGuard>
   );
 };
 

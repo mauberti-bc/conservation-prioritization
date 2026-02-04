@@ -1,5 +1,5 @@
 import { IDBConnection } from '../database/db';
-import { HTTP403 } from '../errors/http-error';
+import { HTTP403, HTTP404 } from '../errors/http-error';
 import { SYSTEM_ROLE } from '../constants/roles';
 import { CreateDashboard, Dashboard } from '../models/dashboard';
 import { DashboardPermissionRepository } from '../repositories/dashboard-permission-repository';
@@ -102,14 +102,25 @@ export class DashboardService extends DBService {
    * @return {*}  {Promise<DashboardResponse>}
    * @memberof DashboardService
    */
-  async getDashboardWithTasks(dashboardId: string, profileId: string): Promise<DashboardResponse> {
-    const dashboard = await this.dashboardRepository.getDashboardById(dashboardId);
+  async getDashboardWithTasks(dashboardId: string, profileId?: string | null): Promise<DashboardResponse> {
+    const dashboard = await this.dashboardRepository.findDashboardById(dashboardId);
+
+    if (!dashboard) {
+      throw new HTTP404('Dashboard not found.');
+    }
 
     if (dashboard.access_scheme === 'NOBODY') {
+      if (!profileId) {
+        throw new HTTP404('Dashboard not found.');
+      }
       throw new HTTP403('Access denied.');
     }
 
     if (dashboard.access_scheme === 'MEMBERS_ONLY') {
+      if (!profileId) {
+        throw new HTTP404('Dashboard not found.');
+      }
+
       const permission = await this.dashboardPermissionRepository.getDashboardPermission(dashboardId, profileId);
       if (!permission) {
         throw new HTTP403('Access denied.');

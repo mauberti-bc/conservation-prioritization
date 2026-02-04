@@ -173,6 +173,7 @@ export const appTheme = createTheme({
       defaultProps: {},
       styleOverrides: {
         root: {
+          fontWeight: 700,
           whiteSpace: 'nowrap',
           padding: '6px 14px',
           lineHeight: 1.4,
@@ -182,7 +183,6 @@ export const appTheme = createTheme({
           },
         },
         contained: {
-          fontWeight: 700,
           letterSpacing: '0.02rem',
         },
         outlined: {
@@ -190,7 +190,6 @@ export const appTheme = createTheme({
           borderColor: 'inherit',
         },
         text: {
-          fontWeight: 600,
           fontSize: '0.8rem',
         },
         startIcon: {

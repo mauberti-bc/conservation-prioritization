@@ -1,33 +1,21 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
-import { getDBConnection } from '../../../database/db';
+import { getAPIUserDBConnection, getDBConnection } from '../../../database/db';
 import { DashboardSchema } from '../../../openapi/schemas/dashboard';
 import { defaultErrorResponses } from '../../../openapi/schemas/http-responses';
-import { authorizeRequestHandler } from '../../../request-handlers/security/authorization';
 import { DashboardService } from '../../../services/dashboard-service';
 import { getLogger } from '../../../utils/logger';
 
 const defaultLog = getLogger(__filename);
 
-export const GET: Operation = [
-  authorizeRequestHandler(() => {
-    return {
-      and: [
-        {
-          discriminator: 'Profile'
-        }
-      ]
-    };
-  }),
-  getDashboard()
-];
+export const GET: Operation = [getDashboard()];
 
 GET.apiDoc = {
   description: 'Fetch a dashboard by ID.',
   tags: ['dashboards'],
   security: [
     {
-      Bearer: []
+      OptionalBearer: []
     }
   ],
   parameters: [
@@ -64,13 +52,14 @@ export function getDashboard(): RequestHandler {
   return async (req, res) => {
     defaultLog.debug({ label: 'getDashboard' });
 
-    const connection = getDBConnection(req.keycloak_token);
+    const hasToken = Boolean(req.keycloak_token);
+    const connection = hasToken ? getDBConnection(req.keycloak_token) : getAPIUserDBConnection();
 
     try {
       await connection.open();
-      const profileId = connection.profileId();
+      const profileId = hasToken ? connection.profileId() : null;
 
-      const dashboardId = req.params.dashboardId;
+      const dashboardId = req.params.dashboardId as string;
 
       const dashboardService = new DashboardService(connection);
       const response = await dashboardService.getDashboardWithTasks(dashboardId, profileId);
