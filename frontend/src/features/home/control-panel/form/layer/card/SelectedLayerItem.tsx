@@ -110,7 +110,7 @@ export const SelectedLayerItem = ({
           mb: 2,
           rowGap: 1,
           minWidth: 0,
-          overflow: 'hidden',
+          overflow: 'visible',
         }}>
         {isMobile ? (
           // MOBILE LAYOUT

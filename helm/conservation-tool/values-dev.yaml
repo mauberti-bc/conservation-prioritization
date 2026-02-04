@@ -1,19 +1,8 @@
-env:
-  NODE_ENV: "development"
-  PREFECT_API_URL: "http://prefect-server.fa9440-dev.svc.cluster.local:4200/api"
-  ZARR_STORE_PATH: "/data/output_1000.zarr"
+namespace: "fa9440-dev"
 
-services:
-  frontend:
-    image:
-      tag: dev
-
-  workflows:
-    worker:
-      image:
-        tag: dev
-      env:
-
-    deploy:
-      image:
-        tag: dev
+environment:
+  id: "dev"
+  name: "dev"
+  ts: "20260112-01"
+  licensePlate: "fa9440"
+  changeId: "001"

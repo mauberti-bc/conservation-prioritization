@@ -1,0 +1,20 @@
+{{- if not .Values.database.persistence.existingClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "conservation-tool.fullname.db" . }}
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}
+  annotations:
+    {{- include "conservation-tool.annotations" . | nindent 4 }}
+    {{- if eq (toString .Values.environment.id) "deploy" }}
+    "helm.sh/resource-policy": keep
+    {{- end }}
+spec:
+  accessModes:
+    - {{ .Values.database.persistence.accessMode | default "ReadWriteOnce" }}
+  resources:
+    requests:
+      storage: {{ .Values.database.persistence.size | default "0.5Gi" }}
+{{- end }}

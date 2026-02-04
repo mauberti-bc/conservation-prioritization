@@ -1,11 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "web-app.fullname.prefect-worker" . }}
+  name: {{ include "conservation-tool.fullname.prefect-worker" . }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.services.workflows.worker.service.type }}
   selector:
-    app: prefect-worker
+    app: {{ include "conservation-tool.fullname.prefect-worker" . }}
   ports:
-    - port: {{ .Values.services.workflows.worker.service.port }}
+    - name: http
+      protocol: TCP
+      port: {{ .Values.services.workflows.worker.service.port }}
       targetPort: {{ .Values.services.workflows.worker.service.targetPort }}

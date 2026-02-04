@@ -1,23 +1,100 @@
+# ========================
+# Global Configuration
+# ========================
 autoscaling:
   enabled: false
   maxReplicas: 1
   minReplicas: 1
 
-gitRepo: https://github.com/mauberti-bc/conservation-prioritization.git
-gitRef: main
-registry: image-registry.apps.gold.devops.gov.bc.ca/fa9440-tools
-objectStorageUrl: https://nrs.objectstore.gov.bc.ca:443/
+gitRepo: "https://github.com/mauberti-bc/conservation-prioritization.git"
+gitRef: "main"
+registry: "image-registry.apps.gold.devops.gov.bc.ca/fa9440-tools"
+objectStorageUrl: "https://nrs.objectstore.gov.bc.ca:443/"
 
+environment:
+  id: "dev"
+  name: "dev"
+  ts: "20260112-01"
+  licensePlate: "fa9440"
+  changeId: "001"
+
+# ========================
+# Ports Configuration
+# ========================
 ports:
   frontend: 7070
   api: 5200
   prefect_server_api: 4200
   prefect_worker_api: 8081
+  db: 5432
 
+# ========================
+# Database Configuration (Structured for Helm templates)
+# ========================
+database:
+  host: ""  # Set via --set by workflow
+  port: 5432
+  name: "conservation"
+  userApi: ""  # Set via --set by workflow
+  userApiPassword: ""  # Set via --set by workflow
+  userPrefect: ""  # Set via --set by workflow
+  userPrefectPassword: ""  # Set via --set by workflow
+  admin: ""  # Set via --set by workflow
+  adminPassword: ""  # Set via --set by workflow
+  schema: "public"
+  pgData: "/var/lib/postgresql/data"
+  timezone: "UTC"
+  postgresql:
+    primary:
+      podSecurityContext:
+        runAsUser: 1003600000
+        fsGroup: 1003600000
+      containerSecurityContext:
+        runAsUser: 1003600000
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: false
+        capabilities:
+          drop:
+            - ALL
+  persistence:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 0.5Gi
+    existingClaim: ""
+
+# ========================
+# Object Storage Configuration (Structured for Helm templates)
+# ========================
+objectStorage:
+  url: ""  # Set via --set by workflow
+  accessKeyId: ""  # Set via --set by workflow
+  secretKeyId: ""  # Set via --set by workflow
+  bucketName: ""  # Set via --set by workflow
+  keyPrefix: ""  # Set via --set by workflow
+
+# ========================
+# Keycloak Configuration (Structured for Helm templates)
+# ========================
+keycloak:
+  host: ""  # Set via --set by workflow
+  realm: ""  # Set via --set by workflow
+  adminUsername: ""  # Set via --set by workflow
+  adminPassword: ""  # Set via --set by workflow
+  apiTokenUrl: ""  # Set via --set by workflow
+  apiClientId: ""  # Set via --set by workflow
+  apiClientSecret: ""  # Set via --set by workflow
+  apiHost: ""  # Set via --set by workflow
+  apiEnvironment: ""  # Set via --set by workflow
+
+# ========================
+# Prefect Server & Workers
+# ========================
 prefect-server:
   serviceAccount:
     create: false
-    name: prefect-server
+    name: "prefect-server"
+
   ui:
     enabled: true
     podSecurityContext:
@@ -38,11 +115,11 @@ prefect-server:
       limits:
         cpu: 50m
         memory: 128Mi
+
   server:
     podSecurityContext:
       runAsUser: 1003600000
       fsGroup: null
-
     containerSecurityContext:
       runAsUser: 1003600000
       runAsNonRoot: true
@@ -51,7 +128,6 @@ prefect-server:
       capabilities:
         drop:
           - ALL
-
     resources:
       requests:
         cpu: 50m
@@ -59,69 +135,66 @@ prefect-server:
       limits:
         cpu: 100m
         memory: 256Mi
-
-    env:
-      - name: PREFECT_SERVER_API_HOST
-        value: "0.0.0.0"
 
   migrations:
     enabled: true
     backoffLimit: 3
     securityContext:
       runAsUser: 1003600000
+
   ingress:
     enabled: false
     host:
-      hostname: conservation-tool-prefect-server-fa9440-dev.apps.gold.devops.gov.bc.ca
-      path: /
+      hostname: "conservation-tool-prefect-server-fa9440-dev.apps.gold.devops.gov.bc.ca"
+      path: "/"
     className: "openshift-default"
-  postgresql:
-    primary:
-      podSecurityContext:
-        runAsUser: 1003600000
-        fsGroup: 1003600000
-      containerSecurityContext:
-        runAsUser: 1003600000
-        runAsNonRoot: true
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: false
-        capabilities:
-          drop:
-            - ALL
-  backgroundServices:
-    podSecurityContext:
-      runAsUser: 1003600000
-      fsGroup: 1003600000
-    containerSecurityContext:
-      runAsUser: 1003600000
-      runAsNonRoot: true
-      allowPrivilegeEscalation: false
-      readOnlyRootFilesystem: true
-      capabilities:
-        drop:
-          - ALL
 
+prefect-worker:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 1028Mi
+    limits:
+      cpu: 100m
+      memory: 1028Mi
+  replicas: 0
+  pool: pool
+  securityContext:
+    runAsUser: 1003600000
+    fsGroup: 1003600000
+
+prefect-deploy:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 1028Mi
+    limits:
+      cpu: 100m
+      memory: 1028Mi
+  replicas: 0
+  securityContext:
+    runAsUser: 1003600000
+    fsGroup: 1003600000
+
+# ========================
+# Services Configuration
+# ========================
 services:
   frontend:
     replicas: 0
-
     image:
-      stream: frontend
-      tag: dev
+      stream: "frontend"
+      tag: "dev"
       pullPolicy: "Always"
-
     service:
       type: ClusterIP
       port: 7070
       targetPort: 7070
-
     route:
-      host: conservation123.nrs.gov.bc.ca
-
+      host: "conservation123.nrs.gov.bc.ca"
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
-
     resources:
       requests:
         cpu: 50m
@@ -129,19 +202,16 @@ services:
       limits:
         cpu: 100m
         memory: 256Mi
-
     livenessProbe:
       enabled: false
       path: "/health"
       initialDelaySeconds: 30
       periodSeconds: 10
-
     readinessProbe:
       enabled: false
       path: "/health"
       initialDelaySeconds: 5
       periodSeconds: 5
-
     extraVolumeMounts: []
     extraVolumes: []
 
@@ -150,8 +220,8 @@ services:
       replicas: 0
       pool: pool
       image:
-        stream: prefect-worker
-        tag: dev
+        stream: "prefect-worker"
+        tag: "dev"
         pullPolicy: IfNotPresent
       resources:
         limits:
@@ -171,8 +241,8 @@ services:
     deploy:
       replicas: 0
       image:
-        stream: prefect-deploy
-        tag: dev
+        stream: "prefect-deploy"
+        tag: "dev"
         pullPolicy: IfNotPresent
       resources:
         requests:
@@ -185,6 +255,125 @@ services:
         runAsUser: 1003600000
         fsGroup: 1003600000
 
+  api:
+    replicas: 0
+    image:
+      stream: "api"
+      tag: "dev"
+      pullPolicy: IfNotPresent
+    service:
+      type: ClusterIP
+      port: 5200
+      targetPort: 5200
+    securityContext:
+      runAsUser: 1003600000
+      fsGroup: 1003600000
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 100m
+        memory: 512Mi
+
+  db:
+    image:
+      stream: "postgres"
+      tag: "17-alpine"
+      pullPolicy: "IfNotPresent"
+    service:
+      type: ClusterIP
+      port: 5432
+      targetPort: 5432
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 100m
+        memory: 512Mi
+    securityContext:
+      runAsUser: 1003600000
+      fsGroup: 1003600000
+    persistence:
+      enabled: true
+      size: 0.5Gi
+      accessMode: ReadWriteOnce
+
+# ========================
+# Background Services
+# ========================
+backgroundServices:
+  podSecurityContext:
+    runAsUser: 1003600000
+    fsGroup: 1003600000
+  containerSecurityContext:
+    runAsUser: 1003600000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+# ========================
+# Global Environment Variables (Flat structure for runtime injection)
+# ========================
 env:
+  # Node / General
+  NODE_ENV: "development"
   NODE_OPTIONS: "--max-old-space-size=4096"
   ZARR_STORE_PATH: "/data/output_1000.zarr"
+
+  # Database
+  DB_HOST: ""  # Set via --set env.DB_HOST by workflow
+  DB_PORT: "5432"
+  DB_DATABASE: ""  # Set via --set env.DB_DATABASE by workflow
+  DB_USER_API: ""  # Set via --set env.DB_USER_API by workflow
+  DB_USER_API_PASS: ""  # Set via --set env.DB_USER_API_PASS by workflow
+  DB_USER_PREFECT: ""  # Set via --set env.DB_USER_PREFECT by workflow
+  DB_USER_PREFECT_PASS: ""  # Set via --set env.DB_USER_PREFECT_PASS by workflow
+  DB_ADMIN: ""  # Set via --set env.DB_ADMIN by workflow
+  DB_ADMIN_PASS: ""  # Set via --set env.DB_ADMIN_PASS by workflow
+  DB_SCHEMA: "public"
+  DB_POOL_SIZE: "10"
+  DB_CONNECTION_MAX_USES: "7200"
+  DB_CONNECTION_TIMEOUT: "30000"
+  DB_IDLE_TIMEOUT: "30000"
+
+  # Prefect
+  PREFECT_API_URL: "http://prefect-server:4200/api"
+  PREFECT_SERVER_API_HOST: "0.0.0.0"
+  PREFECT_UI_API_URL: "http://localhost:4200/api"
+  PREFECT_API_DATABASE_CONNECTION_URL: ""  # Set via --set env.PREFECT_API_DATABASE_CONNECTION_URL by workflow
+
+  # Object Storage
+  OBJECT_STORE_URL: ""  # Set via --set env.OBJECT_STORE_URL by workflow
+  OBJECT_STORE_ACCESS_KEY_ID: ""  # Set via --set env.OBJECT_STORE_ACCESS_KEY_ID by workflow
+  OBJECT_STORE_SECRET_KEY_ID: ""  # Set via --set env.OBJECT_STORE_SECRET_KEY_ID by workflow
+  OBJECT_STORE_BUCKET_NAME: ""  # Set via --set env.OBJECT_STORE_BUCKET_NAME by workflow
+  S3_KEY_PREFIX: ""  # Set via --set env.S3_KEY_PREFIX by workflow
+
+  # Keycloak
+  KEYCLOAK_HOST: ""  # Set via --set env.KEYCLOAK_HOST by workflow
+  KEYCLOAK_REALM: ""  # Set via --set env.KEYCLOAK_REALM by workflow
+  KEYCLOAK_ADMIN_USERNAME: ""  # Set via --set env.KEYCLOAK_ADMIN_USERNAME by workflow
+  KEYCLOAK_ADMIN_PASSWORD: ""  # Set via --set env.KEYCLOAK_ADMIN_PASSWORD by workflow
+  KEYCLOAK_API_TOKEN_URL: ""  # Set via --set env.KEYCLOAK_API_TOKEN_URL by workflow
+  KEYCLOAK_API_CLIENT_ID: ""  # Set via --set env.KEYCLOAK_API_CLIENT_ID by workflow
+  KEYCLOAK_API_CLIENT_SECRET: ""  # Set via --set env.KEYCLOAK_API_CLIENT_SECRET by workflow
+  KEYCLOAK_API_HOST: ""  # Set via --set env.KEYCLOAK_API_HOST by workflow
+  KEYCLOAK_API_ENVIRONMENT: ""  # Set via --set env.KEYCLOAK_API_ENVIRONMENT by workflow
+
+  # API
+  API_HOST: "0.0.0.0"
+  API_PORT: "5200"
+  APP_HOST: ""  # Set via --set env.APP_HOST by workflow (external hostname)
+
+  # Frontend
+  VITE_PREFECT_API_URL: ""  # For local dev only (baked into image in production)
+  VITE_ZARR_STORE_PATH: "/data/output_1000.zarr"
+  VITE_APP_SITEMINDER_LOGOUT_URL: ""  # Set via --set env.VITE_APP_SITEMINDER_LOGOUT_URL by workflow (optional)
+  VITE_APP_KEYCLOAK_HOST: ""  # Set via --set env.VITE_APP_KEYCLOAK_HOST by workflow (baked into image for prod)
+  VITE_APP_KEYCLOAK_REALM: ""  # Set via --set env.VITE_APP_KEYCLOAK_REALM by workflow (baked into image for prod)
+  VITE_APP_KEYCLOAK_CLIENT_ID: ""  # Set via --set env.VITE_APP_KEYCLOAK_CLIENT_ID by workflow (baked into image for prod)

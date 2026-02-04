@@ -1,13 +1,15 @@
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: {{ include "web-app.fullname.frontend" . }}
+  name: {{ include "conservation-tool.fullname.frontend" . }}
+  labels:
+    app: {{ include "conservation-tool.fullname.frontend" . }}
 spec:
   to:
     kind: Service
-    name: {{ include "web-app.fullname.frontend" . }}
+    name: {{ include "conservation-tool.fullname.frontend" . }}
   port:
-    targetPort: frontend-port
+    targetPort: {{ .Values.services.frontend.service.targetPort | default 7070 }}
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect

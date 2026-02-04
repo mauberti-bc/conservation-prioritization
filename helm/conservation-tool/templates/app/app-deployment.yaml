@@ -1,19 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "web-app.fullname.frontend" . }}
+  name: {{ include "conservation-tool.fullname.frontend" . }}
+  labels:
+    app: {{ include "conservation-tool.fullname.frontend" . }}
 spec:
-  replicas: {{ .Values.services.frontend.replicas }}
+  replicas: {{ .Values.services.frontend.replicas | default 1 }}
   selector:
     matchLabels:
-      app: {{ include "web-app.fullname.frontend" . }}
+      app: {{ include "conservation-tool.fullname.frontend" . }}
   template:
     metadata:
       labels:
-        app: {{ include "web-app.fullname.frontend" . }}
+        app: {{ include "conservation-tool.fullname.frontend" . }}
     spec:
-      serviceAccountName: deployer
-      # OpenShift-compatible pod security context
+      serviceAccountName: {{ .Values.services.frontend.serviceAccountName | default "deployer" }}
       securityContext:
         runAsNonRoot: true
         {{- if .Values.services.frontend.securityContext.runAsUser }}
@@ -25,12 +26,11 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: "frontend"
+        - name: frontend
           image: "{{ .Values.registry }}/{{ .Values.services.frontend.image.stream }}:{{ .Values.services.frontend.image.tag }}"
           imagePullPolicy: {{ .Values.services.frontend.image.pullPolicy | default "IfNotPresent" }}
           ports:
-            - containerPort: {{ .Values.services.frontend.service.targetPort }}
-          # Container-level security context
+            - containerPort: {{ .Values.ports.frontend }}
           securityContext:
             runAsNonRoot: true
             {{- if .Values.services.frontend.securityContext.runAsUser }}
@@ -43,7 +43,16 @@ spec:
                 - ALL
             seccompProfile:
               type: RuntimeDefault
-          # Volume mounts for Caddy's writable directories
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.env.NODE_ENV | quote }}
+            - name: PREFECT_API_URL
+              value: {{ .Values.env.PREFECT_API_URL | quote }}
+            - name: ZARR_STORE_PATH
+              value: {{ .Values.env.ZARR_STORE_PATH | quote }}
+            {{- if .Values.services.frontend.env }}
+            {{- toYaml .Values.services.frontend.env | nindent 12 }}
+            {{- end }}
           volumeMounts:
             - name: caddy-data
               mountPath: /data/caddy
@@ -56,12 +65,11 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.services.frontend.resources | nindent 12 }}
-          # Health checks (optional but recommended)
           {{- if .Values.services.frontend.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
               path: {{ .Values.services.frontend.livenessProbe.path }}
-              port: {{ .Values.services.frontend.service.targetPort }}
+              port: {{ .Values.ports.frontend }}
             initialDelaySeconds: {{ .Values.services.frontend.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.services.frontend.livenessProbe.periodSeconds }}
           {{- end }}
@@ -69,11 +77,10 @@ spec:
           readinessProbe:
             httpGet:
               path: {{ .Values.services.frontend.readinessProbe.path }}
-              port: {{ .Values.services.frontend.service.targetPort }}
+              port: {{ .Values.ports.frontend }}
             initialDelaySeconds: {{ .Values.services.frontend.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.services.frontend.readinessProbe.periodSeconds }}
           {{- end }}
-      # Volumes for writable directories
       volumes:
         - name: caddy-data
           emptyDir: {}

@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "conservation-tool.fullname.db" . }}
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}
+  annotations:
+    template.alpha.openshift.io/wait-for-ready: 'true'
+    {{- include "conservation-tool.annotations" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.services.db.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ include "conservation-tool.fullname.db" . | quote }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{ include "conservation-tool.fullname.db" . | quote }}
+        role: db
+    spec:
+      containers:
+        - name: postgresql
+          image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
+          imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "IfNotPresent" }}
+          env:
+            - name: POSTGRES_DB
+              value: "{{ .Values.database.name }}"
+            - name: POSTGRES_USER
+              value: "{{ .Values.database.admin }}"
+            - name: POSTGRES_PASSWORD
+              value: "{{ .Values.database.adminPassword }}"
+            - name: PGDATA
+              value: "{{ .Values.database.pgData | default "/var/lib/postgresql/data" }}"
+            - name: PGOPTIONS
+              value: "-c maintenance_work_mem=128MB"
+            - name: PGTZ
+              value: "{{ .Values.database.timezone | default "UTC" }}"
+          ports:
+            - containerPort: {{ .Values.services.db.service.port | default 5432 }}
+              protocol: TCP
+          startupProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.services.db.service.port | default 5432 }}
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.services.db.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: {{ .Values.services.db.securityContext.runAsUser | default 1003600000 }}
+            fsGroup: {{ .Values.services.db.securityContext.fsGroup | default 1003600000 }}
+          volumeMounts:
+            - name: {{ include "conservation-tool.fullname.db" . }}-data
+              mountPath: /var/lib/postgresql/data
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      volumes:
+        - name: {{ include "conservation-tool.fullname.db" . }}-data
+          persistentVolumeClaim:
+            claimName: {{ .Values.services.db.persistence.existingClaim | default (include "conservation-tool.fullname.db" .) }}

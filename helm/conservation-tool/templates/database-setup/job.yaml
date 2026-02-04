@@ -1,0 +1,107 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "conservation-tool.fullname.db" . }}-{{ .Release.Revision }}
+  namespace: {{ include "conservation-tool.namespace" . }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}
+    role: setup
+  annotations:
+    {{- include "conservation-tool.annotations" . | nindent 4 }}
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        {{- include "conservation-tool.labels" . | nindent 8 }}
+        role: setup
+    spec:
+      initContainers:
+        - name: wait-for-database
+          image: "postgres:17-alpine"
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for database to be ready..."
+              until pg_isready -h $DB_HOST -p $DB_PORT -U $DB_ADMIN; do
+                echo "Database not ready, waiting..."
+                sleep 5
+              done
+              echo "Database is ready!"
+          env:
+            - name: DB_HOST
+              value: "{{ .Values.database.host }}"
+            - name: DB_PORT
+              value: "{{ .Values.database.port | default 5432 }}"
+            - name: DB_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: database-admin
+            - name: DB_ADMIN_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: database-admin-password
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: database-admin-password
+      containers:
+        - name: db-setup
+          image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
+          imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "IfNotPresent" }}
+          env:
+            - name: DB_HOST
+              value: "{{ .Values.database.host }}"
+            - name: DB_PORT
+              value: "{{ .Values.database.port | default 5432 }}"
+            - name: DB_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: database-admin
+            - name: DB_ADMIN_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: database-admin-password
+            - name: DB_USER_API
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: database-user-api
+            - name: DB_USER_API_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: database-user-api-password
+            - name: DB_USER_PREFECT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: database-user-prefect
+            - name: DB_USER_PREFECT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: database-user-prefect-password
+            - name: DB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: database-name
+            - name: DB_SCHEMA
+              value: "{{ .Values.database.schema | default "" }}"
+            - name: CHANGE_VERSION
+              value: "{{ .Values.environment.changeId | default "" }}"
+            - name: NODE_ENV
+              value: "{{ .Values.env.NODE_ENV | default "development" }}"
+            - name: VERSION
+              value: "{{ printf "%s-%s-%s" .Values.environment.name .Chart.AppVersion .Values.environment.changeId }}"
+          resources:
+            {{- toYaml .Values.services.db.resources | nindent 12 }}
+      restartPolicy: Never
+      dnsPolicy: ClusterFirst
