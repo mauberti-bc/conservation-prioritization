@@ -1,16 +1,18 @@
 import { mdiAccountCircle } from '@mdi/js';
 import Icon from '@mdi/react';
-import { Button, Divider, MenuItem } from '@mui/material';
+import { Button, Divider, MenuItem, Typography } from '@mui/material';
 import { Box } from '@mui/system';
 import { useAuthContext } from 'hooks/useContext';
 
 export const HeaderAuthenticated = () => {
   const authContext = useAuthContext();
+  const displayName =
+    authContext.auth.user?.profile?.name || authContext.auth.user?.profile?.preferred_username || 'User';
 
   return (
     <>
       <Box
-        display={{ xs: 'none', lg: 'flex' }}
+        display={{ display: 'flex' }}
         alignItems="center"
         sx={{
           fontSize: '16px',
@@ -24,7 +26,9 @@ export const HeaderAuthenticated = () => {
             lineHeight: '1.75',
           }}>
           <Icon path={mdiAccountCircle} size={1} />
-          <Box ml={1}>PLACEHOLDER USERNAME</Box>
+          <Typography ml={1} fontWeight={700}>
+            {displayName}
+          </Typography>
         </Box>
         <Divider
           orientation="vertical"

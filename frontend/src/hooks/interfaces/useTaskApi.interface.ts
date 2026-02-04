@@ -1,5 +1,3 @@
-import type { TaskStatusValue } from 'constants/status';
-
 export enum OPTIMIZATION_VARIANT {
   STRICT = 'strict',
   APPROXIMATE = 'approximate',

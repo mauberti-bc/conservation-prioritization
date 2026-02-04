@@ -16,11 +16,11 @@ import {
 } from '@mui/material';
 import { grey } from '@mui/material/colors';
 import { LayerCardItem } from 'features/home/layer-panel/card/LayerCardItem';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
 import { useCallback, useMemo, useState } from 'react';
 import { createInputValueAndDetectFiltersHandler, doesLayerMatchFilters } from 'utils/filter-match';
 import { pluralize } from 'utils/util';
 import { LayerSearchLayout } from './layout/LayerSearchLayout';
-import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
 
 interface LayerSearchDialogProps {
   open: boolean;
@@ -157,11 +157,11 @@ export const LayerSearchDialog = ({
             ) : hasResults ? (
               filteredLayers.map((layer) => (
                 <ListItem key={layer.path} sx={{ px: 0 }}>
-                    <LayerCardItem
-                      layer={layer}
-                      onToggle={() => onLayerChange(layer)}
-                      checked={selectedLayers.some((l) => l.path === layer.path)}
-                    />
+                  <LayerCardItem
+                    layer={layer}
+                    onToggle={() => onLayerChange(layer)}
+                    checked={selectedLayers.some((l) => l.path === layer.path)}
+                  />
                 </ListItem>
               ))
             ) : (

@@ -1,6 +1,6 @@
 import express, { NextFunction, Request, Response } from 'express';
-import http from 'http';
 import { initialize } from 'express-openapi';
+import http from 'http';
 import multer from 'multer';
 import { OpenAPIV3 } from 'openapi-types';
 import swaggerUIExpress from 'swagger-ui-express';
@@ -26,8 +26,8 @@ const MAX_UPLOAD_FILE_SIZE = Number(process.env.MAX_UPLOAD_FILE_SIZE) || 50 * 10
 const app = express();
 const server = http.createServer(app);
 
-// --- Middleware ---
-app.use((req: Request, res: Response, next: NextFunction) => {
+// Enable CORS
+app.use(function (req: Request, res: Response, next: NextFunction) {
   res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Authorization, responseType');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE, HEAD');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -38,7 +38,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     return;
   }
 
-  logger.debug({ label: 'api-middleware', method: req.method, url: req.url });
   next();
 });
 
@@ -108,6 +107,30 @@ function getAdditionalMiddleware(): express.RequestHandler[] {
   }
 
   return middleware;
+}
+
+/**
+ * Returns an allowed origin for CORS based on configured allowlist.
+ *
+ * @param {string | string[] | undefined} origin
+ * @return {*}  {string}
+ */
+function getAllowedOrigin(origin: string | string[] | undefined): string {
+  const normalizedOrigin = Array.isArray(origin) ? origin[0] : origin;
+  const configuredOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  if (!normalizedOrigin || configuredOrigins.length === 0) {
+    return '*';
+  }
+
+  if (configuredOrigins.includes(normalizedOrigin)) {
+    return normalizedOrigin;
+  }
+
+  return '*';
 }
 
 async function handleMultipart(req: Request, res: Response, next: NextFunction) {

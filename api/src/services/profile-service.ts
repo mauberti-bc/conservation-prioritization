@@ -1,3 +1,4 @@
+import { SYSTEM_ROLE } from '../constants/roles';
 import { IDBConnection } from '../database/db';
 import { CreateProfile, DeleteProfile, Profile, UpdateProfile, UpsertProfile } from '../models/profile';
 import { ProfileRepository } from '../repositories/profile-repository';
@@ -54,8 +55,8 @@ export class ProfileService extends DBService {
    * @return {Promise<Profile>}
    * @memberof ProfileService
    */
-  async getProfileByGuid(profileGuid: string): Promise<Profile> {
-    return this.profileRepository.getProfileByGuid(profileGuid);
+  async getProfileByGuid(profileGuid: string): Promise<Profile | null> {
+    return this.profileRepository.findProfileByGuid(profileGuid);
   }
 
   /**
@@ -89,15 +90,20 @@ export class ProfileService extends DBService {
    * @memberof ProfileService
    */
   async upsertProfile(profile: UpsertProfile): Promise<[Profile, boolean]> {
-    // Check if a profile exists with the same profile_guid or profile_identifier
-    const existingProfile = await this.profileRepository.getProfileByGuid(profile.profile_guid);
+    const existingProfile = await this.profileRepository.findProfileByGuid(profile.profile_guid);
 
     if (existingProfile) {
-      // If the profile exists, update it
       return [await this.profileRepository.updateProfile(existingProfile.profile_id, profile as UpdateProfile), false];
-    } else {
-      // If the profile doesn't exist, create a new one
-      return [await this.profileRepository.createProfile(profile as CreateProfile), true];
     }
+
+    const roleId = await this.profileRepository.getRoleIdByName(SYSTEM_ROLE.MEMBER);
+
+    return [
+      await this.profileRepository.createProfile({
+        ...profile,
+        role_id: roleId
+      } as CreateProfile),
+      true
+    ];
   }
 }

@@ -1,6 +1,6 @@
-import { v4 } from 'uuid';
-import { GetTaskResponse, OPTIMIZATION_VARIANT, RESAMPLING } from 'hooks/interfaces/useTaskApi.interface';
 import { TaskCreateFormValues } from 'features/home/task/create/form/TaskCreateForm';
+import { GetTaskResponse, OPTIMIZATION_VARIANT, RESAMPLING } from 'hooks/interfaces/useTaskApi.interface';
+import { v4 } from 'uuid';
 
 const DEFAULT_RESOLUTION = 1000;
 const DEFAULT_RESAMPLING: RESAMPLING = 'mode';
@@ -24,8 +24,8 @@ export const mapTaskResponseToCreateFormValues = (task: GetTaskResponse): TaskCr
       name: layer.layer_name,
       path: layer.layer_name,
       mode: layer.mode,
-      importance: layer.importance ?? null,
-      threshold: layer.threshold ?? null,
+      importance: layer.importance ?? undefined,
+      threshold: layer.threshold ?? undefined,
       constraints: layer.constraints.map((constraint) => ({
         id: v4(),
         min: constraint.min ?? null,

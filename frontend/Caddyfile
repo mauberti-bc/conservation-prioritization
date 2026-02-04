@@ -1,7 +1,7 @@
 :{$PORT:7070} {
     root * ./public
     file_server
-    
+
     # Add health check endpoint
     respond /health 200
 }

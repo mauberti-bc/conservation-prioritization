@@ -1,11 +1,11 @@
 import { mdiArrowExpand } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Autocomplete, IconButton } from '@mui/material';
-import { useState } from 'react';
 import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
+import { useState } from 'react';
 import { LayerSearchDialog } from '../dialog/LayerSearchDialog';
-import { LayerOptionItem } from './render/LayerOptionItem';
 import { LayerSearchInput } from './autocomplete/input/LayerSearchInput';
+import { LayerOptionItem } from './render/LayerOptionItem';
 
 const MAX_VISIBLE_FILTERS = 2;
 
@@ -86,8 +86,6 @@ export const LayerOptionAutocomplete = ({
         renderInput={(params) => (
           <LayerSearchInput
             {...params}
-            error={!!error}
-            helperText={error}
             filters={selectedFilters}
             onRemoveFilter={handleRemoveFilter}
             onBackspaceEmptyInput={handleBackspaceOnEmpty}
@@ -110,8 +108,8 @@ export const LayerOptionAutocomplete = ({
         )}
         renderOption={(props, option: TaskLayerOption) => (
           <LayerOptionItem
-            key={option.path}
             {...props}
+            key={option.path}
             option={option}
             showCheckbox={showCheckbox}
             isChecked={selectedLayers.some((l) => l.path === option.path)}

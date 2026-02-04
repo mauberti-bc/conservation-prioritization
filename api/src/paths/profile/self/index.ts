@@ -1,11 +1,11 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
-import { getAPIUserDBConnection } from '../../../../database/db';
-import { HTTP400 } from '../../../../errors/http-error';
-import { UpsertProfile } from '../../../../models/profile';
-import { defaultErrorResponses } from '../../../../openapi/schemas/http-responses';
-import { GetProfileSchema } from '../../../../openapi/schemas/profile';
-import { ProfileService } from '../../../../services/profile-service';
+import { getAPIUserDBConnection } from '../../../database/db';
+import { HTTP400 } from '../../../errors/http-error';
+import { UpsertProfile } from '../../../models/profile';
+import { defaultErrorResponses } from '../../../openapi/schemas/http-responses';
+import { GetProfileSchema } from '../../../openapi/schemas/profile';
+import { ProfileService } from '../../../services/profile-service';
 import {
   getAgency,
   getDisplayName,
@@ -15,8 +15,8 @@ import {
   getUserGuid,
   getUserIdentifier,
   getUserIdentitySource
-} from '../../../../utils/keycloak-utils';
-import { getLogger } from '../../../../utils/logger';
+} from '../../../utils/keycloak-utils';
+import { getLogger } from '../../../utils/logger';
 
 const defaultLog = getLogger(__filename);
 

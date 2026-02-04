@@ -13,6 +13,7 @@ export async function seed(knex: Knex): Promise<void> {
     
     -- Drop the function if it already exists
     DROP FUNCTION IF EXISTS api_set_context;
+    DROP FUNCTION IF EXISTS api_get_context_profile_id;
 
     -- Create the function
     CREATE OR REPLACE FUNCTION api_set_context(
@@ -55,6 +56,28 @@ export async function seed(knex: Knex): Promise<void> {
       WHEN OTHERS THEN
         -- Reraise any errors for better debugging
         RAISE;
+    END;
+    $$;
+
+    -- Create a helper function to read the current profile_id context
+    CREATE OR REPLACE FUNCTION api_get_context_profile_id() RETURNS uuid
+    LANGUAGE plpgsql
+    SECURITY INVOKER
+    SET client_min_messages = warning
+    AS
+    $$
+    DECLARE
+      _profile_id uuid;
+    BEGIN
+      SELECT value::uuid INTO _profile_id
+      FROM conservation_context_temp
+      WHERE tag = 'profile_id';
+
+      IF (_profile_id IS NULL) THEN
+        RAISE EXCEPTION 'No profile_id found in conservation_context_temp';
+      END IF;
+
+      RETURN _profile_id;
     END;
     $$;
   `);

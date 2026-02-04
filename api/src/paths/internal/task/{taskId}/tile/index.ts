@@ -1,15 +1,15 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
-import { getAPIUserDBConnection } from '../../../../database/db';
-import { defaultErrorResponses } from '../../../../openapi/schemas/http-responses';
-import { TaskTileSchema } from '../../../../openapi/schemas/task-tile';
-import { TaskTileService } from '../../../../services/task-tile-service';
-import { enforceInternalAuth } from '../../../../utils/internal-auth';
-import { getLogger } from '../../../../utils/logger';
+import { getAPIUserDBConnection } from '../../../../../database/db';
+import { defaultErrorResponses } from '../../../../../openapi/schemas/http-responses';
+import { TaskTileSchema } from '../../../../../openapi/schemas/task-tile';
+import { requireServiceKey } from '../../../../../request-handlers/security/service-key';
+import { TaskTileService } from '../../../../../services/task-tile-service';
+import { getLogger } from '../../../../../utils/logger';
 
 const defaultLog = getLogger(__filename);
 
-export const POST: Operation = [createTaskTile()];
+export const POST: Operation = [requireServiceKey(), createTaskTile()];
 
 POST.apiDoc = {
   description: 'Internal endpoint for creating a draft task tile record.',
@@ -35,12 +35,6 @@ POST.apiDoc = {
         }
       }
     },
-    401: {
-      description: 'Missing or invalid internal authorization token.'
-    },
-    403: {
-      description: 'Forbidden.'
-    },
     ...defaultErrorResponses
   }
 };
@@ -53,8 +47,6 @@ POST.apiDoc = {
 export function createTaskTile(): RequestHandler {
   return async (req, res) => {
     const taskId = req.params.taskId;
-
-    enforceInternalAuth(req.headers as Record<string, string | string[] | undefined>);
 
     defaultLog.debug({ label: 'createTaskTile', message: `Creating draft tile for task ${taskId}` });
 

@@ -8,8 +8,7 @@ import { useEffect, useState } from 'react';
 import { TaskCreateFormValues } from '../TaskCreateForm';
 
 export const TaskFormToolbar = () => {
-  const { values, setFieldValue, touched, errors, resetForm, submitForm } =
-    useFormikContext<TaskCreateFormValues>();
+  const { values, setFieldValue, touched, errors, resetForm, submitForm } = useFormikContext<TaskCreateFormValues>();
 
   // Local state to track text field without hitting Formik on every keystroke
   const [localName, setLocalName] = useState(values.name || '');

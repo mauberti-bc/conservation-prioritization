@@ -1,4 +1,4 @@
-import type { TaskStatus } from '../../../../models/task';
+import { TaskStatus } from '../../../../../models/task';
 
 export interface UpdateTaskStatusParams {
   taskId: string;
