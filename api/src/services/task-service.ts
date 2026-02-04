@@ -9,6 +9,7 @@ import { TaskStatusMessage } from '../types/task-status';
 import { toPmtilesUrl } from '../utils/pmtiles';
 import { normalizeTaskStatus, normalizeTileStatus } from '../utils/status';
 import { DBService } from './db-service';
+import { TaskGeometryService } from './task-geometry-service';
 import { TaskLayerConstraintService } from './task-layer-constraint-service';
 import { TaskLayerService } from './task-layer-service';
 import { TaskTileService } from './task-tile-service';
@@ -26,6 +27,7 @@ export class TaskService extends DBService {
   taskLayerConstraintService: TaskLayerConstraintService;
   taskTileRepository: TaskTileRepository;
   taskTileService: TaskTileService;
+  taskGeometryService: TaskGeometryService;
 
   /**
    * Creates an instance of TaskService.
@@ -40,6 +42,7 @@ export class TaskService extends DBService {
     this.taskLayerConstraintService = new TaskLayerConstraintService(connection);
     this.taskTileRepository = new TaskTileRepository(connection);
     this.taskTileService = new TaskTileService(connection);
+    this.taskGeometryService = new TaskGeometryService(connection);
   }
 
   /**
@@ -63,10 +66,12 @@ export class TaskService extends DBService {
   async getTaskById(taskId: string): Promise<TaskWithLayers> {
     const task = await this.taskRepository.getTaskById(taskId);
     const layers = await this.getTaskLayersWithConstraints(taskId);
+    const geometries = await this.taskGeometryService.getGeometriesByTaskId(taskId);
 
     return {
       ...task,
-      layers
+      layers,
+      geometries
     };
   }
 
@@ -78,18 +83,28 @@ export class TaskService extends DBService {
    */
   async getAllTasks(): Promise<TaskWithLayers[]> {
     const tasks = await this.taskRepository.getAllTasks();
+    const taskIds = tasks.map((task) => task.task_id);
 
-    const tasksWithLayers = await Promise.all(
-      tasks.map(async (task) => {
-        const layers = await this.getTaskLayersWithConstraints(task.task_id);
-        return {
-          ...task,
-          layers
-        };
-      })
-    );
+    if (!taskIds.length) {
+      return [];
+    }
 
-    return tasksWithLayers;
+    const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
+    const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
+
+    for (const layer of layersWithConstraints) {
+      const existing = layersByTaskId.get(layer.task_id) ?? [];
+      existing.push(layer);
+      layersByTaskId.set(layer.task_id, existing);
+    }
+
+    const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
+
+    return tasks.map((task) => ({
+      ...task,
+      layers: layersByTaskId.get(task.task_id) ?? [],
+      geometries: geometriesByTaskId.get(task.task_id) ?? []
+    }));
   }
 
   /**
@@ -108,6 +123,7 @@ export class TaskService extends DBService {
     }
 
     const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
+    const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
 
     const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
     for (const layer of layersWithConstraints) {
@@ -118,7 +134,8 @@ export class TaskService extends DBService {
 
     return tasks.map((task) => ({
       ...task,
-      layers: layersByTaskId.get(task.task_id) ?? []
+      layers: layersByTaskId.get(task.task_id) ?? [],
+      geometries: geometriesByTaskId.get(task.task_id) ?? []
     }));
   }
 
@@ -139,6 +156,7 @@ export class TaskService extends DBService {
 
     const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
     const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
+    const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
 
     for (const layer of layersWithConstraints) {
       const existing = layersByTaskId.get(layer.task_id) ?? [];
@@ -148,7 +166,8 @@ export class TaskService extends DBService {
 
     return tasks.map((task) => ({
       ...task,
-      layers: layersByTaskId.get(task.task_id) ?? []
+      layers: layersByTaskId.get(task.task_id) ?? [],
+      geometries: geometriesByTaskId.get(task.task_id) ?? []
     }));
   }
 

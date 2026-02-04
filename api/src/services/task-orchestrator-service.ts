@@ -1,5 +1,6 @@
 import { IDBConnection } from '../database/db';
 import { PrefectSubmissionError } from '../errors/prefect-error';
+import { CreateGeometry } from '../models/geometry';
 import { CreateTask } from '../models/task';
 import { CreateTaskLayer } from '../models/task-layer';
 import { CreateTaskLayerConstraint } from '../models/task-layer-constraint';
@@ -7,7 +8,9 @@ import { CreateTaskRequest } from '../models/task-orchestrator';
 import { TaskWithLayers } from '../models/task.interface';
 import { TASK_STATUS } from '../types/status';
 import { buildOptimizationParameters } from '../utils/task-optimization';
+import { GeometryService } from './geometry-service';
 import { PrefectService } from './prefect-service';
+import { TaskGeometryService } from './task-geometry-service';
 import { TaskLayerConstraintService } from './task-layer-constraint-service';
 import { TaskLayerService } from './task-layer-service';
 import { TaskService } from './task-service';
@@ -22,6 +25,8 @@ export class TaskOrchestratorService {
   private taskService: TaskService;
   private taskLayerService: TaskLayerService;
   private taskLayerConstraintService: TaskLayerConstraintService;
+  private geometryService: GeometryService;
+  private taskGeometryService: TaskGeometryService;
   private prefectService: PrefectService;
 
   /**
@@ -34,6 +39,8 @@ export class TaskOrchestratorService {
     this.taskService = new TaskService(connection);
     this.taskLayerService = new TaskLayerService(connection);
     this.taskLayerConstraintService = new TaskLayerConstraintService(connection);
+    this.geometryService = new GeometryService(connection);
+    this.taskGeometryService = new TaskGeometryService(connection);
     this.prefectService = new PrefectService();
   }
 
@@ -98,6 +105,23 @@ export class TaskOrchestratorService {
           max: constraint.max ?? null
         };
         await this.taskLayerConstraintService.createTaskLayerConstraint(constraintData);
+      }
+    }
+
+    // Step 4: Persist geometries and task associations
+    if (request.geometry && request.geometry.length > 0) {
+      for (const [index, geometry] of request.geometry.entries()) {
+        const geometryPayload: CreateGeometry = {
+          name: geometry.name?.trim() || `Geometry ${index + 1}`,
+          description: geometry.description ?? null,
+          geojson: geometry.geojson
+        };
+
+        const createdGeometry = await this.geometryService.createGeometry(geometryPayload);
+        await this.taskGeometryService.createTaskGeometry({
+          task_id: task.task_id,
+          geometry_id: createdGeometry.geometry_id
+        });
       }
     }
 
