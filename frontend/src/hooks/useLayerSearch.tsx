@@ -1,57 +1,62 @@
 import { debounce } from '@mui/material';
 import { LayerOption } from 'features/home/control-panel/form/ControlPanelForm';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { UseLayerSearchReturn } from './useLayerSearch.interface';
+import { useCallback, useRef, useState } from 'react';
 
-interface useLayerSearchProps {
+export interface UseLayerSearchReturn {
+  layers: LayerOption[];
+  loading: boolean;
+  error: string | null;
+  search: (term: string) => void;
+}
+
+interface UseLayerSearchProps {
   debounceMs?: number;
 }
+
 /**
- * Custom hook to search for layers with debounced API requests.
- *
- * @param {number} debounceMs - Debounce delay in milliseconds.
- * @returns {UseLayerSearchReturn} - Object containing filtered layers, loading state, and any errors.
+ * Custom hook for searching layers with debounced API requests.
+ * Handles loading state, errors, and caches results.
  */
-export const useLayerSearch = (props: useLayerSearchProps): UseLayerSearchReturn => {
-  const { debounceMs } = props;
+export const useLayerSearch = ({ debounceMs = 300 }: UseLayerSearchProps = {}): UseLayerSearchReturn => {
   const [layers, setLayers] = useState<LayerOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const conservationApi = useConservationApi();
 
-  // Ref to hold the debounced function
-  const debouncedFetchLayers = useRef(
+  // Debounced API call
+  const debouncedSearch = useRef(
     debounce(async (term: string) => {
       const trimmed = term.trim();
-
       if (!trimmed) {
+        setLayers([]);
+        setError(null);
         return;
       }
 
       setLoading(true);
+      setError(null);
+
       try {
-        const fetchedLayers = await conservationApi.layer.findLayers(term);
-        setLayers(fetchedLayers.layers);
+        const response = await conservationApi.layer.findLayers(trimmed);
+        setLayers(response.layers);
       } catch (err) {
-        console.error('Error fetching layers:', err);
-        setError('Failed to fetch layers');
+        console.error('Failed to fetch layers:', err);
+        setError('Failed to load layers. Please try again.');
+        setLayers([]);
       } finally {
         setLoading(false);
       }
     }, debounceMs)
   ).current;
 
-  // Debounced search handler
-  const handleSearch = useCallback(
+  const search = useCallback(
     (term: string) => {
-      debouncedFetchLayers(term);
+      debouncedSearch(term);
     },
-    [debouncedFetchLayers]
+    [debouncedSearch]
   );
 
-  const filtered = useMemo(() => layers, [layers]);
-
-  return { filtered, loading, error, handleSearch };
+  return { layers, loading, error, search };
 };

@@ -1,71 +1,131 @@
-import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
-import { createInputValueAndDetectFiltersHandler, doesLayerMatchFilters } from 'utils/filter-match';
-import { LayerOption } from '../features/home/control-panel/form/ControlPanelForm';
+import { LayerOption } from 'features/home/control-panel/form/ControlPanelForm';
+import { useConservationApi } from 'hooks/useConservationApi';
+import useIsMounted from 'hooks/useIsMounted';
+import { createContext, PropsWithChildren, useCallback, useMemo, useRef, useState } from 'react';
 
-interface LayerSelectContextValue {
-  filteredLayers: LayerOption[];
-  availableLayers: LayerOption[];
-  inputValue: string;
-  groupFilters: string[];
+export interface ILayerContext {
+  /**
+   * Returns cached layer data if available.
+   * If not cached and not already requested, dispatches a fetch and returns null.
+   */
+  getCachedLayerByPath: (path: string) => LayerOption | null;
 
-  setInputValue: (val: string) => void;
-  setGroupFilters: React.Dispatch<React.SetStateAction<string[]>>;
+  /**
+   * Always resolves layer data.
+   * Returns cached value, pending promise, or dispatches a request.
+   */
+  getCachedLayerByPathAsync: (path: string) => Promise<LayerOption | null>;
 
-  handleChange: (updated: LayerOption) => void;
+  /**
+   * Fetches and caches layers for the given search terms.
+   */
+  cacheLayersBySearchTerms: (terms: string[]) => Promise<LayerOption[] | null>;
 }
 
-const LayerSelectContext = createContext<LayerSelectContextValue | undefined>(undefined);
+export const LayerContext = createContext<ILayerContext | undefined>(undefined);
 
-export const useLayerSelectContext = () => {
-  const context = useContext(LayerSelectContext);
-  if (!context) {
-    throw new Error('useLayerSelectContext must be used within a LayerSelectContextProvider');
-  }
-  return context;
-};
+export const LayerContextProvider = ({ children }: PropsWithChildren) => {
+  const conservationApi = useConservationApi();
+  const isMounted = useIsMounted();
 
-interface Props {
-  availableLayers: LayerOption[];
-  handleChange: (updated: LayerOption) => void;
-  children: ReactNode;
-}
+  /**
+   * path → LayerOption | null
+   */
+  const [layerCache, setLayerCache] = useState<Record<string, LayerOption | null>>({});
 
-export const LayerSelectContextProvider = ({ availableLayers, handleChange, children }: Props) => {
-  const [inputValue, setInputValue] = useState('');
-  const [groupFilters, setGroupFilters] = useState<string[]>([]);
+  /**
+   * path → in-flight promise
+   */
+  const dispatchedLayerPromises = useRef<Record<string, Promise<LayerOption | null>>>({});
 
-  const setInputValueAndDetectFilters = useCallback(
-    (input: string) => {
-      return createInputValueAndDetectFiltersHandler(availableLayers, setInputValue, setGroupFilters)(input);
+  /**
+   * Fetch layers by search terms and cache them.
+   */
+  const cacheLayersBySearchTerms = useCallback(
+    async (terms: string[]) => {
+      const fetchPromise = Promise.all(terms.map((term) => conservationApi.layer.findLayers(term)))
+        .then((responses) => {
+          if (!isMounted()) {
+            return null;
+          }
+
+          const layers = responses.flatMap((r) => r.layers);
+
+          if (layers.length === 0) {
+            return [];
+          }
+
+          setLayerCache((prev) => {
+            const next = { ...prev };
+            for (const layer of layers) {
+              next[layer.path] = layer;
+            }
+            return next;
+          });
+
+          return layers;
+        })
+        .catch(() => null);
+
+      for (const term of terms) {
+        dispatchedLayerPromises.current[term] = fetchPromise
+          .then((layers) => {
+            if (!layers) {
+              return null;
+            }
+            return layers.find((layer) => layer.path.includes(term)) ?? null;
+          })
+          .catch(() => null);
+      }
+
+      return fetchPromise;
     },
-    [availableLayers, setInputValue, setGroupFilters]
+    [conservationApi.layer, isMounted]
   );
 
-  const filteredLayers = useMemo(() => {
-    return availableLayers.filter((layer) => doesLayerMatchFilters(layer, inputValue, groupFilters));
-  }, [availableLayers, inputValue, groupFilters]);
+  /**
+   * Sync accessor — returns cached layer or triggers fetch.
+   */
+  const getCachedLayerByPath = useCallback(
+    (path: string): LayerOption | null => {
+      if (Object.prototype.hasOwnProperty.call(layerCache, path)) {
+        return layerCache[path] ?? null;
+      }
 
-  const value: LayerSelectContextValue = useMemo(
+      if (dispatchedLayerPromises.current[path]) {
+        return null;
+      }
+
+      cacheLayersBySearchTerms([path]);
+      return null;
+    },
+    [layerCache, cacheLayersBySearchTerms]
+  );
+
+  /**
+   * Async accessor — always resolves layer data.
+   */
+  const getCachedLayerByPathAsync = useCallback(
+    async (path: string): Promise<LayerOption | null> => {
+      if (dispatchedLayerPromises.current[path]) {
+        return dispatchedLayerPromises.current[path];
+      }
+
+      await cacheLayersBySearchTerms([path]);
+
+      return dispatchedLayerPromises.current[path] ?? null;
+    },
+    [cacheLayersBySearchTerms]
+  );
+
+  const contextValue: ILayerContext = useMemo(
     () => ({
-      filteredLayers,
-      availableLayers,
-      inputValue,
-      groupFilters,
-      setInputValue: setInputValueAndDetectFilters,
-      setGroupFilters,
-      handleChange,
+      getCachedLayerByPath,
+      getCachedLayerByPathAsync,
+      cacheLayersBySearchTerms,
     }),
-
-    [
-      filteredLayers,
-      availableLayers,
-      inputValue,
-      groupFilters,
-      handleChange,
-      setGroupFilters,
-      setInputValueAndDetectFilters,
-    ]
+    [getCachedLayerByPath, getCachedLayerByPathAsync, cacheLayersBySearchTerms]
   );
 
-  return <LayerSelectContext.Provider value={value}>{children}</LayerSelectContext.Provider>;
+  return <LayerContext.Provider value={contextValue}>{children}</LayerContext.Provider>;
 };
