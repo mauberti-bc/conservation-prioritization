@@ -95,7 +95,10 @@ export class ProfileService extends DBService {
   }
 
   /**
-   * Upsert a profile (create if not found, update if exists).
+   * Upsert a profile using the profile GUID as the primary identifier.
+   *
+   * If the profile exists, it is updated to match the supplied values.
+   * If it does not exist, it is created with the MEMBER role.
    *
    * @param {UpsertProfile} profile
    * @return {[Promise<Profile>, boolean]}
@@ -105,7 +108,19 @@ export class ProfileService extends DBService {
     const existingProfile = await this.profileRepository.findProfileByGuid(profile.profile_guid);
 
     if (existingProfile) {
-      return [await this.profileRepository.updateProfile(existingProfile.profile_id, profile as UpdateProfile), false];
+      const updates: UpdateProfile = {
+        identity_source: profile.identity_source,
+        profile_identifier: profile.profile_identifier,
+        profile_guid: profile.profile_guid,
+        display_name: profile.display_name,
+        email: profile.email,
+        given_name: profile.given_name,
+        family_name: profile.family_name,
+        agency: profile.agency,
+        notes: profile.notes
+      };
+
+      return [await this.profileRepository.updateProfile(existingProfile.profile_id, updates), false];
     }
 
     const roleId = await this.profileRepository.getRoleIdByName(SYSTEM_ROLE.MEMBER);
