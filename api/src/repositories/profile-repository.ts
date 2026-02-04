@@ -23,21 +23,32 @@ export class ProfileRepository extends BaseRepository {
    * @memberof ProfileRepository
    */
   async createProfile(profile: CreateProfile): Promise<Profile> {
-    console.log(profile, 'profile');
     const sqlStatement = SQL`
       WITH inserted AS (
         INSERT INTO profile (
           identity_source,
           profile_identifier,
           profile_guid,
-          role_id
+          role_id,
+          display_name,
+          email,
+          given_name,
+          family_name,
+          agency,
+          notes
         ) VALUES (
           ${profile.identity_source},
-          ${profile.profile_identifier},
-          ${profile.profile_guid},
-          ${profile.role_id}
+          LOWER(${profile.profile_identifier}),
+          LOWER(${profile.profile_guid}),
+          ${profile.role_id},
+          ${profile.display_name ?? null},
+          ${profile.email ?? null},
+          ${profile.given_name ?? null},
+          ${profile.family_name ?? null},
+          ${profile.agency ?? null},
+          ${profile.notes ?? null}
         )
-        RETURNING profile_id, identity_source, profile_identifier, profile_guid, role_id
+        RETURNING profile_id, identity_source, profile_identifier, profile_guid, role_id, display_name, email, given_name, family_name, agency, notes
       )
       SELECT
         inserted.profile_id,
@@ -45,6 +56,12 @@ export class ProfileRepository extends BaseRepository {
         inserted.profile_identifier,
         inserted.profile_guid,
         inserted.role_id,
+        inserted.display_name,
+        inserted.email,
+        inserted.given_name,
+        inserted.family_name,
+        inserted.agency,
+        inserted.notes,
         r.name as role_name
       FROM inserted
       LEFT JOIN role r ON r.role_id = inserted.role_id
@@ -81,6 +98,12 @@ export class ProfileRepository extends BaseRepository {
         p.profile_identifier,
         p.profile_guid,
         p.role_id,
+        p.display_name,
+        p.email,
+        p.given_name,
+        p.family_name,
+        p.agency,
+        p.notes,
         r.name as role_name
       FROM
         profile p
@@ -122,12 +145,18 @@ export class ProfileRepository extends BaseRepository {
         p.profile_identifier,
         p.profile_guid,
         p.role_id,
+        p.display_name,
+        p.email,
+        p.given_name,
+        p.family_name,
+        p.agency,
+        p.notes,
         r.name as role_name
       FROM
         profile p
       JOIN role r ON r.role_id = p.role_id
       WHERE
-        p.profile_guid = ${profileGuid}
+        LOWER(p.profile_guid) = LOWER(${profileGuid})
       AND
         p.record_end_date IS NULL
       LIMIT 1;
@@ -172,14 +201,20 @@ export class ProfileRepository extends BaseRepository {
         UPDATE profile
         SET
           identity_source = COALESCE(${updates.identity_source}, identity_source),
-          profile_identifier = COALESCE(${updates.profile_identifier}, profile_identifier),
-          profile_guid = COALESCE(${updates.profile_guid}, profile_guid),
-          role_id = COALESCE(${updates.role_id}, role_id)
+          profile_identifier = COALESCE(LOWER(${updates.profile_identifier}), profile_identifier),
+          profile_guid = COALESCE(LOWER(${updates.profile_guid}), profile_guid),
+          role_id = COALESCE(${updates.role_id}, role_id),
+          display_name = COALESCE(${updates.display_name}, display_name),
+          email = COALESCE(${updates.email}, email),
+          given_name = COALESCE(${updates.given_name}, given_name),
+          family_name = COALESCE(${updates.family_name}, family_name),
+          agency = COALESCE(${updates.agency}, agency),
+          notes = COALESCE(${updates.notes}, notes)
         WHERE
           profile_id = ${profileId}
         AND
           record_end_date IS NULL
-        RETURNING profile_id, identity_source, profile_identifier, profile_guid, role_id
+        RETURNING profile_id, identity_source, profile_identifier, profile_guid, role_id, display_name, email, given_name, family_name, agency, notes
       )
       SELECT
         updated.profile_id,
@@ -187,6 +222,12 @@ export class ProfileRepository extends BaseRepository {
         updated.profile_identifier,
         updated.profile_guid,
         updated.role_id,
+        updated.display_name,
+        updated.email,
+        updated.given_name,
+        updated.family_name,
+        updated.agency,
+        updated.notes,
         r.name as role_name
       FROM updated
       JOIN role r ON r.role_id = updated.role_id

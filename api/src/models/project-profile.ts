@@ -10,7 +10,6 @@ export const ProjectProfile = z.object({
   project_profile_id: z.string().uuid(),
   project_id: z.string().uuid(),
   profile_id: z.string().uuid(),
-  project_permission_id: z.string().uuid(),
   record_effective_date: z.string(),
   record_end_date: z.string().nullable()
 });
@@ -34,8 +33,7 @@ export type ProjectProfileExtended = z.infer<typeof ProjectProfileExtended>;
  */
 export const CreateProjectProfile = z.object({
   project_id: z.string().uuid(),
-  profile_id: z.string().uuid(),
-  project_permission_id: z.string().uuid()
+  profile_id: z.string().uuid()
 });
 
 export type CreateProjectProfile = z.infer<typeof CreateProjectProfile>;
@@ -48,8 +46,7 @@ export type CreateProjectProfile = z.infer<typeof CreateProjectProfile>;
  */
 export const UpdateProjectProfile = z.object({
   project_id: z.string().uuid().optional(),
-  profile_id: z.string().uuid().optional(),
-  project_permission_id: z.string().uuid().optional()
+  profile_id: z.string().uuid().optional()
 });
 
 export type UpdateProjectProfile = z.infer<typeof UpdateProjectProfile>;

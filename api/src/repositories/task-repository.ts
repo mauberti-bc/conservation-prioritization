@@ -94,13 +94,13 @@ export class TaskRepository extends BaseRepository {
   }
 
   /**
-   * Fetches tasks available to a profile GUID via task permissions.
+   * Fetches tasks available to a profile ID via task permissions.
    *
-   * @param {string} profileGuid
+   * @param {string} profileId
    * @return {*}  {Promise<Task[]>}
    * @memberof TaskRepository
    */
-  async getTasksByProfileGuid(profileGuid: string): Promise<Task[]> {
+  async getTasksByProfileId(profileId: string): Promise<Task[]> {
     const sqlStatement = SQL`
       SELECT
         t.task_id,
@@ -113,11 +113,9 @@ export class TaskRepository extends BaseRepository {
         t.prefect_deployment_id
       FROM task t
       JOIN task_profile tp ON tp.task_id = t.task_id
-      JOIN profile p ON p.profile_id = tp.profile_id
-      JOIN task_permission tperm ON tperm.task_permission_id = tp.task_permission_id
+      JOIN task_permission tperm ON tperm.task_id = t.task_id AND tperm.profile_id = tp.profile_id
       JOIN role r ON r.role_id = tperm.role_id
-      WHERE p.profile_guid = ${profileGuid}
-      AND p.record_end_date IS NULL
+      WHERE tp.profile_id = ${profileId}
       AND tp.record_end_date IS NULL
       AND tperm.record_end_date IS NULL
       AND r.record_end_date IS NULL

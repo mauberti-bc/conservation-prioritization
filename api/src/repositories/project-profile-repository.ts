@@ -28,14 +28,12 @@ export class ProjectProfileRepository extends BaseRepository {
     const sqlStatement = SQL`
       INSERT INTO project_profile (
         project_id,
-        profile_id,
-        project_permission_id
+        profile_id
       ) VALUES (
         ${projectProfile.project_id},
-        ${projectProfile.profile_id},
-        ${projectProfile.project_permission_id}
+        ${projectProfile.profile_id}
       )
-      RETURNING project_profile_id, project_id, profile_id, project_permission_id, record_effective_date, record_end_date
+      RETURNING project_profile_id, project_id, profile_id, record_effective_date, record_end_date
     `;
 
     const response = await this.connection.sql(sqlStatement, ProjectProfile);
@@ -60,7 +58,7 @@ export class ProjectProfileRepository extends BaseRepository {
   async getProjectProfileById(projectProfileId: string): Promise<ProjectProfile> {
     const sqlStatement = SQL`
       SELECT
-        project_profile_id, project_id, profile_id, project_permission_id, record_effective_date, record_end_date
+        project_profile_id, project_id, profile_id, record_effective_date, record_end_date
       FROM
         project_profile
       WHERE
@@ -90,9 +88,9 @@ export class ProjectProfileRepository extends BaseRepository {
    */
   async getProjectProfilesByProjectId(projectId: string): Promise<ProjectProfileExtended[]> {
     const sqlStatement = SQL`
-      SELECT ts.project_profile_id, ts.project_id, ts.profile_id, ts.project_permission_id, r.name as role_name
+      SELECT ts.project_profile_id, ts.project_id, ts.profile_id, r.name as role_name
       FROM project_profile ts
-    JOIN project_permission tperm ON tperm.project_permission_id = ts.project_permission_id
+    JOIN project_permission tperm ON tperm.project_id = ts.project_id AND tperm.profile_id = ts.profile_id
     JOIN role r ON r.role_id = tperm.role_id
     WHERE ts.project_id = ${projectId}
     AND ts.record_end_date IS NULL
@@ -125,13 +123,12 @@ export class ProjectProfileRepository extends BaseRepository {
       UPDATE project_profile
       SET
         project_id = COALESCE(${updates.project_id}, project_id),
-        profile_id = COALESCE(${updates.profile_id}, profile_id),
-        project_permission_id = COALESCE(${updates.project_permission_id}, project_permission_id)
+        profile_id = COALESCE(${updates.profile_id}, profile_id)
       WHERE
         project_profile_id = ${projectProfileId}
       AND
         record_end_date IS NULL
-      RETURNING project_profile_id, project_id, profile_id, project_permission_id, record_effective_date, record_end_date
+      RETURNING project_profile_id, project_id, profile_id, record_effective_date, record_end_date
     `;
 
     const response = await this.connection.sql(sqlStatement, ProjectProfile);
@@ -186,7 +183,7 @@ export class ProjectProfileRepository extends BaseRepository {
     const sqlStatement = SQL`
       SELECT r.name as role_name
       FROM project_profile ts
-      JOIN project_permission tperm ON tperm.project_permission_id = ts.project_permission_id
+      JOIN project_permission tperm ON tperm.project_id = ts.project_id AND tperm.profile_id = ts.profile_id
       JOIN role r ON r.role_id = tperm.role_id
       WHERE ts.project_id = ${projectId}
       AND ts.profile_id = ${profileId}

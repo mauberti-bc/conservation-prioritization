@@ -1,3 +1,5 @@
+import { SYSTEM_ROLE } from './profile';
+
 export const SEED_CONSTANTS = {
   TABLES_TO_CLEAR: [
     'audit_log',
@@ -51,28 +53,16 @@ export const SEED_CONSTANTS = {
   ],
   PROFILES: [
     {
-      profile_guid: 'demo-user',
-      profile_identifier: 'demo-user',
-      identity_source: 'idir',
-      display_name: 'Demo User',
-      email: 'demo.user@example.com',
-      given_name: 'Demo',
-      family_name: 'User',
-      agency: 'BC Government',
-      notes: null,
-      system_role: 'member'
-    },
-    {
       profile_guid: '62EC624E50844486A046DC9709854F8D',
-      profile_identifier: 'mauberti',
-      identity_source: 'idir',
+      profile_identifier: 'MAUBERTI',
+      identity_source: 'azureidir',
       display_name: 'mauberti',
       email: null,
       given_name: null,
       family_name: null,
       agency: null,
       notes: null,
-      system_role: 'admin'
+      system_role: SYSTEM_ROLE.ADMIN
     }
   ],
   PROJECTS: [

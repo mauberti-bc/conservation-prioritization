@@ -6,8 +6,7 @@ import { z } from 'zod';
 export const TaskProfile = z.object({
   task_profile_id: z.string().uuid(),
   task_id: z.string().uuid(),
-  profile_id: z.string().uuid(),
-  task_permission_id: z.string().uuid()
+  profile_id: z.string().uuid()
 });
 
 export type TaskProfile = z.infer<typeof TaskProfile>;
@@ -24,15 +23,15 @@ export type TaskProfileExtended = z.infer<typeof TaskProfileExtended>;
 /** Type for creating a new task profile */
 export const CreateTaskProfile = z.object({
   task_id: z.string().uuid(),
-  profile_id: z.string().uuid(),
-  task_permission_id: z.string().uuid()
+  profile_id: z.string().uuid()
 });
 
 export type CreateTaskProfile = z.infer<typeof CreateTaskProfile>;
 
 /** Type for updating an existing task profile */
 export const UpdateTaskProfile = z.object({
-  task_permission_id: z.string().uuid().optional()
+  task_id: z.string().uuid().optional(),
+  profile_id: z.string().uuid().optional()
 });
 
 export type UpdateTaskProfile = z.infer<typeof UpdateTaskProfile>;

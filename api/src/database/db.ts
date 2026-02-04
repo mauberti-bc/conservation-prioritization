@@ -106,7 +106,7 @@ export interface IDBConnection {
     qb: Knex.QueryBuilder,
     ZodSchema?: z.ZodSchema<T, any, any>
   ) => Promise<pg.QueryResult<T>>;
-  systemUserId: () => string;
+  profileId: () => string;
 }
 
 /**
@@ -134,7 +134,7 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
   let client: pg.PoolClient;
   let isOpen = false;
   let isReleased = false;
-  let systemUserId: string;
+  let profileId: string;
 
   /**
    * Opens the database connection and starts a transaction
@@ -288,9 +288,9 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
     const statement = UserQueries.setProfileContextSQL(userGuid, identitySource);
     const response = await client.query<{ api_set_context: string }>(statement.text, statement.values);
 
-    systemUserId = response.rows[0]?.api_set_context;
+    profileId = response.rows[0]?.api_set_context;
 
-    if (!systemUserId) {
+    if (!profileId) {
       throw new ApiGeneralError('Failed to set user context');
     }
   };
@@ -300,12 +300,12 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
    *
    * @return {*}  {string}
    */
-  const getSystemUserId = () => {
+  const getProfileId = () => {
     if (!isOpen) {
       throw new Error('DBConnection not open');
     }
 
-    return systemUserId;
+    return profileId;
   };
 
   return {
@@ -317,7 +317,7 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
     query: asyncErrorWrapper(query),
     sql: asyncErrorWrapper(sql),
     knex: asyncErrorWrapper(knexQuery),
-    systemUserId: syncErrorWrapper(getSystemUserId)
+    profileId: syncErrorWrapper(getProfileId)
   };
 };
 

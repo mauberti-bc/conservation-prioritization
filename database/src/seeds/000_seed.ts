@@ -90,49 +90,15 @@ export async function seed(knex: Knex): Promise<void> {
     );
   }
 
-  /* ==========================================================================
-   * PROJECT PERMISSIONS
-   * ======================================================================== */
-
   const projectAdminRole = await knex('role')
     .select('role_id')
     .where({ name: 'admin', scope: 'profile', record_end_date: null })
     .first();
 
-  const projectUserRole = await knex('role')
-    .select('role_id')
-    .where({ name: 'member', scope: 'profile', record_end_date: null })
-    .first();
-
-  if (projectAdminRole?.role_id) {
-    await knex('project_permission').insert({ role_id: projectAdminRole.role_id });
-  }
-
-  if (projectUserRole?.role_id) {
-    await knex('project_permission').insert({ role_id: projectUserRole.role_id });
-  }
-
-  /* ==========================================================================
-   * TASK PERMISSIONS
-   * ======================================================================== */
-
   const taskAdminRole = await knex('role')
     .select('role_id')
     .where({ name: 'admin', scope: 'task', record_end_date: null })
     .first();
-
-  const taskUserRole = await knex('role')
-    .select('role_id')
-    .where({ name: 'member', scope: 'task', record_end_date: null })
-    .first();
-
-  if (taskAdminRole?.role_id) {
-    await knex('task_permission').insert({ role_id: taskAdminRole.role_id });
-  }
-
-  if (taskUserRole?.role_id) {
-    await knex('task_permission').insert({ role_id: taskUserRole.role_id });
-  }
 
   /* ==========================================================================
    * PROFILES (from SEED_CONSTANTS)
@@ -144,21 +110,18 @@ export async function seed(knex: Knex): Promise<void> {
       .where({ name: profile.system_role ?? 'member', scope: 'system', record_end_date: null })
       .first();
 
-    await knex('profile')
-      .insert({
-        profile_guid: profile.profile_guid,
-        profile_identifier: profile.profile_identifier,
-        identity_source: profile.identity_source,
-        role_id: resolvedRole?.role_id || null,
-        display_name: profile.display_name,
-        email: profile.email,
-        given_name: profile.given_name,
-        family_name: profile.family_name,
-        agency: profile.agency,
-        notes: profile.notes
-      })
-      .onConflict(['profile_guid'])
-      .ignore();
+    await knex('profile').insert({
+      profile_guid: profile.profile_guid,
+      profile_identifier: profile.profile_identifier,
+      identity_source: profile.identity_source,
+      role_id: resolvedRole?.role_id || null,
+      display_name: profile.display_name,
+      email: profile.email,
+      given_name: profile.given_name,
+      family_name: profile.family_name,
+      agency: profile.agency,
+      notes: profile.notes
+    });
   }
 
   /* ==========================================================================
@@ -177,18 +140,62 @@ export async function seed(knex: Knex): Promise<void> {
     await knex('task').insert(task);
   }
 
-  /* ==========================================================================
-   * PROJECT PROFILES
-   * ========================================================================== */
-
-  const identitySources = Object.values(IDENTITY_SOURCE).filter(
-    (source) => source !== IDENTITY_SOURCE.DATABASE
-  );
+  const identitySources = Object.values(IDENTITY_SOURCE).filter((source) => source !== IDENTITY_SOURCE.DATABASE);
 
   const nonDatabaseProfiles = await knex('profile')
     .select('profile_id')
     .whereIn('identity_source', identitySources)
     .andWhere({ record_end_date: null });
+
+  /* ==========================================================================
+   * PROJECT PERMISSIONS
+   * ======================================================================== */
+
+  const seededProjects = await knex('project')
+    .select('project_id')
+    .whereIn(
+      'name',
+      C.PROJECTS.map((project) => project.name)
+    );
+
+  if (projectAdminRole?.role_id) {
+    for (const project of seededProjects) {
+      for (const profile of nonDatabaseProfiles) {
+        await knex('project_permission').insert({
+          project_id: project.project_id,
+          profile_id: profile.profile_id,
+          role_id: projectAdminRole.role_id
+        });
+      }
+    }
+  }
+
+  /* ==========================================================================
+   * TASK PERMISSIONS
+   * ======================================================================== */
+
+  const seededTasks = await knex('task')
+    .select('task_id')
+    .whereIn(
+      'name',
+      C.TASKS.map((task) => task.name)
+    );
+
+  if (taskAdminRole?.role_id) {
+    for (const task of seededTasks) {
+      for (const profile of nonDatabaseProfiles) {
+        await knex('task_permission').insert({
+          task_id: task.task_id,
+          profile_id: profile.profile_id,
+          role_id: taskAdminRole.role_id
+        });
+      }
+    }
+  }
+
+  /* ==========================================================================
+   * PROJECT PROFILES
+   * ========================================================================== */
 
   const demoProjects = await knex('project')
     .select('project_id', 'name')
@@ -197,20 +204,12 @@ export async function seed(knex: Knex): Promise<void> {
       C.PROJECTS.map((project) => project.name)
     );
 
-  const projectPermission = await knex('project_permission')
-    .select('project_permission_id')
-    .whereIn('role_id', [projectAdminRole?.role_id || null])
-    .first();
-
-  if (projectPermission?.project_permission_id) {
-    for (const profile of nonDatabaseProfiles) {
-      for (const project of demoProjects) {
-        await knex('project_profile').insert({
-          project_id: project.project_id,
-          profile_id: profile.profile_id,
-          project_permission_id: projectPermission.project_permission_id
-        });
-      }
+  for (const profile of nonDatabaseProfiles) {
+    for (const project of demoProjects) {
+      await knex('project_profile').insert({
+        project_id: project.project_id,
+        profile_id: profile.profile_id
+      });
     }
   }
 
@@ -218,27 +217,21 @@ export async function seed(knex: Knex): Promise<void> {
    * TASK PROFILES
    * ========================================================================== */
 
-  const demoTask = await knex('task').select('task_id').where({ name: 'Demo Task' }).first();
+  const demoTasks = await knex('task')
+    .select('task_id')
+    .whereIn(
+      'name',
+      C.TASKS.map((task) => task.name)
+    );
 
-  const taskPermission = await knex('task_permission')
-    .select('task_permission_id')
-    .whereIn('role_id', [taskAdminRole?.role_id || null])
-    .first();
+  const demoTask = demoTasks[0];
 
-  if (taskPermission?.task_permission_id) {
-    const demoTasks = await knex('task')
-      .select('task_id')
-      .whereIn(
-        'name',
-        C.TASKS.map((task) => task.name)
-      );
-
+  if (demoTasks.length) {
     for (const profile of nonDatabaseProfiles) {
       for (const task of demoTasks) {
         await knex('task_profile').insert({
           task_id: task.task_id,
-          profile_id: profile.profile_id,
-          task_permission_id: taskPermission.task_permission_id
+          profile_id: profile.profile_id
         });
       }
     }

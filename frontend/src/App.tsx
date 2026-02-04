@@ -42,7 +42,10 @@ const App = () => {
                   userStore: new WebStorageStateStore({ store: window.localStorage }),
                   onSigninCallback: (_): void => {
                     // See https://github.com/authts/react-oidc-context#getting-started
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                    const url = new URL(window.location.href);
+                    const viewParam = url.searchParams.get('v');
+                    const nextUrl = viewParam ? `/t/?v=${viewParam}` : '/t/';
+                    window.history.replaceState({}, document.title, nextUrl);
                   },
                 };
 

@@ -17,7 +17,7 @@ import { BaseRepository } from './base-repository';
  */
 export class ProjectPermissionRepository extends BaseRepository {
   /**
-   * Creates a new project permission.
+   * Creates a new project permission scoped to a project and role.
    *
    * @param {CreateProjectPermission} projectPermission - The project permission data to insert.
    * @return {*}  {Promise<ProjectPermission>} The created project permission.
@@ -26,13 +26,15 @@ export class ProjectPermissionRepository extends BaseRepository {
   async createProjectPermission(projectPermission: CreateProjectPermission): Promise<ProjectPermission> {
     const sqlStatement = SQL`
       INSERT INTO project_permission (
-        name,
-        description
+        project_id,
+        profile_id,
+        role_id
       ) VALUES (
-        ${projectPermission.name},
-        ${projectPermission.description}
+        ${projectPermission.project_id},
+        ${projectPermission.profile_id},
+        ${projectPermission.role_id}
       )
-      RETURNING project_permission_id, name, description
+      RETURNING project_permission_id, project_id, profile_id, role_id
     `;
 
     const response = await this.connection.sql(sqlStatement, ProjectPermission);
@@ -57,7 +59,7 @@ export class ProjectPermissionRepository extends BaseRepository {
   async getProjectPermissionById(projectPermissionId: string): Promise<ProjectPermission> {
     const sqlStatement = SQL`
       SELECT
-        project_permission_id, name, description
+        project_permission_id, project_id, profile_id, role_id
       FROM
         project_permission
       WHERE
@@ -87,7 +89,7 @@ export class ProjectPermissionRepository extends BaseRepository {
   async getProjectPermissions(): Promise<ProjectPermission[]> {
     const sqlStatement = SQL`
       SELECT
-        project_permission_id, name, description
+        project_permission_id, project_id, profile_id, role_id
       FROM
         project_permission
       WHERE
@@ -114,13 +116,14 @@ export class ProjectPermissionRepository extends BaseRepository {
     const sqlStatement = SQL`
       UPDATE project_permission
       SET
-        name = COALESCE(${updates.name}, name),
-        description = COALESCE(${updates.description}, description)
+        project_id = COALESCE(${updates.project_id}, project_id),
+        profile_id = COALESCE(${updates.profile_id}, profile_id),
+        role_id = COALESCE(${updates.role_id}, role_id)
       WHERE
         project_permission_id = ${projectPermissionId}
       AND
         record_end_date IS NULL
-      RETURNING project_permission_id, name, description
+      RETURNING project_permission_id, project_id, profile_id, role_id
     `;
 
     const response = await this.connection.sql(sqlStatement, ProjectPermission);

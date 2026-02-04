@@ -26,9 +26,9 @@ export class TaskProfileRepository extends BaseRepository {
    */
   async createTaskProfile(taskProfile: CreateTaskProfile): Promise<TaskProfile> {
     const sqlStatement = SQL`
-      INSERT INTO task_profile (task_id, profile_id, task_permission_id)
-      VALUES (${taskProfile.task_id}, ${taskProfile.profile_id}, ${taskProfile.task_permission_id})
-      RETURNING task_profile_id, task_id, profile_id, task_permission_id
+      INSERT INTO task_profile (task_id, profile_id)
+      VALUES (${taskProfile.task_id}, ${taskProfile.profile_id})
+      RETURNING task_profile_id, task_id, profile_id
     `;
 
     const response = await this.connection.sql(sqlStatement, TaskProfile);
@@ -52,7 +52,7 @@ export class TaskProfileRepository extends BaseRepository {
    */
   async getTaskProfileById(taskProfileId: string): Promise<TaskProfile> {
     const sqlStatement = SQL`
-      SELECT task_profile_id, task_id, profile_id, task_permission_id
+      SELECT task_profile_id, task_id, profile_id
       FROM task_profile
       WHERE task_profile_id = ${taskProfileId}
       AND record_end_date IS NULL
@@ -79,9 +79,9 @@ export class TaskProfileRepository extends BaseRepository {
    */
   async getTaskProfilesByTaskId(taskId: string): Promise<TaskProfileExtended[]> {
     const sqlStatement = SQL`
-    SELECT ts.task_profile_id, ts.task_id, ts.profile_id, ts.task_permission_id, r.name as role_name
+    SELECT ts.task_profile_id, ts.task_id, ts.profile_id, r.name as role_name
     FROM task_profile ts
-    JOIN task_permission tperm ON tperm.task_permission_id = ts.task_permission_id
+    JOIN task_permission tperm ON tperm.task_id = ts.task_id AND tperm.profile_id = ts.profile_id
     JOIN role r ON r.role_id = tperm.role_id
     WHERE ts.task_id = ${taskId}
     AND ts.record_end_date IS NULL
@@ -109,7 +109,7 @@ export class TaskProfileRepository extends BaseRepository {
    */
   async getAllTaskProfiles(): Promise<TaskProfile[]> {
     const sqlStatement = SQL`
-      SELECT task_profile_id, task_id, profile_id, task_permission_id
+      SELECT task_profile_id, task_id, profile_id
       FROM task_profile
       WHERE record_end_date IS NULL
     `;
@@ -131,10 +131,11 @@ export class TaskProfileRepository extends BaseRepository {
     const sqlStatement = SQL`
       UPDATE task_profile
       SET
-        task_permission_id = COALESCE(${updates.task_permission_id}, task_permission_id)
+        task_id = COALESCE(${updates.task_id}, task_id),
+        profile_id = COALESCE(${updates.profile_id}, profile_id)
       WHERE task_profile_id = ${taskProfileId}
       AND record_end_date IS NULL
-      RETURNING task_profile_id, task_id, profile_id, task_permission_id
+      RETURNING task_profile_id, task_id, profile_id
     `;
 
     const response = await this.connection.sql(sqlStatement, TaskProfile);
@@ -186,7 +187,7 @@ export class TaskProfileRepository extends BaseRepository {
     const sqlStatement = SQL`
       SELECT r.name as role_name
       FROM task_profile ts
-      JOIN task_permission tperm ON tperm.task_permission_id = ts.task_permission_id
+      JOIN task_permission tperm ON tperm.task_id = ts.task_id AND tperm.profile_id = ts.profile_id
       JOIN role r ON r.role_id = tperm.role_id
       WHERE ts.task_id = ${taskId}
       AND ts.profile_id = ${profileId}
