@@ -1,5 +1,7 @@
 import { Box, List, Typography } from '@mui/material';
+import { grey } from '@mui/material/colors';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
+import { SkeletonList } from 'components/loading/SkeletonLoaders';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useProjectContext, useTaskContext } from 'hooks/useContext';
@@ -77,16 +79,14 @@ export const TaskList = ({
     <Box sx={{ overflowY: 'auto', maxHeight: '100%' }}>
       <LoadingGuard
         isLoading={isLoading}
-        isLoadingFallback={
-          <Typography variant="body2" color="text.secondary" sx={{ px: 1 }}>
-            Loading tasks...
-          </Typography>
-        }
+        isLoadingFallback={<SkeletonList numberOfLines={3} />}
         hasNoData={tasks.length === 0}
         hasNoDataFallback={
-          <Typography variant="body2" color="text.secondary" sx={{ px: 1 }}>
-            No tasks available
-          </Typography>
+          <Box display="flex" alignItems="center" justifyContent="center" p={5} bgcolor={grey[100]} mx={2}>
+            <Typography variant="body2" color="text.secondary" sx={{ px: 1 }}>
+              No tasks yet
+            </Typography>
+          </Box>
         }>
         <List dense sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {tasks.map((task) => (

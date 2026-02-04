@@ -1,22 +1,17 @@
 import { mdiArrowLeft } from '@mdi/js';
 import Icon from '@mdi/react';
 import { LoadingButton } from '@mui/lab';
-import { Chip, Divider, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Chip, Divider, IconButton, Stack, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import { grey } from '@mui/material/colors';
 import { EditDialog } from 'components/dialog/EditDialog';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
-import { useFormikContext } from 'formik';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useTaskContext } from 'hooks/useContext';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as Yup from 'yup';
-
-interface PublishDashboardFormValues {
-  name: string;
-  access_scheme: 'ANYONE_WITH_LINK' | 'MEMBERS_ONLY' | 'NOBODY';
-}
+import { PublishDashboardForm, PublishDashboardFormValues } from './publish/PublishDashboardForm';
 
 const publishDashboardSchema = Yup.object({
   name: Yup.string().required('Dashboard name is required').max(100, 'Name must be 100 characters or less'),
@@ -24,39 +19,6 @@ const publishDashboardSchema = Yup.object({
     .oneOf(['ANYONE_WITH_LINK', 'MEMBERS_ONLY', 'NOBODY'])
     .required('Access scheme is required'),
 });
-
-const PublishDashboardForm = () => {
-  const { values, errors, touched, handleChange } = useFormikContext<PublishDashboardFormValues>();
-
-  return (
-    <Stack spacing={2}>
-      <TextField
-        name="name"
-        label="Dashboard name"
-        required
-        fullWidth
-        value={values.name}
-        onChange={handleChange}
-        error={Boolean(touched.name && errors.name)}
-        helperText={touched.name && errors.name ? errors.name : ' '}
-      />
-      <TextField
-        name="access_scheme"
-        label="Access scheme"
-        select
-        required
-        fullWidth
-        value={values.access_scheme}
-        onChange={handleChange}
-        error={Boolean(touched.access_scheme && errors.access_scheme)}
-        helperText={touched.access_scheme && errors.access_scheme ? errors.access_scheme : ' '}>
-        <MenuItem value="ANYONE_WITH_LINK">Anyone with link</MenuItem>
-        <MenuItem value="MEMBERS_ONLY">Members only</MenuItem>
-        <MenuItem value="NOBODY">Nobody</MenuItem>
-      </TextField>
-    </Stack>
-  );
-};
 
 /**
  * View-only task detail panel that renders the task form disabled.
@@ -249,7 +211,6 @@ export const TaskDetailsPanel = () => {
         size="sm"
         dialogTitle="Publish dashboard"
         dialogSaveButtonLabel="Publish"
-        dialogText="Create a dashboard from this task."
         dialogError={publishError ?? undefined}
         dialogLoading={isPublishing}
         onCancel={() => {
