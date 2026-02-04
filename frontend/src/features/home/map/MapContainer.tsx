@@ -20,6 +20,7 @@ interface MapContainerProps {
  * @returns {JSX.Element}
  */
 export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerProps) => {
+  console.log(pmtilesUrls);
   const mapHostRef = useRef<HTMLDivElement | null>(null);
   const { mapRef, setIsMapReady } = useMapContext();
   const [isMapInitialized, setIsMapInitialized] = useState(false);

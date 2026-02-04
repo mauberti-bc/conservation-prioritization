@@ -91,7 +91,7 @@ export const CreateTask = ({
 
     try {
       const mappedLayers: CreateTaskLayer[] = values.layers.map((layer) => ({
-        layer_name: layer.name,
+        layer_name: layer.path,
         description: null,
         mode: layer.mode,
         importance: layer.mode === 'flexible' ? layer.importance : undefined,
@@ -107,7 +107,7 @@ export const CreateTask = ({
       const taskData: CreateTaskRequest = {
         name: values.name,
         description: values.description ?? null,
-        variant: values.variant, // You still need 'variant' here, so keep it
+        variant: values.variant,
         resolution: values.resolution,
         resampling: values.resampling,
         layers: mappedLayers,
