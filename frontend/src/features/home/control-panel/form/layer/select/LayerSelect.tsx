@@ -1,19 +1,16 @@
-import { LayerSelectContextProvider } from 'context/layerSelectContext';
+import { LayerOption } from 'features/home/control-panel/form/ControlPanelForm';
 import { LayerOptionAutocomplete } from './autocomplete/LayerOptionAutocomplete';
-import { LayerOption } from '../../ControlPanelForm';
 
 interface LayerSelectProps {
   selectedLayers: LayerOption[];
-  availableLayers: LayerOption[];
-  handleChange: (updated: LayerOption) => void;
-  checkbox: boolean;
+  onLayerChange: (layer: LayerOption) => void;
+  showCheckbox?: boolean;
 }
 
-export const LayerSelect = (props: LayerSelectProps) => {
-  const { checkbox, ...contextProps } = props;
-  return (
-    <LayerSelectContextProvider {...contextProps}>
-      <LayerOptionAutocomplete checkbox={checkbox} />
-    </LayerSelectContextProvider>
-  );
-};
+/**
+ * Simple wrapper for layer selection.
+ * Passes props directly to LayerOptionAutocomplete.
+ */
+export const LayerSelect = ({ selectedLayers, onLayerChange, showCheckbox }: LayerSelectProps) => (
+  <LayerOptionAutocomplete selectedLayers={selectedLayers} onLayerChange={onLayerChange} showCheckbox={showCheckbox} />
+);

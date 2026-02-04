@@ -8,6 +8,7 @@ import Stack from '@mui/material/Stack';
 import { TooltipPopover } from 'components/TooltipPopover';
 import { useFormikContext } from 'formik';
 import { useDialogContext } from 'hooks/useContext';
+import { useLayerSearch } from 'hooks/useLayerSearch';
 import { useCallback, useState } from 'react';
 import { collectFormikErrorMessages } from 'utils/formik-error';
 import { v4 } from 'uuid';
@@ -18,14 +19,12 @@ import { SelectedLayerItem } from './card/SelectedLayerItem';
 import { Layer, initialLayerValues } from './layer.interface';
 import { LayerSelect } from './select/LayerSelect';
 
-interface Props {
-  layerOptions: LayerOption[];
-}
-
-export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
+export const ControlPanelLayerForm = () => {
   const { values, setFieldValue, errors, setFieldError } = useFormikContext<FormValues>();
   const [checkboxSelected, setCheckboxSelected] = useState<string[]>([]);
   const dialogContext = useDialogContext();
+
+  const { filtered: layerOptions, handleSearch } = useLayerSearch({ debounceMs: 300 });
 
   const updateLayer = useCallback(
     (layer: Layer, newLayer: Layer) => {
@@ -52,10 +51,12 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
 
   const clearLayers = (layerNames?: string[]) => {
     const namesToRemove = layerNames ?? values.layers.map((l) => l.name);
+
     setFieldValue(
       'layers',
       values.layers.filter((l) => !namesToRemove.includes(l.name))
     );
+
     setCheckboxSelected((prev) => prev.filter((name) => !namesToRemove.includes(name)));
   };
 
@@ -64,14 +65,19 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
       setFieldValue(
         'layers',
         values.layers.map((layer) =>
-          layerNames?.includes(layer.name) ? { ...initialLayerValues, name: layer.name, path: layer.path } : layer
+          layerNames.includes(layer.name) ? { ...initialLayerValues, name: layer.name, path: layer.path } : layer
         )
       );
       return;
     }
+
     setFieldValue(
       'layers',
-      values.layers.map((layer) => ({ ...initialLayerValues, name: layer.name, path: layer.path }))
+      values.layers.map((layer) => ({
+        ...initialLayerValues,
+        name: layer.name,
+        path: layer.path,
+      }))
     );
   };
 
@@ -90,23 +96,25 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
       max: null,
       type: 'unit',
     };
-    updateLayer(layer, { ...layer, constraints: [...layer.constraints, newConstraint] });
+
+    updateLayer(layer, {
+      ...layer,
+      constraints: [...layer.constraints, newConstraint],
+    });
   };
 
   const handleClearAll = () => {
     dialogContext.setYesNoDialog({
       open: true,
       dialogTitle: checkboxSelected.length > 0 ? 'Remove Selected Layers' : 'Remove Layers',
-      dialogText: `Are you sure you want to remove ${checkboxSelected.length > 0 ? checkboxSelected.length : 'all'} layers?`,
-      onClose: () => {
-        dialogContext.setYesNoDialog({ open: false });
-      },
+      dialogText: `Are you sure you want to remove ${
+        checkboxSelected.length > 0 ? checkboxSelected.length : 'all'
+      } layers?`,
+      onClose: () => dialogContext.setYesNoDialog({ open: false }),
+      onNo: () => dialogContext.setYesNoDialog({ open: false }),
       onYes: () => {
         dialogContext.setYesNoDialog({ open: false });
         clearLayers(checkboxSelected.length > 0 ? checkboxSelected : undefined);
-      },
-      onNo: () => {
-        dialogContext.setYesNoDialog({ open: false });
       },
     });
   };
@@ -115,13 +123,11 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
     dialogContext.setYesNoDialog({
       open: true,
       dialogTitle: checkboxSelected.length > 0 ? 'Reset Selected Layers' : 'Reset Layers',
-      dialogText: `Are you sure you want to reset ${checkboxSelected.length > 0 ? checkboxSelected.length : 'all'} layers?`,
-      onClose: () => {
-        dialogContext.setYesNoDialog({ open: false });
-      },
-      onNo: () => {
-        dialogContext.setYesNoDialog({ open: false });
-      },
+      dialogText: `Are you sure you want to reset ${
+        checkboxSelected.length > 0 ? checkboxSelected.length : 'all'
+      } layers?`,
+      onClose: () => dialogContext.setYesNoDialog({ open: false }),
+      onNo: () => dialogContext.setYesNoDialog({ open: false }),
       onYes: () => {
         dialogContext.setYesNoDialog({ open: false });
         resetLayers(checkboxSelected.length > 0 ? checkboxSelected : undefined);
@@ -131,23 +137,21 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
 
   const handleErrorClose = (messageToRemove: string, index?: number) => {
     if (index !== undefined) {
-      // Remove from a specific layer
       const layerErrors = collectFormikErrorMessages(errors.layers?.[index]);
-      const updatedMessages = layerErrors.filter((error) => error.message !== messageToRemove);
+      const updated = layerErrors.filter((e) => e.message !== messageToRemove);
 
-      setFieldError(`layers[${index}]`, updatedMessages.length > 0 ? updatedMessages[0].message : undefined);
+      setFieldError(`layers[${index}]`, updated.length > 0 ? updated[0].message : undefined);
       return;
     }
 
-    // Remove from general errors.layers
     if (!errors.layers) {
       return;
     }
 
     const errorObjects = collectFormikErrorMessages(errors.layers);
-    const updatedMessages = errorObjects.filter((e) => e.message !== messageToRemove);
+    const updated = errorObjects.filter((e) => e.message !== messageToRemove);
 
-    setFieldError('layers', updatedMessages.length > 0 ? updatedMessages[0].message : undefined);
+    setFieldError('layers', updated.length > 0 ? updated[0].message : undefined);
   };
 
   return (
@@ -155,40 +159,40 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
       <Box>
         <LayerSelect
           checkbox
-          selectedLayers={layerOptions.filter((option) => values.layers.some((layer) => layer.path === option.path))}
           availableLayers={layerOptions}
+          selectedLayers={layerOptions.filter((option) => values.layers.some((layer) => layer.path === option.path))}
+          onSearch={handleSearch}
           handleChange={(selected: LayerOption) => {
-            const isAlreadySelected = values.layers.some((layer) => layer.path === selected.path);
+            const exists = values.layers.some((layer) => layer.path === selected.path);
 
-            if (isAlreadySelected) {
-              // Remove it
-              const updatedLayers = values.layers.filter((layer) => layer.path !== selected.path);
-              setFieldValue('layers', updatedLayers);
+            if (exists) {
+              setFieldValue(
+                'layers',
+                values.layers.filter((layer) => layer.path !== selected.path)
+              );
             } else {
-              // Add it
-              const newLayer = { ...initialLayerValues, ...selected };
-              setFieldValue('layers', [...values.layers, newLayer]);
+              setFieldValue('layers', [...values.layers, { ...initialLayerValues, ...selected }]);
             }
           }}
         />
       </Box>
 
-      {/* Show error if no layers select */}
       {errors.layers && typeof errors.layers === 'string' && (
         <Box mt={2} width="100%">
           <FormikErrorAlert errors={[{ message: errors.layers as string }]} onClose={handleErrorClose} />
         </Box>
       )}
 
-      {values.layers.length > 0 ? (
+      {values.layers.length > 0 && (
         <>
-          <Box display="flex" alignItems="center" gap={0}>
+          <Box display="flex" alignItems="center">
             <Checkbox
               onChange={handleCheckboxAll}
               indeterminate={checkboxSelected.length > 0 && checkboxSelected.length < values.layers.length}
               checked={checkboxSelected.length === values.layers.length}
             />
-            <Stack flexDirection="row" gap={1} alignItems="center">
+
+            <Stack direction="row" gap={1} alignItems="center">
               <Typography
                 ml={4}
                 color="textSecondary"
@@ -202,9 +206,7 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
               </Typography>
 
               <Box sx={{ display: { xs: 'none', lg: 'flex' } }}>
-                <TooltipPopover
-                  tooltip="Use the slider to adjust the relative influence of each layer.
-        Layers with positive influence will be prioritized for conservation while negative layers will be avoided.">
+                <TooltipPopover tooltip="Use the slider to adjust the relative influence of each layer.">
                   <Typography
                     color="textSecondary"
                     fontWeight={700}
@@ -218,14 +220,14 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
                     <Icon
                       path={mdiInformationSlabCircleOutline}
                       size={0.95}
-                      style={{ color: grey[500], marginLeft: '8px' }}
+                      style={{ color: grey[500], marginLeft: 8 }}
                     />
                   </Typography>
                 </TooltipPopover>
               </Box>
             </Stack>
 
-            <Stack gap={0.5} flexDirection="row" ml="auto">
+            <Stack direction="row" gap={0.5} ml="auto">
               <IconButton sx={{ color: grey[500] }} onClick={handleResetAll}>
                 <Icon path={mdiSync} size={1} />
               </IconButton>
@@ -234,34 +236,31 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
               </IconButton>
             </Stack>
           </Box>
-          <Box>
-            <List disablePadding>
-              {values.layers.map((layer, index) => {
-                const errorObjects = collectFormikErrorMessages(errors.layers?.[index]);
-                return (
-                  <SelectedLayerItem
-                    key={layer.name}
-                    layer={layer}
-                    onLayerChange={updateLayer}
-                    onModeChange={changeMode}
-                    handleCheckboxChange={toggleCheckbox}
-                    handleAddConstraint={handleAddConstraint}
-                    checked={checkboxSelected.includes(layer.name)}
-                    errors={errorObjects}
-                    handleErrorClose={(messageToRemove: string) => {
-                      const updatedMessages = errorObjects.filter((error) => error.message !== messageToRemove);
-                      setFieldError(
-                        `layers[${index}]`,
-                        updatedMessages.length > 0 ? updatedMessages[0].message : undefined
-                      );
-                    }}
-                  />
-                );
-              })}
-            </List>
-          </Box>
+
+          <List disablePadding>
+            {values.layers.map((layer, index) => {
+              const errorObjects = collectFormikErrorMessages(errors.layers?.[index]);
+
+              return (
+                <SelectedLayerItem
+                  key={layer.name}
+                  layer={layer}
+                  onLayerChange={updateLayer}
+                  onModeChange={changeMode}
+                  handleCheckboxChange={toggleCheckbox}
+                  handleAddConstraint={handleAddConstraint}
+                  checked={checkboxSelected.includes(layer.name)}
+                  errors={errorObjects}
+                  handleErrorClose={(message) => {
+                    const updated = errorObjects.filter((e) => e.message !== message);
+                    setFieldError(`layers[${index}]`, updated.length > 0 ? updated[0].message : undefined);
+                  }}
+                />
+              );
+            })}
+          </List>
         </>
-      ) : null}
+      )}
     </Stack>
   );
 };

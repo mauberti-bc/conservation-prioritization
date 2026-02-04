@@ -1,28 +1,58 @@
 import { mdiArrowExpand } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Autocomplete, IconButton } from '@mui/material';
-import { useLayerSelectContext } from 'context/layerSelectContext';
-import { useFormikContext } from 'formik';
+import { LayerOption } from 'features/home/control-panel/form/ControlPanelForm';
+import { useLayerSearch } from 'hooks/useLayerSearch';
 import { useState } from 'react';
-import { FormValues, LayerOption } from '../../../ControlPanelForm';
 import { LayerSearchDialog } from '../../dialog/LayerSearchDialog';
 import { LayerOptionItem } from '../render/LayerOptionItem';
 import { LayerSearchInput } from './input/LayerSearchInput';
 
 const MAX_VISIBLE_FILTERS = 2;
 
-interface ILayerOptionAutocompleteProps {
-  checkbox: boolean;
+interface LayerOptionAutocompleteProps {
+  selectedLayers: LayerOption[];
+  onLayerChange: (layer: LayerOption) => void;
+  showCheckbox?: boolean;
 }
 
-export const LayerOptionAutocomplete = (props: ILayerOptionAutocompleteProps) => {
-  const { checkbox } = props;
-
+/**
+ * Autocomplete component for searching and selecting layers via API.
+ * Handles layer search, selection, and expanded dialog view.
+ */
+export const LayerOptionAutocomplete = ({
+  selectedLayers,
+  onLayerChange,
+  showCheckbox = false,
+}: LayerOptionAutocompleteProps) => {
+  const [inputValue, setInputValue] = useState('');
+  const [selectedFilters, setSelectedFilters] = useState<LayerOption[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { values } = useFormikContext<FormValues>();
-  const { filteredLayers, handleChange, groupFilters, setGroupFilters, inputValue, setInputValue } =
-    useLayerSelectContext();
+  const { layers, loading, error, search } = useLayerSearch({ debounceMs: 300 });
+
+  // Filter out already selected layers from suggestions
+  const availableLayers = layers.filter((layer) => !selectedLayers.some((selected) => selected.path === layer.path));
+
+  const handleSelectLayer = (layer: LayerOption) => {
+    onLayerChange(layer);
+    setInputValue('');
+  };
+
+  const handleRemoveFilter = (filter: LayerOption) => {
+    setSelectedFilters((prev) => prev.filter((f) => f.path !== filter.path));
+  };
+
+  const handleBackspaceOnEmpty = () => {
+    setSelectedFilters((prev) => prev.slice(0, -1));
+  };
+
+  const handleRemoveExtraFilters = (filtersToRemove: LayerOption[]) => {
+    setSelectedFilters((prev) => [
+      ...prev.slice(0, MAX_VISIBLE_FILTERS),
+      ...prev.slice(MAX_VISIBLE_FILTERS).filter((f) => !filtersToRemove.some((remove) => remove.path === f.path)),
+    ]);
+  };
 
   return (
     <>
@@ -33,26 +63,29 @@ export const LayerOptionAutocomplete = (props: ILayerOptionAutocompleteProps) =>
         disableClearable
         clearOnBlur={false}
         inputValue={inputValue}
-        options={filteredLayers}
+        loading={loading}
+        options={availableLayers}
         getOptionLabel={(option) => option.name}
         onInputChange={(_, value) => {
           setInputValue(value);
+          search(value);
+        }}
+        onChange={(_, value) => {
+          if (value.length > selectedLayers.length) {
+            const newLayer = value[value.length - 1];
+            handleSelectLayer(newLayer);
+          }
         }}
         renderInput={(params) => (
           <LayerSearchInput
             {...params}
-            filters={groupFilters}
-            onRemoveFilter={(filter) => setGroupFilters((prev) => prev.filter((f) => f !== filter))}
-            onBackspaceEmptyInput={() => {
-              setGroupFilters((prev) => prev.slice(0, -1));
-            }}
+            error={!!error}
+            helperText={error}
+            filters={selectedFilters}
+            onRemoveFilter={handleRemoveFilter}
+            onBackspaceEmptyInput={handleBackspaceOnEmpty}
             maxVisibleFilters={MAX_VISIBLE_FILTERS}
-            onRemoveExtraFilters={(filters) =>
-              setGroupFilters((prev) => [
-                ...prev.slice(0, MAX_VISIBLE_FILTERS),
-                ...prev.slice(MAX_VISIBLE_FILTERS).filter((f) => !filters.includes(f)),
-              ])
-            }
+            onRemoveExtraFilters={handleRemoveExtraFilters}
             customEndAdornment={
               <IconButton
                 color="primary"
@@ -61,7 +94,8 @@ export const LayerOptionAutocomplete = (props: ILayerOptionAutocompleteProps) =>
                   setDialogOpen(true);
                 }}
                 size="small"
-                sx={{ mr: 1, p: 1, fontSize: '0.75rem' }}>
+                sx={{ mr: 1, p: 1 }}
+                title="Expand layer search">
                 <Icon path={mdiArrowExpand} size={0.75} />
               </IconButton>
             }
@@ -69,35 +103,27 @@ export const LayerOptionAutocomplete = (props: ILayerOptionAutocompleteProps) =>
         )}
         renderOption={(props, option: LayerOption) => (
           <LayerOptionItem
-            key={option.name}
+            key={option.path}
+            {...props}
             option={option}
-            props={props}
-            checkbox={checkbox}
-            isChecked={values.layers.some((layer) => layer.path === option.path)}
-            handleClick={() => handleChange(option)}
+            showCheckbox={showCheckbox}
+            isSelected={selectedLayers.some((l) => l.path === option.path)}
+            onSelect={handleSelectLayer}
           />
         )}
         slotProps={{
-          paper: {
-            sx: {
-              maxHeight: '60vh',
-              overflowY: 'auto',
-            },
-          },
-          popper: {
-            sx: {
-              maxHeight: '60vh',
-            },
-          },
-          listbox: {
-            sx: {
-              maxHeight: '60vh',
-            },
-          },
+          paper: { sx: { maxHeight: '60vh' } },
+          popper: { sx: { maxHeight: '60vh' } },
+          listbox: { sx: { maxHeight: '60vh' } },
         }}
       />
 
-      <LayerSearchDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      <LayerSearchDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        selectedLayers={selectedLayers}
+        onLayerChange={onLayerChange}
+      />
     </>
   );
 };

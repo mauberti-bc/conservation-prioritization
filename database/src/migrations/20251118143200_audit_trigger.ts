@@ -15,19 +15,27 @@ export async function up(knex: Knex): Promise<void> {
     ----------------------------------------------------------------------------------------
     -- Insert default API system profile
     ----------------------------------------------------------------------------------------
-    -- Step 1: Insert first profile with NULL created_by
+    -- Step 1: Insert first profile with role resolved via CTE
+    WITH w_role AS (
+      SELECT role_id FROM role WHERE name = '${SYSTEM_ROLE.ADMIN}'
+    )
+    WITH w_role AS (
+      SELECT role_id
+      FROM role
+      WHERE name = '${SYSTEM_ROLE.ADMIN}'
+    )
     INSERT INTO profile (
       identity_source,
       profile_identifier,
       profile_guid,
       role_id
     )
-    VALUES (
+    SELECT
       '${IDENTITY_SOURCE.DATABASE}',
       '${process.env.DB_USER_API}',
       '${process.env.DB_USER_API}',
-      '${SYSTEM_ROLE.ADMIN}'
-    )
+      w_role.role_id
+    FROM w_role
     RETURNING profile_id;
 
     ----------------------------------------------------------------------------------------
