@@ -58,6 +58,7 @@ export interface GetTaskResponse {
   task_id: string; // UUID of the task
   name: string; // Name of the task
   description: string | null; // Description of the task
+  tileset_uri?: string | null;
   status: 'pending' | 'submitted' | 'running' | 'completed' | 'failed' | 'failed_to_submit';
   status_message?: string | null;
   prefect_flow_run_id?: string | null;

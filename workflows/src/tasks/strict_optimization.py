@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple
@@ -15,6 +16,7 @@ from morecantile.commons import Tile
 from pmtiles.tile import Compression, TileType, zxy_to_tileid
 from pmtiles.writer import Writer
 from prefect import get_run_logger, task
+import boto3
 from pulp import LpStatus
 from pydantic import BaseModel, Field, field_validator
 from pyproj import Transformer
@@ -26,6 +28,54 @@ from scipy import stats
 from shapely import GeometryCollection, MultiLineString, MultiPolygon, unary_union
 from shapely.geometry import mapping, shape
 from shapely.geometry.base import BaseGeometry
+
+
+def _ensure_url_scheme(url: str) -> str:
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    return f"https://{url}"
+
+
+def _get_object_store_client():
+    endpoint_url = os.getenv("OBJECT_STORE_URL")
+    access_key = os.getenv("OBJECT_STORE_ACCESS_KEY_ID")
+    secret_key = os.getenv("OBJECT_STORE_SECRET_KEY_ID")
+
+    if not endpoint_url or not access_key or not secret_key:
+        raise ValueError("Object storage credentials are not configured.")
+
+    return boto3.client(
+        "s3",
+        endpoint_url=_ensure_url_scheme(endpoint_url),
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        region_name="us-east-1",
+    )
+
+
+def _build_object_key(task_id: str, filename: str) -> str:
+    prefix = os.getenv("S3_KEY_PREFIX", "").strip("/")
+    base = f"tasks/{task_id}/{filename}"
+    return f"{prefix}/{base}" if prefix else base
+
+
+def upload_file_to_object_store(local_path: str, task_id: str, content_type: str) -> str:
+    bucket_name = os.getenv("OBJECT_STORE_BUCKET_NAME")
+
+    if not bucket_name:
+        raise ValueError("OBJECT_STORE_BUCKET_NAME is not configured.")
+
+    client = _get_object_store_client()
+    object_key = _build_object_key(task_id, Path(local_path).name)
+
+    client.upload_file(
+        local_path,
+        bucket_name,
+        object_key,
+        ExtraArgs={"ContentType": content_type},
+    )
+
+    return f"s3://{bucket_name}/{object_key}"
 
 
 class OptimizationConstraint(BaseModel):
@@ -764,6 +814,34 @@ def visualize(solution: np.ndarray):
 
 
 @task
+def save_solution_artifacts(
+    task_id: str,
+    solution: np.ndarray,
+    transform: Affine,
+    crs: str,
+    resolution: int,
+) -> str:
+    """
+    Persist solution artifacts for downstream tiling flows.
+
+    Returns the path to the saved artifact bundle.
+    """
+    output_dir = Path("/data/outputs") / task_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    artifact_path = output_dir / "solution.npz"
+    np.savez(
+        artifact_path,
+        solution=solution,
+        transform=np.array(transform.to_gdal(), dtype=float),
+        crs=crs,
+        resolution=resolution,
+    )
+
+    return str(artifact_path)
+
+
+@task
 def create_pmtiles_archive(
     array: np.ndarray,
     transform: Affine,
@@ -948,11 +1026,12 @@ def prepare_dataset(
 
 @task
 def execute_optimization(
+    task_id: str,
     conditions: OptimizationParameters,
-) -> Optional[np.ndarray]:
+) -> Optional[str]:
     """
     Main optimization task that runs on the Dask cluster.
-    Returns the final solution array.
+    Returns the path to persisted solution artifacts.
     """
 
     logger = get_run_logger()
@@ -1061,16 +1140,14 @@ def execute_optimization(
     logger.info("Creating visualization...")
     visualize(solution_array)
 
-    # Create PMTiles
-    logger.info("Creating PMTiles archive...")
-    max_zoom = resolution_to_max_zoom(conditions.resolution)
-    create_pmtiles_archive(
-        array=solution_array,
+    logger.info("Persisting solution artifacts for tiling...")
+    artifact_path = save_solution_artifacts(
+        task_id=task_id,
+        solution=solution_array,
         transform=transform,
-        out_path="/data/outputs/solution.pmtiles",
         crs="EPSG:3005",
-        max_zoom=max_zoom,
+        resolution=conditions.resolution,
     )
 
     logger.info("Optimization completed successfully")
-    return solution_array
+    return artifact_path

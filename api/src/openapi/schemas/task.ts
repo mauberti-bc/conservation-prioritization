@@ -169,6 +169,11 @@ export const GetTaskSchema: OpenAPIV3.SchemaObject = {
       type: 'string',
       description: 'A description of the task.'
     },
+    tileset_uri: {
+      type: 'string',
+      nullable: true,
+      description: 'URI for the latest tileset artifact.'
+    },
     status: {
       type: 'string',
       description: 'Execution status for the task lifecycle.',

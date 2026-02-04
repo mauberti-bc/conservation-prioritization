@@ -1,4 +1,4 @@
-import { SQL } from 'sql-template-strings';
+import { SQL, SQLStatement } from 'sql-template-strings';
 import { ApiExecuteSQLError } from '../errors/api-error';
 import { CreateTask, DeleteTask, Task, UpdateTask, UpdateTaskExecution } from '../models/task';
 import { BaseRepository } from './base-repository';
@@ -29,7 +29,7 @@ export class TaskRepository extends BaseRepository {
         ${task.description},
         ${task.status}
       )
-      RETURNING task_id, name, description, status, status_message, prefect_flow_run_id, prefect_deployment_id
+      RETURNING task_id, name, description, tileset_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
     `;
 
     const response = await this.connection.sql(sqlStatement, Task);
@@ -51,7 +51,7 @@ export class TaskRepository extends BaseRepository {
   async getTaskById(taskId: string): Promise<Task> {
     const sqlStatement = SQL`
       SELECT
-        task_id, name, description, status, status_message, prefect_flow_run_id, prefect_deployment_id
+        task_id, name, description, tileset_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
       FROM
         task
       WHERE
@@ -81,7 +81,7 @@ export class TaskRepository extends BaseRepository {
   async getAllTasks(): Promise<Task[]> {
     const sqlStatement = SQL`
       SELECT
-        task_id, name, description, status, status_message, prefect_flow_run_id, prefect_deployment_id
+        task_id, name, description, tileset_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
       FROM
         task
       WHERE
@@ -111,7 +111,7 @@ export class TaskRepository extends BaseRepository {
         task_id = ${taskId}
       AND
         record_end_date IS NULL
-      RETURNING task_id, name, description, status, status_message, prefect_flow_run_id, prefect_deployment_id
+      RETURNING task_id, name, description, tileset_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
     `;
 
     const response = await this.connection.sql(sqlStatement, Task);
@@ -176,6 +176,10 @@ export class TaskRepository extends BaseRepository {
       updateFragments.push(SQL`prefect_deployment_id = ${updates.prefect_deployment_id}`);
     }
 
+    if (updates.tileset_uri !== undefined) {
+      updateFragments.push(SQL`tileset_uri = ${updates.tileset_uri}`);
+    }
+
     if (!updateFragments.length) {
       throw new ApiExecuteSQLError('No task execution metadata provided to update', [
         'TaskRepository->updateTaskExecution',
@@ -195,7 +199,7 @@ export class TaskRepository extends BaseRepository {
         task_id = ${taskId}
       AND
         record_end_date IS NULL
-      RETURNING task_id, name, description, status, status_message, prefect_flow_run_id, prefect_deployment_id
+      RETURNING task_id, name, description, tileset_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
     `);
 
     const response = await this.connection.sql(sqlStatement, Task);

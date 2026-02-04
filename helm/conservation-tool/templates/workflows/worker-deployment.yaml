@@ -37,5 +37,15 @@ spec:
               value: "{{ .Values.env.CONSERVATION_API_URL }}"
             - name: INTERNAL_API_KEY
               value: "{{ .Values.env.INTERNAL_API_KEY }}"
+            - name: OBJECT_STORE_URL
+              value: "{{ .Values.env.OBJECT_STORE_URL }}"
+            - name: OBJECT_STORE_ACCESS_KEY_ID
+              value: "{{ .Values.env.OBJECT_STORE_ACCESS_KEY_ID }}"
+            - name: OBJECT_STORE_SECRET_KEY_ID
+              value: "{{ .Values.env.OBJECT_STORE_SECRET_KEY_ID }}"
+            - name: OBJECT_STORE_BUCKET_NAME
+              value: "{{ .Values.env.OBJECT_STORE_BUCKET_NAME }}"
+            - name: S3_KEY_PREFIX
+              value: "{{ .Values.env.S3_KEY_PREFIX }}"
           resources:
             {{- toYaml .Values.services.workflows.worker.resources | nindent 12 }}
