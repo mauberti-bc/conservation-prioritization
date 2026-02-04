@@ -8,6 +8,7 @@ import { defaultErrorResponses } from '../../openapi/schemas/http-responses';
 import { CreateTaskSchema, GetTaskSchema } from '../../openapi/schemas/task';
 import { authorizeRequestHandler } from '../../request-handlers/security/authorization';
 import { TaskOrchestratorService } from '../../services/task-orchestrator-service';
+import { getUserGuid } from '../../utils/keycloak-utils';
 import { getLogger } from '../../utils/logger';
 
 const defaultLog = getLogger(__filename);
@@ -143,13 +144,14 @@ export function getTasks(): RequestHandler {
     defaultLog.debug({ label: 'getTasks' });
 
     const connection = getDBConnection(req.keycloak_token);
+    const profileGuid = getUserGuid(req.keycloak_token);
 
     try {
       await connection.open();
 
       const taskService = new TaskService(connection);
 
-      const tasks = await taskService.getAllTasks();
+      const tasks = profileGuid ? await taskService.getTasksForProfileGuid(profileGuid) : [];
 
       await connection.commit();
 

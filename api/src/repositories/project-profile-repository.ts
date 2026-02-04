@@ -92,10 +92,12 @@ export class ProjectProfileRepository extends BaseRepository {
     const sqlStatement = SQL`
       SELECT ts.project_profile_id, ts.project_id, ts.profile_id, ts.project_permission_id, r.name as role_name
       FROM project_profile ts
-      JOIN project_permission tperm ON tperm.project_permission_id = ts.project_permission_id
-      JOIN role r ON r.role_id = tperm.role_id
-      WHERE ts.project_id = ${projectId}
-      AND ts.record_end_date IS NULL
+    JOIN project_permission tperm ON tperm.project_permission_id = ts.project_permission_id
+    JOIN role r ON r.role_id = tperm.role_id
+    WHERE ts.project_id = ${projectId}
+    AND ts.record_end_date IS NULL
+    AND tperm.record_end_date IS NULL
+    AND r.record_end_date IS NULL
     `;
 
     const response = await this.connection.sql(sqlStatement, ProjectProfileExtended);
@@ -189,6 +191,8 @@ export class ProjectProfileRepository extends BaseRepository {
       WHERE ts.project_id = ${projectId}
       AND ts.profile_id = ${profileId}
       AND ts.record_end_date IS NULL
+      AND tperm.record_end_date IS NULL
+      AND r.record_end_date IS NULL
     `;
 
     const response = await this.connection.sql(sqlStatement);

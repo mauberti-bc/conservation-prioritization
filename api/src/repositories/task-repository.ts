@@ -94,6 +94,42 @@ export class TaskRepository extends BaseRepository {
   }
 
   /**
+   * Fetches tasks available to a profile GUID via task permissions.
+   *
+   * @param {string} profileGuid
+   * @return {*}  {Promise<Task[]>}
+   * @memberof TaskRepository
+   */
+  async getTasksByProfileGuid(profileGuid: string): Promise<Task[]> {
+    const sqlStatement = SQL`
+      SELECT
+        t.task_id,
+        t.name,
+        t.description,
+        t.tileset_uri,
+        t.status,
+        t.status_message,
+        t.prefect_flow_run_id,
+        t.prefect_deployment_id
+      FROM task t
+      JOIN task_profile tp ON tp.task_id = t.task_id
+      JOIN profile p ON p.profile_id = tp.profile_id
+      JOIN task_permission tperm ON tperm.task_permission_id = tp.task_permission_id
+      JOIN role r ON r.role_id = tperm.role_id
+      WHERE p.profile_guid = ${profileGuid}
+      AND p.record_end_date IS NULL
+      AND tp.record_end_date IS NULL
+      AND tperm.record_end_date IS NULL
+      AND r.record_end_date IS NULL
+      AND t.record_end_date IS NULL
+    `;
+
+    const response = await this.connection.sql(sqlStatement, Task);
+
+    return response.rows;
+  }
+
+  /**
    * Updates an existing task record.
    *
    * @param {string} taskId - The UUID of the task to update.

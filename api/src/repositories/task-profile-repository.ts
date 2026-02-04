@@ -85,6 +85,8 @@ export class TaskProfileRepository extends BaseRepository {
     JOIN role r ON r.role_id = tperm.role_id
     WHERE ts.task_id = ${taskId}
     AND ts.record_end_date IS NULL
+    AND tperm.record_end_date IS NULL
+    AND r.record_end_date IS NULL
   `;
 
     const response = await this.connection.sql(sqlStatement, TaskProfileExtended);
@@ -189,6 +191,8 @@ export class TaskProfileRepository extends BaseRepository {
       WHERE ts.task_id = ${taskId}
       AND ts.profile_id = ${profileId}
       AND ts.record_end_date IS NULL
+      AND tperm.record_end_date IS NULL
+      AND r.record_end_date IS NULL
     `;
 
     const response = await this.connection.sql(sqlStatement);

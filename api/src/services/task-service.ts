@@ -89,6 +89,29 @@ export class TaskService extends DBService {
   }
 
   /**
+   * Gets all tasks available to the profile GUID.
+   *
+   * @param {string} profileGuid
+   * @return {*}  {Promise<TaskWithLayers[]>}
+   * @memberof TaskService
+   */
+  async getTasksForProfileGuid(profileGuid: string): Promise<TaskWithLayers[]> {
+    const tasks = await this.taskRepository.getTasksByProfileGuid(profileGuid);
+
+    const tasksWithLayers = await Promise.all(
+      tasks.map(async (task) => {
+        const layers = await this.getTaskLayersWithConstraints(task.task_id);
+        return {
+          ...task,
+          layers
+        };
+      })
+    );
+
+    return tasksWithLayers;
+  }
+
+  /**
    * Updates an existing task.
    *
    * @param {string} taskId - The UUID of the task to update.

@@ -16,11 +16,12 @@ const defaultLog = getLogger(__filename);
  * Returns a single task by its ID.
  */
 export const GET: Operation = [
-  authorizeRequestHandler(() => {
+  authorizeRequestHandler((req) => {
     return {
       and: [
         {
-          discriminator: 'Profile'
+          discriminator: 'Task',
+          taskId: req.params.taskId
         }
       ]
     };
@@ -103,11 +104,12 @@ export function getTaskById(): RequestHandler {
  * Soft deletes a task by its ID.
  */
 export const DELETE: Operation = [
-  authorizeRequestHandler(() => {
+  authorizeRequestHandler((req) => {
     return {
       and: [
         {
-          discriminator: 'Profile'
+          discriminator: 'Task',
+          taskId: req.params.taskId
         }
       ]
     };
