@@ -2,59 +2,53 @@
 # Base image with Python and GDAL
 FROM ghcr.io/osgeo/gdal:ubuntu-small-3.10.0
 
-# Add uv for dependency management
+# Copy uv package manager
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Define safe default paths
-ENV HOME=/home/app
-WORKDIR $HOME
+RUN mkdir -p /home/app \
+    && mkdir -p /tmp/.prefect \
+    && mkdir -p /tmp/.config/matplotlib \
+    && chmod -R 777 /home/app /tmp/.prefect /tmp/.config/matplotlib
 
-# Create necessary directories with permissive access
-RUN mkdir -p $HOME \
-    && mkdir -p /home/app/.prefect \
-    && mkdir -p /home/app/.config/matplotlib \
-    && chmod -R 777 $HOME /home/app/.prefect /home/app/.config/matplotlib
-
-# Set Prefect environment variables
-ENV PREFECT_HOME=/home/app/.prefect
-ENV MPLCONFIGDIR=/home/app/.config/matplotlib
+WORKDIR /home/app
 
 # Set Python path to find src package (current directory is workflows root)
 ENV PYTHONPATH="/home/app:${PYTHONPATH}"
 
-# Install curl for debugging / networking
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install build deps needed to compile geospatial wheels on arm64 + py312
+# - python3-dev provides Python.h
+# - python3-venv ensures venv tooling exists
+# - pkg-config helps builds locate libs
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      build-essential \
+      curl \
+      pkg-config \
+      python3 \
+      python3-dev \
+      python3-venv \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy Python project config
+# Copy Python project files first for layer caching
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies
+# Install dependencies only (no project yet)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-install-project && \
-    uv sync --locked
+    uv sync --locked --no-install-project
 
-# Copy application source
+# Copy source code (now the project exists)
 COPY . ./
 
-RUN /home/app/.venv/bin/python - <<'EOF'
-import sys
-import pathlib
-
-src_path = pathlib.Path('/home/app/src')
-if src_path.exists():
-    print(f'✓ src directory found: {src_path}')
-else:
-    print('✗ src directory not found at /home/app/src')
-    sys.exit(1)
-
-try:
-    import rioxarray
-    import xarray as xr
-    print('✓ rioxarray imported successfully')
-except ImportError as e:
-    print(f'✗ Failed to import rioxarray: {e}')
-    sys.exit(1)
-EOF
+# Install the project into the venv (and any editable/build steps)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked
 
 # Add virtualenv to PATH (should be last)
 ENV PATH="/home/app/.venv/bin:$PATH"
+
+# (Optional) sanity check
+RUN python - <<'EOF'
+import rioxarray
+import xarray as xr
+print("✓ imports ok")
+EOF

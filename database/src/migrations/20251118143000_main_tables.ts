@@ -81,7 +81,7 @@ export async function up(knex: Knex): Promise<void> {
 
     CREATE INDEX profile_idx1 ON profile (identity_source);
     CREATE INDEX profile_idx2 ON profile (role_id);
-    CREATE UNIQUE INDEX profile_identifier_uk1 ON profile (identity_source, profile_identifier) WHERE record_end_date IS NULL;
+    CREATE UNIQUE INDEX profile_uk1 ON profile (profile_guid) WHERE record_end_date IS NULL;
 
     COMMENT ON TABLE profile IS 'Tracks system profiles for auditing and permissions.';
     COMMENT ON COLUMN profile.profile_id IS 'System generated surrogate primary key identifier.';

@@ -97,16 +97,6 @@ export function upsertProfile(): RequestHandler {
 
       const profileService = new ProfileService(connection);
 
-      const existingByIdentifier = await profileService.getProfileByIdentifier(
-        identitySource,
-        userIdentifier
-      );
-
-      if (existingByIdentifier && existingByIdentifier.profile_guid !== userGuid) {
-        await connection.commit();
-        return res.status(200).json(existingByIdentifier);
-      }
-
       // Upsert profile - registers if not found, updates if active
       const [profile, created] = await profileService.upsertProfile(payload);
 
