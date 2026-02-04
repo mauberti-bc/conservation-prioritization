@@ -26,13 +26,13 @@ export interface AuthorizeByProfile {
 
 export interface AuthorizeByTask {
   taskId: string;
-  validTaskRoles: TASK_ROLE[];
+  validTaskRoles?: TASK_ROLE[];
   discriminator: 'Task';
 }
 
 export interface AuthorizeByProject {
   projectId: string;
-  validProjectRoles: PROJECT_ROLE[];
+  validProjectRoles?: PROJECT_ROLE[];
   discriminator: 'Project';
 }
 

@@ -23,9 +23,7 @@ export async function up(knex: Knex): Promise<void> {
       operation          varchar(20)     NOT NULL,
       before_value       json,
       after_value        json,
-      CONSTRAINT audit_log_pk PRIMARY KEY (audit_log_id),
-      CONSTRAINT audit_log_profile_fk FOREIGN KEY (profile_id)
-        REFERENCES profile(profile_id) ON DELETE SET NULL
+      CONSTRAINT audit_log_pk PRIMARY KEY (audit_log_id)
     );
 
     COMMENT ON TABLE audit_log IS 'Holds record level audit log data for the entire database.';

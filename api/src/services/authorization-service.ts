@@ -130,6 +130,10 @@ export class AuthorizationService extends DBService {
     }
 
     // Check if the user has the required role for the task
+    if (!authorizeByTask.validTaskRoles || authorizeByTask.validTaskRoles.length === 0) {
+      return true;
+    }
+
     return this.hasRequiredRoles([userRole], authorizeByTask.validTaskRoles);
   }
 
@@ -155,6 +159,10 @@ export class AuthorizationService extends DBService {
     }
 
     // Check if the user has the required role for the project
+    if (!authorizeByProject.validProjectRoles || authorizeByProject.validProjectRoles.length === 0) {
+      return true;
+    }
+
     return this.hasRequiredRoles([userRole], authorizeByProject.validProjectRoles);
   }
 
