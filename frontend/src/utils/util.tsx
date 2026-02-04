@@ -1,3 +1,5 @@
+import { SYSTEM_IDENTITY_SOURCE } from 'constants/auth';
+
 /**
  * Checks if a url string starts with an `http[s]://` protocol, and adds `https://` if it does not. If the url
  * begins with `localhost` or `host.docker.internal`, the `http` protocol is used.
@@ -28,6 +30,23 @@ export const ensureProtocol = (url: string, protocol: 'http://' | 'https://' = '
 
   return `${protocol}${url}`;
 };
+
+/**
+ * Builds a URL from multiple (possibly null or undefined) url parts, stripping any
+ * double slashes from the resulting URL.
+ *
+ * @param {(string | undefined)[]} urlParts The parts of the URL
+ * @returns The built URL
+ */
+export const buildUrl = (...urlParts: (string | undefined)[]): string => {
+  return urlParts
+    .filter((urlPart): urlPart is string => Boolean(urlPart))
+    .map((urlPart) => String(urlPart).trim()) // Trim leading and trailing whitespace
+    .filter(Boolean)
+    .join('/')
+    .replace(/([^:]\/)\/+/g, '$1'); // Trim double slashes
+};
+
 /**
  * Converts a string or number into a numeric seed.
  * @param input string | number
@@ -81,4 +100,22 @@ export const pluralize = (string: string, count: number, suffix: string = 's') =
   }
 
   return string;
+};
+
+/**
+ * Returns a human-readible identity source string.
+ *
+ * @example getFormattedIdentitySource("IDIR"); // => "IDIR"
+ *
+ * @param {SYSTEM_IDENTITY_SOURCE} identitySource The identity source
+ * @returns {*} {string} the string representing the identity source
+ */
+export const getFormattedIdentitySource = (identitySource: SYSTEM_IDENTITY_SOURCE): string | null => {
+  switch (identitySource) {
+    case SYSTEM_IDENTITY_SOURCE.IDIR:
+      return 'IDIR';
+
+    default:
+      return null;
+  }
 };

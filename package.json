@@ -1,5 +1,4 @@
 {
-  "dependencies": {},
   "devDependencies": {
     "husky": "^8.0.0",
     "lint-staged": "^16.1.6"
@@ -16,5 +15,6 @@
       "yarn --cwd workflows format",
       "yarn --cwd workflows lint-fix"
     ]
-  }
+  },
+  "packageManager": "yarn@4.11.0"
 }

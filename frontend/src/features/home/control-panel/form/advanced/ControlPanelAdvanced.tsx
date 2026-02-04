@@ -3,7 +3,6 @@ import Icon from '@mdi/react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Collapse from '@mui/material/Collapse';
-import { grey } from '@mui/material/colors';
 import { ControlPanelAdvancedForm } from './form/ControlPanelAdvancedForm';
 
 interface ControlPanelAdvanced {
@@ -19,8 +18,9 @@ export const ControlPanelAdvanced = (props: ControlPanelAdvanced) => {
       <Box>
         <Button
           onClick={handleClick}
+          color="primary"
           startIcon={<Icon path={mdiCogOutline} size={1} />}
-          sx={{ color: grey[500], justifyContent: 'flex-start' }}>
+          sx={{ justifyContent: 'flex-start' }}>
           {open ? 'Hide Advanced' : 'Show Advanced'}
         </Button>
       </Box>

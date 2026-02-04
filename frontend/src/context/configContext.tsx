@@ -1,0 +1,152 @@
+import axios from 'axios';
+import React, { PropsWithChildren, useEffect, useState } from 'react';
+import { ensureProtocol } from 'utils/util';
+
+export interface IConfig {
+  API_HOST: string;
+  CHANGE_VERSION: string;
+  NODE_ENV: string;
+  VITE_APP_NODE_ENV: string;
+  VERSION: string;
+  KEYCLOAK_CONFIG: {
+    authority: string;
+    realm: string;
+    clientId: string;
+  };
+  SITEMINDER_LOGOUT_URL: string;
+  MAX_UPLOAD_NUM_FILES: number;
+  MAX_UPLOAD_FILE_SIZE: number;
+  S3_PUBLIC_HOST_URL: string;
+  BACKBONE_PUBLIC_API_HOST: string;
+  BIOHUB_TAXON_PATH: string;
+  BIOHUB_TAXON_TSN_PATH: string;
+  /**
+   * Used in conjunction with the feature flag guard (FeatureFlagGuard) to disable components.
+   *
+   * @type {string[]}
+   * @memberof IConfig
+   */
+  FEATURE_FLAGS: string[];
+}
+
+export const ConfigContext = React.createContext<IConfig | undefined>(undefined);
+
+/**
+ * Parses a valid feature flag string into an array of feature flag strings.
+ *
+ * @param {string} featureFlagsString
+ * @return {*}  {string[]}
+ */
+const parseFeatureFlagsString = (featureFlagsString: string): string[] => {
+  if (!featureFlagsString) {
+    return [];
+  }
+
+  return featureFlagsString.split(',');
+};
+
+/**
+ * Return the app config based on locally set environment variables.
+ *
+ * This is used when running the app locally in docker.
+ *
+ * Note: All changes to env vars here must also be reflected in the `app/server/index.js` file, so that the app has
+ * access to the same env vars when running in both local development (via compose.yml) and in OpenShift.
+ *
+ * @return {*}  {IConfig}
+ */
+const getLocalConfig = (): IConfig => {
+  const API_HOST = import.meta.env.VITE_APP_API_HOST;
+  const API_PORT = import.meta.env.VITE_APP_API_PORT;
+
+  const API_URL = (API_PORT && `${API_HOST}:${API_PORT}`) || API_HOST || 'localhost';
+
+  const OBJECT_STORE_URL = import.meta.env.OBJECT_STORE_URL || 'nrs.objectstore.gov.bc.ca';
+  const OBJECT_STORE_BUCKET_NAME = import.meta.env.OBJECT_STORE_BUCKET_NAME || 'gblhvt';
+  return {
+    API_HOST: ensureProtocol(API_URL, 'http://'),
+    CHANGE_VERSION: import.meta.env.CHANGE_VERSION || 'NA',
+    NODE_ENV: import.meta.env.MODE,
+    VITE_APP_NODE_ENV: import.meta.env.VITE_APP_NODE_ENV || 'dev',
+    VERSION: `${import.meta.env.VERSION || 'NA'}(build #${import.meta.env.CHANGE_VERSION || 'NA'})`,
+    KEYCLOAK_CONFIG: {
+      authority: import.meta.env.VITE_APP_KEYCLOAK_HOST || '',
+      realm: import.meta.env.VITE_APP_KEYCLOAK_REALM || '',
+      clientId: import.meta.env.VITE_APP_KEYCLOAK_CLIENT_ID || '',
+    },
+    SITEMINDER_LOGOUT_URL: import.meta.env.VITE_APP_SITEMINDER_LOGOUT_URL || '',
+    /**
+     * File upload settings
+     */
+    MAX_UPLOAD_NUM_FILES: Number(import.meta.env.VITE_APP_MAX_UPLOAD_NUM_FILES) || 10,
+    MAX_UPLOAD_FILE_SIZE: Number(import.meta.env.VITE_APP_MAX_UPLOAD_FILE_SIZE) || 52428800,
+    S3_PUBLIC_HOST_URL: ensureProtocol(`${OBJECT_STORE_URL}/${OBJECT_STORE_BUCKET_NAME}`, 'https://'),
+    /**
+     * BioHub settings
+     */
+    BACKBONE_PUBLIC_API_HOST: import.meta.env.VITE_APP_BACKBONE_PUBLIC_API_HOST || '',
+    BIOHUB_TAXON_PATH: import.meta.env.VITE_APP_BIOHUB_TAXON_PATH || '',
+    BIOHUB_TAXON_TSN_PATH: import.meta.env.VITE_APP_BIOHUB_TAXON_TSN_PATH || '',
+    /**
+     * Feature flags
+     *
+     * Note: Recommend conforming to a consistent pattern when defining feature flags, to make feature flags easy to
+     * identify (ie: `[APP/API]_FF_<string>`)
+     */
+    FEATURE_FLAGS: parseFeatureFlagsString(import.meta.env.VITE_APP_FEATURE_FLAGS || ''),
+  };
+};
+
+/**
+ * Return the app config based on a deployed app, running via `app/server/index.js`
+ *
+ * @return {*}  {Promise<IConfig>}
+ */
+const getDeployedConfig = async (): Promise<IConfig> => {
+  const { data } = await axios.get<IConfig>('/config');
+
+  return data;
+};
+
+/**
+ * Return true if MODE=development, false otherwise.
+ *
+ * @return {*}  {boolean}
+ */
+const isDevelopment = (): boolean => {
+  if (import.meta.env.MODE === 'development') {
+    return true;
+  }
+
+  return false;
+};
+
+/**
+ * Provides environment variables.
+ *
+ * This will fetch env vars from either `import.meta.env` if running with MODE=development, or from
+ * `app/server/index.js` if running as a deployed MODE=production build.
+ *
+ * @param {*} props
+ * @return {*}
+ */
+export const ConfigContextProvider = (props: PropsWithChildren) => {
+  const [config, setConfig] = useState<IConfig>();
+
+  useEffect(() => {
+    const loadConfig = async () => {
+      if (isDevelopment()) {
+        const localConfig = getLocalConfig();
+        setConfig(localConfig);
+      } else {
+        const deployedConfig = await getDeployedConfig();
+        setConfig(deployedConfig);
+      }
+    };
+
+    if (!config) {
+      loadConfig();
+    }
+  }, [config]);
+  return <ConfigContext.Provider value={config}>{props.children}</ConfigContext.Provider>;
+};
