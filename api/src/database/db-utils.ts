@@ -2,54 +2,55 @@ import { z } from 'zod';
 import { ApiExecuteSQLError } from '../errors/api-error';
 
 /**
- * An asynchronous wrapper function that will catch any exceptions thrown by the wrapped function
+ * Wraps an asynchronous function and catches any thrown exceptions,
+ * parsing them into a standardized ApiExecuteSQLError.
  *
- * @param fn the function to be wrapped
- * @returns Promise<WrapperReturn> A Promise with the wrapped functions return value
+ * @param fn The async function to wrap
+ * @returns A new async function that wraps the original function
  */
 export const asyncErrorWrapper =
-  <WrapperArgs extends any[], WrapperReturn>(fn: (...args: WrapperArgs) => Promise<WrapperReturn>) =>
-  async (...args: WrapperArgs): Promise<WrapperReturn> => {
+  <Args extends any[], Return>(fn: (...args: Args) => Promise<Return>) =>
+  async (...args: Args): Promise<Return> => {
     try {
       return await fn(...args);
-    } catch (err) {
-      throw parseError(err);
+    } catch (error) {
+      throw parseError(error);
     }
   };
 
 /**
- * A synchronous wrapper function that will catch any exceptions thrown by the wrapped function
+ * Wraps a synchronous function and catches any thrown exceptions,
+ * parsing them into a standardized ApiExecuteSQLError.
  *
- * @param fn the function to be wrapped
- * @returns WrapperReturn The wrapped functions return value
+ * @param fn The synchronous function to wrap
+ * @returns A new function that wraps the original function
  */
 export const syncErrorWrapper =
-  <WrapperArgs extends any[], WrapperReturn>(fn: (...args: WrapperArgs) => WrapperReturn) =>
-  (...args: WrapperArgs): WrapperReturn => {
+  <Args extends any[], Return>(fn: (...args: Args) => Return) =>
+  (...args: Args): Return => {
     try {
       return fn(...args);
-    } catch (err) {
-      throw parseError(err);
+    } catch (error) {
+      throw parseError(error);
     }
   };
 
 /**
- * This function parses the passed in error and translates them into a human readable error
+ * Parses an error and converts it into a human-readable ApiExecuteSQLError
  *
- * @param error error to be parsed
- * @returns an error to throw
+ * @param error The error to parse
+ * @returns Throws an ApiExecuteSQLError
  */
-const parseError = (error: any) => {
+const parseError = (error: any): never => {
   if (error instanceof z.ZodError) {
-    throw new ApiExecuteSQLError('SQL response failed schema check', [error as Record<string, any>]);
+    throw new ApiExecuteSQLError('SQL response failed schema check', [error]);
   }
 
-  if (error.message === 'CONCURRENCY_EXCEPTION') {
-    // error thrown by DB trigger based on revision_count
-    // will be thrown if two updates to the same record are made concurrently
+  if (error?.message === 'CONCURRENCY_EXCEPTION') {
+    // Thrown by DB trigger based on revision_count if concurrent updates occur
     throw new ApiExecuteSQLError('Failed to update stale data', [error]);
   }
 
-  // Generic error thrown if not captured above
+  // Generic fallback error
   throw new ApiExecuteSQLError('Failed to execute SQL', [error]);
 };

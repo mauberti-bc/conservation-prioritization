@@ -19,6 +19,8 @@ all: | build-all run-all
 
 # Running web app parts
 web: | build-web run-web
+backend: | build-backend run-backend
+frontend: | build-frontend run-frontend
 
 # Prefect
 prefect: | build-prefect run-prefect
@@ -93,13 +95,48 @@ build-web: ## Build containers for web
 	@echo "==============================================="
 	@echo "Make: build-web - building web images"
 	@echo "==============================================="
-	@docker compose build frontend db db_setup
+	@docker compose build frontend db db_setup api
 
 run-web: ## Run containers for web
 	@echo "==============================================="
 	@echo "Make: run-web - running web images"
 	@echo "==============================================="
-	@docker compose up -d frontend db db_setup
+	@docker compose up -d frontend db db_setup api
+
+
+## ------------------------------------------------------------------------------
+## Build and Run Backend + Web
+## ------------------------------------------------------------------------------
+
+build-backend: ## Build containers for backend
+	@echo "==============================================="
+	@echo "Make: build-backend - building backend images"
+	@echo "==============================================="
+	@docker compose build api db db_setup
+
+run-backend: ## Run containers for backend
+	@echo "==============================================="
+	@echo "Make: run-backend - running backend images"
+	@echo "==============================================="
+	@docker compose up -d api db db_setup
+
+
+
+## ------------------------------------------------------------------------------
+## Build and Run Frontend
+## ------------------------------------------------------------------------------
+
+build-frontend: ## Build containers for frontend
+	@echo "==============================================="
+	@echo "Make: build-frontend - building frontend images"
+	@echo "==============================================="
+	@docker compose build frontend
+
+run-frontend: ## Run containers for frontend
+	@echo "==============================================="
+	@echo "Make: run-frontend - running frontend images"
+	@echo "==============================================="
+	@docker compose up -d frontend
 
 
 ## ------------------------------------------------------------------------------

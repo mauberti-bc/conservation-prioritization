@@ -12,7 +12,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.raw(`--sql
     SET search_path=conservation,public;
 
-    CREATE TYPE identity_source AS ENUM ('SYSTEM', 'IDIR', 'BCEID');
+    CREATE TYPE identity_source AS ENUM ('SYSTEM', 'IDIR', 'DATABASE');
 
     ----------------------------------------------------------------------------------------
     -- Profile Table
@@ -30,6 +30,8 @@ export async function up(knex: Knex): Promise<void> {
       update_profile              uuid,
       CONSTRAINT profile_pk PRIMARY KEY (profile_id)
     );
+
+    CREATE INDEX profile_idx1 ON profile (identity_source);
 
     COMMENT ON TABLE  profile                                  IS 'Tracks system profiles for auditing and permissions.';
     COMMENT ON COLUMN profile.profile_id                       IS 'System generated surrogate primary key identifier.';

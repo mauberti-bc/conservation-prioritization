@@ -6,69 +6,65 @@ export type DBConstants = {
   serviceClientUsers: SystemUser[];
 };
 
-// Singleton DBConstants instance
+// Singleton instance for DB constants
 let DBConstants: DBConstants | undefined;
 
 /**
- * Initializes the singleton db constants instance used by the api.
- *
- * @return {*}  {Promise<void>}
+ * Initializes the singleton DB constants instance used by the API.
  */
-export const initDBConstants = async function (): Promise<void> {
+export const initDBConstants = async (): Promise<void> => {
   if (DBConstants) {
-    // Database constants singleton already loaded, do nothing.
+    // DB constants already initialized, nothing to do
     return;
   }
 
   // Lazy load logger to prevent circular dependencies
   const { getLogger } = await import('../utils/logger');
-
   const defaultLog = getLogger('database/db');
 
   try {
-    // Lazy load logger to prevent circular dependencies
+    // Lazy load DB connection to prevent circular dependencies
     const { getAPIUserDBConnection } = await import('./db');
-
     const connection = getAPIUserDBConnection();
 
     try {
       await connection.open();
 
+      // Query service account users
       const response = await connection.sql(selectServiceAccountsSqlStatement, SystemUser);
 
       DBConstants = { serviceClientUsers: response.rows };
 
       await connection.commit();
     } catch (error) {
-      defaultLog.error({ label: 'initDBConstants', message: 'error', error });
+      defaultLog.error({ label: 'initDBConstants', message: 'Error initializing DB constants', error });
       await connection.rollback();
       throw error;
     } finally {
       connection.release();
     }
   } catch (error) {
-    defaultLog.error({ label: 'initDBConstants', message: 'failed to create db constants', error });
+    defaultLog.error({ label: 'initDBConstants', message: 'Failed to initialize DB constants', error });
     throw error;
   }
 };
 
-export const getDBConstants = function (): DBConstants {
+/**
+ * Returns the singleton DB constants instance
+ */
+export const getDBConstants = (): DBConstants => {
   if (!DBConstants) {
-    throw Error('DBConstants is not initialized');
+    throw new Error('DBConstants is not initialized');
   }
-
   return DBConstants;
 };
 
+// Updated SQL statement to use "profile" table instead of "system_user"
 const selectServiceAccountsSqlStatement = SQL`
   SELECT
     *
   FROM
-    "system_user"
-  INNER JOIN
-    user_identity_source
-  ON
-    "system_user".user_identity_source_id = user_identity_source.user_identity_source_id
+    "profile"
   WHERE
-    user_identity_source.name = ${SYSTEM_IDENTITY_SOURCE.SYSTEM};
+    identity_source = ${SYSTEM_IDENTITY_SOURCE.SYSTEM};
 `;
