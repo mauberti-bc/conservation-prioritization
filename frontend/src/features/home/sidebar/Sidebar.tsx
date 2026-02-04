@@ -12,9 +12,16 @@ interface SidebarProps {
 
 export const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
   return (
-    <Box display="flex" height="100%" zIndex={8}>
+    <Box display="flex" height="100%" zIndex={8} width="100%">
       {/* Sidebar navigation tabs */}
-      <Paper elevation={1} sx={{ pl: 1, pt: 2, borderRadius: 0, minWidth: '220px' }}>
+      <Paper
+        elevation={1}
+        sx={{
+          pl: 1,
+          pt: 2,
+          borderRadius: 0,
+          flexShrink: 0, // don't shrink in flex layout
+        }}>
         <SidebarNavigation activeView={activeView} onViewChange={onViewChange} />
       </Paper>
 
@@ -23,14 +30,17 @@ export const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
         component={Paper}
         elevation={1}
         sx={{
-          flexGrow: 1,
+          boxSizing: 'border-box',
+          flex: 1,
+          minWidth: 0,
           borderRadius: 0,
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
         }}>
         {activeView === 'new' && <ControlPanel />}
         {activeView === 'layers' && (
-          <Box p={3}>
+          <Box p={3} sx={{ overflow: 'auto' }}>
             <LayerPanel />
           </Box>
         )}

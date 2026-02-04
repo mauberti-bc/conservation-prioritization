@@ -8,9 +8,9 @@ import { Formik } from 'formik';
 import { Feature } from 'geojson';
 import { OptimizationParameters } from 'hooks/api/usePrefectApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useDialogContext } from 'hooks/useContext';
+import { useDialogContext, useMapContext } from 'hooks/useContext';
 import { useZarr } from 'hooks/useZarr';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import yup from 'utils/yup';
 import { ControlPanelAdvanced } from './form/advanced/ControlPanelAdvanced';
 import { OPTIMIZATION_VARIANT } from './form/advanced/form/ControlPanelAdvancedForm';
@@ -99,17 +99,19 @@ export interface FormValues {
   variant: OPTIMIZATION_VARIANT;
   budget: Layer | null;
   layers: Layer[];
-  geometry: Feature[];
+  geometry: { id: string; name: string; description: string | null; geojson: Feature; mapboxFeatureId: string }[];
+  status: 'draft' | 'pending';
 }
 
 const initialValues: FormValues = {
   resolution: 1000,
   resampling: 'mode',
-  name: 'New Conservation Scenario',
+  name: 'Untitled Task',
   variant: OPTIMIZATION_VARIANT.STRICT,
   budget: null,
   layers: [],
   geometry: [],
+  status: 'pending',
 };
 
 export const ControlPanel = () => {
@@ -117,6 +119,7 @@ export const ControlPanel = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
+  const { drawControlsRef } = useMapContext();
 
   // Read this from my /data/species.zarr store instead using zarrita.js
   const zarr = useZarr(config.ZARR_STORE_PATH);
@@ -131,6 +134,16 @@ export const ControlPanel = () => {
       })),
     [zarr]
   );
+
+  // Clean up drawn features when component unmounts
+  useEffect(() => {
+    const drawControls = drawControlsRef.current;
+    return () => {
+      if (drawControls) {
+        drawControls.clearDrawing();
+      }
+    };
+  }, [drawControlsRef]);
 
   const handleToggleAdvanced = () => {
     setAdvancedOpen((prev) => !prev);
@@ -190,7 +203,7 @@ export const ControlPanel = () => {
       validateOnChange={false}
       validateOnMount={false}
       validateOnBlur={false}>
-      {({ handleSubmit, values }) => {
+      {({ handleSubmit }) => {
         return (
           <Box
             component="form"
@@ -202,15 +215,17 @@ export const ControlPanel = () => {
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
-                pt: 2,
+                pt: 1,
                 px: 3,
+                mr: 0.5,
               }}>
               <ControlPanelForm layerOptions={layerOptions} />
             </Box>
 
             {/* Sticky footer */}
             <Box
-              py={2}
+              mr={0.5}
+              py={3}
               sx={{
                 boxShadow: '0px -2px 25px 0px rgba(0,0,0,0.05)',
                 position: 'sticky',
@@ -220,13 +235,14 @@ export const ControlPanel = () => {
               <Stack gap={1} px={3} alignItems="flex-start">
                 <ControlPanelAdvanced open={advancedOpen} handleClick={handleToggleAdvanced} />
 
+                {/* Submit Button */}
                 <Button
-                  loading={isSubmitting}
-                  sx={{ py: 2 }}
-                  type="submit"
                   variant="contained"
-                  fullWidth
-                  disabled={!values.layers.length}>
+                  loading={isSubmitting}
+                  type="submit"
+                  color="primary"
+                  sx={{ flex: 1, py: 2 }}
+                  fullWidth>
                   Submit
                 </Button>
               </Stack>

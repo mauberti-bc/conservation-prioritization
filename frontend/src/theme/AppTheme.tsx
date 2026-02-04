@@ -164,11 +164,16 @@ export const appTheme = createTheme({
         },
       },
     },
+    MuiButtonGroup: {
+      defaultProps: { disableElevation: true, disableRipple: true, disableFocusRipple: true },
+      styleOverrides: {},
+    },
     MuiButton: {
       defaultProps: {},
       styleOverrides: {
         root: {
-          padding: '10px',
+          whiteSpace: 'nowrap',
+          padding: '10px 15px',
           '&:focus': {
             outline: '2px solid #3B99FC',
             outlineOffset: '-1px',
