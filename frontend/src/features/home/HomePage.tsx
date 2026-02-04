@@ -1,4 +1,5 @@
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
 import { useMapContext, useTaskContext } from 'hooks/useContext';
@@ -38,6 +39,21 @@ export const HomePage = () => {
     return resolvedUri ? [resolvedUri] : [];
   }, [taskStatus, taskDataLoader.data]);
 
+  const statusLabel = useMemo(() => {
+    const activeStatus = taskStatus?.status ?? taskDataLoader.data?.status;
+    const tileStatus = taskStatus?.tile?.status ?? null;
+
+    if (!activeStatus) {
+      return null;
+    }
+
+    if (activeStatus === 'completed' && tileStatus && tileStatus !== 'COMPLETED') {
+      return `${activeStatus} (tiling: ${tileStatus.toLowerCase()})`;
+    }
+
+    return activeStatus;
+  }, [taskStatus, taskDataLoader.data]);
+
   const memoizedMap = useMemo(() => {
     return (
       <>
@@ -64,7 +80,19 @@ export const HomePage = () => {
       </Box>
 
       {/* Map fills remaining space */}
-      <Box flex="1" display="flex" flexDirection="column" overflow="hidden" height="100%">
+      <Box flex="1" display="flex" flexDirection="column" overflow="hidden" height="100%" position="relative">
+        {taskId && statusLabel && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 16,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 10,
+            }}>
+            <Chip size="small" color="primary" label={statusLabel} />
+          </Box>
+        )}
         {memoizedMap}
       </Box>
     </Stack>

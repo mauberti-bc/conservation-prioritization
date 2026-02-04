@@ -27,16 +27,6 @@ def _get_internal_api_config() -> tuple[str, str]:
     return api_url.rstrip("/"), api_key
 
 
-def _create_task_tile(task_id: str) -> str:
-    api_url, api_key = _get_internal_api_config()
-    url = f"{api_url}/internal/task/{task_id}/tile"
-
-    response = requests.post(url, headers={"x-internal-api-key": api_key}, timeout=10)
-    response.raise_for_status()
-    data: Dict[str, Any] = response.json()
-    return str(data["task_tile_id"])
-
-
 def _update_task_tile_status(
     task_tile_id: str,
     status: str,
@@ -80,16 +70,13 @@ def _load_solution_artifacts(task_id: str) -> tuple[np.ndarray, Affine, str, int
 
 
 @flow(name="task_tile")
-def tile_task(task_id: str):
+def tile_task(task_id: str, task_tile_id: str):
     """
     Dedicated tiling flow that generates PMTiles and persists task tile status.
     """
     logger = get_run_logger()
 
-    task_tile_id: Optional[str] = None
-
     try:
-        task_tile_id = _create_task_tile(task_id)
         _update_task_tile_status(task_tile_id, "STARTED")
 
         solution, transform, crs, resolution = _load_solution_artifacts(task_id)
@@ -121,11 +108,10 @@ def tile_task(task_id: str):
         logger.info("Tiling completed successfully")
     except Exception as error:
         logger.error(f"Tiling failed: {error}")
-        if task_tile_id:
-            _update_task_tile_status(
-                task_tile_id,
-                "FAILED",
-                error_code="tiling_failed",
-                error_message=str(error),
-            )
+        _update_task_tile_status(
+            task_tile_id,
+            "FAILED",
+            error_code="tiling_failed",
+            error_message=str(error),
+        )
         raise

@@ -23,6 +23,7 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptRef = useRef(0);
+  const latestStatusRef = useRef<string | null>(null);
 
   const closeSocket = () => {
     if (reconnectTimeoutRef.current) {
@@ -62,6 +63,7 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
         try {
           const parsed = JSON.parse(event.data) as TaskStatusMessage;
           setData(parsed);
+          latestStatusRef.current = parsed.status ?? null;
         } catch (parseError) {
           console.error('Failed to parse task status message', parseError);
         }
@@ -79,6 +81,10 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
 
     const scheduleReconnect = () => {
       if (!taskId) {
+        return;
+      }
+
+      if (latestStatusRef.current && ['completed', 'failed', 'failed_to_submit'].includes(latestStatusRef.current)) {
         return;
       }
 
