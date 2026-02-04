@@ -44,10 +44,12 @@ export const TaskCreateForm = ({ isReadOnly = false }: TaskCreateFormProps) => {
       {!isReadOnly && (
         <Paper
           sx={{
+            p: 3,
+            py: 2,
             borderRadius: 0,
             borderBottom: '1px solid',
             borderColor: 'divider',
-            boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.075)',
+            boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
           }}>
           <TaskFormToolbar />
         </Paper>

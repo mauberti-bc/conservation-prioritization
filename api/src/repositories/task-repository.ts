@@ -73,6 +73,34 @@ export class TaskRepository extends BaseRepository {
   }
 
   /**
+   * Fetches a task by its ID, returning null if not found.
+   *
+   * @param {string} taskId - The UUID of the task.
+   * @return {*} {Promise<Task | null>} The task if found, otherwise null.
+   * @memberof TaskRepository
+   */
+  async findTaskById(taskId: string): Promise<Task | null> {
+    const sqlStatement = SQL`
+      SELECT
+        task_id, name, description, tileset_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
+      FROM
+        task
+      WHERE
+        task_id = ${taskId}
+      AND
+        record_end_date IS NULL
+    `;
+
+    const response = await this.connection.sql(sqlStatement, Task);
+
+    if (response.rowCount !== 1) {
+      return null;
+    }
+
+    return response.rows[0];
+  }
+
+  /**
    * Fetches all tasks with a specific `record_end_date` set to `NULL`.
    *
    * @return {*} {Promise<Task[]>} A list of tasks.

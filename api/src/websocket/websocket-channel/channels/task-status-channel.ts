@@ -6,14 +6,17 @@ import { TASK_STATUS } from '../../../types/status';
 import { TaskStatusMessage } from '../../../types/task-status';
 import { getLogger } from '../../../utils/logger';
 import { startPollingWebsocketChannel } from '../polling-websocket-channel';
-
 const defaultLog = getLogger('websocket/task-status-channel');
 
 export interface TaskStatusChannelParams {
   taskId: string;
 }
 
-const TERMINAL_STATUSES = new Set([TASK_STATUS.COMPLETED, TASK_STATUS.FAILED, TASK_STATUS.FAILED_TO_SUBMIT]);
+const TERMINAL_STATUSES = new Set<TaskStatusMessage['status']>([
+  TASK_STATUS.COMPLETED,
+  TASK_STATUS.FAILED,
+  TASK_STATUS.FAILED_TO_SUBMIT
+]);
 
 /**
  * Matches websocket upgrade requests for task status updates.

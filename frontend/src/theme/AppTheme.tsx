@@ -37,6 +37,7 @@ export const appTheme = createTheme({
       selected: grey[200],
       hover: grey[50],
     },
+    divider: '#f2f2f2',
   },
   typography: {
     fontSize: 15,
@@ -214,6 +215,16 @@ export const appTheme = createTheme({
     MuiButtonBase: {
       defaultProps: {
         disableRipple: true,
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          backgroundColor: grey[50],
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: '8px',
+        },
       },
     },
     MuiChip: {

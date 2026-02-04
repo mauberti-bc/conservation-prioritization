@@ -1,17 +1,17 @@
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
+import { SidebarView } from 'context/sidebarUIContext';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
-import { useLayerSearch } from 'hooks/useLayerSearch';
 import { DataLoader } from 'hooks/useDataLoader';
-import { useEffect, useMemo, useState } from 'react';
-import { SidebarView } from 'context/sidebarUIContext';
+import { useLayerSearch } from 'hooks/useLayerSearch';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { LayerPanel } from '../layer-panel/LayerPanel';
+import { CreateTask } from '../task/create/CreateTask';
 import { SidebarNavigation } from './navigation/SidebarNavigation';
 import { ProjectList } from './projects/ProjectList';
-import { TaskList } from './tasks/TaskList';
 import { SidebarSection } from './SidebarSection';
-import Typography from '@mui/material/Typography';
+import { TaskList } from './tasks/TaskList';
 
 interface SidebarProps {
   activeView: SidebarView;
@@ -19,8 +19,11 @@ interface SidebarProps {
   tasksDataLoader: DataLoader<[], GetTaskResponse[], unknown>;
   projectsDataLoader: DataLoader<[], GetProjectResponse[], unknown>;
   isAuthenticated: boolean;
-  selectedTaskId: string | null;
   onSelectTask: (task: GetTaskResponse) => void;
+  onTaskCreated?: () => void;
+  onEditTask?: (task: GetTaskResponse) => void;
+  overlay?: ReactNode;
+  isOverlayOpen?: boolean;
 }
 
 export const Sidebar = ({
@@ -29,12 +32,21 @@ export const Sidebar = ({
   tasksDataLoader,
   projectsDataLoader,
   isAuthenticated,
-  selectedTaskId,
   onSelectTask,
+  onTaskCreated,
+  onEditTask,
+  overlay,
+  isOverlayOpen = false,
 }: SidebarProps) => {
+  // Task selection state comes from TaskContext; Sidebar only renders lists.
   const [taskSearchTerm, setTaskSearchTerm] = useState('');
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
-  const { layers, loading: layersLoading, error: layersError, search: searchLayers } = useLayerSearch({
+  const {
+    layers,
+    loading: layersLoading,
+    error: layersError,
+    search: searchLayers,
+  } = useLayerSearch({
     debounceMs: 0,
     allowEmptySearch: isAuthenticated,
   });
@@ -79,12 +91,16 @@ export const Sidebar = ({
     searchLayers('');
   }, [activeView, isAuthenticated, searchLayers]);
 
+  const navWidth = 180;
+
   return (
-    <Box display="flex" height="100%" zIndex={8} width="100%">
+    <Box display="flex" height="100%" zIndex={8} width="100%" position="relative">
       {/* Sidebar navigation tabs */}
       <Paper
-        elevation={1}
+        elevation={0}
         sx={{
+          width: `${navWidth}px`,
+          minWidth: `${navWidth}px`,
           pl: 1,
           pt: 2,
           borderRadius: 0,
@@ -106,57 +122,69 @@ export const Sidebar = ({
           flexDirection: 'column',
           overflow: 'hidden',
         }}>
-        {activeView === 'new' && (
-          <SidebarSection title="New task" onSearch={() => undefined} showSearch={false}>
-            <Typography color="textSecondary">Configure your task in the main panel.</Typography>
-          </SidebarSection>
-        )}
-        {activeView === 'tasks' && (
-          <SidebarSection
-            title="Tasks"
-            onSearch={(term) => {
-              setTaskSearchTerm(term);
-            }}>
-            {selectedTaskId ? (
-              <Typography color="textSecondary">
-                Task selected. Use the back arrow to return to the list.
-              </Typography>
-            ) : (
+        <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          {activeView === 'new' && (
+            <CreateTask
+              onTaskCreated={() => {
+                onTaskCreated?.();
+              }}
+            />
+          )}
+          {activeView === 'tasks' && (
+            <SidebarSection
+              title="Tasks"
+              onSearch={(term) => {
+                setTaskSearchTerm(term);
+              }}>
               <TaskList
                 tasks={filteredTasks}
                 isLoading={tasksDataLoader.isLoading}
-                selectedTaskId={selectedTaskId}
+                onSelectTask={onSelectTask}
+                onEditTask={onEditTask}
+              />
+            </SidebarSection>
+          )}
+          {activeView === 'projects' && (
+            <SidebarSection
+              title="Projects"
+              onSearch={(term) => {
+                setProjectSearchTerm(term);
+              }}>
+              <ProjectList
+                projects={filteredProjects}
+                isLoading={projectsDataLoader.isLoading}
                 onSelectTask={onSelectTask}
               />
-            )}
-          </SidebarSection>
-        )}
-        {activeView === 'projects' && (
-          <SidebarSection
-            title="Projects"
-            onSearch={(term) => {
-              setProjectSearchTerm(term);
-            }}>
-            <ProjectList
-              projects={filteredProjects}
-              isLoading={projectsDataLoader.isLoading}
-              selectedTaskId={selectedTaskId}
-              onSelectTask={onSelectTask}
-            />
-          </SidebarSection>
-        )}
-        {activeView === 'layers' && (
-          <SidebarSection
-            title="Layers"
-            onSearch={(term) => {
-              if (isAuthenticated) {
-                searchLayers(term);
-              }
-            }}>
-            <LayerPanel layers={layers} isLoading={layersLoading} error={layersError} />
-          </SidebarSection>
-        )}
+            </SidebarSection>
+          )}
+          {activeView === 'layers' && (
+            <SidebarSection
+              title="Layers"
+              onSearch={(term) => {
+                if (isAuthenticated) {
+                  searchLayers(term);
+                }
+              }}>
+              <LayerPanel layers={layers} isLoading={layersLoading} error={layersError} />
+            </SidebarSection>
+          )}
+        </Box>
       </Box>
+
+      {isOverlayOpen && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: `${navWidth}px`,
+            right: 0,
+            zIndex: 10,
+            backgroundColor: 'background.paper',
+          }}>
+          {overlay}
+        </Box>
+      )}
     </Box>
   );
 };

@@ -104,7 +104,7 @@ export class TaskLayerRepository extends BaseRepository {
     const sqlStatement = SQL`
       SELECT task_layer_id, task_id, layer_name, description, mode, importance, threshold
       FROM task_layer
-      WHERE task_id IN (${taskIds.join(',')})
+      WHERE task_id = ANY(${taskIds}::uuid[])
     `;
 
     const response = await this.connection.sql(sqlStatement, TaskLayer);

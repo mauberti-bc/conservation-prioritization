@@ -5,13 +5,17 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import { Formik } from 'formik';
-import { CreateTaskLayer, CreateTaskRequest, GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
+import {
+  CreateTaskLayer,
+  CreateTaskRequest,
+  GetTaskResponse,
+  OPTIMIZATION_VARIANT,
+} from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useMapContext, useTaskContext } from 'hooks/useContext';
 import { useEffect, useState } from 'react';
-import { taskValidationSchema } from './TaskCreateYup';
-import { OPTIMIZATION_VARIANT } from 'hooks/interfaces/useTaskApi.interface';
 import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
+import { taskValidationSchema } from './TaskCreateYup';
 
 const initialValues: TaskCreateFormValues = {
   resolution: 1000,
@@ -24,11 +28,11 @@ const initialValues: TaskCreateFormValues = {
   geometry: [],
 };
 
-interface CreateTaskPageProps {
+interface CreateTaskProps {
   onTaskCreated?: (task: GetTaskResponse) => void;
 }
 
-export const CreateTaskPage = ({ onTaskCreated }: CreateTaskPageProps) => {
+export const CreateTask = ({ onTaskCreated }: CreateTaskProps) => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();

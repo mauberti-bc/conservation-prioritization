@@ -16,9 +16,14 @@ import { mapTaskResponseToCreateFormValues } from 'utils/task-mapping';
 import { taskValidationSchema } from './TaskCreateYup';
 import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
 
-export const EditTaskPage = () => {
+interface EditTaskProps {
+  taskId?: string | null;
+}
+
+export const EditTask = ({ taskId: taskIdProp }: EditTaskProps) => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const { taskId } = useParams<{ taskId?: string }>();
+  const { taskId: taskIdParam } = useParams<{ taskId?: string }>();
+  const resolvedTaskId = taskIdProp ?? taskIdParam ?? null;
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
   const { drawControlsRef, mapRef } = useMapContext();
@@ -26,10 +31,10 @@ export const EditTaskPage = () => {
   const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
 
   useEffect(() => {
-    if (taskId) {
-      taskDataLoader.load(taskId);
+    if (resolvedTaskId) {
+      taskDataLoader.load(resolvedTaskId);
     }
-  }, [taskId, taskDataLoader]);
+  }, [resolvedTaskId, taskDataLoader]);
 
   // Clean up drawn features when component unmounts
   useEffect(() => {
@@ -99,13 +104,13 @@ export const EditTaskPage = () => {
 
   return (
     <LoadingGuard
-      isLoading={Boolean(taskId) && (taskDataLoader.isLoading || !taskDataLoader.hasLoaded)}
+      isLoading={Boolean(resolvedTaskId) && (taskDataLoader.isLoading || !taskDataLoader.hasLoaded)}
       isLoadingFallback={
         <Box p={3}>
           <Typography>Loading task...</Typography>
         </Box>
       }
-      hasNoData={!taskId}
+      hasNoData={!resolvedTaskId}
       hasNoDataFallback={
         <Box p={3}>
           <Typography color="error">Missing task ID.</Typography>
