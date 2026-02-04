@@ -1,11 +1,13 @@
 import { IDBConnection } from '../database/db';
 import {
+  AuthorizeByProfile,
   AuthorizeByProject,
-  AuthorizeBySystemRole,
   AuthorizeByTask,
-  AuthorizeRule
+  AuthorizeRule,
+  AuthorizationScheme
 } from './authorization-service.interface';
 import { SYSTEM_ROLE } from '../constants/roles';
+import { getUserGuid } from '../utils/keycloak-utils';
 import { DBService } from './db-service';
 import { ProfileService } from './profile-service';
 import { ProjectProfileService } from './project-profile-service';
@@ -19,14 +21,39 @@ export class AuthorizationService extends DBService {
   private taskProfileService: TaskProfileService;
   private projectService: ProjectService;
   private projectProfileService: ProjectProfileService;
+  private keycloakToken: Record<string, any> | null;
+  private profile: unknown;
 
-  constructor(connection: IDBConnection) {
+  constructor(connection: IDBConnection, context?: { profile?: unknown; keycloakToken?: Record<string, any> | null }) {
     super(connection);
     this.profileService = new ProfileService(connection);
     this.taskService = new TaskService(connection);
     this.taskProfileService = new TaskProfileService(connection);
     this.projectService = new ProjectService(connection);
     this.projectProfileService = new ProjectProfileService(connection);
+    this.keycloakToken = context?.keycloakToken ?? null;
+    this.profile = context?.profile ?? null;
+  }
+
+  /**
+   * Returns the profile attached to the current request context (if any).
+   *
+   * @return {*}  {unknown}
+   * @memberof AuthorizationService
+   */
+  getProfile(): unknown {
+    return this.profile;
+  }
+
+  /**
+   * Returns true if the authenticated user has the system admin role.
+   *
+   * @return {*}  {Promise<boolean>}
+   * @memberof AuthorizationService
+   */
+  async authorizeSystemAdministrator(): Promise<boolean> {
+    const systemUserRoles = await this.getUserSystemRoles();
+    return systemUserRoles.includes(SYSTEM_ROLE.ADMIN);
   }
 
   /**
@@ -41,11 +68,44 @@ export class AuthorizationService extends DBService {
         return this.authorizeByTask(authorizeRule);
       case 'Project':
         return this.authorizeByProject(authorizeRule);
-      case 'SystemRole':
-        return this.authorizeBySystemRole(authorizeRule);
+      case 'Profile':
+        return this.authorizeByProfile(authorizeRule);
       default:
         return false;
     }
+  }
+
+  /**
+   * Executes authorization checks based on the provided authorization scheme.
+   *
+   * @param {AuthorizationScheme} authorizationScheme
+   * @return {*}  {Promise<boolean>}
+   * @memberof AuthorizationService
+   */
+  async executeAuthorizationScheme(authorizationScheme: AuthorizationScheme): Promise<boolean> {
+    if ('and' in authorizationScheme) {
+      const rules = authorizationScheme.and ?? [];
+      for (const rule of rules) {
+        const isAuthorized = await this.executeAuthorizationRule(rule);
+        if (!isAuthorized) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    if ('or' in authorizationScheme) {
+      const rules = authorizationScheme.or ?? [];
+      for (const rule of rules) {
+        const isAuthorized = await this.executeAuthorizationRule(rule);
+        if (isAuthorized) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    return false;
   }
 
   /**
@@ -101,13 +161,13 @@ export class AuthorizationService extends DBService {
   /**
    * Checks if a user has the required system roles.
    *
-   * @param {AuthorizeBySystemRole} authorizeBySystemRole - The authorization rule for the system roles, including valid roles.
+   * @param {AuthorizeByProfile} authorizeByProfile - The authorization rule for profile roles, including valid roles.
    * @return {Promise<boolean>} - Returns true if the user has at least one valid system role.
    */
-  private async authorizeBySystemRole(authorizeBySystemRole: AuthorizeBySystemRole): Promise<boolean> {
+  private async authorizeByProfile(authorizeByProfile: AuthorizeByProfile): Promise<boolean> {
     const systemUserRoles = await this.getUserSystemRoles();
 
-    const allowedSystemRoles = [SYSTEM_ROLE.ADMIN, SYSTEM_ROLE.MEMBER];
+    const allowedSystemRoles = authorizeByProfile.validSystemRoles ?? [SYSTEM_ROLE.MEMBER];
 
     return this.hasRequiredRoles(systemUserRoles, allowedSystemRoles);
   }
@@ -185,12 +245,7 @@ export class AuthorizationService extends DBService {
    * @return {string | null} - The profile GUID if it exists, otherwise null.
    */
   private getProfileGuidFromRequest(): string | null {
-    const token = (this as any).req.keycloak_token; // Assuming `req.keycloak_token` is set in your request object
-
-    if (token && token.profile_guid) {
-      return token.profile_guid; // Extract the profile GUID from the token
-    }
-
-    return null; // Return null if the profile GUID is not found
+    const token = this.keycloakToken;
+    return token ? getUserGuid(token) : null;
   }
 }
