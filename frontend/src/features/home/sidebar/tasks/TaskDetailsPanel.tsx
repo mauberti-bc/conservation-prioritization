@@ -54,7 +54,7 @@ export const TaskDetailsPanel = () => {
           {() => {
             return (
               <Box sx={{ overflow: 'auto' }}>
-                <Box display="flex" alignItems="center" justifyContent="space-between" mb={2} p={2}>
+                <Box display="flex" alignItems="center" gap={1} mb={2} p={2}>
                   <IconButton
                     aria-label="Back to tasks"
                     size="small"
@@ -63,6 +63,12 @@ export const TaskDetailsPanel = () => {
                     }}>
                     <Icon path={mdiArrowLeft} size={1} />
                   </IconButton>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={600}
+                    sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {taskDataLoader.data?.name ?? 'Task details'}
+                  </Typography>
                 </Box>
                 <Box component="fieldset" disabled sx={{ border: 0, p: 0, m: 0 }}>
                   <TaskCreateForm isReadOnly />
