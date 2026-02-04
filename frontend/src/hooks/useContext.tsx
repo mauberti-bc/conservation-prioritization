@@ -1,7 +1,6 @@
 import { AuthContext } from 'context/authContext';
 import { ConfigContext, IConfig } from 'context/configContext';
 import { DialogContext, IDialogContext } from 'context/dialogContext';
-import { LayerSelectContext } from 'context/layerSelectContext';
 import { MapContext } from 'context/mapContext';
 import { ITaskContext, TaskContext } from 'context/taskContext';
 import { useContext } from 'react';
@@ -70,18 +69,5 @@ export const useTaskContext = (): ITaskContext => {
     );
   }
 
-  return context;
-};
-
-/**
- * Returns an instance of `LayerSelectContext` from `LayerSelectContext`.
- *
- * @return {*}  {LayerSelectContext}
- */
-export const useLayerSelectContext = () => {
-  const context = useContext(LayerSelectContext);
-  if (!context) {
-    throw new Error('useLayerSelectContext must be used within LayerSelectContextProvider');
-  }
   return context;
 };

@@ -25,14 +25,15 @@ export interface TaskCreateFormValues {
   geometry: { id: string; name: string; description: string | null; geojson: Feature; mapboxFeatureId: string }[];
 }
 
-interface TaskCreateFormProps {
-  layerOptions: TaskLayerOption[];
-}
+const COST_LAYER_OPTION: TaskLayerOption = {
+  path: COST_LAYER_PATH,
+  name: 'Cost',
+  description: undefined,
+  group: COST_LAYER_PATH.split('/').slice(0, -1).join('/'),
+};
 
-export const TaskCreateForm = (props: TaskCreateFormProps) => {
-  const { layerOptions } = props;
-
-  const costLayer = layerOptions.find((option) => option.path.includes(COST_LAYER_PATH));
+export const TaskCreateForm = () => {
+  const costLayer = COST_LAYER_OPTION;
 
   return (
     <>
@@ -84,7 +85,7 @@ export const TaskCreateForm = (props: TaskCreateFormProps) => {
               Layers
             </Typography>
           </TooltipStack>
-          <TaskLayerSection layerOptions={layerOptions} />
+          <TaskLayerSection />
         </Box>
 
         <Box>

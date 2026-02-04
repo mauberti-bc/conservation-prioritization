@@ -15,45 +15,44 @@ import {
   Typography,
 } from '@mui/material';
 import { grey } from '@mui/material/colors';
-import { useLayerSelectContext } from 'context/layerSelectContext';
 import { LayerCardItem } from 'features/home/layer-panel/card/LayerCardItem';
-import { useFormikContext } from 'formik';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { createInputValueAndDetectFiltersHandler, doesLayerMatchFilters } from 'utils/filter-match';
 import { pluralize } from 'utils/util';
 import { LayerSearchLayout } from './layout/LayerSearchLayout';
-import { TaskCreateFormValues } from '../../TaskCreateForm';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
 
 interface LayerSearchDialogProps {
   open: boolean;
   onClose: () => void;
+  availableLayers: TaskLayerOption[];
+  loading: boolean;
+  error: string | null;
+  onSearch: (term: string) => void;
+  selectedLayers: TaskLayerOption[];
+  onLayerChange: (layer: TaskLayerOption) => void;
 }
 
-export const LayerSearchDialog = ({ open, onClose }: LayerSearchDialogProps) => {
-  const { values } = useFormikContext<TaskCreateFormValues>();
-  const {
-    availableLayers,
-    handleChange,
-    groupFilters: contextGroupFilters,
-    inputValue: contextInputValue,
-  } = useLayerSelectContext();
-
-  const [groupFilters, setGroupFilters] = useState<string[]>(contextGroupFilters);
-  const [inputValue, setInputValue] = useState<string>(contextInputValue);
-
-  useEffect(() => {
-    setGroupFilters(contextGroupFilters);
-  }, [contextGroupFilters]);
-
-  useEffect(() => {
-    setInputValue(contextInputValue);
-  }, [contextInputValue]);
+export const LayerSearchDialog = ({
+  open,
+  onClose,
+  availableLayers,
+  loading,
+  error,
+  onSearch,
+  selectedLayers,
+  onLayerChange,
+}: LayerSearchDialogProps) => {
+  const [groupFilters, setGroupFilters] = useState<string[]>([]);
+  const [inputValue, setInputValue] = useState<string>('');
 
   const handleInputChange = useCallback(
     (input: string) => {
-      return createInputValueAndDetectFiltersHandler(availableLayers, setInputValue, setGroupFilters)(input);
+      const handler = createInputValueAndDetectFiltersHandler(availableLayers, setInputValue, setGroupFilters);
+      handler(input);
+      onSearch(input);
     },
-    [availableLayers, setInputValue, setGroupFilters]
+    [availableLayers, setInputValue, setGroupFilters, onSearch]
   );
 
   const filteredLayers = useMemo(() => {
@@ -98,6 +97,8 @@ export const LayerSearchDialog = ({ open, onClose }: LayerSearchDialogProps) => 
             onChange={(e) => {
               handleInputChange(e.currentTarget.value);
             }}
+            helperText={error ?? undefined}
+            error={!!error}
             slotProps={{
               input: {
                 startAdornment: (
@@ -143,19 +144,24 @@ export const LayerSearchDialog = ({ open, onClose }: LayerSearchDialogProps) => 
 
         {/* Layer List */}
         <LayerSearchLayout
+          availableLayers={availableLayers}
           groupFilters={groupFilters}
           setGroupFilters={(filter: string) =>
             setGroupFilters((prev) => (prev.includes(filter) ? prev.filter((f) => f !== filter) : [...prev, filter]))
           }>
           <List sx={{ pl: 1 }}>
-            {hasResults ? (
+            {loading ? (
+              <Box sx={{ px: 3, pt: 4, pb: 4, textAlign: 'center', color: 'text.secondary' }}>
+                <Typography>Loading layers...</Typography>
+              </Box>
+            ) : hasResults ? (
               filteredLayers.map((layer) => (
                 <ListItem key={layer.path} sx={{ px: 0 }}>
-                  <LayerCardItem
-                    layer={layer}
-                    onToggle={() => handleChange(layer)}
-                    checked={values.layers.some((l) => l.path === layer.path)}
-                  />
+                    <LayerCardItem
+                      layer={layer}
+                      onToggle={() => onLayerChange(layer)}
+                      checked={selectedLayers.some((l) => l.path === layer.path)}
+                    />
                 </ListItem>
               ))
             ) : (

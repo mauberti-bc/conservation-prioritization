@@ -1,16 +1,15 @@
 import { Box, List, ListItemButton, ListItemText } from '@mui/material';
 import { grey } from '@mui/material/colors';
-import { useLayerSelectContext } from 'context/layerSelectContext';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
 
 interface ILayerSearchSidebarProps {
+  availableLayers: TaskLayerOption[];
   groupFilters: string[];
   setGroupFilters: (filter: string) => void;
 }
 
 export const LayerSearchSidebar = (props: ILayerSearchSidebarProps) => {
-  const { groupFilters, setGroupFilters } = props;
-
-  const { availableLayers } = useLayerSelectContext();
+  const { availableLayers, groupFilters, setGroupFilters } = props;
 
   // Extract unique top-level group names from availableLayers
   const topLevelGroups = Array.from(new Set(availableLayers.map((layer) => layer.group.split('/')[0]))).sort();

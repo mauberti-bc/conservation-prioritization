@@ -1,16 +1,19 @@
 import { mdiArrowExpand } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Autocomplete, IconButton } from '@mui/material';
-import { useLayerSearch } from 'hooks/useLayerSearch';
 import { useState } from 'react';
-import { TaskLayerOption } from '../../task-layer.interface';
-import { LayerSearchDialog } from '../../dialog/LayerSearchDialog';
-import { LayerOptionItem } from '../render/LayerOptionItem';
-import { LayerSearchInput } from './input/LayerSearchInput';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
+import { LayerSearchDialog } from '../dialog/LayerSearchDialog';
+import { LayerOptionItem } from './render/LayerOptionItem';
+import { LayerSearchInput } from './autocomplete/input/LayerSearchInput';
 
 const MAX_VISIBLE_FILTERS = 2;
 
 interface LayerOptionAutocompleteProps {
+  availableLayers: TaskLayerOption[];
+  loading: boolean;
+  error: string | null;
+  onSearch: (term: string) => void;
   selectedLayers: TaskLayerOption[];
   onLayerChange: (layer: TaskLayerOption) => void;
   showCheckbox?: boolean;
@@ -21,36 +24,40 @@ interface LayerOptionAutocompleteProps {
  * Handles layer search, selection, and expanded dialog view.
  */
 export const LayerOptionAutocomplete = ({
+  availableLayers,
+  loading,
+  error,
+  onSearch,
   selectedLayers,
   onLayerChange,
   showCheckbox = false,
 }: LayerOptionAutocompleteProps) => {
   const [inputValue, setInputValue] = useState('');
-  const [selectedFilters, setSelectedFilters] = useState<TaskLayerOption[]>([]);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { layers, loading, error, search } = useLayerSearch({ debounceMs: 300 });
-
   // Filter out already selected layers from suggestions
-  const availableLayers = layers.filter((layer) => !selectedLayers.some((selected) => selected.path === layer.path));
+  const filteredOptions = availableLayers.filter(
+    (layer) => !selectedLayers.some((selected) => selected.path === layer.path)
+  );
 
   const handleSelectLayer = (layer: TaskLayerOption) => {
     onLayerChange(layer);
     setInputValue('');
   };
 
-  const handleRemoveFilter = (filter: TaskLayerOption) => {
-    setSelectedFilters((prev) => prev.filter((f) => f.path !== filter.path));
+  const handleRemoveFilter = (filter: string) => {
+    setSelectedFilters((prev) => prev.filter((f) => f !== filter));
   };
 
   const handleBackspaceOnEmpty = () => {
     setSelectedFilters((prev) => prev.slice(0, -1));
   };
 
-  const handleRemoveExtraFilters = (filtersToRemove: TaskLayerOption[]) => {
+  const handleRemoveExtraFilters = (filtersToRemove: string[]) => {
     setSelectedFilters((prev) => [
       ...prev.slice(0, MAX_VISIBLE_FILTERS),
-      ...prev.slice(MAX_VISIBLE_FILTERS).filter((f) => !filtersToRemove.some((remove) => remove.path === f.path)),
+      ...prev.slice(MAX_VISIBLE_FILTERS).filter((f) => !filtersToRemove.includes(f)),
     ]);
   };
 
@@ -64,11 +71,11 @@ export const LayerOptionAutocomplete = ({
         clearOnBlur={false}
         inputValue={inputValue}
         loading={loading}
-        options={availableLayers}
+        options={filteredOptions}
         getOptionLabel={(option) => option.name}
         onInputChange={(_, value) => {
           setInputValue(value);
-          search(value);
+          onSearch(value);
         }}
         onChange={(_, value) => {
           if (value.length > selectedLayers.length) {
@@ -121,6 +128,10 @@ export const LayerOptionAutocomplete = ({
       <LayerSearchDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
+        availableLayers={availableLayers}
+        loading={loading}
+        error={error}
+        onSearch={onSearch}
         selectedLayers={selectedLayers}
         onLayerChange={onLayerChange}
       />
