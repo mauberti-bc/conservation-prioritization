@@ -1,4 +1,4 @@
-import { mdiBroom, mdiClipboardOutline, mdiContentSaveOutline } from '@mdi/js';
+import { mdiBroom, mdiClipboardOutline } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Button, TextField, Tooltip } from '@mui/material';
 import { grey } from '@mui/material/colors';
@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { TaskCreateFormValues } from '../TaskCreateForm';
 
 export const TaskFormToolbar = () => {
-  const { values, setFieldValue, touched, errors, resetForm, submitForm } = useFormikContext<TaskCreateFormValues>();
+  const { values, setFieldValue, touched, errors, resetForm } = useFormikContext<TaskCreateFormValues>();
 
   // Local state to track text field without hitting Formik on every keystroke
   const [localName, setLocalName] = useState(values.name || '');
@@ -17,12 +17,6 @@ export const TaskFormToolbar = () => {
   useEffect(() => {
     setLocalName(values.name || '');
   }, [values.name]);
-
-  /** Save Draft → status='draft' then submit */
-  const handleSaveDraft = () => {
-    setFieldValue('status', 'draft');
-    submitForm();
-  };
 
   /** Reset → restores initialValues */
   const handleReset = () => resetForm();
@@ -50,16 +44,6 @@ export const TaskFormToolbar = () => {
       />
 
       <Stack direction="row">
-        {/* Save Draft */}
-        <Tooltip title="Save Draft">
-          <Button
-            color="primary"
-            onClick={handleSaveDraft}
-            startIcon={<Icon path={mdiContentSaveOutline} size={0.8} />}>
-            Save Draft
-          </Button>
-        </Tooltip>
-
         {/* Reset */}
         <Tooltip title="Reset Form">
           <Button onClick={handleReset} startIcon={<Icon path={mdiBroom} size={0.8} />}>

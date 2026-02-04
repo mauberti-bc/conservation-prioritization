@@ -2,7 +2,7 @@ apiVersion: v2
 name: conservation-tool
 description: A Helm chart for deploying the Conservation Prioritization Tool
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "1.0.0"
 icon: https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.png
 
