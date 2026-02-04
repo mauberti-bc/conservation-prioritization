@@ -1,26 +1,11 @@
-import { mdiDelete, mdiEyeOutline, mdiFolderPlusOutline, mdiPencil } from '@mdi/js';
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Typography,
-} from '@mui/material';
-import { IconMenuButton } from 'components/button/IconMenuButton';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, List, Typography } from '@mui/material';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
-import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useProjectContext, useTaskContext } from 'hooks/useContext';
-import { useSearchParams } from 'hooks/useSearchParams';
 import { useEffect, useMemo, useState } from 'react';
 import { ProjectList } from '../projects/ProjectList';
+import { TaskListItem } from './TaskListItem';
 
 interface TaskListProps {
   tasks: GetTaskResponse[];
@@ -30,84 +15,6 @@ interface TaskListProps {
   enableActions?: boolean;
   enableProjectDialog?: boolean;
 }
-
-interface TaskListItemProps {
-  task: GetTaskResponse;
-  onSelectTask: (task: GetTaskResponse) => void;
-  onEditTask?: (task: GetTaskResponse) => void;
-  onDeleteTask: (task: GetTaskResponse) => void;
-  onAddToProject: (task: GetTaskResponse) => void;
-  showActions: boolean;
-}
-
-const TaskListItem = ({
-  task,
-  onSelectTask,
-  onEditTask,
-  onDeleteTask,
-  onAddToProject,
-  showActions,
-}: TaskListItemProps) => {
-  const { searchParams, setSearchParams } = useSearchParams<HomeQueryParams>();
-  const { taskId } = useTaskContext();
-
-  const menuItems = [
-    {
-      label: 'Edit',
-      icon: mdiPencil,
-      onClick: () => {
-        onEditTask?.(task);
-      },
-    },
-    {
-      label: 'View',
-      icon: mdiEyeOutline,
-      onClick: () => {
-        onSelectTask(task);
-      },
-    },
-    {
-      label: 'Add to Project',
-      icon: mdiFolderPlusOutline,
-      onClick: () => {
-        onAddToProject(task);
-      },
-    },
-    {
-      label: 'Delete',
-      icon: mdiDelete,
-      onClick: () => {
-        onDeleteTask(task);
-      },
-    },
-  ];
-
-  return (
-    <ListItem
-      key={task.task_id}
-      disablePadding
-      secondaryAction={
-        showActions ? (
-          <Box
-            onClick={(event) => {
-              event.stopPropagation();
-            }}>
-            <IconMenuButton items={menuItems} />
-          </Box>
-        ) : undefined
-      }>
-      <ListItemButton
-        selected={task.task_id === taskId}
-        onClick={() => {
-          searchParams.set(QUERY_PARAM.TASK_ID, task.task_id);
-          setSearchParams(searchParams);
-          onSelectTask(task);
-        }}>
-        <ListItemText primary={task.name} secondary={task.status} />
-      </ListItemButton>
-    </ListItem>
-  );
-};
 
 export const TaskList = ({
   tasks,

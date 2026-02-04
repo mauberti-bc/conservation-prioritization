@@ -6,6 +6,7 @@ import { SidebarUIContextProvider } from 'context/sidebarUIContext';
 import { TaskContextProvider } from 'context/taskContext';
 import { RequestAccessPage } from 'features/access/RequestAccessPage';
 import { HomePage } from 'features/home/HomePage';
+import { PublicTaskDashboardPage } from 'features/public/PublicTaskDashboardPage';
 import { AuthRedirectGuard } from 'guards/Guards';
 import { useAuthContext } from 'hooks/useContext';
 import { BaseLayout } from 'layouts/BaseLayout';
@@ -54,6 +55,16 @@ export const AppRouter = () => {
               <RequestAccessPage />
             </BaseLayout>
           </AuthRedirectGuard>
+        }
+      />
+      <Route
+        path="/p/:taskId"
+        element={
+          <MapContextProvider>
+            <BaseLayout>
+              <PublicTaskDashboardPage />
+            </BaseLayout>
+          </MapContextProvider>
         }
       />
       <Route path="/" element={<AuthEntryRedirect />} />
