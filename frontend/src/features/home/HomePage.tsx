@@ -10,21 +10,17 @@ import { Sidebar } from './sidebar/Sidebar';
 export type ACTIVE_VIEW = 'new' | 'tasks' | 'projects' | 'layers';
 
 export const HomePage = () => {
-  const { searchParams, setSearchParams } = useSearchParams<{
-    v?: ACTIVE_VIEW;
-  }>();
+  const { searchParams, setSearchParams } = useSearchParams<{ v?: ACTIVE_VIEW }>();
   const { drawControlsRef } = useMapContext();
 
   useEffect(() => {
     if (!searchParams.get('v')) {
       setSearchParams(searchParams.set('v', 'new'));
     }
-  });
+  }, [searchParams, setSearchParams]);
 
-  // Read activeView from the "v" query param
   const activeView = (searchParams.get('v') as ACTIVE_VIEW) ?? null;
 
-  // Update the URL when the view changes
   const handleViewChange = (view: ACTIVE_VIEW | null) => {
     searchParams.setOrDelete('v', view);
     setSearchParams(searchParams);
@@ -45,7 +41,8 @@ export const HomePage = () => {
       <Box
         sx={{
           flexShrink: 0,
-          width: 900,
+          width: '900px',
+          maxWidth: '50vw',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',

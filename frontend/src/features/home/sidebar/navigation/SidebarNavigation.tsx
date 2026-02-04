@@ -26,6 +26,7 @@ export const SidebarNavigation = ({ activeView, onViewChange }: SidebarNavigatio
           '& .MuiTab-root': {
             justifyContent: 'flex-start',
             minHeight: '50px',
+            mr: 5,
             gap: 1,
             px: 2,
             textTransform: 'none',

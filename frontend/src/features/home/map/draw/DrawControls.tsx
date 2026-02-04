@@ -14,6 +14,7 @@ export interface DrawControlsProps {
 export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
   const { mapRef, drawRef } = useMapContext();
   const submitCallbackRef = useRef<((features: Feature[]) => void) | null>(null);
+  const previousFeatureIdsRef = useRef<Set<string | number>>(new Set());
 
   // Function to ensure draw layers are on top
   const ensureDrawLayersOnTop = useCallback(() => {
@@ -54,13 +55,15 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
 
   const startDrawing = () => {
     const map = mapRef.current;
-    if (!map || !drawRef.current) {
+    const draw = drawRef.current;
+
+    if (!map || !draw) {
+      console.warn('DrawControls not ready yet.');
       return;
     }
-    drawRef.current.changeMode('draw_polygon');
-    map.getCanvas().style.cursor = 'crosshair';
 
-    // Ensure draw layers are on top when starting to draw
+    draw.changeMode('draw_polygon');
+    map.getCanvas().style.cursor = 'crosshair';
     ensureDrawLayersOnTop();
   };
 
@@ -69,14 +72,31 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
     if (!mapRef.current || !drawRef.current) {
       return;
     }
-    const features = drawRef.current.getAll().features;
-    callback(features);
+
+    // Get all features
+    const allFeatures = drawRef.current.getAll().features;
+
+    // Filter to get only newly drawn features (not previously submitted)
+    const newFeatures = allFeatures.filter((feature) => !previousFeatureIdsRef.current.has(feature.id!));
+
+    // Call the callback with only new features
+    callback(newFeatures);
+
+    // Update the set of previous feature IDs
+    allFeatures.forEach((feature) => {
+      if (feature.id) {
+        previousFeatureIdsRef.current.add(feature.id);
+      }
+    });
+
+    // Change back to select mode
     drawRef.current.changeMode('simple_select');
     mapRef.current.getCanvas().style.cursor = '';
   };
 
   const clearDrawing = () => {
     drawRef.current?.deleteAll();
+    previousFeatureIdsRef.current.clear();
   };
 
   useEffect(() => {

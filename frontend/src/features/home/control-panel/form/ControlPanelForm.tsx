@@ -1,6 +1,7 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { TooltipStack } from 'components/tooltip/TooltipStack';
+import { ControlPanelAreaForm } from './area/ControlPanelAreaForm';
 import { ControlPanelBudgetForm } from './budget/ControlPanelBudgetForm';
 import { ControlPanelLayerForm } from './layer/ControlPanelLayerForm';
 import { ControlPanelToolbar } from './toolbar/ControlPanelToolbar';
@@ -20,10 +21,6 @@ export const ControlPanelForm = (props: IControlPanelFormProps) => {
 
   const costLayer = layerOptions.find((option) => option.path.includes(COST_LAYER_PATH));
 
-  if (!costLayer) {
-    console.error('Failed to find cost layer: ', COST_LAYER_PATH);
-  }
-
   return (
     <Box
       sx={{
@@ -36,6 +33,10 @@ export const ControlPanelForm = (props: IControlPanelFormProps) => {
         overflow: 'auto',
       }}>
       <ControlPanelToolbar />
+
+      <Box>
+        <ControlPanelAreaForm />
+      </Box>
 
       <Box>
         <TooltipStack tooltip="Enter the amount of money you have to spend" mb={1}>
