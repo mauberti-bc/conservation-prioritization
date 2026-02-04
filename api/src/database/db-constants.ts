@@ -1,56 +1,52 @@
 import SQL from 'sql-template-strings';
-import { SYSTEM_IDENTITY_SOURCE } from '../constants/database';
-import { SystemUser } from '../repositories/user-repository';
+import { IDENTITY_SOURCE } from '../constants/database';
+import { getLogger } from '../utils/logger'; // Move to top to avoid lazy loading
+import { getAPIUserDBConnection } from './db'; // Same here, move to top for clarity
 
 export type DBConstants = {
-  serviceClientUsers: SystemUser[];
+  serviceClientUsers: any[]; // Consider more specific typing than `any[]`
 };
 
-// Singleton instance for DB constants
 let DBConstants: DBConstants | undefined;
 
 /**
  * Initializes the singleton DB constants instance used by the API.
  */
 export const initDBConstants = async (): Promise<void> => {
-  if (DBConstants) {
-    // DB constants already initialized, nothing to do
-    return;
-  }
+  // Return early if already initialized
+  if (DBConstants) return;
 
-  // Lazy load logger to prevent circular dependencies
-  const { getLogger } = await import('../utils/logger');
-  const defaultLog = getLogger('database/db');
+  const defaultLog = getLogger('database/db'); // Moved logger initialization up
 
   try {
-    // Lazy load DB connection to prevent circular dependencies
-    const { getAPIUserDBConnection } = await import('./db');
-    const connection = getAPIUserDBConnection();
+    const connection = await getAPIUserDBConnection(); // Lazy loading removed for clarity
+
+    // Open DB connection and execute query
+    await connection.open();
 
     try {
-      await connection.open();
-
-      // Query service account users
-      const response = await connection.sql(selectServiceAccountsSqlStatement, SystemUser);
-
+      // Fetch the service account users
+      const response = await connection.sql(selectServiceAccountsSqlStatement);
       DBConstants = { serviceClientUsers: response.rows };
 
+      // Commit the transaction
       await connection.commit();
     } catch (error) {
       defaultLog.error({ label: 'initDBConstants', message: 'Error initializing DB constants', error });
-      await connection.rollback();
-      throw error;
+      await connection.rollback(); // Ensure rollback in case of failure
+      throw error; // Rethrow after logging and rollback
     } finally {
-      connection.release();
+      connection.release(); // Ensure DB connection is released
     }
   } catch (error) {
     defaultLog.error({ label: 'initDBConstants', message: 'Failed to initialize DB constants', error });
-    throw error;
+    throw error; // Propagate error up
   }
 };
 
 /**
- * Returns the singleton DB constants instance
+ * Returns the singleton DB constants instance.
+ * @throws Will throw an error if DBConstants is not initialized.
  */
 export const getDBConstants = (): DBConstants => {
   if (!DBConstants) {
@@ -59,12 +55,9 @@ export const getDBConstants = (): DBConstants => {
   return DBConstants;
 };
 
-// Updated SQL statement to use "profile" table instead of "system_user"
+// Updated SQL statement to query the "profile" table based on IDENTITY_SOURCE
 const selectServiceAccountsSqlStatement = SQL`
-  SELECT
-    *
-  FROM
-    "profile"
-  WHERE
-    identity_source = ${SYSTEM_IDENTITY_SOURCE.SYSTEM};
+  SELECT *
+  FROM "profile"
+  WHERE identity_source = ${IDENTITY_SOURCE.SYSTEM};
 `;

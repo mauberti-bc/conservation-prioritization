@@ -1,11 +1,10 @@
 import { mdiBroom, mdiInformationSlabCircleOutline, mdiSync } from '@mdi/js';
 import Icon from '@mdi/react';
-import { Checkbox, IconButton, Paper, Typography } from '@mui/material';
+import { Checkbox, IconButton, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import { grey } from '@mui/material/colors';
 import List from '@mui/material/List';
 import Stack from '@mui/material/Stack';
-import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { TooltipPopover } from 'components/TooltipPopover';
 import { useFormikContext } from 'formik';
 import { useDialogContext } from 'hooks/useContext';
@@ -153,101 +152,84 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
         />
       </Box>
 
-      <LoadingGuard
-        hasNoData={!values.layers.length}
-        hasNoDataFallback={
-          <Paper
-            elevation={0}
-            sx={{
-              bgcolor: grey[50],
-              mt: 1,
-              p: 3,
-              minHeight: '100px',
-              flexDirection: 'column',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            <Typography color="textSecondary" variant="body2">
-              Select relevant layers using the search above
-            </Typography>
-          </Paper>
-        }>
-        <Box display="flex" alignItems="center">
-          <Checkbox
-            onChange={handleCheckboxAll}
-            indeterminate={checkboxSelected.length > 0 && checkboxSelected.length < values.layers.length}
-            checked={checkboxSelected.length === values.layers.length}
-          />
-          <Typography
-            ml={4}
-            color="textSecondary"
-            fontWeight={700}
-            textTransform="uppercase"
-            letterSpacing={0.5}
-            variant="body2">
-            Layers ({values.layers.length})
-          </Typography>
-          <TooltipPopover
-            tooltip="Use the slider to adjust the relative influence of each layer on the result.
-              Layers with positive influence will be prioritized for conservation while negative layers will be avoided.">
+      {values.layers.length > 0 ? (
+        <>
+          <Box display="flex" alignItems="center">
+            <Checkbox
+              onChange={handleCheckboxAll}
+              indeterminate={checkboxSelected.length > 0 && checkboxSelected.length < values.layers.length}
+              checked={checkboxSelected.length === values.layers.length}
+            />
             <Typography
-              ml={17.5}
+              ml={4}
               color="textSecondary"
               fontWeight={700}
-              display="flex"
-              alignItems="center"
-              sx={{ cursor: 'pointer' }}
               textTransform="uppercase"
               letterSpacing={0.5}
               variant="body2">
-              Influence
-              <Icon
-                path={mdiInformationSlabCircleOutline}
-                size={0.95}
-                style={{ color: grey[500], marginLeft: '8px' }}
-              />
+              Layers ({values.layers.length})
             </Typography>
-          </TooltipPopover>
-
-          <Stack gap={0.5} flexDirection="row" ml="auto">
-            <IconButton sx={{ color: grey[500] }} onClick={handleResetAll}>
-              <Icon path={mdiSync} size={1} />
-            </IconButton>
-            <IconButton sx={{ color: grey[500] }} onClick={handleClearAll}>
-              <Icon path={mdiBroom} size={1} />
-            </IconButton>
-          </Stack>
-        </Box>
-
-        <Box>
-          <List disablePadding>
-            {values.layers.map((layer, index) => {
-              const errorObjects = collectFormikErrorMessages(errors.layers?.[index]);
-
-              return (
-                <SelectedLayerItem
-                  key={layer.name}
-                  layer={layer}
-                  onLayerChange={updateLayer}
-                  onModeChange={changeMode}
-                  handleCheckboxChange={toggleCheckbox}
-                  handleAddConstraint={handleAddConstraint}
-                  checked={checkboxSelected.includes(layer.name)}
-                  errors={errorObjects}
-                  handleErrorClose={(messageToRemove: string) => {
-                    const updatedMessages = errorObjects.filter((error) => error.message !== messageToRemove);
-                    setFieldError(
-                      `layers[${index}]`,
-                      updatedMessages.length > 0 ? updatedMessages[0].message : undefined
-                    );
-                  }}
+            <TooltipPopover
+              tooltip="Use the slider to adjust the relative influence of each layer on the result.
+              Layers with positive influence will be prioritized for conservation while negative layers will be avoided.">
+              <Typography
+                ml={17.5}
+                color="textSecondary"
+                fontWeight={700}
+                display="flex"
+                alignItems="center"
+                sx={{ cursor: 'pointer' }}
+                textTransform="uppercase"
+                letterSpacing={0.5}
+                variant="body2">
+                Influence
+                <Icon
+                  path={mdiInformationSlabCircleOutline}
+                  size={0.95}
+                  style={{ color: grey[500], marginLeft: '8px' }}
                 />
-              );
-            })}
-          </List>
-        </Box>
-      </LoadingGuard>
+              </Typography>
+            </TooltipPopover>
+
+            <Stack gap={0.5} flexDirection="row" ml="auto">
+              <IconButton sx={{ color: grey[500] }} onClick={handleResetAll}>
+                <Icon path={mdiSync} size={1} />
+              </IconButton>
+              <IconButton sx={{ color: grey[500] }} onClick={handleClearAll}>
+                <Icon path={mdiBroom} size={1} />
+              </IconButton>
+            </Stack>
+          </Box>
+
+          <Box>
+            <List disablePadding>
+              {values.layers.map((layer, index) => {
+                const errorObjects = collectFormikErrorMessages(errors.layers?.[index]);
+
+                return (
+                  <SelectedLayerItem
+                    key={layer.name}
+                    layer={layer}
+                    onLayerChange={updateLayer}
+                    onModeChange={changeMode}
+                    handleCheckboxChange={toggleCheckbox}
+                    handleAddConstraint={handleAddConstraint}
+                    checked={checkboxSelected.includes(layer.name)}
+                    errors={errorObjects}
+                    handleErrorClose={(messageToRemove: string) => {
+                      const updatedMessages = errorObjects.filter((error) => error.message !== messageToRemove);
+                      setFieldError(
+                        `layers[${index}]`,
+                        updatedMessages.length > 0 ? updatedMessages[0].message : undefined
+                      );
+                    }}
+                  />
+                );
+              })}
+            </List>
+          </Box>
+        </>
+      ) : null}
     </Stack>
   );
 };

@@ -1,5 +1,4 @@
 import { Knex } from 'knex';
-
 /**
  * Create project, task, project_task, task_layer, and task_layer_constraint tables
  * with UUID primary keys and full column comments.
@@ -24,10 +23,10 @@ export async function up(knex: Knex): Promise<void> {
       profile_guid                varchar(200)      NOT NULL,
       record_effective_date       timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date             timestamptz(6),
-      create_date                 timestamptz(6)    DEFAULT now() NOT NULL,
-      create_profile              uuid,
-      update_date                 timestamptz(6),
-      update_profile              uuid,
+      created_at                 timestamptz(6)    DEFAULT now() NOT NULL,
+      created_by              uuid,
+      updated_at                 timestamptz(6),
+      updated_by              uuid,
       CONSTRAINT profile_pk PRIMARY KEY (profile_id)
     );
 
@@ -40,10 +39,10 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN profile.profile_guid                     IS 'The globally unique identifier for the profile.';
     COMMENT ON COLUMN profile.record_effective_date            IS 'Record level effective date.';
     COMMENT ON COLUMN profile.record_end_date                  IS 'Record level end date.';
-    COMMENT ON COLUMN profile.create_date                      IS 'The datetime the record was created.';
-    COMMENT ON COLUMN profile.create_profile                   IS 'The id of the profile who created the record.';
-    COMMENT ON COLUMN profile.update_date                      IS 'The datetime the record was updated.';
-    COMMENT ON COLUMN profile.update_profile                   IS 'The id of the profile who updated the record.';
+    COMMENT ON COLUMN profile.created_at                      IS 'The datetime the record was created.';
+    COMMENT ON COLUMN profile.created_by                   IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN profile.updated_at                      IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN profile.updated_by                   IS 'The id of the profile who updated the record.';
 
     ----------------------------------------------------------------------------------------
     -- Project Table
@@ -54,10 +53,10 @@ export async function up(knex: Knex): Promise<void> {
       description             varchar(500),
       record_effective_date   timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date         timestamptz(6),
-      create_date             timestamptz(6)    DEFAULT now() NOT NULL,
-      create_profile          uuid              NOT NULL,
-      update_date             timestamptz(6),
-      update_profile          uuid,
+      created_at             timestamptz(6)    DEFAULT now() NOT NULL,
+      created_by          uuid              NOT NULL,
+      updated_at             timestamptz(6),
+      updated_by          uuid,
       CONSTRAINT project_pk PRIMARY KEY (project_id)
     );
 
@@ -67,10 +66,10 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN project.description               IS 'Project description.';
     COMMENT ON COLUMN project.record_effective_date     IS 'Record level effective date.';
     COMMENT ON COLUMN project.record_end_date           IS 'Record level end date.';
-    COMMENT ON COLUMN project.create_date               IS 'The datetime the record was created.';
-    COMMENT ON COLUMN project.create_profile            IS 'The id of the profile who created the record.';
-    COMMENT ON COLUMN project.update_date               IS 'The datetime the record was updated.';
-    COMMENT ON COLUMN project.update_profile            IS 'The id of the profile who updated the record.';
+    COMMENT ON COLUMN project.created_at               IS 'The datetime the record was created.';
+    COMMENT ON COLUMN project.created_by            IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN project.updated_at               IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN project.updated_by            IS 'The id of the profile who updated the record.';
 
     ----------------------------------------------------------------------------------------
     -- Project Permission Table
@@ -81,12 +80,14 @@ export async function up(knex: Knex): Promise<void> {
       description             varchar(500),
       record_effective_date   timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date         timestamptz(6),
-      create_date             timestamptz(6)    DEFAULT now() NOT NULL,
-      create_profile          uuid              NOT NULL,
-      update_date             timestamptz(6),
-      update_profile          uuid,
+      created_at             timestamptz(6)    DEFAULT now() NOT NULL,
+      created_by          uuid              NOT NULL,
+      updated_at             timestamptz(6),
+      updated_by          uuid,
       CONSTRAINT project_permission_pk PRIMARY KEY (project_permission_id)
     );
+    
+    CREATE UNIQUE INDEX project_permission_uk1 ON project_permission (name) WHERE record_end_date IS NULL;
 
     COMMENT ON TABLE  project_permission                           IS 'Defines the types of permissions available for a project.';
     COMMENT ON COLUMN project_permission.project_permission_id     IS 'System generated surrogate primary key identifier.';
@@ -94,10 +95,10 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN project_permission.description               IS 'Description of the permission.';
     COMMENT ON COLUMN project_permission.record_effective_date     IS 'Record level effective date.';
     COMMENT ON COLUMN project_permission.record_end_date           IS 'Record level end date.';
-    COMMENT ON COLUMN project_permission.create_date               IS 'The datetime the record was created.';
-    COMMENT ON COLUMN project_permission.create_profile            IS 'The id of the profile who created the record.';
-    COMMENT ON COLUMN project_permission.update_date               IS 'The datetime the record was updated.';
-    COMMENT ON COLUMN project_permission.update_profile            IS 'The id of the profile who updated the record.';
+    COMMENT ON COLUMN project_permission.created_at               IS 'The datetime the record was created.';
+    COMMENT ON COLUMN project_permission.created_by            IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN project_permission.updated_at               IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN project_permission.updated_by            IS 'The id of the profile who updated the record.';
 
     ----------------------------------------------------------------------------------------
     -- Project Profile Table
@@ -109,12 +110,14 @@ export async function up(knex: Knex): Promise<void> {
       project_permission_id   uuid              NOT NULL,
       record_effective_date   timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date         timestamptz(6),
-      create_date             timestamptz(6)    DEFAULT now() NOT NULL,
-      create_profile          uuid              NOT NULL,
-      update_date             timestamptz(6),
-      update_profile          uuid,
+      created_at             timestamptz(6)    DEFAULT now() NOT NULL,
+      created_by          uuid              NOT NULL,
+      updated_at             timestamptz(6),
+      updated_by          uuid,
       CONSTRAINT project_profile_pk PRIMARY KEY (project_profile_id)
     );
+    
+    CREATE UNIQUE INDEX project_profile_uk1 ON project_profile (project_id, profile_id) WHERE record_end_date IS NULL;
 
     COMMENT ON TABLE  project_profile                           IS 'Associates profiles with projects and their permissions.';
     COMMENT ON COLUMN project_profile.project_profile_id        IS 'System generated surrogate primary key identifier.';
@@ -123,10 +126,10 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN project_profile.project_permission_id     IS 'Foreign key referencing project_permission.';
     COMMENT ON COLUMN project_profile.record_effective_date     IS 'Record level effective date.';
     COMMENT ON COLUMN project_profile.record_end_date           IS 'Record level end date.';
-    COMMENT ON COLUMN project_profile.create_date               IS 'The datetime the record was created.';
-    COMMENT ON COLUMN project_profile.create_profile            IS 'The id of the profile who created the record.';
-    COMMENT ON COLUMN project_profile.update_date               IS 'The datetime the record was updated.';
-    COMMENT ON COLUMN project_profile.update_profile            IS 'The id of the profile who updated the record.';
+    COMMENT ON COLUMN project_profile.created_at               IS 'The datetime the record was created.';
+    COMMENT ON COLUMN project_profile.created_by            IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN project_profile.updated_at               IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN project_profile.updated_by            IS 'The id of the profile who updated the record.';
 
     -- Add foreign key constraints
     ALTER TABLE project_profile ADD CONSTRAINT project_profile_fk1 
@@ -136,9 +139,9 @@ export async function up(knex: Knex): Promise<void> {
     ALTER TABLE project_profile ADD CONSTRAINT project_profile_fk3 
       FOREIGN KEY (project_permission_id) REFERENCES project_permission(project_permission_id) ON DELETE CASCADE;
     ALTER TABLE project_profile ADD CONSTRAINT project_profile_fk4 
-      FOREIGN KEY (create_profile) REFERENCES profile(profile_id);
+      FOREIGN KEY (created_by) REFERENCES profile(profile_id);
     ALTER TABLE project_profile ADD CONSTRAINT project_profile_fk5 
-      FOREIGN KEY (update_profile) REFERENCES profile(profile_id);
+      FOREIGN KEY (updated_by) REFERENCES profile(profile_id);
 
     -- Add indexes for foreign keys
     CREATE INDEX project_profile_idx1 ON project_profile(project_id);
@@ -153,10 +156,10 @@ export async function up(knex: Knex): Promise<void> {
       description             varchar(500),
       record_effective_date   timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date         timestamptz(6),
-      create_date             timestamptz(6)    DEFAULT now() NOT NULL,
-      create_profile          uuid              NOT NULL,
-      update_date             timestamptz(6),
-      update_profile          uuid,
+      created_at             timestamptz(6)    DEFAULT now() NOT NULL,
+      created_by          uuid              NOT NULL,
+      updated_at             timestamptz(6),
+      updated_by          uuid,
       CONSTRAINT task_pk PRIMARY KEY (task_id)
     );
 
@@ -166,10 +169,10 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN task.description               IS 'Task description.';
     COMMENT ON COLUMN task.record_effective_date     IS 'Record level effective date.';
     COMMENT ON COLUMN task.record_end_date           IS 'Record level end date.';
-    COMMENT ON COLUMN task.create_date               IS 'The datetime the record was created.';
-    COMMENT ON COLUMN task.create_profile            IS 'The id of the profile who created the record.';
-    COMMENT ON COLUMN task.update_date               IS 'The datetime the record was updated.';
-    COMMENT ON COLUMN task.update_profile            IS 'The id of the profile who updated the record.';
+    COMMENT ON COLUMN task.created_at               IS 'The datetime the record was created.';
+    COMMENT ON COLUMN task.created_by            IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN task.updated_at               IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN task.updated_by            IS 'The id of the profile who updated the record.';
 
     ----------------------------------------------------------------------------------------
     -- Task Permission Table
@@ -180,12 +183,14 @@ export async function up(knex: Knex): Promise<void> {
       description             varchar(500),
       record_effective_date   timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date         timestamptz(6),
-      create_date             timestamptz(6)    DEFAULT now() NOT NULL,
-      create_profile          uuid              NOT NULL,
-      update_date             timestamptz(6),
-      update_profile          uuid,
+      created_at             timestamptz(6)    DEFAULT now() NOT NULL,
+      created_by          uuid              NOT NULL,
+      updated_at             timestamptz(6),
+      updated_by          uuid,
       CONSTRAINT task_permission_pk PRIMARY KEY (task_permission_id)
     );
+
+    CREATE UNIQUE INDEX task_permission_uk1 ON task_permission (name) WHERE record_end_date IS NULL;
 
     COMMENT ON TABLE  task_permission                           IS 'Defines the types of permissions available for a task.';
     COMMENT ON COLUMN task_permission.task_permission_id        IS 'System generated surrogate primary key identifier.';
@@ -193,10 +198,10 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN task_permission.description               IS 'Description of the permission.';
     COMMENT ON COLUMN task_permission.record_effective_date     IS 'Record level effective date.';
     COMMENT ON COLUMN task_permission.record_end_date           IS 'Record level end date.';
-    COMMENT ON COLUMN task_permission.create_date               IS 'The datetime the record was created.';
-    COMMENT ON COLUMN task_permission.create_profile            IS 'The id of the profile who created the record.';
-    COMMENT ON COLUMN task_permission.update_date               IS 'The datetime the record was updated.';
-    COMMENT ON COLUMN task_permission.update_profile            IS 'The id of the profile who updated the record.';
+    COMMENT ON COLUMN task_permission.created_at               IS 'The datetime the record was created.';
+    COMMENT ON COLUMN task_permission.created_by            IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN task_permission.updated_at               IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN task_permission.updated_by            IS 'The id of the profile who updated the record.';
 
     ----------------------------------------------------------------------------------------
     -- Task Profile Table
@@ -206,10 +211,11 @@ export async function up(knex: Knex): Promise<void> {
       task_id                 uuid              NOT NULL,
       profile_id              uuid              NOT NULL,
       task_permission_id      uuid              NOT NULL,
-      create_date             timestamptz(6)    DEFAULT now() NOT NULL,
-      create_profile          uuid              NOT NULL,
-      update_date             timestamptz(6),
-      update_profile          uuid,
+      record_end_date timestamptz(6),
+      created_at             timestamptz(6)    DEFAULT now() NOT NULL,
+      created_by          uuid              NOT NULL,
+      updated_at             timestamptz(6),
+      updated_by          uuid,
       CONSTRAINT task_profile_pk PRIMARY KEY (task_profile_id)
     );
 
@@ -218,10 +224,11 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN task_profile.task_id                   IS 'Foreign key referencing task.';
     COMMENT ON COLUMN task_profile.profile_id                IS 'Foreign key referencing profile.';
     COMMENT ON COLUMN task_profile.task_permission_id        IS 'Foreign key referencing task_permission.';
-    COMMENT ON COLUMN task_profile.create_date               IS 'The datetime the record was created.';
-    COMMENT ON COLUMN task_profile.create_profile            IS 'The id of the profile who created the record.';
-    COMMENT ON COLUMN task_profile.update_date               IS 'The datetime the record was updated.';
-    COMMENT ON COLUMN task_profile.update_profile            IS 'The id of the profile who updated the record.';
+    COMMENT ON COLUMN task_profile.record_end_date        IS 'End date of the record for soft deletes.';
+    COMMENT ON COLUMN task_profile.created_at               IS 'The datetime the record was created.';
+    COMMENT ON COLUMN task_profile.created_by            IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN task_profile.updated_at               IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN task_profile.updated_by            IS 'The id of the profile who updated the record.';
 
     -- Add foreign key constraints
     ALTER TABLE task_profile ADD CONSTRAINT task_profile_fk1 
@@ -231,13 +238,15 @@ export async function up(knex: Knex): Promise<void> {
     ALTER TABLE task_profile ADD CONSTRAINT task_profile_fk3 
       FOREIGN KEY (task_permission_id) REFERENCES task_permission(task_permission_id) ON DELETE CASCADE;
     ALTER TABLE task_profile ADD CONSTRAINT task_profile_fk4 
-      FOREIGN KEY (create_profile) REFERENCES profile(profile_id);
+      FOREIGN KEY (created_by) REFERENCES profile(profile_id);
     ALTER TABLE task_profile ADD CONSTRAINT task_profile_fk5 
-      FOREIGN KEY (update_profile) REFERENCES profile(profile_id);
+      FOREIGN KEY (updated_by) REFERENCES profile(profile_id);
 
     -- Add indexes for foreign keys
     CREATE INDEX task_profile_idx1 ON task_profile(task_id);
     CREATE INDEX task_profile_idx2 ON task_profile(profile_id);
+    
+    CREATE UNIQUE INDEX task_profile_uk1 ON task_profile (task_id, profile_id) WHERE record_end_date IS NULL;
 
     ----------------------------------------------------------------------------------------
     -- Project Task Table
@@ -246,10 +255,10 @@ export async function up(knex: Knex): Promise<void> {
       project_task_id         uuid              DEFAULT gen_random_uuid(),
       project_id              uuid              NOT NULL,
       task_id                 uuid              NOT NULL,
-      create_date             timestamptz(6)    DEFAULT now() NOT NULL,
-      create_profile          uuid              NOT NULL,
-      update_date             timestamptz(6),
-      update_profile          uuid,
+      created_at             timestamptz(6)    DEFAULT now() NOT NULL,
+      created_by          uuid              NOT NULL,
+      updated_at             timestamptz(6),
+      updated_by          uuid,
       CONSTRAINT project_task_pk PRIMARY KEY (project_task_id)
     );
 
@@ -257,10 +266,10 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN project_task.project_task_id    IS 'System generated UUID primary key.';
     COMMENT ON COLUMN project_task.project_id         IS 'Foreign key referencing project.';
     COMMENT ON COLUMN project_task.task_id            IS 'Foreign key referencing task.';
-    COMMENT ON COLUMN project_task.create_date        IS 'The datetime the record was created.';
-    COMMENT ON COLUMN project_task.create_profile     IS 'The id of the profile who created the record.';
-    COMMENT ON COLUMN project_task.update_date        IS 'The datetime the record was updated.';
-    COMMENT ON COLUMN project_task.update_profile     IS 'The id of the profile who updated the record.';
+    COMMENT ON COLUMN project_task.created_at        IS 'The datetime the record was created.';
+    COMMENT ON COLUMN project_task.created_by     IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN project_task.updated_at        IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN project_task.updated_by     IS 'The id of the profile who updated the record.';
 
     -- Add foreign key constraints
     ALTER TABLE project_task ADD CONSTRAINT project_task_fk1 
@@ -272,6 +281,8 @@ export async function up(knex: Knex): Promise<void> {
     CREATE INDEX project_task_idx1 ON project_task(project_id);
     CREATE INDEX project_task_idx2 ON project_task(task_id);
 
+    CREATE UNIQUE INDEX project_task_uk1 ON project_task (project_id, task_id);
+
     ----------------------------------------------------------------------------------------
     -- Task Layer Table
     ----------------------------------------------------------------------------------------
@@ -282,10 +293,10 @@ export async function up(knex: Knex): Promise<void> {
       description             varchar(500),
       record_effective_date   timestamptz(6)    DEFAULT now() NOT NULL,
       record_end_date         timestamptz(6),
-      create_date             timestamptz(6)    DEFAULT now() NOT NULL,
-      create_profile          uuid              NOT NULL,
-      update_date             timestamptz(6),
-      update_profile          uuid,
+      created_at             timestamptz(6)    DEFAULT now() NOT NULL,
+      created_by              uuid              NOT NULL,
+      updated_at             timestamptz(6),
+      updated_by          uuid,
       CONSTRAINT task_layer_pk PRIMARY KEY (task_layer_id)
     );
 
@@ -296,10 +307,10 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN task_layer.description               IS 'Task layer description.';
     COMMENT ON COLUMN task_layer.record_effective_date     IS 'Record level effective date.';
     COMMENT ON COLUMN task_layer.record_end_date           IS 'Record level end date.';
-    COMMENT ON COLUMN task_layer.create_date               IS 'The datetime the record was created.';
-    COMMENT ON COLUMN task_layer.create_profile            IS 'The id of the profile who created the record.';
-    COMMENT ON COLUMN task_layer.update_date               IS 'The datetime the record was updated.';
-    COMMENT ON COLUMN task_layer.update_profile            IS 'The id of the profile who updated the record.';
+    COMMENT ON COLUMN task_layer.created_at               IS 'The datetime the record was created.';
+    COMMENT ON COLUMN task_layer.created_by            IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN task_layer.updated_at               IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN task_layer.updated_by            IS 'The id of the profile who updated the record.';
 
     -- Add foreign key constraint
     ALTER TABLE task_layer ADD CONSTRAINT task_layer_fk1 
@@ -316,10 +327,10 @@ export async function up(knex: Knex): Promise<void> {
       task_layer_id             uuid            NOT NULL,
       constraint_name           varchar(100)    NOT NULL,
       constraint_value          varchar(500),
-      create_date               timestamptz(6)  DEFAULT now() NOT NULL,
-      create_profile            uuid            NOT NULL,
-      update_date               timestamptz(6),
-      update_profile            uuid,
+      created_at               timestamptz(6)  DEFAULT now() NOT NULL,
+      created_by            uuid            NOT NULL,
+      updated_at               timestamptz(6),
+      updated_by            uuid,
       CONSTRAINT task_layer_constraint_pk PRIMARY KEY (task_layer_constraint_id)
     );
 
@@ -328,10 +339,10 @@ export async function up(knex: Knex): Promise<void> {
     COMMENT ON COLUMN task_layer_constraint.task_layer_id                IS 'Foreign key referencing task_layer.';
     COMMENT ON COLUMN task_layer_constraint.constraint_name              IS 'The name of the constraint.';
     COMMENT ON COLUMN task_layer_constraint.constraint_value             IS 'The value/details of the constraint.';
-    COMMENT ON COLUMN task_layer_constraint.create_date                  IS 'The datetime the record was created.';
-    COMMENT ON COLUMN task_layer_constraint.create_profile               IS 'The id of the profile who created the record.';
-    COMMENT ON COLUMN task_layer_constraint.update_date                  IS 'The datetime the record was updated.';
-    COMMENT ON COLUMN task_layer_constraint.update_profile               IS 'The id of the profile who updated the record.';
+    COMMENT ON COLUMN task_layer_constraint.created_at                  IS 'The datetime the record was created.';
+    COMMENT ON COLUMN task_layer_constraint.created_by               IS 'The id of the profile who created the record.';
+    COMMENT ON COLUMN task_layer_constraint.updated_at                  IS 'The datetime the record was updated.';
+    COMMENT ON COLUMN task_layer_constraint.updated_by               IS 'The id of the profile who updated the record.';
 
     -- Add foreign key constraint
     ALTER TABLE task_layer_constraint ADD CONSTRAINT task_layer_constraint_fk1 

@@ -1,4 +1,4 @@
-import { SYSTEM_IDENTITY_SOURCE } from 'constants/auth';
+import { IDENTITY_SOURCE } from 'constants/auth';
 
 /**
  * Checks if a url string starts with an `http[s]://` protocol, and adds `https://` if it does not. If the url
@@ -107,12 +107,12 @@ export const pluralize = (string: string, count: number, suffix: string = 's') =
  *
  * @example getFormattedIdentitySource("IDIR"); // => "IDIR"
  *
- * @param {SYSTEM_IDENTITY_SOURCE} identitySource The identity source
+ * @param {IDENTITY_SOURCE} identitySource The identity source
  * @returns {*} {string} the string representing the identity source
  */
-export const getFormattedIdentitySource = (identitySource: SYSTEM_IDENTITY_SOURCE): string | null => {
+export const getFormattedIdentitySource = (identitySource: IDENTITY_SOURCE): string | null => {
   switch (identitySource) {
-    case SYSTEM_IDENTITY_SOURCE.IDIR:
+    case IDENTITY_SOURCE.IDIR:
       return 'IDIR';
 
     default:

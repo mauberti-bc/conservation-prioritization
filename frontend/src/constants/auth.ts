@@ -1,3 +1,3 @@
-export enum SYSTEM_IDENTITY_SOURCE {
+export enum IDENTITY_SOURCE {
   IDIR = 'IDIR',
 }

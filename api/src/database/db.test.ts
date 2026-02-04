@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, it } from 'mocha';
 import * as pg from 'pg';
 import Sinon, { SinonSandbox, SinonStub } from 'sinon';
 import SQL from 'sql-template-strings';
-import { SYSTEM_IDENTITY_SOURCE } from '../constants/database';
-import { SystemUser } from '../repositories/user-repository';
+import { IDENTITY_SOURCE } from '../constants/database';
+import { Profile } from '../models/profile';
 import { getMockDBConnection } from '../__mocks__/db';
 import * as db from './db';
 import {
@@ -59,7 +59,7 @@ describe('db', () => {
         mockKeycloakToken = {
           preferred_username: 'testguid@idir',
           idir_username: 'testuser',
-          identity_provider: SYSTEM_IDENTITY_SOURCE.IDIR
+          identity_provider: IDENTITY_SOURCE.IDIR
         };
 
         queryStub = sinonSandbox.stub().resolves({ rows: [{ api_set_context: 123 }] });
@@ -80,7 +80,7 @@ describe('db', () => {
 
           await connection.open();
 
-          const expectedSQL = SQL`select api_set_context(${'testguid'}, ${SYSTEM_IDENTITY_SOURCE.IDIR});`;
+          const expectedSQL = SQL`select api_set_context(${'testguid'}, ${IDENTITY_SOURCE.IDIR});`;
 
           expect(queryStub).to.have.been.calledWith(expectedSQL.text, expectedSQL.values);
           expect(queryStub).to.have.been.calledWith('BEGIN');
@@ -225,8 +225,8 @@ describe('db', () => {
       getAPIUserDBConnection();
 
       expect(stub).to.have.been.calledWith({
-        preferred_username: `${process.env.DB_USER_API}@${SYSTEM_IDENTITY_SOURCE.DATABASE}`,
-        identity_provider: SYSTEM_IDENTITY_SOURCE.DATABASE
+        preferred_username: `${process.env.DB_USER_API}@${IDENTITY_SOURCE.DATABASE}`,
+        identity_provider: IDENTITY_SOURCE.DATABASE
       });
 
       stub.restore();
@@ -238,25 +238,18 @@ describe('db', () => {
       const mockDBConnection = getMockDBConnection();
       const stub = Sinon.stub(db, 'getDBConnection').returns(mockDBConnection);
 
-      const systemUser: SystemUser = {
-        system_user_id: 1,
-        user_identity_source_id: 2,
-        user_identifier: 'sims-svc-4464',
-        user_guid: 'service-account-sims-svc-4464',
-        record_effective_date: '',
-        record_end_date: '',
-        create_date: '2023-12-12',
-        create_user: 1,
-        update_date: null,
-        update_user: null,
-        revision_count: 0
+      const systemUser: Profile = {
+        profile_id: '1',
+        identity_source: 'IDIR',
+        profile_identifier: 'sims-svc-4464',
+        profile_guid: 'service-account-sims-svc-4464'
       };
 
       getServiceAccountDBConnection(systemUser);
 
       expect(stub).to.have.been.calledWith({
         preferred_username: 'service-account-sims-svc-4464',
-        identity_provider: SYSTEM_IDENTITY_SOURCE.SYSTEM
+        identity_provider: IDENTITY_SOURCE.SYSTEM
       });
 
       stub.restore();
