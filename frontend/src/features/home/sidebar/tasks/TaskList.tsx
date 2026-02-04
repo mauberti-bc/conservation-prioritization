@@ -15,16 +15,7 @@ export const TaskList = ({ tasks, isLoading, selectedTaskId, onSelectTask }: Tas
   const { searchParams, setSearchParams } = useSearchParams<HomeQueryParams>();
 
   return (
-    <Box
-      sx={{
-        mt: 2,
-        mx: 1,
-        p: 1,
-        borderRadius: 1,
-        maxHeight: '300px',
-        overflowY: 'auto',
-      }}>
-      <Typography sx={{ mb: 1, px: 1 }}>Tasks</Typography>
+    <Box sx={{ overflowY: 'auto', maxHeight: '100%' }}>
       <LoadingGuard
         isLoading={isLoading}
         isLoadingFallback={
