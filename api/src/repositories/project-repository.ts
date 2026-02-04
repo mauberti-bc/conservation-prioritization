@@ -92,9 +92,17 @@ export class ProjectRepository extends BaseRepository {
   async getProjects(): Promise<Project[]> {
     const sqlStatement = SQL`
       SELECT
-        project_id, name, description
+        project.project_id,
+        project.name,
+        project.description,
+        COALESCE(task_counts.task_count, 0) AS task_count
       FROM
         project
+      LEFT JOIN (
+        SELECT project_id, COUNT(*)::int AS task_count
+        FROM project_task
+        GROUP BY project_id
+      ) AS task_counts ON task_counts.project_id = project.project_id
       WHERE
         record_end_date IS NULL
       ORDER BY
@@ -118,12 +126,18 @@ export class ProjectRepository extends BaseRepository {
       SELECT
         pr.project_id,
         pr.name,
-        pr.description
+        pr.description,
+        COALESCE(task_counts.task_count, 0) AS task_count
       FROM project pr
       JOIN project_profile pp ON pp.project_id = pr.project_id
       JOIN profile p ON p.profile_id = pp.profile_id
       JOIN project_permission pperm ON pperm.project_id = pr.project_id AND pperm.profile_id = pp.profile_id
       JOIN role r ON r.role_id = pperm.role_id
+      LEFT JOIN (
+        SELECT project_id, COUNT(*)::int AS task_count
+        FROM project_task
+        GROUP BY project_id
+      ) AS task_counts ON task_counts.project_id = pr.project_id
       WHERE p.profile_guid = ${profileGuid}
       AND p.record_end_date IS NULL
       AND pp.record_end_date IS NULL

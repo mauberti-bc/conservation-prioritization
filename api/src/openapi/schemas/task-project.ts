@@ -1,10 +1,10 @@
 import { OpenAPIV3 } from 'openapi-types';
 
-export const AddProjectTasksSchema: OpenAPIV3.SchemaObject = {
+export const AddTaskProjectsSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
-  required: ['taskIds'],
+  required: ['projectIds'],
   properties: {
-    taskIds: {
+    projectIds: {
       type: 'array',
       items: {
         type: 'string',

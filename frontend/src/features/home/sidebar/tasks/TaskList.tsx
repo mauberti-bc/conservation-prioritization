@@ -1,10 +1,10 @@
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, List, Typography } from '@mui/material';
+import { Box, List, Typography } from '@mui/material';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useProjectContext, useTaskContext } from 'hooks/useContext';
-import { useEffect, useMemo, useState } from 'react';
-import { ProjectList } from '../projects/ProjectList';
+import { useState } from 'react';
+import { AddTaskToProjectDialog } from './dialog/AddTaskToProjectDialog';
 import { TaskListItem } from './TaskListItem';
 
 interface TaskListProps {
@@ -27,46 +27,10 @@ export const TaskList = ({
   const dialogContext = useDialogContext();
   const conservationApi = useConservationApi();
   const { refreshTasks } = useTaskContext();
-  const { projectsDataLoader, refreshProjects } = useProjectContext();
+  const { refreshProjects } = useProjectContext();
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
-  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
-  const [dialogSubmit, setDialogSubmit] = useState<(() => Promise<void>) | null>(null);
-
-  useEffect(() => {
-    if (projectDialogOpen) {
-      void projectsDataLoader.load();
-    }
-  }, [projectDialogOpen, projectsDataLoader]);
-
-  useEffect(() => {
-    if (!projectDialogOpen) {
-      setDialogSubmit(null);
-      return;
-    }
-
-    setDialogSubmit(() => {
-      return async () => {
-        if (selectedProjectIds.length === 0 || selectedTaskIds.length === 0) {
-          return;
-        }
-
-        await Promise.all(
-          selectedProjectIds.map((projectId) => {
-            return conservationApi.project.addTasksToProject(projectId, selectedTaskIds);
-          })
-        );
-
-        await refreshProjects();
-        await refreshTasks();
-        setProjectDialogOpen(false);
-      };
-    });
-  }, [projectDialogOpen, selectedProjectIds, selectedTaskIds, conservationApi, refreshProjects, refreshTasks]);
-
-  const projectOptions = useMemo(() => {
-    return projectsDataLoader.data ?? [];
-  }, [projectsDataLoader.data]);
+  const [projectDialogTaskIds, setProjectDialogTaskIds] = useState<string[]>([]);
 
   const handleDeleteTask = (task: GetTaskResponse) => {
     dialogContext.setYesNoDialog({
@@ -89,12 +53,24 @@ export const TaskList = ({
       return;
     }
     setSelectedTaskIds([task.task_id]);
-    setSelectedProjectIds([]);
+    setProjectDialogTaskIds([task.task_id]);
     setProjectDialogOpen(true);
   };
 
-  const handleConfirmAddToProject = async () => {
-    await dialogSubmit?.();
+  const handleConfirmAddToProject = async (projectIds: string[]) => {
+    if (projectIds.length === 0 || selectedTaskIds.length === 0) {
+      return;
+    }
+
+    await Promise.all(
+      selectedTaskIds.map((taskId) => {
+        return conservationApi.task.addProjectsToTask(taskId, projectIds);
+      })
+    );
+
+    await refreshProjects();
+    await refreshTasks();
+    setProjectDialogOpen(false);
   };
 
   return (
@@ -127,44 +103,14 @@ export const TaskList = ({
         </List>
       </LoadingGuard>
       {enableProjectDialog && (
-        <Dialog
+        <AddTaskToProjectDialog
           open={projectDialogOpen}
+          taskIds={projectDialogTaskIds}
           onClose={() => {
             setProjectDialogOpen(false);
           }}
-          fullWidth
-          maxWidth="md">
-          <DialogTitle>Add task to project</DialogTitle>
-          <DialogContent dividers>
-            <ProjectList
-              projects={projectOptions}
-              isLoading={projectsDataLoader.isLoading}
-              onSelectProject={() => {
-                return;
-              }}
-              selectable
-              selectedProjectIds={selectedProjectIds}
-              onToggleProject={(project) => {
-                if (selectedProjectIds.includes(project.project_id)) {
-                  setSelectedProjectIds(selectedProjectIds.filter((id) => id !== project.project_id));
-                  return;
-                }
-                setSelectedProjectIds([...selectedProjectIds, project.project_id]);
-              }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() => {
-                setProjectDialogOpen(false);
-              }}>
-              Cancel
-            </Button>
-            <Button variant="contained" disabled={selectedProjectIds.length === 0} onClick={handleConfirmAddToProject}>
-              Add to Project
-            </Button>
-          </DialogActions>
-        </Dialog>
+          onSubmit={handleConfirmAddToProject}
+        />
       )}
     </Box>
   );

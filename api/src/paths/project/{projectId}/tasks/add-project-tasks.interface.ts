@@ -3,5 +3,5 @@ export interface AddProjectTasksParams {
 }
 
 export interface AddProjectTasksBody {
-  task_ids: string[];
+  taskIds: string[];
 }

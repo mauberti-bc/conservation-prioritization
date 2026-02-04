@@ -25,4 +25,5 @@ export interface GetProjectResponse {
   name: string;
   description: string;
   tasks?: GetTaskResponse[];
+  task_count?: number;
 }

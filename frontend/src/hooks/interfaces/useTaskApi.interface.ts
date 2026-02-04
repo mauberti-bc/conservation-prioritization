@@ -75,6 +75,14 @@ export interface GetTaskResponse {
 }
 
 /**
+ * Request interface for updating task execution status.
+ */
+export interface UpdateTaskStatusRequest {
+  status: TaskStatusValue;
+  message?: string | null;
+}
+
+/**
  * Interface for the task layer (with task_layer_id and task_id as primary keys).
  */
 export interface TaskLayer {

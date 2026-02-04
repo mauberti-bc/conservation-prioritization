@@ -23,7 +23,7 @@ export const ProjectListItem = ({
   selectedProjectIds,
   onToggleProject,
 }: ProjectListItemProps) => {
-  const taskCount = project.tasks?.length ?? 0;
+  const taskCount = project.task_count ?? project.tasks?.length ?? 0;
   const menuItems = [
     {
       label: 'Edit',
@@ -81,7 +81,7 @@ export const ProjectListItem = ({
           <Chip
             size="small"
             label={taskCount}
-            sx={{ px: 1, width: 'fit-content', '& .MuiTypography-root': { fontWeight: 900 } }}
+            sx={{ px: 1, width: 'fit-content', '& .MuiChip-label': { fontWeight: 700 } }}
           />
         </Box>
       </InteractiveListItemButton>
