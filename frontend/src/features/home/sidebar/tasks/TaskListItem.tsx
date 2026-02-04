@@ -1,6 +1,7 @@
 import { mdiDelete, mdiEyeOutline, mdiFolderPlusOutline, mdiPencil } from '@mdi/js';
-import { Box, ListItem, ListItemButton, ListItemText } from '@mui/material';
+import { Box, ListItem, ListItemText } from '@mui/material';
 import { IconMenuButton } from 'components/button/IconMenuButton';
+import { InteractiveListItemButton } from 'components/list/InteractiveListItemButton';
 import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useTaskContext } from 'hooks/useContext';
@@ -71,7 +72,7 @@ export const TaskListItem = ({
           </Box>
         ) : undefined
       }>
-      <ListItemButton
+      <InteractiveListItemButton
         selected={task.task_id === taskId}
         onClick={() => {
           searchParams.set(QUERY_PARAM.TASK_ID, task.task_id);
@@ -79,7 +80,7 @@ export const TaskListItem = ({
           onSelectTask(task);
         }}>
         <ListItemText primary={task.name} secondary={task.status} />
-      </ListItemButton>
+      </InteractiveListItemButton>
     </ListItem>
   );
 };

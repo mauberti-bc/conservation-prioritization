@@ -1,15 +1,14 @@
-import { mdiChevronDown } from '@mdi/js';
-import Icon from '@mdi/react';
-import { Accordion, AccordionDetails, AccordionSummary, Box, Checkbox, Stack, Typography } from '@mui/material';
+import { Box, List, Typography } from '@mui/material';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
-import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
-import { TaskList } from '../tasks/TaskList';
+import { ProjectListItem } from './ProjectListItem';
 
 interface ProjectListProps {
   projects: GetProjectResponse[];
   isLoading: boolean;
-  onSelectTask: (task: GetTaskResponse) => void;
+  onSelectProject: (project: GetProjectResponse) => void;
+  onEditProject?: (project: GetProjectResponse) => void;
+  onDeleteProject?: (project: GetProjectResponse) => void;
   selectable?: boolean;
   selectedProjectIds?: string[];
   onToggleProject?: (project: GetProjectResponse) => void;
@@ -18,7 +17,9 @@ interface ProjectListProps {
 export const ProjectList = ({
   projects,
   isLoading,
-  onSelectTask,
+  onSelectProject,
+  onEditProject,
+  onDeleteProject,
   selectable = false,
   selectedProjectIds = [],
   onToggleProject,
@@ -38,56 +39,20 @@ export const ProjectList = ({
             No projects available
           </Typography>
         }>
-        <Stack gap={1}>
-          {projects.map((project) => {
-            const projectTasks = project.tasks ?? [];
-
-            return (
-              <Accordion key={project.project_id} disableGutters elevation={0}>
-                <AccordionSummary
-                  expandIcon={<Icon path={mdiChevronDown} size={1} />}
-                  sx={{
-                    px: 1,
-                    '& .MuiAccordionSummary-content': {
-                      margin: 0,
-                    },
-                  }}>
-                  <Box display="flex" alignItems="center" gap={1} width="100%">
-                    {selectable && (
-                      <Checkbox
-                        checked={selectedProjectIds.includes(project.project_id)}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                        }}
-                        onChange={(event) => {
-                          event.stopPropagation();
-                          onToggleProject?.(project);
-                        }}
-                      />
-                    )}
-                    <Box>
-                      <Typography fontWeight={600}>{project.name}</Typography>
-                      {project.description && (
-                        <Typography variant="body2" color="text.secondary">
-                          {project.description}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-                </AccordionSummary>
-                <AccordionDetails sx={{ px: 0 }}>
-                  <TaskList
-                    tasks={projectTasks}
-                    isLoading={false}
-                    onSelectTask={onSelectTask}
-                    enableActions={false}
-                    enableProjectDialog={false}
-                  />
-                </AccordionDetails>
-              </Accordion>
-            );
-          })}
-        </Stack>
+        <List dense sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {projects.map((project) => (
+            <ProjectListItem
+              key={project.project_id}
+              project={project}
+              selectable={selectable}
+              selectedProjectIds={selectedProjectIds}
+              onToggleProject={onToggleProject}
+              onSelectProject={onSelectProject}
+              onEditProject={onEditProject}
+              onDeleteProject={onDeleteProject}
+            />
+          ))}
+        </List>
       </LoadingGuard>
     </Box>
   );

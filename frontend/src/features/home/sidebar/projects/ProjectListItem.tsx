@@ -1,0 +1,90 @@
+import { mdiDelete, mdiPencil } from '@mdi/js';
+import { Box, Checkbox, Chip, ListItem, ListItemText, Typography } from '@mui/material';
+import { IconMenuButton } from 'components/button/IconMenuButton';
+import { InteractiveListItemButton } from 'components/list/InteractiveListItemButton';
+import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
+
+interface ProjectListItemProps {
+  project: GetProjectResponse;
+  onSelectProject: (project: GetProjectResponse) => void;
+  onEditProject?: (project: GetProjectResponse) => void;
+  onDeleteProject?: (project: GetProjectResponse) => void;
+  selectable: boolean;
+  selectedProjectIds: string[];
+  onToggleProject?: (project: GetProjectResponse) => void;
+}
+
+export const ProjectListItem = ({
+  project,
+  onSelectProject,
+  onEditProject,
+  onDeleteProject,
+  selectable,
+  selectedProjectIds,
+  onToggleProject,
+}: ProjectListItemProps) => {
+  const taskCount = project.tasks?.length ?? 0;
+  const menuItems = [
+    {
+      label: 'Edit',
+      icon: mdiPencil,
+      onClick: () => {
+        onEditProject?.(project);
+      },
+    },
+    {
+      label: 'Delete',
+      icon: mdiDelete,
+      onClick: () => {
+        onDeleteProject?.(project);
+      },
+    },
+  ];
+
+  return (
+    <ListItem
+      key={project.project_id}
+      disablePadding
+      secondaryAction={
+        <Box
+          onClick={(event) => {
+            event.stopPropagation();
+          }}>
+          <IconMenuButton items={menuItems} />
+        </Box>
+      }>
+      <InteractiveListItemButton
+        onClick={() => {
+          onSelectProject(project);
+        }}>
+        <Box display="flex" alignItems="center" gap={1} width="100%">
+          {selectable && (
+            <Checkbox
+              checked={selectedProjectIds.includes(project.project_id)}
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
+              onChange={(event) => {
+                event.stopPropagation();
+                onToggleProject?.(project);
+              }}
+            />
+          )}
+          <ListItemText
+            primary={
+              <Typography fontWeight={600} noWrap>
+                {project.name}
+              </Typography>
+            }
+            secondary={project.description}
+          />
+          <Chip
+            size="small"
+            label={taskCount}
+            sx={{ px: 1, width: 'fit-content', '& .MuiTypography-root': { fontWeight: 900 } }}
+          />
+        </Box>
+      </InteractiveListItemButton>
+    </ListItem>
+  );
+};

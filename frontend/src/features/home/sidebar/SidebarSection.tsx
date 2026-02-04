@@ -36,7 +36,9 @@ export const SidebarSection = ({ title, onSearch, children, placeholder, showSea
 
   return (
     <Box display="flex" flexDirection="column" gap={2} px={3} py={2} height="100%">
-      <Typography variant="h3">{title}</Typography>
+      <Typography variant="h3" py={1}>
+        {title}
+      </Typography>
       {showSearch && (
         <TextField
           value={value}
