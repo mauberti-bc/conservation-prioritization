@@ -5,6 +5,7 @@ const DB_USER_API = process.env.DB_USER_API!;
 const DB_USER_API_PASS = process.env.DB_USER_API_PASS!;
 const DB_USER_PREFECT = process.env.DB_USER_PREFECT!;
 const DB_USER_PREFECT_PASS = process.env.DB_USER_PREFECT_PASS!;
+const DB_DATABASE = process.env.DB_DATABASE!;
 
 const DB_SCHEMA_PREFECT = 'prefect';
 
@@ -41,6 +42,12 @@ export async function up(knex: Knex): Promise<void> {
       GRANT EXECUTE ON FUNCTIONS TO "${DB_USER_PREFECT}";
     ALTER DEFAULT PRIVILEGES IN SCHEMA ${DB_SCHEMA_PREFECT}
       GRANT USAGE ON TYPES TO "${DB_USER_PREFECT}";
+
+    -- Grant the Prefect user the ability to create extensions
+    GRANT CREATE ON DATABASE ${DB_DATABASE} TO "${DB_USER_PREFECT}";
+
+    -- Grant usage on the pg_catalog schema (this is necessary for some system objects like extensions)
+    GRANT USAGE ON SCHEMA pg_catalog TO "${DB_USER_PREFECT}";
 
     SET ROLE postgres;
     SET search_path = ${DB_SCHEMA}, public;

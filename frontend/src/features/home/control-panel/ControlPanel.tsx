@@ -208,13 +208,11 @@ export const ControlPanel = () => {
             <Box
               sx={{
                 flex: 1,
-                px: 3,
-                py: 1,
                 pb: 3,
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: 0,
-                gap: 3,
+                gap: 2,
                 height: '100%',
                 overflow: 'auto',
               }}>
@@ -224,7 +222,7 @@ export const ControlPanel = () => {
             {/* Sticky footer */}
             <Box
               mr={0.5}
-              py={3}
+              py={2}
               sx={{
                 boxShadow: '0px -2px 25px 0px rgba(0,0,0,0.05)',
                 position: 'sticky',
@@ -243,8 +241,8 @@ export const ControlPanel = () => {
                   Submit
                 </Button>
               </Box>
-              <Typography variant="body2" textAlign="center" mt={2} color="textSecondary">
-                Your task will begin processing when you submit. Tasks typically take 1&ndash;3 minutes.
+              <Typography variant="body2" textAlign="center" mt={1.5} color="textSecondary">
+                Your task will begin processing when you submit.
               </Typography>
             </Box>
           </Box>

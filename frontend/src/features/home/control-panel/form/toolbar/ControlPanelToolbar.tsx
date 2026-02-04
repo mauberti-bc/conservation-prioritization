@@ -33,7 +33,7 @@ export const ControlPanelToolbar = () => {
   };
 
   return (
-    <Stack direction="row" spacing={2} alignItems="center" width="100%" pt={1}>
+    <Stack direction="row" spacing={2} alignItems="center" width="100%">
       <TextField
         fullWidth
         placeholder="Enter a name for your task"
@@ -56,7 +56,7 @@ export const ControlPanelToolbar = () => {
             color="primary"
             onClick={handleSaveDraft}
             startIcon={<Icon path={mdiContentSaveOutline} size={0.8} />}>
-            Save
+            Save Draft
           </Button>
         </Tooltip>
 

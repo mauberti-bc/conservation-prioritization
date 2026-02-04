@@ -13,6 +13,7 @@ import { collectFormikErrorMessages } from 'utils/formik-error';
 import { v4 } from 'uuid';
 import { FormValues } from '../../ControlPanel';
 import { LayerOption } from '../ControlPanelForm';
+import { FormikErrorAlert } from '../error/FormikErrorAlert';
 import { LayerConstraint } from './card/constraint/item/LayerConstraintItem';
 import { SelectedLayerItem } from './card/SelectedLayerItem';
 import { Layer, initialLayerValues } from './layer.interface';
@@ -129,6 +130,27 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
     });
   };
 
+  const handleErrorClose = (messageToRemove: string, index?: number) => {
+    if (index !== undefined) {
+      // Remove from a specific layer
+      const layerErrors = collectFormikErrorMessages(errors.layers?.[index]);
+      const updatedMessages = layerErrors.filter((error) => error.message !== messageToRemove);
+
+      setFieldError(`layers[${index}]`, updatedMessages.length > 0 ? updatedMessages[0].message : undefined);
+      return;
+    }
+
+    // Remove from general errors.layers
+    if (!errors.layers) {
+      return;
+    }
+
+    const errorObjects = collectFormikErrorMessages(errors.layers);
+    const updatedMessages = errorObjects.filter((e) => e.message !== messageToRemove);
+
+    setFieldError('layers', updatedMessages.length > 0 ? updatedMessages[0].message : undefined);
+  };
+
   return (
     <Stack direction="column" gap={1}>
       <Box>
@@ -152,44 +174,57 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
         />
       </Box>
 
+      {/* Show error if no layers select */}
+      {errors.layers && typeof errors.layers === 'string' && (
+        <Box mt={2} width="100%">
+          <FormikErrorAlert errors={[{ message: errors.layers as string }]} onClose={handleErrorClose} />
+        </Box>
+      )}
+
       {values.layers.length > 0 ? (
         <>
-          <Box display="flex" alignItems="center">
+          <Box display="flex" alignItems="center" gap={0}>
             <Checkbox
               onChange={handleCheckboxAll}
               indeterminate={checkboxSelected.length > 0 && checkboxSelected.length < values.layers.length}
               checked={checkboxSelected.length === values.layers.length}
             />
-            <Typography
-              ml={4}
-              color="textSecondary"
-              fontWeight={700}
-              textTransform="uppercase"
-              letterSpacing={0.5}
-              variant="body2">
-              Layers ({values.layers.length})
-            </Typography>
-            <TooltipPopover
-              tooltip="Use the slider to adjust the relative influence of each layer on the result.
-              Layers with positive influence will be prioritized for conservation while negative layers will be avoided.">
+            <Stack flexDirection="row" gap={1} alignItems="center">
               <Typography
-                ml={17.5}
+                ml={4}
                 color="textSecondary"
                 fontWeight={700}
-                display="flex"
-                alignItems="center"
-                sx={{ cursor: 'pointer' }}
                 textTransform="uppercase"
                 letterSpacing={0.5}
-                variant="body2">
-                Influence
-                <Icon
-                  path={mdiInformationSlabCircleOutline}
-                  size={0.95}
-                  style={{ color: grey[500], marginLeft: '8px' }}
-                />
+                variant="body2"
+                width="150px"
+                noWrap>
+                Layers ({values.layers.length})
               </Typography>
-            </TooltipPopover>
+
+              <Box sx={{ display: { xs: 'none', lg: 'flex' } }}>
+                <TooltipPopover
+                  tooltip="Use the slider to adjust the relative influence of each layer.
+        Layers with positive influence will be prioritized for conservation while negative layers will be avoided.">
+                  <Typography
+                    color="textSecondary"
+                    fontWeight={700}
+                    display="flex"
+                    alignItems="center"
+                    sx={{ cursor: 'pointer' }}
+                    textTransform="uppercase"
+                    letterSpacing={0.5}
+                    variant="body2">
+                    Influence
+                    <Icon
+                      path={mdiInformationSlabCircleOutline}
+                      size={0.95}
+                      style={{ color: grey[500], marginLeft: '8px' }}
+                    />
+                  </Typography>
+                </TooltipPopover>
+              </Box>
+            </Stack>
 
             <Stack gap={0.5} flexDirection="row" ml="auto">
               <IconButton sx={{ color: grey[500] }} onClick={handleResetAll}>
@@ -200,12 +235,10 @@ export const ControlPanelLayerForm = ({ layerOptions }: Props) => {
               </IconButton>
             </Stack>
           </Box>
-
           <Box>
             <List disablePadding>
               {values.layers.map((layer, index) => {
                 const errorObjects = collectFormikErrorMessages(errors.layers?.[index]);
-
                 return (
                   <SelectedLayerItem
                     key={layer.name}
