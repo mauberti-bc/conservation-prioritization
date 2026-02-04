@@ -15,27 +15,27 @@ export const SEED_CONSTANTS = {
     'project_permission',
     'project'
   ],
-  SYSTEM_ROLES: [
-    {
-      name: 'admin',
-      description: 'System administrator role',
-      scope: 'system'
-    },
-    {
-      name: 'member',
-      description: 'System member role',
-      scope: 'system'
-    }
-  ],
   PROJECT_ROLES: [
     {
       name: 'admin',
       description: 'Project administrator role',
-      scope: 'profile'
+      scope: 'project'
     },
     {
       name: 'member',
       description: 'Project user role',
+      scope: 'project'
+    }
+  ],
+  PROFILE_ROLES: [
+    {
+      name: 'admin',
+      description: 'Profile administrator role',
+      scope: 'profile'
+    },
+    {
+      name: 'member',
+      description: 'Profile member role',
       scope: 'profile'
     }
   ],

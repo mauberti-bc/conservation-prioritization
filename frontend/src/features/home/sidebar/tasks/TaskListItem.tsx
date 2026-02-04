@@ -1,4 +1,4 @@
-import { mdiAlertCircleOutline, mdiDelete, mdiFolderPlusOutline, mdiPencil } from '@mdi/js';
+import { mdiAccountPlus, mdiAlertCircleOutline, mdiDelete, mdiFolderPlusOutline, mdiPencil } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Box, Chip, CircularProgress, IconButton, ListItem, ListItemText, Typography } from '@mui/material';
 import { IconMenuButton } from 'components/button/IconMenuButton';
@@ -14,6 +14,7 @@ interface TaskListItemProps {
   onEditTask?: (task: GetTaskResponse) => void;
   onDeleteTask: (task: GetTaskResponse) => void;
   onAddToProject: (task: GetTaskResponse) => void;
+  onInvite?: (task: GetTaskResponse) => void;
   showActions: boolean;
 }
 
@@ -23,6 +24,7 @@ export const TaskListItem = ({
   onEditTask,
   onDeleteTask,
   onAddToProject,
+  onInvite,
   showActions,
 }: TaskListItemProps) => {
   const dialogContext = useDialogContext();
@@ -42,6 +44,13 @@ export const TaskListItem = ({
       icon: mdiFolderPlusOutline,
       onClick: () => {
         onAddToProject(task);
+      },
+    },
+    {
+      label: 'Invite',
+      icon: mdiAccountPlus,
+      onClick: () => {
+        onInvite?.(task);
       },
     },
     {

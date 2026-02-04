@@ -1,4 +1,4 @@
-import { mdiDelete, mdiPencil } from '@mdi/js';
+import { mdiAccountPlus, mdiDelete, mdiPencil } from '@mdi/js';
 import { Box, Checkbox, Chip, ListItem, Typography } from '@mui/material';
 import { IconMenuButton } from 'components/button/IconMenuButton';
 import { InteractiveListItemButton } from 'components/list/InteractiveListItemButton';
@@ -9,6 +9,7 @@ interface ProjectListItemProps {
   onSelectProject: (project: GetProjectResponse) => void;
   onEditProject?: (project: GetProjectResponse) => void;
   onDeleteProject?: (project: GetProjectResponse) => void;
+  onInvite?: (project: GetProjectResponse) => void;
   selectable: boolean;
   selectedProjectIds: string[];
   onToggleProject?: (project: GetProjectResponse) => void;
@@ -19,6 +20,7 @@ export const ProjectListItem = ({
   onSelectProject,
   onEditProject,
   onDeleteProject,
+  onInvite,
   selectable,
   selectedProjectIds,
   onToggleProject,
@@ -30,6 +32,13 @@ export const ProjectListItem = ({
       icon: mdiPencil,
       onClick: () => {
         onEditProject?.(project);
+      },
+    },
+    {
+      label: 'Invite',
+      icon: mdiAccountPlus,
+      onClick: () => {
+        onInvite?.(project);
       },
     },
     {

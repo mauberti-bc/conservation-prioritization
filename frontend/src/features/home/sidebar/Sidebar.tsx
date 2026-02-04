@@ -218,7 +218,6 @@ export const Sidebar = ({
                         action={
                           <Button
                             variant="contained"
-                            size="small"
                             startIcon={<Icon path={mdiPlus} size={0.8} />}
                             onClick={() => {
                               navigate('/t/new');
@@ -251,7 +250,6 @@ export const Sidebar = ({
                         <Box display="flex" alignItems="center" gap={1} mb={2} p={2}>
                           <IconButton
                             aria-label="Back to tasks"
-                            size="small"
                             sx={{
                               color: grey[700],
                             }}
@@ -283,7 +281,6 @@ export const Sidebar = ({
                         action={
                           <Button
                             variant="contained"
-                            size="small"
                             startIcon={<Icon path={mdiPlus} size={0.8} />}
                             onClick={() => {
                               setProjectCreateError(null);
@@ -309,7 +306,6 @@ export const Sidebar = ({
                         <Box display="flex" alignItems="center" gap={1} mb={2} p={2}>
                           <IconButton
                             aria-label="Back to projects"
-                            size="small"
                             onClick={() => {
                               setSelectedProjectId(null);
                             }}>

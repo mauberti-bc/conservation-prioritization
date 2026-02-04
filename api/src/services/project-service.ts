@@ -1,7 +1,13 @@
 import { IDBConnection } from '../database/db';
 import { CreateProject, DeleteProject, Project, UpdateProject } from '../models/project';
+import { ProfileRepository } from '../repositories/profile-repository';
 import { ProjectRepository } from '../repositories/project-repository';
+import { ProjectPermissionService } from '../services/project-permission-service';
+import { ProjectProfileService } from '../services/project-profile-service';
+import { normalizeInviteEmails } from '../utils/invite';
+import { PROJECT_ROLE } from './authorization-service.interface';
 import { DBService } from './db-service';
+import { InviteProfilesResult } from './invite-profiles.interface';
 
 /**
  * Service for reading/writing project data.
@@ -12,6 +18,9 @@ import { DBService } from './db-service';
  */
 export class ProjectService extends DBService {
   projectRepository: ProjectRepository;
+  projectProfileService: ProjectProfileService;
+  projectPermissionService: ProjectPermissionService;
+  profileRepository: ProfileRepository;
 
   /**
    * Creates an instance of ProjectService.
@@ -23,6 +32,9 @@ export class ProjectService extends DBService {
     super(connection);
 
     this.projectRepository = new ProjectRepository(connection);
+    this.projectProfileService = new ProjectProfileService(connection);
+    this.projectPermissionService = new ProjectPermissionService(connection);
+    this.profileRepository = new ProfileRepository(connection);
   }
 
   /**
@@ -34,6 +46,100 @@ export class ProjectService extends DBService {
    */
   async createProject(project: CreateProject): Promise<Project> {
     return this.projectRepository.createProject(project);
+  }
+
+  /**
+   * Create a new project and optionally assign the creator as an admin.
+   *
+   * @param {CreateProject} project
+   * @param {string | null} profileId
+   * @return {*}  {Promise<Project>}
+   * @memberof ProjectService
+   */
+  async createProjectWithCreator(project: CreateProject, profileId?: string | null): Promise<Project> {
+    const createdProject = await this.projectRepository.createProject(project);
+
+    if (!profileId) {
+      return createdProject;
+    }
+
+    await this.projectProfileService.createProjectProfile({
+      project_id: createdProject.project_id,
+      profile_id: profileId
+    });
+
+    const adminRoleId = await this.profileRepository.getRoleIdByNameAndScope(PROJECT_ROLE.PROJECT_ADMIN, 'project');
+
+    await this.projectPermissionService.createProjectPermission({
+      project_id: createdProject.project_id,
+      profile_id: profileId,
+      role_id: adminRoleId
+    });
+
+    return createdProject;
+  }
+
+  /**
+   * Adds existing profiles to a project by email address.
+   *
+   * @param {string} projectId
+   * @param {string[]} emails
+   * @return {*}  {Promise<InviteProfilesResult>}
+   * @memberof ProjectService
+   */
+  async inviteProfilesToProject(projectId: string, emails: string[]): Promise<InviteProfilesResult> {
+    const normalizedEmails = normalizeInviteEmails(emails);
+
+    if (!normalizedEmails.length) {
+      return { added_profile_ids: [], skipped_emails: [] };
+    }
+
+    const profiles = await Promise.all(
+      normalizedEmails.map((email) => this.profileRepository.findProfileByEmail(email))
+    );
+
+    const profilesByEmail = new Map<string, string>();
+    const skippedEmails: string[] = [];
+
+    normalizedEmails.forEach((email, index) => {
+      const profile = profiles[index];
+      if (profile?.profile_id) {
+        profilesByEmail.set(email, profile.profile_id);
+      } else {
+        skippedEmails.push(email);
+      }
+    });
+
+    if (!profilesByEmail.size) {
+      return { added_profile_ids: [], skipped_emails: skippedEmails };
+    }
+
+    const existingProfiles = await this.projectProfileService.getProjectProfilesByProjectId(projectId);
+    const existingProfileIds = new Set(existingProfiles.map((profile) => profile.profile_id));
+    const memberRoleId = await this.profileRepository.getRoleIdByNameAndScope(PROJECT_ROLE.PROJECT_USER, 'project');
+
+    const addedProfileIds: string[] = [];
+
+    for (const profileId of profilesByEmail.values()) {
+      if (existingProfileIds.has(profileId)) {
+        continue;
+      }
+
+      await this.projectProfileService.createProjectProfile({
+        project_id: projectId,
+        profile_id: profileId
+      });
+
+      await this.projectPermissionService.createProjectPermission({
+        project_id: projectId,
+        profile_id: profileId,
+        role_id: memberRoleId
+      });
+
+      addedProfileIds.push(profileId);
+    }
+
+    return { added_profile_ids: addedProfileIds, skipped_emails: skippedEmails };
   }
 
   /**

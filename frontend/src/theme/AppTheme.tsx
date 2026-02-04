@@ -202,7 +202,7 @@ export const appTheme = createTheme({
         },
         sizeMedium: {
           fontSize: '0.875rem',
-          padding: '8px 16px',
+          padding: '12px 16px',
         },
         sizeLarge: {
           fontSize: '1rem',

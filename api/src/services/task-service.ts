@@ -2,16 +2,22 @@ import { IDBConnection } from '../database/db';
 import { CreateTask, DeleteTask, Task, UpdateTask, UpdateTaskExecution } from '../models/task';
 import { TaskLayerConstraint } from '../models/task-layer-constraint';
 import { TaskLayerWithConstraints, TaskWithLayers } from '../models/task.interface';
+import { ProfileRepository } from '../repositories/profile-repository';
 import { TaskRepository } from '../repositories/task-repository';
 import { TaskTileRepository } from '../repositories/task-tile-repository';
 import { TASK_STATUS, TILE_STATUS } from '../types/status';
 import { TaskStatusMessage } from '../types/task-status';
+import { normalizeInviteEmails } from '../utils/invite';
 import { toPmtilesUrl } from '../utils/pmtiles';
 import { normalizeTaskStatus, normalizeTileStatus } from '../utils/status';
+import { TASK_ROLE } from './authorization-service.interface';
 import { DBService } from './db-service';
+import { InviteProfilesResult } from './invite-profiles.interface';
 import { TaskGeometryService } from './task-geometry-service';
 import { TaskLayerConstraintService } from './task-layer-constraint-service';
 import { TaskLayerService } from './task-layer-service';
+import { TaskPermissionService } from './task-permission-service';
+import { TaskProfileService } from './task-profile-service';
 import { TaskTileService } from './task-tile-service';
 
 /**
@@ -28,6 +34,9 @@ export class TaskService extends DBService {
   taskTileRepository: TaskTileRepository;
   taskTileService: TaskTileService;
   taskGeometryService: TaskGeometryService;
+  taskProfileService: TaskProfileService;
+  taskPermissionService: TaskPermissionService;
+  profileRepository: ProfileRepository;
 
   /**
    * Creates an instance of TaskService.
@@ -43,6 +52,9 @@ export class TaskService extends DBService {
     this.taskTileRepository = new TaskTileRepository(connection);
     this.taskTileService = new TaskTileService(connection);
     this.taskGeometryService = new TaskGeometryService(connection);
+    this.taskProfileService = new TaskProfileService(connection);
+    this.taskPermissionService = new TaskPermissionService(connection);
+    this.profileRepository = new ProfileRepository(connection);
   }
 
   /**
@@ -193,6 +205,69 @@ export class TaskService extends DBService {
    */
   async updateTaskExecution(taskId: string, updates: UpdateTaskExecution): Promise<Task> {
     return this.taskRepository.updateTaskExecution(taskId, updates);
+  }
+
+  /**
+   * Adds existing profiles to a task by email address.
+   *
+   * @param {string} taskId
+   * @param {string[]} emails
+   * @return {*}  {Promise<InviteProfilesResult>}
+   * @memberof TaskService
+   */
+  async inviteProfilesToTask(taskId: string, emails: string[]): Promise<InviteProfilesResult> {
+    const normalizedEmails = normalizeInviteEmails(emails);
+
+    if (!normalizedEmails.length) {
+      return { added_profile_ids: [], skipped_emails: [] };
+    }
+
+    const profiles = await Promise.all(
+      normalizedEmails.map((email) => this.profileRepository.findProfileByEmail(email))
+    );
+
+    const profilesByEmail = new Map<string, string>();
+    const skippedEmails: string[] = [];
+
+    normalizedEmails.forEach((email, index) => {
+      const profile = profiles[index];
+      if (profile?.profile_id) {
+        profilesByEmail.set(email, profile.profile_id);
+      } else {
+        skippedEmails.push(email);
+      }
+    });
+
+    if (!profilesByEmail.size) {
+      return { added_profile_ids: [], skipped_emails: skippedEmails };
+    }
+
+    const existingProfiles = await this.taskProfileService.getTaskProfilesByTaskId(taskId);
+    const existingProfileIds = new Set(existingProfiles.map((profile) => profile.profile_id));
+    const memberRoleId = await this.profileRepository.getRoleIdByNameAndScope(TASK_ROLE.TASK_USER, 'task');
+
+    const addedProfileIds: string[] = [];
+
+    for (const profileId of profilesByEmail.values()) {
+      if (existingProfileIds.has(profileId)) {
+        continue;
+      }
+
+      await this.taskProfileService.createTaskProfile({
+        task_id: taskId,
+        profile_id: profileId
+      });
+
+      await this.taskPermissionService.createTaskPermission({
+        task_id: taskId,
+        profile_id: profileId,
+        role_id: memberRoleId
+      });
+
+      addedProfileIds.push(profileId);
+    }
+
+    return { added_profile_ids: addedProfileIds, skipped_emails: skippedEmails };
   }
 
   /**

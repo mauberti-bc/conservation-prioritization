@@ -12,11 +12,6 @@ export async function up(knex: Knex): Promise<void> {
     SET search_path=conservation,public;
 
     ----------------------------------------------------------------------------------------
-    -- Extend role_scope enum for dashboards
-    ----------------------------------------------------------------------------------------
-    ALTER TYPE role_scope ADD VALUE IF NOT EXISTS 'dashboard';
-
-    ----------------------------------------------------------------------------------------
     -- Dashboard access scheme enum
     ----------------------------------------------------------------------------------------
     CREATE TYPE dashboard_access_scheme AS ENUM ('ANYONE_WITH_LINK', 'MEMBERS_ONLY', 'NOBODY');

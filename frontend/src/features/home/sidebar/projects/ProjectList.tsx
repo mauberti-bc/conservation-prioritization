@@ -1,8 +1,9 @@
 import { Box, List, Typography } from '@mui/material';
+import { InviteDialog } from 'components/dialog/InviteDialog';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useProjectContext } from 'hooks/useContext';
+import { useDialogContext, useProjectContext } from 'hooks/useContext';
 import { useState } from 'react';
 import { ProjectEditDialog } from './ProjectEditDialog';
 import { ProjectListItem } from './ProjectListItem';
@@ -27,10 +28,14 @@ export const ProjectList = ({
   onToggleProject,
 }: ProjectListProps) => {
   const conservationApi = useConservationApi();
+  const dialogContext = useDialogContext();
   const { refreshProjects } = useProjectContext();
   const [editProject, setEditProject] = useState<GetProjectResponse | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+  const [inviteProject, setInviteProject] = useState<GetProjectResponse | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   const handleEditProject = (project: GetProjectResponse) => {
     setEditError(null);
@@ -66,6 +71,41 @@ export const ProjectList = ({
     }
   };
 
+  const handleInviteProject = (project: GetProjectResponse) => {
+    setInviteError(null);
+    setInviteProject(project);
+  };
+
+  const handleInviteSubmit = async (emails: string[]) => {
+    if (!inviteProject) {
+      return;
+    }
+
+    try {
+      setInviteLoading(true);
+      setInviteError(null);
+
+      const result = await conservationApi.project.inviteProfilesToProject(inviteProject.project_id, { emails });
+      const skippedCount = result.skipped_emails.length;
+      const addedCount = result.added_profile_ids.length;
+
+      dialogContext.setSnackbar({
+        open: true,
+        snackbarMessage:
+          skippedCount > 0
+            ? `Invited ${addedCount} profile(s). Skipped ${skippedCount} email(s).`
+            : `Invited ${addedCount} profile(s).`,
+      });
+
+      setInviteProject(null);
+    } catch (error) {
+      console.error('Failed to invite profiles to project', error);
+      setInviteError('Failed to send invites. Please try again.');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
   return (
     <Box sx={{ overflowY: 'auto', maxHeight: '100%' }}>
       <LoadingGuard
@@ -91,6 +131,7 @@ export const ProjectList = ({
               onToggleProject={onToggleProject}
               onSelectProject={onSelectProject}
               onEditProject={handleEditProject}
+              onInvite={handleInviteProject}
               onDeleteProject={onDeleteProject}
             />
           ))}
@@ -103,6 +144,17 @@ export const ProjectList = ({
         onSave={handleEditSave}
         isSaving={editSaving}
         error={editError}
+      />
+      <InviteDialog
+        open={Boolean(inviteProject)}
+        title={inviteProject ? `Invite to ${inviteProject.name}` : 'Invite to Project'}
+        description="Enter email addresses to add existing profiles to this project."
+        onClose={() => {
+          setInviteProject(null);
+        }}
+        onSubmit={handleInviteSubmit}
+        isSubmitting={inviteLoading}
+        error={inviteError}
       />
     </Box>
   );

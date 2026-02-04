@@ -110,12 +110,12 @@ const CreateTaskDialogContent = ({
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2, justifyContent: 'flex-end' }}>
-        <Button variant="outlined" onClick={onClose}>
-          Close
-        </Button>
         <LoadingButton variant="contained" onClick={onSubmit} loading={isSubmitting}>
           Submit
         </LoadingButton>
+        <Button variant="outlined" onClick={onClose}>
+          Close
+        </Button>
       </DialogActions>
     </Dialog>
   );

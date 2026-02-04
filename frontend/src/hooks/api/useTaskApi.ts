@@ -1,4 +1,5 @@
 import { AxiosInstance } from 'axios';
+import { InviteProfilesRequest, InviteProfilesResponse } from 'hooks/interfaces/invite.interface';
 import {
   CreateTaskRequest,
   GetTaskResponse,
@@ -108,6 +109,21 @@ export const useTaskApi = (axios: AxiosInstance) => {
   };
 
   /**
+   * Invite profiles to a task by email.
+   *
+   * @param {string} taskId
+   * @param {InviteProfilesRequest} payload
+   * @return {Promise<InviteProfilesResponse>}
+   */
+  const inviteProfilesToTask = async (
+    taskId: string,
+    payload: InviteProfilesRequest
+  ): Promise<InviteProfilesResponse> => {
+    const { data } = await axios.post<InviteProfilesResponse>(`/api/task/${taskId}/profile`, payload);
+    return data;
+  };
+
+  /**
    * Delete a task by its ID.
    *
    * @param {string} taskId - The UUID of the task to delete.
@@ -126,6 +142,7 @@ export const useTaskApi = (axios: AxiosInstance) => {
     updateTaskStatus,
     publishTaskDashboard,
     addProjectsToTask,
+    inviteProfilesToTask,
     deleteTask,
   };
 };

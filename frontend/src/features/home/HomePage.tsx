@@ -73,7 +73,7 @@ export const HomePage = () => {
   const memoizedMap = useMemo(() => {
     return (
       <>
-        <MapContainer pmtilesUrls={pmtilesUrls} />
+        <MapContainer pmtilesUrls={pmtilesUrls} keepAliveKey="home-map" />
         <DrawControls ref={drawControlsRef} />
       </>
     );

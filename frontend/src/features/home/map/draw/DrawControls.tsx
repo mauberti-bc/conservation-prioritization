@@ -3,6 +3,7 @@ import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { blue } from '@mui/material/colors';
 import { Feature } from 'geojson';
 import { useMapContext } from 'hooks/useContext';
+import maplibregl from 'maplibre-gl';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 
 export interface DrawControlsProps {
@@ -114,67 +115,104 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
   };
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || drawRef.current) {
-      return;
-    }
+    let isCancelled = false;
+    let rafId: number | null = null;
 
-    const draw = new MapboxDraw({
-      displayControlsDefault: false,
-      defaultMode: 'simple_select',
-      styles: [
-        {
-          id: 'gl-draw-polygon-fill',
-          type: 'fill',
-          paint: {
-            'fill-color': blue[500],
-            'fill-opacity': 0.3,
+    const initializeDraw = () => {
+      const map = mapRef.current;
+      if (!map || drawRef.current) {
+        return;
+      }
+
+      const draw = new MapboxDraw({
+        displayControlsDefault: false,
+        defaultMode: 'simple_select',
+        styles: [
+          {
+            id: 'gl-draw-polygon-fill',
+            type: 'fill',
+            paint: {
+              'fill-color': blue[500],
+              'fill-opacity': 0.3,
+            },
           },
-        },
-        {
-          id: 'gl-draw-polygon-stroke',
-          type: 'line',
-          paint: {
-            'line-color': blue[800],
-            'line-width': 3,
+          {
+            id: 'gl-draw-polygon-stroke',
+            type: 'line',
+            paint: {
+              'line-color': blue[800],
+              'line-width': 3,
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
 
-    drawRef.current = draw;
-    map.addControl(draw as unknown as maplibregl.IControl, 'top-right');
+      drawRef.current = draw;
+      map.addControl(draw as unknown as maplibregl.IControl, 'top-right');
 
-    // Ensure draw layers are on top after the map loads and layers are added
-    const onMapLoad = () => {
-      setTimeout(() => {
-        ensureDrawLayersOnTop();
-      }, 100); // Small delay to ensure all layers are rendered
-    };
-
-    // Listen for when new layers might be added that could cover draw layers
-    const onMapSourceData = (e: any) => {
-      if (e.isSourceLoaded && e.sourceId?.startsWith('pmtiles-')) {
+      // Ensure draw layers are on top after the map loads and layers are added
+      const onMapLoad = () => {
         setTimeout(() => {
           ensureDrawLayersOnTop();
-        }, 50);
+        }, 100); // Small delay to ensure all layers are rendered
+      };
+
+      // Listen for when new layers might be added that could cover draw layers
+      const onMapSourceData = (e: any) => {
+        if (e.isSourceLoaded && e.sourceId?.startsWith('pmtiles-')) {
+          setTimeout(() => {
+            ensureDrawLayersOnTop();
+          }, 50);
+        }
+      };
+
+      if (map.isStyleLoaded()) {
+        onMapLoad();
+      } else {
+        map.once('load', onMapLoad);
       }
+
+      // Ensure draw layers stay on top when new sources/layers are added
+      map.on('sourcedata', onMapSourceData);
+      map.on('styledata', ensureDrawLayersOnTop);
+
+      // Cleanup event listeners
+      return () => {
+        map.off('sourcedata', onMapSourceData);
+        map.off('styledata', ensureDrawLayersOnTop);
+        try {
+          map.removeControl(draw as unknown as maplibregl.IControl);
+        } catch (error) {
+          console.debug('Failed to remove draw control', error);
+        }
+        if (drawRef.current === draw) {
+          drawRef.current = null;
+        }
+      };
     };
 
-    if (map.isStyleLoaded()) {
-      onMapLoad();
-    } else {
-      map.once('load', onMapLoad);
-    }
+    const tryInit = () => {
+      if (isCancelled) {
+        return;
+      }
+      const cleanup = initializeDraw();
+      if (cleanup) {
+        return cleanup;
+      }
+      rafId = window.requestAnimationFrame(tryInit);
+      return undefined;
+    };
 
-    // Ensure draw layers stay on top when new sources/layers are added
-    map.on('sourcedata', onMapSourceData);
-    map.on('styledata', ensureDrawLayersOnTop);
+    const cleanup = tryInit();
 
-    // Cleanup event listeners
     return () => {
-      map.off('sourcedata', onMapSourceData);
-      map.off('styledata', ensureDrawLayersOnTop);
+      isCancelled = true;
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+      if (cleanup) {
+        cleanup();
+      }
     };
   }, [mapRef, drawRef, ensureDrawLayersOnTop]);
 
