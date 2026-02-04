@@ -16,13 +16,13 @@ import {
 } from '@mui/material';
 import { grey } from '@mui/material/colors';
 import { useLayerSelectContext } from 'context/layerSelectContext';
-import { FormValues } from 'features/home/control-panel/ControlPanel';
-import { LayerCardItem } from 'features/home/layer-panel/cards/item/LayerCardItem';
+import { LayerCardItem } from 'features/home/layer-panel/card/LayerCardItem';
 import { useFormikContext } from 'formik';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createInputValueAndDetectFiltersHandler, doesLayerMatchFilters } from 'utils/filter-match';
 import { pluralize } from 'utils/util';
 import { LayerSearchLayout } from './layout/LayerSearchLayout';
+import { FormValues } from '../../ControlPanelForm';
 
 interface LayerSearchDialogProps {
   open: boolean;

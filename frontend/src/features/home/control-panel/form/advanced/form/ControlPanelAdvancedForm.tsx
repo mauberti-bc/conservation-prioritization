@@ -1,8 +1,8 @@
 import Stack from '@mui/material/Stack';
 import { CustomAutocomplete } from 'components/input/CustomAutocomplete';
-import { FormValues } from 'features/home/control-panel/ControlPanel';
 import { useFormikContext } from 'formik';
 import { AdvancedFormInputRow } from './row/AdvancedFormInputRow';
+import { FormValues } from '../../ControlPanelForm';
 
 export enum OPTIMIZATION_VARIANT {
   STRICT = 'strict',

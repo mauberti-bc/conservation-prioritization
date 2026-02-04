@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { validateGeometry } from 'utils/spatial';
 import { v4 } from 'uuid';
-import { FormValues } from '../../ControlPanel';
+import { FormValues } from '../ControlPanelForm';
 import { ControlPanelGeometryForm } from './geometry/ControlPanelGeometryForm';
 
 export const ControlPanelAreaForm = () => {

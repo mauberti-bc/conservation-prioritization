@@ -2,6 +2,7 @@ import { AuthContext } from 'context/authContext';
 import { ConfigContext, IConfig } from 'context/configContext';
 import { DialogContext, IDialogContext } from 'context/dialogContext';
 import { MapContext } from 'context/mapContext';
+import { ITaskContext, TaskContext } from 'context/taskContext';
 import { useContext } from 'react';
 
 /**
@@ -48,6 +49,23 @@ export const useConfigContext = (): IConfig => {
   if (!context) {
     throw Error(
       'ConfigContext is undefined, please verify you are calling useConfigContext() as child of an <ConfigContextProvider> component.'
+    );
+  }
+
+  return context;
+};
+
+/**
+ * Returns an instance of `ITask` from `TaskContext`.
+ *
+ * @return {*}  {ITask}
+ */
+export const useTaskContext = (): ITaskContext => {
+  const context = useContext(TaskContext);
+
+  if (!context) {
+    throw Error(
+      'TaskContext is undefined, please verify you are calling useTaskContext() as child of an <TaskContextProvider> component.'
     );
   }
 

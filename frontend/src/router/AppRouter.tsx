@@ -1,5 +1,6 @@
 import { DialogContextProvider } from 'context/dialogContext';
 import { MapContextProvider } from 'context/mapContext';
+import { TaskContextProvider } from 'context/taskContext';
 import { RequestAccessPage } from 'features/access/RequestAccessPage';
 import { HomePage } from 'features/home/HomePage';
 import { BaseLayout } from 'layouts/BaseLayout';
@@ -14,7 +15,9 @@ export const AppRouter = () => {
           <DialogContextProvider>
             <MapContextProvider>
               <BaseLayout>
-                <HomePage />
+                <TaskContextProvider>
+                  <HomePage />
+                </TaskContextProvider>
               </BaseLayout>
             </MapContextProvider>
           </DialogContextProvider>

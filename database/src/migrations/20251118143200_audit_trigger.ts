@@ -1,5 +1,5 @@
 import { Knex } from 'knex';
-import { IDENTITY_SOURCE } from '../constants/profile';
+import { IDENTITY_SOURCE, SYSTEM_ROLE } from '../constants/profile';
 
 /**
  * Insert default API system profile and attach audit and journal triggers to all tables
@@ -19,12 +19,14 @@ export async function up(knex: Knex): Promise<void> {
     INSERT INTO profile (
       identity_source,
       profile_identifier,
-      profile_guid
+      profile_guid,
+      role_id
     )
     VALUES (
       '${IDENTITY_SOURCE.DATABASE}',
       '${process.env.DB_USER_API}',
-      '${process.env.DB_USER_API}'
+      '${process.env.DB_USER_API}',
+      '${SYSTEM_ROLE.ADMIN}'
     )
     RETURNING profile_id;
 

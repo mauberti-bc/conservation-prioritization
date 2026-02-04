@@ -4,41 +4,25 @@ import { Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
-import config from 'config/config';
 import { Formik } from 'formik';
-import { Feature } from 'geojson';
 import { CreateTaskLayer, CreateTaskRequest } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useMapContext } from 'hooks/useContext';
-import { useZarr } from 'hooks/useZarr';
+import useDataLoader from 'hooks/useDataLoader';
 import { useEffect, useMemo, useState } from 'react';
 import { taskValidationSchema } from './ControlPanelYup';
 import { OPTIMIZATION_VARIANT } from './form/advanced/form/ControlPanelAdvancedForm';
-import { ControlPanelForm, LayerOption } from './form/ControlPanelForm';
-import { Layer } from './form/layer/layer.interface';
-
-type RESAMPLING = 'mode' | 'min' | 'max';
-
-export interface FormValues {
-  resolution: number;
-  resampling: RESAMPLING;
-  name: string;
-  variant: OPTIMIZATION_VARIANT;
-  budget: Layer | null;
-  layers: Layer[];
-  geometry: { id: string; name: string; description: string | null; geojson: Feature; mapboxFeatureId: string }[];
-  status: 'draft' | 'pending';
-}
+import { ControlPanelForm, FormValues, LayerOption } from './form/ControlPanelForm';
 
 const initialValues: FormValues = {
   resolution: 1000,
+  description: null,
   resampling: 'mode',
   name: 'Untitled Task',
   variant: OPTIMIZATION_VARIANT.STRICT,
   budget: null,
   layers: [],
   geometry: [],
-  status: 'pending',
 };
 
 export const ControlPanel = () => {
@@ -47,18 +31,17 @@ export const ControlPanel = () => {
   const dialogContext = useDialogContext();
   const { drawControlsRef, mapRef } = useMapContext();
 
-  // Read this from my /data/species.zarr store instead using zarrita.js
-  const zarr = useZarr(config.ZARR_STORE_PATH);
+  const layersDataLoader = useDataLoader(async (search: string) => await conservationApi.layer.findLayers(search));
 
   const layerOptions: LayerOption[] = useMemo(
     () =>
-      zarr.variables.map((variable) => ({
+      layersDataLoader.data?.layers.map((variable) => ({
         path: variable.path,
         name: variable.name,
         description: variable.description,
         group: variable.group,
-      })),
-    [zarr]
+      })) ?? [],
+    [layersDataLoader]
   );
 
   // Clean up drawn features when component unmounts
@@ -76,7 +59,7 @@ export const ControlPanel = () => {
     setIsSubmitting(true);
 
     try {
-      const { layers, variant, budget, ...formValues } = values;
+      const { layers } = values; // Only destructure the 'layers' property
 
       // Map layers to TaskLayer objects
       const mappedLayers: CreateTaskLayer[] = layers.map((layer) => ({
@@ -96,7 +79,7 @@ export const ControlPanel = () => {
       const taskData: CreateTaskRequest = {
         name: values.name,
         description: values.name, // If description is the same as name, adjust as needed
-        variant: values.variant,
+        variant: values.variant, // You still need 'variant' here, so keep it
         resolution: values.resolution,
         resampling: values.resampling,
         layers: mappedLayers,

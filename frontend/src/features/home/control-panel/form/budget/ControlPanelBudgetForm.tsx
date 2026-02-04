@@ -4,8 +4,7 @@ import { Box, TextField } from '@mui/material';
 import { grey } from '@mui/material/colors';
 import { useFormikContext } from 'formik';
 import { formatBudget } from 'utils/currency';
-import { FormValues } from '../../ControlPanel';
-import { LayerOption } from '../ControlPanelForm';
+import { FormValues, LayerOption } from '../ControlPanelForm';
 import { initialLayerValues, Layer } from '../layer/layer.interface';
 
 const MAX_DIGITS = 15;

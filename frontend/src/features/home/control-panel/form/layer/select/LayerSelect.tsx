@@ -1,6 +1,6 @@
 import { LayerSelectContextProvider } from 'context/layerSelectContext';
-import { LayerOption } from '../../ControlPanelForm';
 import { LayerOptionAutocomplete } from './autocomplete/LayerOptionAutocomplete';
+import { LayerOption } from '../../ControlPanelForm';
 
 interface LayerSelectProps {
   selectedLayers: LayerOption[];

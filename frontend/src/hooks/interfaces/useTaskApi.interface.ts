@@ -3,6 +3,7 @@ export enum OPTIMIZATION_VARIANT {
   APPROXIMATE = 'approximate',
 }
 
+export type RESAMPLING = 'mode' | 'min' | 'max';
 /**
  * Interface representing a constraint for a task layer during creation (without task_layer_constraint_id).
  */
@@ -24,6 +25,15 @@ export interface CreateTaskLayer {
   constraints: CreateTaskLayerConstraint[]; // Constraints for this layer
 }
 
+export interface ITask {
+  task_id: string;
+  name: string;
+  description: string | null;
+  layers: TaskLayer[];
+  resampling: RESAMPLING;
+  variant: OPTIMIZATION_VARIANT;
+}
+
 /**
  * Request interface for creating a task.
  */
@@ -32,7 +42,7 @@ export interface CreateTaskRequest {
   description: string; // Description of the task
   layers: CreateTaskLayer[]; // Layers for the task (each layer can have constraints)
   resolution: number; // Resolution for the task
-  resampling: 'mode' | 'min' | 'max'; // Resampling method
+  resampling: RESAMPLING; // Resampling method
   budget?: {
     name: string;
     path: string;

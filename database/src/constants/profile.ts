@@ -2,7 +2,7 @@
  * The identity source of the authenticated user.
  *
  * @export
- * @enum {number}
+ * @enum {string}
  */
 export enum IDENTITY_SOURCE {
   /**
@@ -17,4 +17,15 @@ export enum IDENTITY_SOURCE {
    * Service accounts
    */
   SYSTEM = 'SYSTEM'
+}
+
+/**
+ * System roles
+ *
+ * @export
+ * @enum {string}
+ */
+export enum SYSTEM_ROLE {
+  ADMIN = 'ADMIN',
+  MEMBER = 'MEMBER'
 }

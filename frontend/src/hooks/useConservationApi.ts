@@ -1,3 +1,4 @@
+import { useLayersApi } from './api/useLayerApi';
 import { useProfileApi } from './api/useProfileApi';
 import { useProjectApi } from './api/useProjectApi';
 import { useTaskApi } from './api/useTaskApi';
@@ -15,12 +16,17 @@ export const useConservationApi = () => {
   const apiAxios = useAxios(config?.API_HOST);
 
   const task = useTaskApi(apiAxios);
+
   const profile = useProfileApi(apiAxios);
+
   const project = useProjectApi(apiAxios);
+
+  const layer = useLayersApi(apiAxios);
 
   return {
     task,
     profile,
     project,
+    layer,
   };
 };
