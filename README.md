@@ -1,158 +1,189 @@
 # Conservation Prioritization Tool
 
-This project is a containerized full-stack application composed of:
+This project is a containerized full-stack application for conservation prioritization, orchestrated with Docker Compose and managed via a Makefile.
 
-- Frontend (Vite + Node)
-- API (Node backend)
-- PostgreSQL + PostGIS database
-- Prefect server + worker (workflow orchestration)
-- MinIO (S3-compatible object storage)
-- Database setup service
-- MinIO setup service
+## Architecture Overview
 
-All services are orchestrated with Docker Compose and managed via a Makefile for convenience.
+```
+Frontend (Vite + Node)
+    ↓
+API (Node backend)
+    ↓
+PostgreSQL + PostGIS ← → Prefect Server → Prefect Worker
+    ↓
+MinIO (S3-compatible object storage)
+```
+
+### Components
+
+- **Frontend**: Vite-based UI that reads API and Prefect endpoints from environment variables
+- **API**: Node backend that connects to PostgreSQL, authenticates via Keycloak, communicates with Prefect, and interfaces with MinIO
+- **Database**: PostgreSQL with PostGIS extension, auto-initialized via db_setup service
+- **Prefect Server**: Orchestration API and dashboard for monitoring workflows
+- **Prefect Worker**: Executes scheduled workflow tasks
+- **MinIO**: S3-compatible object storage with automatic bucket creation
 
 ---
 
-# Prerequisites
+## Prerequisites
+
+### Required Software
 
 You must have the following installed:
 
-- Docker
-- Make
-- Chocolatey (Windows only, for installing Make)
-- (Optional for local development) Node.js with Corepack enabled
+- **Docker**
+- **Make**
+- **Chocolatey** (Windows only, for installing Make)
+- **Node.js with Corepack enabled** (optional, for local development only)
 
-## Windows Setup
+### Installation by Platform
 
-Install Chocolatey (if not already installed):
+#### Windows
 
-See: https://chocolatey.org/install
+1. Install Chocolatey (if not already installed):
+   - See: https://chocolatey.org/install
 
-Then install Make:
+2. Install Make:
+   ```bash
+   choco install make
+   ```
 
-`choco install make`
+3. Verify installation:
+   ```bash
+   make --version
+   ```
 
-Verify installation:
+#### macOS
 
-`make --version`
+```bash
+brew install make
+```
 
-## macOS
+#### Linux
 
-`brew install make`
+```bash
+sudo apt install make
+```
 
-## Linux
+### Verify Required Tools
 
-`sudo apt install make`
-
-## Verify Required Tools
-
-`docker --version`  
-`docker compose version`  
-`make --version`
+```bash
+docker --version
+docker compose version
+make --version
+```
 
 ---
 
-# Environment Setup
+## Environment Setup
 
-## 1. Create Your `.env` File
+### 1. Create Your `.env` File
 
 Copy the default Docker environment file:
 
-`make setup`
+```bash
+make setup
+```
 
-This copies:
+This copies `env_config/env.docker` → `.env`. You may be prompted before overwriting.
 
-`env_config/env.docker → .env`
+### 2. Validate Environment Variables
 
-You may be prompted before overwriting.
-
-## 2. Validate Environment Variables
-
-`make check-env`
+```bash
+make check-env
+```
 
 This checks that your `.env` file contains all required variables.
 
-# Node.js Version Requirement (Local Development)
+### Important Environment Variables
 
-If you are running any part of this project outside Docker (e.g., frontend or API locally), you must use **Node.js 22**.
+Ensure the following are correctly set in `.env`:
 
-Using other Node versions may cause dependency or build failures.
-
-## Recommended: Use NVM (Node Version Manager)
-
-We strongly recommend using **nvm** to manage Node versions.
-
----
-
-## Install NVM
-
-### macOS / Linux
-
-Install via curl:
-
-`curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash`
-
-Then restart your terminal or run:
-
-`source ~/.nvm/nvm.sh`
-
-Verify installation:
-
-`nvm --version`
+- Database credentials
+- Keycloak credentials
+- Prefect API URL
+- Object store credentials (ACCESS_KEY_ID, SECRET_KEY_ID)
+- API host and port
+- Frontend port
 
 ---
 
-### Windows
+## Node.js Setup (Local Development Only)
 
-Install **nvm-windows**:
+**Note**: This section is only required if you plan to run the frontend or API outside of Docker.
 
-https://github.com/coreybutler/nvm-windows/releases
+### Version Requirement
 
-Download and run the installer, then restart your terminal.
+This project requires **Node.js 22**. Using other versions may cause dependency or build failures.
 
-Verify installation:
+### Installing NVM (Recommended)
 
-`nvm version`
+We strongly recommend using **nvm** (Node Version Manager) to manage Node versions.
 
----
+#### macOS / Linux
 
-## Install and Use Node 22
+1. Install via curl:
+   ```bash
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+   ```
 
-Once nvm is installed:
+2. Restart your terminal or run:
+   ```bash
+   source ~/.nvm/nvm.sh
+   ```
 
-`nvm install 22`  
-`nvm use 22`
+3. Verify installation:
+   ```bash
+   nvm --version
+   ```
+
+#### Windows
+
+1. Install **nvm-windows**: https://github.com/coreybutler/nvm-windows/releases
+2. Download and run the installer
+3. Restart your terminal
+4. Verify installation:
+   ```bash
+   nvm version
+   ```
+
+### Install and Use Node 22
+
+```bash
+nvm install 22
+nvm use 22
+```
 
 Verify:
+```bash
+node --version
+```
 
-`node --version`
+Expected output: `v22.x.x`
 
-It should print something like:
-
-`v22.x.x`
-
----
-
-## Optional: Set Node 22 as Default
+### Set Node 22 as Default (Optional)
 
 To automatically use Node 22 in new terminals:
 
-`nvm alias default 22`
+```bash
+nvm alias default 22
+```
 
----
+### Enable Corepack
 
-## After Switching Node Versions
+After switching to Node 22, enable Corepack (required for Yarn 4):
 
-Enable Corepack (required for Yarn 4):
-
-`corepack enable`
+```bash
+corepack enable
+```
 
 Then install dependencies:
 
-`make install`
+```bash
+make install
+```
 
----
+### Troubleshooting
 
 If you encounter issues, ensure:
 
@@ -162,285 +193,315 @@ If you encounter issues, ensure:
 
 ---
 
-# Running the Application
+## Python Workflow Environment (UV)
 
-You can run everything together or start specific components.
+The `workflows` directory uses **uv** to manage Python dependencies and virtual environments, ensuring isolated and consistent execution.
+
+### Installing UV
+
+```bash
+pip install uv
+```
+
+Verify installation:
+```bash
+uv --version
+```
+
+### Syncing Dependencies
+
+Navigate to the `workflows` directory and sync dependencies:
+
+```bash
+cd workflows
+uv sync
+```
+
+This will:
+- Create a virtual environment (if one does not exist)
+- Install all required Python packages
+- Ensure your environment matches the project requirements
+
+### Notes
+
+- Ensure your Python version matches the project requirements (uv respects `.python-version` if present)
+- If you encounter issues, verify that uv is installed in the correct Python environment
+- You can integrate this step into your Makefile via the `make install-deps` target
 
 ---
 
-# Run Everything (Recommended)
+## Running the Application
+
+### Run Everything (Recommended)
 
 Build and start all required services:
 
-`make all`
+```bash
+make all
+```
 
-This builds and runs:
-
+Services started:
 - frontend
+- api
 - db
 - db_setup
 - prefect_server
 - prefect_deploy
 - prefect_worker
 
----
+### Run Specific Components
 
-# Run Web Application (Frontend + API + DB)
+#### Web Application (Frontend + API + DB)
 
-`make web`
+```bash
+make web
+```
 
 Build only:
-
-`make build-web`
+```bash
+make build-web
+```
 
 Run only:
-
-`make run-web`
+```bash
+make run-web
+```
 
 Services started:
-
 - frontend
 - api
 - db
 - db_setup
 
----
+#### Backend Only
 
-# Run Backend Only
-
-`make backend`
+```bash
+make backend
+```
 
 Services started:
-
 - api
 - db
 - db_setup
 
----
+#### Frontend Only
 
-# Run Frontend Only
+```bash
+make frontend
+```
 
-`make frontend`
+#### Prefect (Workflow Engine)
 
----
-
-# Run Prefect (Workflow Engine)
-
-`make prefect`
+```bash
+make prefect
+```
 
 Services started:
-
 - prefect_server
 - prefect_deploy
 - prefect_worker
 
----
+#### MinIO (Object Storage)
 
-# Run MinIO (Object Storage)
+```bash
+make minio
+```
 
-`make minio`
-
-This starts:
-
+Services started:
 - minio
 - minio_setup
 
-MinIO Console:  
-`http://localhost:9001`
+**Access Points:**
+- MinIO Console: http://localhost:9001
+- MinIO API: http://localhost:9000
 
-MinIO API:  
-`http://localhost:9000`
+Credentials from environment variables:
+- `OBJECT_STORE_ACCESS_KEY_ID`
+- `OBJECT_STORE_SECRET_KEY_ID`
 
-Credentials come from:
+#### Database Setup Only
 
-- OBJECT_STORE_ACCESS_KEY_ID
-- OBJECT_STORE_SECRET_KEY_ID
+```bash
+make db-setup
+```
 
----
-
-# Database Setup Only
-
-`make db-setup`
-
----
-
-# Install Node Dependencies (Optional Local Development)
+#### Install Node Dependencies (Local Development)
 
 If running parts of the project outside Docker:
 
-`make install`
+```bash
+make install
+```
 
 This uses Corepack and Yarn 4.
 
 ---
 
-# Viewing Logs
+## Managing Services
 
-All logs:
+### Viewing Logs
 
-`make log`
+View all logs:
+```bash
+make log
+```
 
-Frontend logs only:
+View frontend logs only:
+```bash
+make log-frontend
+```
 
-`make log-frontend`
+Default log tail size: `--tail 2000`
 
-Default log tail size:
+Override tail size:
+```bash
+make log args="--tail 500"
+```
 
-`--tail 2000`
-
-Override:
-
-`make log args="--tail 500"`
-
----
-
-# Stopping Services
+### Stopping Services
 
 Stop all containers:
+```bash
+make close
+```
 
-`make close`
-
----
-
-# Cleaning Docker Environment
+### Cleaning Docker Environment
 
 Remove containers, images, volumes, and orphans:
 
-`make clean`
+```bash
+make clean
+```
 
-Warning: This removes volumes. Database data will be deleted.
+**Warning**: This removes volumes. Database data will be deleted.
 
----
+### Full Docker Reset (Dangerous)
 
-# Full Docker Reset (Dangerous)
+```bash
+make prune
+```
 
-`make prune`
-
-This deletes all Docker artifacts on your machine.
-
----
-
-# Service Ports
-
-| Service           | Port                  |
-|------------------|-----------------------|
-| Frontend        | ${FRONTEND_PORT}       |
-| API             | ${API_PORT}            |
-| Prefect API     | 4200                   |
-| Prefect UI      | 8080                   |
-| PostgreSQL      | ${DB_PORT}             |
-| MinIO API       | 9000                   |
-| MinIO Console   | 9001                   |
-| Prefect Worker  | 8787                   |
+**Warning**: This deletes all Docker artifacts on your machine.
 
 ---
 
-# Architecture Overview
+## Service Ports
 
-Frontend  →  API  →  PostgreSQL  
-                   ↘  
-                    Prefect Server → Prefect Worker  
-                   ↘  
-                    MinIO (Object Storage)
-
----
-
-# Service Responsibilities
-
-## Frontend
-- Vite-based UI
-- Reads API and Prefect endpoints from environment variables
-
-## API
-- Connects to PostgreSQL
-- Authenticates via Keycloak
-- Communicates with Prefect
-- Reads and writes to MinIO
-
-## Database
-- PostgreSQL with PostGIS
-- Auto-initialized via db_setup
-
-## Prefect
-- prefect_server: orchestration API
-- prefect_deploy: registers flows
-- prefect_worker: executes workflows
-
-## MinIO
-- S3-compatible object storage
-- Buckets automatically created on startup
+| Service           | Port                       |
+|-------------------|----------------------------|
+| Frontend          | `${FRONTEND_PORT}`         |
+| API               | `${API_PORT}`              |
+| PostgreSQL        | `${DB_PORT}`               |
+| Prefect API       | 4200                       |
+| Prefect UI        | 8080                       |
+| Prefect Worker    | 8787                       |
+| MinIO API         | 9000                       |
+| MinIO Console     | 9001                       |
 
 ---
 
-# Common Development Workflows
+## Prefect Workflow Orchestration (Prefect 3)
 
-## Rebuild Everything After Changes
+This project uses **Prefect 3** to manage workflows such as data processing, object storage operations, and geospatial tasks.
 
-`make clean`  
-`make all`
+### How Prefect Works
 
-## Rebuild Backend Only
+#### 1. Prefect Server
 
-`make build-backend`  
-`make run-backend`
+The `prefect_server` provides the orchestration API and dashboard for monitoring flows. It manages flow states, logs, and metadata.
 
-## Reset Database Only
+**Health check endpoint**: http://localhost:4200/api/health
 
-`docker compose down -v`  
-`make web`
+#### 2. Deploy Flows (`prefect_deploy`)
 
----
+Before workers can execute tasks, flows must be **registered with the Prefect server** through deployments:
 
-# Persistent Volumes
+- A **deployment** links a flow to a schedule, parameters, and an execution environment
+- Deployments tell Prefect **what flows exist and how to run them**
+- The `prefect_deploy` service automatically registers all flows when started
 
-- postgres → Database data
-- minio_data → Object storage data
-- zarr_data → Bound to ./workflows/data
+#### 3. Workers (`prefect_worker`)
 
----
+Workers **watch queues** for scheduled flow runs:
 
-# Important Environment Variables
+- Workers continuously poll the Prefect server for new flow runs
+- When a flow run is available, the worker executes it in its environment
+- Multiple workers can run in parallel for **scalable execution**
 
-Ensure the following are correctly set in `.env`:
-
-- Database credentials
-- Keycloak credentials
-- Prefect API URL
-- Object store credentials
-- API host and port
-- Frontend port
+**Default worker port**: 8787
 
 ---
 
-# Health Checks
+## Persistent Volumes
 
-- Database: `pg_isready`
-- Prefect: `/api/health`
-- MinIO: `mc ready`
+- **postgres**: Database data
+- **minio_data**: Object storage data
+- **zarr_data**: Bound to `./workflows/data`
+
+---
+
+## Health Checks
+
+Services include health checks to ensure proper startup order:
+
+- **Database**: `pg_isready`
+- **Prefect**: `/api/health`
+- **MinIO**: `mc ready`
 
 Containers wait for dependencies to become healthy before starting.
 
 ---
 
-# Manual Docker Commands (Without Make)
+## Common Development Workflows
 
-Build:
+### Rebuild Everything After Changes
 
-`docker compose build`
+```bash
+make clean
+make all
+```
 
-Run:
+### Rebuild Backend Only
 
-`docker compose up -d`
+```bash
+make build-backend
+make run-backend
+```
 
-Stop:
+### Reset Database Only
 
-`docker compose down`
+```bash
+docker compose down -v
+make web
+```
 
 ---
 
-# Recommended Startup Order (Manual)
+## Manual Docker Commands (Without Make)
 
-If not using Make, start services in this order:
+If you prefer not to use Make:
+
+### Build
+
+```bash
+docker compose build
+```
+
+### Run
+
+```bash
+docker compose up -d
+```
+
+### Stop
+
+```bash
+docker compose down
+```
+
+### Recommended Startup Order
+
+If starting services manually, use this order:
 
 1. db
 2. db_setup
@@ -451,40 +512,30 @@ If not using Make, start services in this order:
 7. prefect_worker
 8. frontend
 
-# Prefect (Workflow Orchestration) – Prefect 3
-
-This project uses **Prefect 3** to manage workflows such as data processing, object storage operations, or geospatial tasks. Prefect 3 uses a simplified architecture compared to Prefect 2, with **server, deployments, and workers**.
-
 ---
 
-## How Prefect Works
+## Troubleshooting
 
-### 1. Prefect Server
+### Node Version Issues
 
-`prefect_server` provides the orchestration API and a dashboard for monitoring flows. It manages flow states, logs, and metadata. All workers and clients communicate with this server.
+- Ensure you're using Node 22: `node --version`
+- Enable Corepack: `corepack enable`
+- Restart your terminal after installing nvm
 
-Health check endpoint:  
-`http://localhost:4200/api/health`
+### Docker Issues
 
----
+- Verify Docker is running: `docker ps`
+- Check service logs: `make log`
+- Reset Docker environment: `make clean` then `make all`
 
-### 2. Deploy Flows (`prefect_deploy`)
+### Database Connection Issues
 
-Before workers can execute tasks, flows must be **registered with the Prefect server**. This is done through deployments:
+- Ensure database is healthy: `docker compose ps`
+- Check database logs: `docker compose logs db`
+- Verify environment variables in `.env`
 
-- A **deployment** links a flow to a schedule, parameters, and an execution environment.
-- Deployments tell Prefect **what flows exist and how to run them**.
+### Prefect Issues
 
-`prefect_deploy` service automatically registers all flows defined in the project when started.
-
----
-
-### 3. Workers (`prefect_worker`)
-
-Workers **watch queues** for scheduled flow runs:
-
-- Workers continuously poll the Prefect server for new flow runs.
-- When a flow run is available, the worker executes it in its environment.
-- Multiple workers can run in parallel, allowing **scalable execution**.
-
-Default worker port: `8787`
+- Check Prefect server health: http://localhost:4200/api/health
+- View Prefect logs: `docker compose logs prefect_server`
+- Ensure flows are deployed: `docker compose logs prefect_deploy`

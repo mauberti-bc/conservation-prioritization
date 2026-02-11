@@ -54,7 +54,7 @@ check-env: ## Warn if env vars missing in .env
 ## Install Commands
 ## ------------------------------------------------------------------------------
 
-install-deps: ## Install dependencies using Corepack + Yarn
+install-deps: ## Install dependencies using Corepack + Yarn + Python workflows
 	@echo "==============================================="
 	@echo "Make: install - installing dependencies"
 	@echo "==============================================="
@@ -65,6 +65,10 @@ install-deps: ## Install dependencies using Corepack + Yarn
 	@corepack yarn --cwd api install
 	@corepack yarn --cwd frontend install
 	@corepack yarn --cwd database install
+	@echo "==============================================="
+	@echo "Make: install - installing Python workflows"
+	@echo "==============================================="
+	@cd workflows && uv sync
 
 ## ------------------------------------------------------------------------------
 ## Cleanup Commands
