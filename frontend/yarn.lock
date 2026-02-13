@@ -5748,11 +5748,11 @@ __metadata:
   linkType: hard
 
 "pmtiles@npm:^4.3.0":
-  version: 4.3.2
-  resolution: "pmtiles@npm:4.3.2"
+  version: 4.4.0
+  resolution: "pmtiles@npm:4.4.0"
   dependencies:
     fflate: "npm:^0.8.2"
-  checksum: 10/6dfc6f0e1a5558bf8d3ce7858aecccecce2ab85bc6796420793afe9f26d9f6d1696c3d8be465724630c47bc76263e3b8926294d3f18906d49d358b3f07a2d31d
+  checksum: 10/90bbd1f6aac66842f0f602f9144f7ba3db231bf2641017e14592353a5db71c4bac5c4c33b3fa36f5c6d5bafd49aac6712c365fd6a7c5a19645e905246a36ae2d
   languageName: node
   linkType: hard
 
