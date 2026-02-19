@@ -49,10 +49,10 @@ export const TaskCreateForm = ({ isReadOnly = false, autoSearchOnMount = false }
           px: 3,
           display: 'flex',
           flexDirection: 'column',
-          gap: 5,
+          gap: 3,
         }}>
         {!isReadOnly && (
-          <LabelledSection label="About">
+          <LabelledSection>
             <Stack spacing={2}>
               <TextField
                 fullWidth
