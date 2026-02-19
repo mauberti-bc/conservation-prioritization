@@ -20,14 +20,14 @@ interface MapContainerProps {
  * @returns {JSX.Element}
  */
 export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerProps) => {
-  console.log(pmtilesUrls);
   const mapHostRef = useRef<HTMLDivElement | null>(null);
   const { mapRef, setIsMapReady } = useMapContext();
   const [isMapInitialized, setIsMapInitialized] = useState(false);
-  const [areLayersLoaded, setAreLayersLoaded] = useState(false);
 
-  const isMapLoading = !isMapInitialized || (pmtilesUrls.length > 0 && !areLayersLoaded);
+  // Only show spinner until the map itself is mounted — layer changes are silent.
+  const isMapLoading = !isMapInitialized;
 
+  // Mount / cache effect
   useEffect(() => {
     const mapHost = mapHostRef.current;
     if (!mapHost) {
@@ -61,7 +61,6 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
           detachMapContainer(cached);
           mapRef.current = null;
           setIsMapInitialized(false);
-          setAreLayersLoaded(false);
           setIsMapReady(false);
         };
       }
@@ -93,9 +92,10 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
       setIsMapReady(true);
     };
 
-    map.once('load', handleMapReady);
     if (map.isStyleLoaded()) {
       handleMapReady();
+    } else {
+      map.once('load', handleMapReady);
     }
 
     mapRef.current = map;
@@ -113,91 +113,45 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
       }
       mapRef.current = null;
       setIsMapInitialized(false);
-      setAreLayersLoaded(false);
       setIsMapReady(false);
     };
   }, [keepAliveKey, mapRef, setIsMapReady]);
 
+  // Resize observer effect
   useEffect(() => {
     const map = mapRef.current;
     const host = mapHostRef.current;
-
     if (!map || !host) {
       return undefined;
     }
 
-    const handleResize = () => {
-      map.resize();
-    };
-
-    const resizeObserver = new ResizeObserver(() => {
-      handleResize();
-    });
-
+    const resizeObserver = new ResizeObserver(() => map.resize());
     resizeObserver.observe(host);
-    handleResize();
+    map.resize();
 
-    return () => {
-      resizeObserver.disconnect();
-    };
+    return () => resizeObserver.disconnect();
   }, [mapRef, isMapInitialized]);
 
+  // Layer update effect — runs silently whenever pmtilesUrls changes
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !isMapInitialized) {
+    if (!map) {
       return undefined;
     }
 
-    let cancelled = false;
-    setAreLayersLoaded(false);
-
-    const applyLayers = () => {
+    const apply = () => {
+      ensureBaseLayer(map);
       updatePmtilesLayers(map, pmtilesUrls);
-
-      if (!pmtilesUrls.length) {
-        setAreLayersLoaded(true);
-        return;
-      }
-
-      let idleTimeout: number | null = null;
-
-      const handleIdle = () => {
-        if (idleTimeout) {
-          window.clearTimeout(idleTimeout);
-          idleTimeout = null;
-        }
-        if (!cancelled) {
-          setAreLayersLoaded(true);
-        }
-      };
-
-      idleTimeout = window.setTimeout(() => {
-        if (!cancelled) {
-          setAreLayersLoaded(true);
-        }
-      }, 1500);
-
-      map.once('idle', handleIdle);
-      map.triggerRepaint();
     };
 
-    if (!map.isStyleLoaded()) {
-      map.once('load', () => {
-        if (!cancelled) {
-          applyLayers();
-        }
-      });
-      return () => {
-        cancelled = true;
-      };
+    if (map.isStyleLoaded()) {
+      apply();
+    } else {
+      map.once('load', apply);
     }
 
-    applyLayers();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isMapInitialized, mapRef, pmtilesUrls]);
+    return undefined;
+  }, [mapRef, pmtilesUrls, isMapInitialized]);
 
   return (
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -227,9 +181,6 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
 
 /**
  * Ensure the base OSM raster layer exists.
- *
- * @param {maplibregl.Map} map
- * @returns {void}
  */
 const ensureBaseLayer = (map: maplibregl.Map): void => {
   if (!map.getSource('osm')) {
@@ -257,10 +208,6 @@ const ensureBaseLayer = (map: maplibregl.Map): void => {
 
 /**
  * Replace PMTiles layers with the provided list of archive URLs.
- *
- * @param {maplibregl.Map} map
- * @param {string[]} pmtilesUrls
- * @returns {void}
  */
 const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[]): void => {
   const sourcePrefix = 'pmtiles-';
@@ -268,33 +215,34 @@ const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[]): void =
 
   const style = map.getStyle();
 
-  if (style.layers) {
-    style.layers
-      .filter((layer) => layer.id.startsWith(layerPrefix))
-      .forEach((layer) => {
-        if (map.getLayer(layer.id)) {
-          map.removeLayer(layer.id);
-        }
-      });
-  }
+  // Remove old pmtiles layers
+  style.layers
+    ?.filter((layer) => layer.id.startsWith(layerPrefix))
+    .forEach((layer) => {
+      if (map.getLayer(layer.id)) {
+        map.removeLayer(layer.id);
+      }
+    });
 
-  if (style.sources) {
-    Object.keys(style.sources)
-      .filter((sourceId) => sourceId.startsWith(sourcePrefix))
-      .forEach((sourceId) => {
-        if (map.getSource(sourceId)) {
-          map.removeSource(sourceId);
-        }
-      });
-  }
+  // Remove old pmtiles sources
+  Object.keys(style.sources ?? {})
+    .filter((id) => id.startsWith(sourcePrefix))
+    .forEach((id) => {
+      if (map.getSource(id)) {
+        map.removeSource(id);
+      }
+    });
 
+  // Add new layers
   pmtilesUrls.forEach((url, index) => {
     const sourceId = `${sourcePrefix}${index}`;
     const layerId = `${layerPrefix}${index}`;
-    const resolvedUrl = url.startsWith('pmtiles://')
-      ? url
-      : url.startsWith('http://') || url.startsWith('https://')
-        ? `pmtiles://${url}`
+
+    const resolvedUrl =
+      url.startsWith('pmtiles://') || url.startsWith('http://') || url.startsWith('https://')
+        ? url.startsWith('pmtiles://')
+          ? url
+          : `pmtiles://${url}`
         : url;
 
     map.addSource(sourceId, {

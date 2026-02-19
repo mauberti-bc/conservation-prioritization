@@ -1,5 +1,5 @@
-import { LoadingButton } from '@mui/lab';
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import Button from '@mui/material/Button';
 import { Breakpoint } from '@mui/material/styles';
 import { Formik, FormikValues } from 'formik';
 import { PropsWithChildren, ReactNode } from 'react';
@@ -65,7 +65,7 @@ export const EditDialog = <T extends FormikValues>({
           </DialogContent>
 
           <DialogActions>
-            <LoadingButton
+            <Button
               loading={dialogLoading || formikProps.isValidating}
               disabled={formikProps.status?.forceDisable}
               onClick={formikProps.submitForm}
@@ -74,7 +74,7 @@ export const EditDialog = <T extends FormikValues>({
               autoFocus
               data-testid="edit-dialog-save">
               {dialogSaveButtonLabel || 'Save Changes'}
-            </LoadingButton>
+            </Button>
 
             <Button onClick={onCancel} color="primary" variant="outlined" data-testid="edit-dialog-cancel">
               Cancel

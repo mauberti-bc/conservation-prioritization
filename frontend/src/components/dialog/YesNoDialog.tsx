@@ -1,4 +1,4 @@
-import LoadingButton from '@mui/lab/LoadingButton';
+import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -125,7 +125,7 @@ const YesNoDialog: React.FC<IYesNoDialogProps> = (props) => {
         {props.dialogContent}
       </DialogContent>
       <DialogActions>
-        <LoadingButton
+        <Button
           data-testid="yes-button"
           onClick={props.onYes}
           color="primary"
@@ -133,16 +133,16 @@ const YesNoDialog: React.FC<IYesNoDialogProps> = (props) => {
           fontWeight={700}
           {...props.yesButtonProps}>
           {props.yesButtonLabel ? props.yesButtonLabel : 'Yes'}
-        </LoadingButton>
+        </Button>
 
-        <LoadingButton
+        <Button
           data-testid="no-button"
           onClick={props.onNo}
           color="primary"
           variant="outlined"
           {...props.noButtonProps}>
           {props.noButtonLabel ? props.noButtonLabel : 'No'}
-        </LoadingButton>
+        </Button>
       </DialogActions>
     </Dialog>
   );

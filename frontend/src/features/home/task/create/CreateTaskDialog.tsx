@@ -1,17 +1,7 @@
 import { mdiClose } from '@mdi/js';
 import Icon from '@mdi/react';
-import { LoadingButton } from '@mui/lab';
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  IconButton,
-  Typography,
-} from '@mui/material';
+import { Box, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Typography } from '@mui/material';
+import Button from '@mui/material/Button';
 import { MapContextProvider } from 'context/mapContext';
 import { useMapContext } from 'hooks/useContext';
 import { MutableRefObject, useRef, useState } from 'react';
@@ -134,9 +124,9 @@ const CreateTaskDialogContent = ({
           boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.08)',
           zIndex: 1,
         }}>
-        <LoadingButton variant="contained" onClick={onSubmit} loading={isSubmitting}>
+        <Button variant="contained" onClick={onSubmit} loading={isSubmitting}>
           Submit
-        </LoadingButton>
+        </Button>
         <Button variant="outlined" onClick={onClose}>
           Close
         </Button>
