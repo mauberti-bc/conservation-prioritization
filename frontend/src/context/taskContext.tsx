@@ -1,9 +1,9 @@
+import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
 import { GetTaskResponse, GetTasksResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import useDataLoader, { DataLoader } from 'hooks/useDataLoader';
-import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
-import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
 import { useSearchParams } from 'hooks/useSearchParams';
+import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiPaginationRequestOptions } from 'types/pagination';
 
 export interface ITaskContext {
@@ -58,6 +58,7 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
         searchParams.delete(QUERY_PARAM.TASK_ID);
         setSearchParams(searchParams);
         taskDataLoader.clearData();
+        setHoveredTilesetUri(null); // clear hovered layer too
       }
     },
     [searchParams, setSearchParams, taskDataLoader]

@@ -1,8 +1,8 @@
 import { mdiArrowLeft } from '@mdi/js';
 import Icon from '@mdi/react';
-import { LoadingButton } from '@mui/lab';
 import { Chip, Divider, IconButton, Stack, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import { grey } from '@mui/material/colors';
 import { EditDialog } from 'components/dialog/EditDialog';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
@@ -120,7 +120,7 @@ export const TaskDetailsPanel = () => {
               sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
               {task?.name ?? 'Task details'}
             </Typography>
-            <LoadingButton
+            <Button
               variant="contained"
               loading={isPublishing}
               disabled={!task}
@@ -134,7 +134,7 @@ export const TaskDetailsPanel = () => {
                 setPublishError(null);
               }}>
               {dashboardId ? 'View Dashboard' : 'Publish'}
-            </LoadingButton>
+            </Button>
           </Box>
 
           <Box px={3} pb={3} display="flex" flexDirection="column" gap={3}>

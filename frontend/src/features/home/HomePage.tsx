@@ -25,7 +25,6 @@ export const HomePage = () => {
     if (!isAuthenticated) {
       return;
     }
-
     if (activeView === 'tasks') {
       void tasksDataLoader.load({
         page: 1,
@@ -34,20 +33,22 @@ export const HomePage = () => {
         order: 'desc',
       });
     }
-
     if (activeView === 'projects') {
       void projectsDataLoader.load();
     }
   }, [activeView, isAuthenticated, tasksDataLoader, projectsDataLoader]);
 
   const pmtilesUrls = useMemo(() => {
+    if (!taskId || !taskDataLoader.data) {
+      return [];
+    }
+
     const statusUri =
       taskStatus?.tile?.status === TILE_STATUS.COMPLETED && taskStatus.tile.pmtiles_uri
         ? taskStatus.tile.pmtiles_uri
         : null;
     const fallbackUri = taskDataLoader.data?.tileset_uri ?? null;
     const resolvedUri = statusUri ?? fallbackUri;
-
     const baseUrls = resolvedUri ? [resolvedUri] : [];
 
     if (hoveredTilesetUri) {
@@ -58,7 +59,7 @@ export const HomePage = () => {
     }
 
     return baseUrls;
-  }, [taskStatus, taskDataLoader.data, hoveredTilesetUri]);
+  }, [taskId, taskStatus, taskDataLoader.data, hoveredTilesetUri]);
 
   const statusLabel = useMemo(() => {
     const activeStatus = taskStatus?.status ?? taskDataLoader.data?.status;
@@ -75,15 +76,6 @@ export const HomePage = () => {
     return activeStatus;
   }, [taskStatus, taskDataLoader.data]);
 
-  const memoizedMap = useMemo(() => {
-    return (
-      <>
-        <MapContainer pmtilesUrls={pmtilesUrls} keepAliveKey="home-map" />
-        <DrawControls ref={drawControlsRef} />
-      </>
-    );
-  }, [drawControlsRef, pmtilesUrls]);
-
   return (
     <Box position="relative" height="100%" overflow="hidden">
       <Box height="100%" display="flex" flexDirection="column" overflow="hidden">
@@ -98,9 +90,9 @@ export const HomePage = () => {
             <Chip size="small" color="primary" label={statusLabel} />
           </Box>
         )}
-        {memoizedMap}
+        <MapContainer pmtilesUrls={pmtilesUrls} keepAliveKey="home-map" />
+        <DrawControls ref={drawControlsRef} />
       </Box>
-
       <Box
         sx={{
           position: 'absolute',

@@ -1,7 +1,7 @@
 import { mdiPlus } from '@mdi/js';
 import Icon from '@mdi/react';
-import { LoadingButton } from '@mui/lab';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
+import { Box, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
+import Button from '@mui/material/Button';
 import { FieldArray, Form, Formik } from 'formik';
 import { useEffect, useState } from 'react';
 
@@ -99,12 +99,12 @@ export const InviteDialog = ({
                       Add Another
                     </Button>
                     <DialogActions sx={{ px: 0 }}>
-                      <LoadingButton variant="contained" type="submit" loading={isSubmitting}>
+                      <Button variant="contained" type="submit" loading={isSubmitting}>
                         {submitLabel}
-                      </LoadingButton>
-                      <LoadingButton variant="outlined" onClick={onClose} disabled={isSubmitting}>
+                      </Button>
+                      <Button variant="outlined" onClick={onClose} disabled={isSubmitting}>
                         Cancel
-                      </LoadingButton>
+                      </Button>
                     </DialogActions>
                   </Box>
                 )}
