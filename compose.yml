@@ -244,6 +244,8 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+    environment:
+      OBJECT_STORE_CORS_ALLOWED_ORIGINS: ${OBJECT_STORE_CORS_ALLOWED_ORIGINS:-http://localhost:7070,http://127.0.0.1:7070}
     networks:
       - conservation-network
     entrypoint:
@@ -253,9 +255,23 @@ services:
         mc alias set myminio http://minio:9000 ${OBJECT_STORE_ACCESS_KEY_ID} ${OBJECT_STORE_SECRET_KEY_ID};
         mc mb --ignore-existing myminio/${OBJECT_STORE_BUCKET_NAME};
         mc mb --ignore-existing myminio/${QUARANTINE_OBJECT_STORE_BUCKET_NAME};
-        mc admin config set myminio api cors_allow_origin='http://localhost:7070' cors_allow_methods='GET,PUT,POST,DELETE,HEAD,OPTIONS' cors_allow_headers='*' cors_expose_headers='ETag,Content-Range,Accept-Ranges,Content-Length' cors_max_age=3000;
-        mc admin service restart myminio;
-        echo "Buckets created and global CORS configured successfully"
+        ORIGINS_JSON=$$(printf '%s' "$$OBJECT_STORE_CORS_ALLOWED_ORIGINS" | awk -F',' '{ for (i=1;i<=NF;i++) printf "%s\"%s\"", (i==1?"":","), $$i }');
+        cat > /tmp/cors.json <<EOF
+        {
+          "CORSRules": [
+            {
+              "AllowedOrigins": [$$ORIGINS_JSON],
+              "AllowedMethods": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+              "AllowedHeaders": ["*"],
+              "ExposeHeaders": ["ETag", "Content-Range", "Accept-Ranges", "Content-Length"],
+              "MaxAgeSeconds": 3000
+            }
+          ]
+        }
+        EOF
+        mc cors set myminio/${OBJECT_STORE_BUCKET_NAME} /tmp/cors.json;
+        mc cors set myminio/${QUARANTINE_OBJECT_STORE_BUCKET_NAME} /tmp/cors.json;
+        echo "Buckets created and bucket CORS configured successfully"
 
 networks:
   conservation-network:

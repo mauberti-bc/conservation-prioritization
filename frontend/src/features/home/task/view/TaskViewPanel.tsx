@@ -172,7 +172,7 @@ export const TaskViewPanel = () => {
           }>
           <Formik initialValues={initialValues as TaskCreateFormValues} enableReinitialize onSubmit={async () => {}}>
             <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-              <Box display="flex" alignItems="center" gap={1} px={3} pt={2} pb={1}>
+              <Box display="flex" alignItems="center" gap={1} pb={1}>
                 <Typography
                   variant="h6"
                   fontWeight={600}
@@ -211,7 +211,6 @@ export const TaskViewPanel = () => {
               <Box
                 sx={{
                   flex: 1,
-                  py: 2,
                   display: 'flex',
                   flexDirection: 'column',
                   minHeight: 0,

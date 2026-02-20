@@ -192,7 +192,15 @@ export const MapContainer = ({
     setAreLayersLoaded(false);
 
     const applyLayers = () => {
-      updatePmtilesLayers(map, normalizedPmtilesUrls, pmtilesOpacity);
+      try {
+        updatePmtilesLayers(map, normalizedPmtilesUrls, pmtilesOpacity);
+      } catch (error) {
+        console.error('Failed to apply PMTiles layers', error);
+        if (!cancelled) {
+          setAreLayersLoaded(true);
+        }
+        return;
+      }
 
       if (!normalizedPmtilesUrls.length) {
         setAreLayersLoaded(true);

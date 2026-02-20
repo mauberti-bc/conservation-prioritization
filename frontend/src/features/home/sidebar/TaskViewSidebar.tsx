@@ -13,13 +13,11 @@ import { TaskViewPanel } from '../task/view/TaskViewPanel';
 export const TASK_VIEW_PREVIEW_WIDTH = 184;
 export const TASK_VIEW_PREVIEW_COLLAPSED_WIDTH = 44;
 export const TASK_VIEW_DETAIL_WIDTH = 500;
-export const TASK_VIEW_OUTER_PADDING_PX = 4;
-export const TASK_VIEW_COLUMN_GAP_PX = 4;
 
 export const getTaskViewSidebarWidth = (isPreviewOpen: boolean) => {
   const previewWidth = isPreviewOpen ? TASK_VIEW_PREVIEW_WIDTH : TASK_VIEW_PREVIEW_COLLAPSED_WIDTH;
 
-  return TASK_VIEW_DETAIL_WIDTH + previewWidth + TASK_VIEW_OUTER_PADDING_PX * 2 + TASK_VIEW_COLUMN_GAP_PX;
+  return TASK_VIEW_DETAIL_WIDTH + previewWidth;
 };
 
 interface TaskViewSidebarProps {
@@ -50,12 +48,13 @@ const PreviewRail = ({
         sx={{
           width: `${TASK_VIEW_PREVIEW_COLLAPSED_WIDTH}px`,
           minWidth: `${TASK_VIEW_PREVIEW_COLLAPSED_WIDTH}px`,
+          boxSizing: 'border-box',
+          p: 2,
           borderRight: '1px solid',
           borderColor: 'divider',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'flex-start',
-          pt: 1,
           minHeight: 0,
         }}>
         <IconButton aria-label="Expand task list sidebar" size="small" onClick={onTogglePreview}>
@@ -70,13 +69,15 @@ const PreviewRail = ({
       sx={{
         width: `${TASK_VIEW_PREVIEW_WIDTH}px`,
         minWidth: `${TASK_VIEW_PREVIEW_WIDTH}px`,
+        boxSizing: 'border-box',
+        p: 2.5,
         borderRight: '1px solid',
         borderColor: 'divider',
         display: 'flex',
         flexDirection: 'column',
         minHeight: 0,
       }}>
-      <Box px={1} py={1} display="flex" alignItems="center" justifyContent="space-between" gap={1}>
+      <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
         <IconButton aria-label="Back to tasks" size="small" onClick={onBackToTasks}>
           <Icon path={mdiArrowLeft} size={0.85} />
         </IconButton>
@@ -85,7 +86,7 @@ const PreviewRail = ({
         </IconButton>
       </Box>
 
-      <List dense sx={{ pt: 0, overflowY: 'auto', flex: 1, px: 0.5 }}>
+      <List dense sx={{ pt: 0, overflowY: 'auto', flex: 1 }}>
         {previewTasks.map((task) => {
           return (
             <ListItem key={task.task_id} disablePadding>
@@ -139,7 +140,6 @@ export const TaskViewSidebar = ({ isPreviewOpen, onTogglePreview }: TaskViewSide
       component={Paper}
       elevation={1}
       sx={{
-        p: `${TASK_VIEW_OUTER_PADDING_PX}px`,
         boxSizing: 'border-box',
         width: `${totalWidth}px`,
         minWidth: `${totalWidth}px`,
@@ -153,7 +153,6 @@ export const TaskViewSidebar = ({ isPreviewOpen, onTogglePreview }: TaskViewSide
         sx={{
           display: 'flex',
           flexDirection: 'row',
-          gap: `${TASK_VIEW_COLUMN_GAP_PX}px`,
           width: '100%',
           height: '100%',
           minHeight: 0,
@@ -171,7 +170,14 @@ export const TaskViewSidebar = ({ isPreviewOpen, onTogglePreview }: TaskViewSide
           }}
         />
 
-        <Box sx={{ width: `${TASK_VIEW_DETAIL_WIDTH}px`, minHeight: 0, overflow: 'hidden' }}>
+        <Box
+          sx={{
+            width: `${TASK_VIEW_DETAIL_WIDTH}px`,
+            minHeight: 0,
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+            p: 0,
+          }}>
           <TaskViewPanel />
         </Box>
       </Box>
