@@ -1,8 +1,8 @@
 import { mdiAccountPlusOutline, mdiArrowLeft, mdiCheck, mdiDeleteOutline, mdiPencilOutline } from '@mdi/js';
 import Icon from '@mdi/react';
-import { LoadingButton } from '@mui/lab';
 import { IconButton, TextField, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import { IconMenuButton } from 'components/button/IconMenuButton';
 import { EditDialog } from 'components/dialog/EditDialog';
@@ -323,7 +323,7 @@ export const TaskSubmitPanel = () => {
                       <TaskAdvancedSection />
                     </Box>
                     <Box mx={3}>
-                      <LoadingButton
+                      <Button
                         variant="contained"
                         size="large"
                         loading={isSubmitting}
@@ -331,7 +331,7 @@ export const TaskSubmitPanel = () => {
                         color="primary"
                         fullWidth>
                         Submit
-                      </LoadingButton>
+                      </Button>
                     </Box>
                   </Box>
                 </Box>
