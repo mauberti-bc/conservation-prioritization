@@ -111,6 +111,9 @@ export const TaskSubmitPanel = () => {
 
       const updatedTask = await conservationApi.task.updateTask(taskId, {
         status: 'submitted',
+        resolution: values.resolution,
+        resampling: values.resampling,
+        variant: values.variant,
         layers: mappedLayers,
         budget: values.budget
           ? {
