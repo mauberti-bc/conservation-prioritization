@@ -1,7 +1,7 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getDBConnection } from '../../../database/db';
-import { UpdateProject } from '../../../models/project';
+import { DeleteProject, UpdateProject } from '../../../models/project';
 import { defaultErrorResponses } from '../../../openapi/schemas/http-responses';
 import { GetProjectSchema, UpdateProjectSchema } from '../../../openapi/schemas/project';
 import { authorizeRequestHandler } from '../../../request-handlers/security/authorization';
@@ -89,13 +89,13 @@ export function updateProject(): RequestHandler {
         updates.name = body.name;
       }
 
-    if (body.description !== undefined) {
-      updates.description = body.description;
-    }
+      if (body.description !== undefined) {
+        updates.description = body.description;
+      }
 
-    if (body.colour !== undefined) {
-      updates.colour = body.colour ?? undefined;
-    }
+      if (body.colour !== undefined) {
+        updates.colour = body.colour ?? undefined;
+      }
 
       const project = await projectService.updateProject(projectId, updates);
 
@@ -104,6 +104,90 @@ export function updateProject(): RequestHandler {
       return res.status(200).json(project);
     } catch (error) {
       defaultLog.error({ label: 'updateProject', message: 'error', error });
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  };
+}
+
+/**
+ * DELETE /project/{projectId}
+ *
+ * Soft deletes a project by its ID.
+ */
+export const DELETE: Operation = [
+  authorizeRequestHandler((req) => {
+    return {
+      and: [
+        {
+          discriminator: 'Project',
+          projectId: req.params.projectId
+        }
+      ]
+    };
+  }),
+  deleteProject()
+];
+
+DELETE.apiDoc = {
+  description: 'Soft delete a project by its ID.',
+  tags: ['projects'],
+  security: [
+    {
+      Bearer: []
+    }
+  ],
+  parameters: [
+    {
+      in: 'path',
+      name: 'projectId',
+      required: true,
+      schema: {
+        type: 'string',
+        format: 'uuid'
+      },
+      description: 'UUID of the project to delete.'
+    }
+  ],
+  responses: {
+    204: {
+      description: 'Project deleted successfully.'
+    },
+    404: {
+      description: 'Project not found.'
+    },
+    ...defaultErrorResponses
+  }
+};
+
+/**
+ * Express request handler to soft delete a project by its ID.
+ *
+ * @returns {RequestHandler}
+ */
+export function deleteProject(): RequestHandler {
+  return async (req, res) => {
+    const projectId = req.params.projectId;
+
+    defaultLog.debug({ label: 'deleteProject', message: `Deleting project ${projectId}` });
+
+    const connection = getDBConnection(req.keycloak_token);
+
+    try {
+      await connection.open();
+
+      const projectService = new ProjectService(connection);
+      const data: DeleteProject = { project_id: projectId };
+
+      await projectService.deleteProject(data);
+
+      await connection.commit();
+
+      return res.status(204).send();
+    } catch (error) {
+      defaultLog.error({ label: 'deleteProject', message: 'error', error });
       await connection.rollback();
       throw error;
     } finally {

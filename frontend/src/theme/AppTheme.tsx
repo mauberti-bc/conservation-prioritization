@@ -270,6 +270,14 @@ export const appTheme = createTheme({
         disableRipple: true,
       },
     },
+    MuiList: {
+      styleOverrides: {
+        root: {
+          paddingTop: 0,
+          paddingBottom: 0,
+        },
+      },
+    },
     MuiListItemButton: {
       styleOverrides: {
         root: {
@@ -607,6 +615,7 @@ export const appTheme = createTheme({
       defaultProps: { disableRipple: true, disableTouchRipple: true },
       styleOverrides: {
         root: {
+          margin: 0,
           padding: '12px',
           borderRadius: '4px',
           '& .MuiTypography-root': {

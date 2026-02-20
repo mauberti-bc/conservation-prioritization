@@ -468,10 +468,10 @@ export const TasksLandingView = () => {
                     }}
                     menuItems={[
                       {
-                        label: 'Delete',
-                        icon: mdiDelete,
+                        label: 'Share',
+                        icon: mdiAccountPlus,
                         onClick: () => {
-                          handleDeleteTask(task);
+                          handleInviteTask(task);
                         },
                       },
                       {
@@ -489,10 +489,10 @@ export const TasksLandingView = () => {
                         },
                       },
                       {
-                        label: 'Invite',
-                        icon: mdiAccountPlus,
+                        label: 'Delete',
+                        icon: mdiDelete,
                         onClick: () => {
-                          handleInviteTask(task);
+                          handleDeleteTask(task);
                         },
                       },
                     ]}
@@ -505,22 +505,16 @@ export const TasksLandingView = () => {
           {hasNoFilteredTasks && (
             <Box
               sx={{
+                bgcolor: grey[50],
                 border: `1px solid ${theme.palette.divider}`,
                 borderRadius: 2,
-                p: 4,
+                p: 8,
                 textAlign: 'center',
               }}>
-              <Typography variant="h6">No tasks found</Typography>
+              <Typography fontWeight={700}>No tasks found</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
                 Try another search or create a new task.
               </Typography>
-              <Button
-                variant="contained"
-                onClick={() => {
-                  navigate('/t/new');
-                }}>
-                Create a task
-              </Button>
             </Box>
           )}
         </Stack>

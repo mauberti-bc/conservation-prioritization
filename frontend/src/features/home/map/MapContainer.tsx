@@ -39,8 +39,12 @@ export const MapContainer = ({
   const mapRef = useSharedContext ? sharedMapRef : localMapRef;
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [areLayersLoaded, setAreLayersLoaded] = useState(false);
+  const lastPmtilesSignatureRef = useRef<string>('');
+  const hasPmtiles = pmtilesUrls.some((url) => {
+    return Boolean(url);
+  });
 
-  const isMapLoading = !isMapInitialized || (pmtilesUrls.length > 0 && !areLayersLoaded);
+  const isMapLoading = !isMapInitialized || (hasPmtiles && !areLayersLoaded);
 
   useEffect(() => {
     const mapHost = mapHostRef.current;
@@ -98,8 +102,8 @@ export const MapContainer = ({
         sources: {},
         layers: [],
       },
-      center: [-125, 55],
-      zoom: 5,
+      center: [-125, 50],
+      zoom: 3,
       maxZoom: 11,
       interactive,
     });
@@ -173,13 +177,24 @@ export const MapContainer = ({
       return undefined;
     }
 
+    const normalizedPmtilesUrls = pmtilesUrls.filter((url) => {
+      return Boolean(url);
+    });
+    const pmtilesSignature = `${normalizedPmtilesUrls.join('|')}::${pmtilesOpacity}`;
+
+    if (pmtilesSignature === lastPmtilesSignatureRef.current) {
+      return undefined;
+    }
+
+    lastPmtilesSignatureRef.current = pmtilesSignature;
+
     let cancelled = false;
     setAreLayersLoaded(false);
 
     const applyLayers = () => {
-      updatePmtilesLayers(map, pmtilesUrls, pmtilesOpacity);
+      updatePmtilesLayers(map, normalizedPmtilesUrls, pmtilesOpacity);
 
-      if (!pmtilesUrls.length) {
+      if (!normalizedPmtilesUrls.length) {
         setAreLayersLoaded(true);
         return;
       }
@@ -273,11 +288,13 @@ const ensureBaseLayer = (map: maplibregl.Map, showBaseLayer: boolean): void => {
     map.addSource('osm', {
       type: 'raster',
       tiles: [
-        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+        'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
       ],
       tileSize: 256,
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
     });
   }
 
