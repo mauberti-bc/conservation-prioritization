@@ -17,6 +17,7 @@ interface MapContainerProps {
   showBaseLayer?: boolean;
   pmtilesOpacity?: number;
   onPmtilesDisplayed?: (displayed: boolean) => void;
+  waitForPmtiles?: boolean;
 }
 
 /**
@@ -34,6 +35,7 @@ export const MapContainer = ({
   showBaseLayer = true,
   pmtilesOpacity = 0.75,
   onPmtilesDisplayed,
+  waitForPmtiles = true,
 }: MapContainerProps) => {
   const mapHostRef = useRef<HTMLDivElement | null>(null);
   const { mapRef: sharedMapRef, setIsMapReady } = useMapContext();
@@ -48,7 +50,7 @@ export const MapContainer = ({
   const hasPmtiles = normalizedPmtilesUrls.length > 0;
   const hasRenderedPmtiles = hasAnyPmtilesLayers(mapRef.current);
 
-  const isMapLoading = !isMapInitialized || (hasPmtiles && !areLayersLoaded && !hasRenderedPmtiles);
+  const isMapLoading = !isMapInitialized || (waitForPmtiles && hasPmtiles && !areLayersLoaded && !hasRenderedPmtiles);
 
   useEffect(() => {
     if (!onPmtilesDisplayed) {

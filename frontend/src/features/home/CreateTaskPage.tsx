@@ -20,7 +20,7 @@ export const CreateTaskPage = () => {
   return (
     <Box position="relative" height="100%" overflow="hidden">
       <Box height="100%" display="flex" flexDirection="column" overflow="hidden">
-        <MapContainer pmtilesUrls={[]} keepAliveKey="home-map" />
+        <MapContainer pmtilesUrls={[]} />
         <DrawControls ref={drawControlsRef} />
       </Box>
 
