@@ -21,8 +21,10 @@ interface IGuardProps {
  */
 export const UnAuthGuard = (props: PropsWithChildren<IGuardProps>) => {
   const authContext = useAuthContext();
+  const isLoggedIn =
+    authContext.auth.isAuthenticated || Boolean(authContext.auth.user && !authContext.auth.user.expired);
 
-  if (authContext.auth.isAuthenticated) {
+  if (isLoggedIn) {
     if (props.fallback) {
       return <>{props.fallback}</>;
     }
@@ -41,8 +43,10 @@ export const UnAuthGuard = (props: PropsWithChildren<IGuardProps>) => {
  */
 export const AuthGuard = (props: PropsWithChildren<IGuardProps>) => {
   const authContext = useAuthContext();
+  const isLoggedIn =
+    authContext.auth.isAuthenticated || Boolean(authContext.auth.user && !authContext.auth.user.expired);
 
-  if (!authContext.auth.isAuthenticated) {
+  if (!isLoggedIn) {
     if (props.fallback) {
       return <>{props.fallback}</>;
     }
@@ -62,12 +66,14 @@ export const AuthGuard = (props: PropsWithChildren<IGuardProps>) => {
 export const AuthRedirectGuard = (props: PropsWithChildren<IGuardProps>) => {
   const authContext = useAuthContext();
   const location = useLocation();
+  const isLoggedIn =
+    authContext.auth.isAuthenticated || Boolean(authContext.auth.user && !authContext.auth.user.expired);
 
   if (authContext.auth.isLoading) {
     return props.fallback ?? <></>;
   }
 
-  if (!authContext.auth.isAuthenticated) {
+  if (!isLoggedIn) {
     if (props.fallback) {
       return <>{props.fallback}</>;
     }

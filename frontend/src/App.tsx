@@ -8,7 +8,7 @@ import { AuthContext, AuthProvider, AuthProviderProps } from 'react-oidc-context
 import { BrowserRouter } from 'react-router-dom';
 import { AppRouter } from 'router/AppRouter';
 import { appTheme } from 'theme/AppTheme';
-import { buildUrl } from 'utils/util';
+import { buildUrl, ensureProtocol } from 'utils/util';
 
 const App = () => {
   return (
@@ -25,18 +25,27 @@ const App = () => {
                     isLoading={!config}
                     isLoadingFallback={<CircularProgress className="pageProgress" size={40} />}>
                     {(() => {
+                      const keycloakAuthorityConfig = config?.KEYCLOAK_CONFIG.authority ?? '';
+                      const keycloakRealm = config?.KEYCLOAK_CONFIG.realm ?? '';
+                      const normalizedAuthority = keycloakAuthorityConfig
+                        ? ensureProtocol(keycloakAuthorityConfig, 'https://')
+                        : '';
+                      const authority = normalizedAuthority.includes('/realms/')
+                        ? normalizedAuthority
+                        : buildUrl(normalizedAuthority, `realms/${keycloakRealm}/`);
+                      const redirectUri = buildUrl(window.location.origin, 'auth/login');
                       const logoutRedirectUri = config?.SITEMINDER_LOGOUT_URL
                         ? `${config.SITEMINDER_LOGOUT_URL}?returl=${window.location.origin}&retnow=1`
                         : buildUrl(window.location.origin);
 
                       const authConfig: AuthProviderProps = {
-                        authority: `${config?.KEYCLOAK_CONFIG.authority}/realms/${config?.KEYCLOAK_CONFIG.realm}/`,
+                        authority,
                         client_id: config?.KEYCLOAK_CONFIG.clientId ?? '',
                         resource: config?.KEYCLOAK_CONFIG.clientId ?? '',
                         // Automatically renew the access token before it expires
                         automaticSilentRenew: true,
                         // Default sign in redirect
-                        redirect_uri: buildUrl(window.location.origin),
+                        redirect_uri: redirectUri,
                         // Default sign out redirect
                         post_logout_redirect_uri: logoutRedirectUri,
                         // Automatically load additional user profile information
@@ -44,7 +53,7 @@ const App = () => {
                         userStore: new WebStorageStateStore({ store: window.localStorage }),
                         onSigninCallback: (_): void => {
                           // See https://github.com/authts/react-oidc-context#getting-started
-                          window.history.replaceState({}, document.title, '/t/');
+                          window.history.replaceState({}, document.title, '/');
                         },
                       };
 
