@@ -46,9 +46,17 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
   }
 
   useEffect(() => {
-    taskDataLoader.refresh(activeTaskId);
+    if (taskDataLoader.data?.task_id === activeTaskId) {
+      return;
+    }
+
+    if (taskDataLoader.isLoading) {
+      return;
+    }
+
+    void taskDataLoader.refresh(activeTaskId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTaskId]);
+  }, [activeTaskId, taskDataLoader.data?.task_id, taskDataLoader.isLoading]);
 
   const setFocusedTask = useCallback(
     (task: GetTaskResponse | null) => {
