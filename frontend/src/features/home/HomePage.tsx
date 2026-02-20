@@ -2,12 +2,21 @@ import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import { TASK_STATUS, TILE_STATUS } from 'constants/status';
 import { AuthContext } from 'context/authContext';
+import { ApiPaginationRequestOptions } from 'types/pagination';
 import { useMapContext, useProjectContext, useSidebarUIContext, useTaskContext } from 'hooks/useContext';
 import { useContext, useEffect, useMemo } from 'react';
+import { TasksLandingView } from './landing/TasksLandingView';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
 import { Sidebar } from './sidebar/Sidebar';
 import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
+
+const defaultPagination: ApiPaginationRequestOptions = {
+  page: 1,
+  limit: 25,
+  sort: 'created_at',
+  order: 'desc',
+};
 
 export const HomePage = () => {
   const { drawControlsRef } = useMapContext();
@@ -26,19 +35,20 @@ export const HomePage = () => {
       return;
     }
 
+    if (!taskId) {
+      void tasksDataLoader.load(defaultPagination);
+      void projectsDataLoader.load();
+      return;
+    }
+
     if (activeView === 'tasks') {
-      void tasksDataLoader.load({
-        page: 1,
-        limit: 25,
-        sort: 'created_at',
-        order: 'desc',
-      });
+      void tasksDataLoader.load(defaultPagination);
     }
 
     if (activeView === 'projects') {
       void projectsDataLoader.load();
     }
-  }, [activeView, isAuthenticated, tasksDataLoader, projectsDataLoader]);
+  }, [activeView, isAuthenticated, taskId, tasksDataLoader, projectsDataLoader]);
 
   const pmtilesUrls = useMemo(() => {
     const statusUri =
@@ -83,6 +93,10 @@ export const HomePage = () => {
       </>
     );
   }, [drawControlsRef, pmtilesUrls]);
+
+  if (!taskId) {
+    return <TasksLandingView />;
+  }
 
   return (
     <Box position="relative" height="100%" overflow="hidden">

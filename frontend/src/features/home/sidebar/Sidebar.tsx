@@ -15,6 +15,7 @@ import { ApiPaginationRequestOptions } from 'types/pagination';
 import { useLayerSearch } from 'hooks/useLayerSearch';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toApiHexColour } from 'utils/colour';
 import { LayerPanel } from '../layer-panel/LayerPanel';
 import { EditTask } from '../task/create/EditTask';
 import { SidebarNavigation } from './navigation/SidebarNavigation';
@@ -107,7 +108,7 @@ export const Sidebar = ({
       await conservationApi.project.createProject({
         name: values.name,
         description: values.description.trim() && values.description,
-        colour: values.colour.trim() ? values.colour : undefined,
+        colour: toApiHexColour(values.colour),
       });
 
       await refreshProjects();

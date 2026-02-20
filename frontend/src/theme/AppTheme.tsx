@@ -3,6 +3,18 @@ import { alpha, createTheme } from '@mui/material/styles';
 import 'styles.scss';
 import 'styles/fonts.scss';
 
+const disabledInputBackground = grey[100];
+
+declare module '@mui/material/styles' {
+  interface Palette {
+    selected: Palette['primary'];
+  }
+
+  interface PaletteOptions {
+    selected?: PaletteOptions['primary'];
+  }
+}
+
 export const appTheme = createTheme({
   breakpoints: {
     values: {
@@ -17,11 +29,21 @@ export const appTheme = createTheme({
     background: {
       default: grey[100],
     },
+    common: {
+      white: '#ffffff',
+      black: '#000000',
+    },
     primary: {
       light: '#5595D9',
       main: '#1E5189',
       dark: '#003366',
       contrastText: '#ffffff',
+    },
+    selected: {
+      light: '#e3f2fd',
+      main: '#e3f2fd',
+      dark: '#bbdefb',
+      contrastText: '#1E5189',
     },
     success: {
       light: '#7fc09bff',
@@ -167,23 +189,55 @@ export const appTheme = createTheme({
     },
     MuiButtonGroup: {
       defaultProps: { disableElevation: true, disableRipple: true, disableFocusRipple: true },
-      styleOverrides: {},
+      styleOverrides: {
+        root: {
+          border: 'none',
+          boxShadow: 'none',
+          overflow: 'visible',
+        },
+        grouped: {
+          border: 'none',
+          boxShadow: 'none',
+          position: 'relative',
+          '&:not(:last-of-type)': {
+            borderRight: 'none',
+          },
+          '&.Mui-focusVisible': {
+            zIndex: 2,
+          },
+          '&:focus': {
+            zIndex: 2,
+          },
+        },
+      },
     },
     MuiButton: {
-      defaultProps: {},
+      defaultProps: { disableElevation: true, disableRipple: true, disableFocusRipple: true },
       styleOverrides: {
         root: {
           fontWeight: 700,
+          textTransform: 'capitalize',
           whiteSpace: 'nowrap',
-          padding: '8px 16px',
+          padding: '6px 12px',
           lineHeight: 1.4,
           '&:focus': {
             outline: '2px solid #3B99FC',
             outlineOffset: '-1px',
           },
+          '&:active': {
+            boxShadow: 'none',
+            filter: 'brightness(0.9)',
+          },
+          '&:hover': {
+            filter: 'brightness(0.95)',
+          },
         },
         contained: {
           letterSpacing: '0.02rem',
+          boxShadow: 'none',
+          '&:hover': {
+            boxShadow: 'none',
+          },
         },
         outlined: {
           borderWidth: 1,
@@ -195,18 +249,19 @@ export const appTheme = createTheme({
         startIcon: {
           marginBottom: '1px',
           mr: 0,
+          padding: '0 8px',
         },
         sizeSmall: {
           fontSize: '0.9rem',
-          padding: '8px 12px',
+          padding: '4px 10px',
         },
         sizeMedium: {
           fontSize: '0.875rem',
-          padding: '12px 16px',
+          padding: '10px 12px',
         },
         sizeLarge: {
           fontSize: '1rem',
-          padding: '10px 18px',
+          padding: '12px 14px',
         },
       },
     },
@@ -230,6 +285,22 @@ export const appTheme = createTheme({
           borderRadius: '4px',
           textTransform: 'capitalize',
           padding: '10px 5px !important',
+          fontWeight: 700,
+          boxShadow: 'none',
+          '& .MuiTouchRipple-root': {
+            display: 'none',
+          },
+          '&.MuiChip-clickable:hover': {
+            filter: 'brightness(0.95)',
+          },
+          '&.MuiChip-clickable:active': {
+            filter: 'brightness(0.9)',
+            boxShadow: 'none',
+          },
+          '&.Mui-focusVisible': {
+            filter: 'brightness(0.95)',
+            boxShadow: 'none',
+          },
           '&.MuiChip-sizeSmall': {
             fontSize: '0.8rem',
           },
@@ -267,7 +338,7 @@ export const appTheme = createTheme({
     MuiDialogContent: {
       styleOverrides: {
         root: {
-          paddingTop: '8px !important' /* Any form fields inside this component get clipped if we don't add this */,
+          paddingTop: '8px !important',
         },
       },
     },
@@ -282,8 +353,21 @@ export const appTheme = createTheme({
       },
     },
     MuiIconButton: {
+      defaultProps: {
+        disableRipple: true,
+        disableFocusRipple: true,
+      },
       styleOverrides: {
         root: {
+          boxShadow: 'none',
+          borderRadius: '4px',
+          '&:hover': {
+            backgroundColor: grey[200],
+          },
+          '&:active': {
+            boxShadow: 'none',
+            backgroundColor: grey[300],
+          },
           '&:focus': {
             outline: '3px solid #3B99FC',
             outlineOffset: '-3px',
@@ -293,53 +377,188 @@ export const appTheme = createTheme({
     },
     MuiInputBase: {
       styleOverrides: {
-        root: {
-          backgroundColor: '#fff',
+        root: ({ theme }) => ({
+          color: theme.palette.text.primary,
+        }),
+        input: ({ theme }) => ({
+          color: theme.palette.text.primary,
+          '&::placeholder': {
+            color: theme.palette.text.secondary,
+            opacity: 0.7,
+          },
+        }),
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          '& .MuiOutlinedInput-root': {
+            borderRadius: '4px',
+            padding: '8px 16px 8px 16px',
+            backgroundColor: theme.palette.background.paper,
+            color: theme.palette.text.primary,
+            '&.Mui-disabled': {
+              backgroundColor: disabledInputBackground,
+            },
+            '& .MuiInputAdornment-root': {
+              padding: 0,
+            },
+            '& .MuiInputAdornment-positionStart': {
+              marginLeft: 0,
+              marginRight: '10px',
+            },
+            '& .MuiInputAdornment-positionEnd': {
+              marginLeft: '10px',
+              marginRight: 0,
+            },
+            '&.MuiInputBase-sizeSmall': {
+              padding: '6px 12px',
+            },
+            '&.MuiInputBase-sizeSmall .MuiInputBase-input': {
+              padding: '6px 0',
+            },
+            '&.MuiInputBase-sizeSmall .MuiInputAdornment-positionStart': {
+              marginRight: '8px',
+            },
+            '&.MuiInputBase-sizeSmall .MuiInputAdornment-positionEnd': {
+              marginLeft: '8px',
+            },
+            '& fieldset': {
+              border: `1px solid ${grey[400]}`,
+            },
+            '&:hover fieldset': {
+              borderColor: grey[600],
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: theme.palette.primary.main,
+              borderWidth: '2px',
+            },
+            '&.Mui-error input::placeholder': {
+              color: theme.palette.error.main,
+              opacity: 1,
+            },
+          },
+          '& .MuiInputBase-input': {
+            padding: '8px 0',
+            color: theme.palette.text.primary,
+          },
+          '& .MuiInputBase-input::placeholder': {
+            color: theme.palette.text.secondary,
+            opacity: 0.7,
+          },
+          '& .MuiInputAdornment-positionStart': {
+            color: alpha(theme.palette.text.secondary, 0.78),
+            '& .MuiSvgIcon-root, & svg': {
+              color: 'inherit',
+            },
+          },
+          '& .MuiFormLabel-root': {
+            top: 1,
+            left: 1,
+          },
+          '& .MuiOutlinedInput-root.Mui-error .MuiInputAdornment-positionStart': {
+            color: theme.palette.error.main,
+          },
+          '& .MuiOutlinedInput-root.Mui-error .MuiInputAdornment-root': {
+            color: theme.palette.error.main,
+          },
+        }),
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          backgroundColor: theme.palette.background.paper,
+          '&.Mui-disabled': {
+            backgroundColor: disabledInputBackground,
+          },
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: grey[400],
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: grey[600],
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: theme.palette.primary.main,
+            borderWidth: '2px',
+          },
+        }),
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          color: theme.palette.text.secondary,
+          '&.Mui-focused': {
+            color: theme.palette.primary.main,
+          },
+          '&.Mui-error': {
+            color: theme.palette.error.main,
+          },
+        }),
+        outlined: {
+          transform: 'translate(16px, 16px) scale(1)',
+          '&.MuiInputLabel-shrink': {
+            transform: 'translate(14px, -9px) scale(0.75)',
+          },
         },
       },
     },
-
-    MuiOutlinedInput: {
+    MuiFormHelperText: {
       styleOverrides: {
-        root: {
-          borderRadius: '6px',
-          backgroundColor: '#fff',
-          padding: 0,
-          '&.Mui-error .MuiOutlinedInput-notchedOutline': {
-            borderWidth: '2px',
-            top: '-4px',
+        root: ({ theme }) => ({
+          color: theme.palette.text.secondary,
+          '&.Mui-error': {
+            color: theme.palette.error.main,
           },
-        },
-        input: {
-          padding: '12.5px 14px !important',
-          margin: 0,
-        },
-        adornedStart: {
-          paddingLeft: '14px !important',
-          '& input': {
-            padding: '12.5px 8px !important',
-          },
-        },
-        adornedEnd: {
-          padding: '0 0px 0 14px !important',
-          '& input': {
-            padding: '12.5px 0px !important',
-          },
-        },
+        }),
       },
     },
     MuiAutocomplete: {
       styleOverrides: {
-        root: {
-          padding: 0, // remove any extra root padding
-        },
-        inputRoot: {
-          padding: '0', // removes internal padding around input
-        },
-        tag: {
-          fontWeight: 400,
-          margin: '2px', // optional, controls chip spacing
-        },
+        root: ({ theme }) => ({
+          '&.MuiAutocomplete-hasPopupIcon .MuiOutlinedInput-root, &.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root':
+            {
+              paddingRight: '18px',
+            },
+          '& .MuiOutlinedInput-root': {
+            borderRadius: '4px',
+            padding: '8px 16px 8px 16px',
+            '&.Mui-disabled': {
+              backgroundColor: disabledInputBackground,
+            },
+            '& .MuiAutocomplete-endAdornment': {
+              paddingRight: '18px !important',
+            },
+            '& .MuiAutocomplete-popupIndicator, &.MuiAutocomplete-hasPopupIcon': {
+              display: 'none',
+            },
+            '& .MuiFormLabel-root': {
+              top: 1,
+              left: 1,
+            },
+          },
+          '& .MuiInputBase-input': {
+            padding: '8px 0px !important',
+          },
+          '& .MuiAutocomplete-tag': {
+            backgroundColor: alpha(theme.palette.primary.main, 0.14),
+            color: theme.palette.primary.dark,
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+            marginRight: '8px',
+            '& .MuiChip-label': {
+              color: theme.palette.primary.dark,
+              fontWeight: 700,
+            },
+            '& .MuiChip-deleteIcon': {
+              fontSize: '1rem',
+              color: alpha(theme.palette.primary.dark, 0.85),
+              '&:hover': {
+                color: theme.palette.primary.dark,
+              },
+            },
+          },
+        }),
       },
     },
 
@@ -381,6 +600,28 @@ export const appTheme = createTheme({
       styleOverrides: {
         root: {
           minWidth: '42px',
+        },
+      },
+    },
+    MuiMenuItem: {
+      defaultProps: { disableRipple: true, disableTouchRipple: true },
+      styleOverrides: {
+        root: {
+          padding: '12px',
+          borderRadius: '4px',
+          '& .MuiTypography-root': {
+            fontWeight: 700,
+          },
+        },
+      },
+    },
+    MuiMenu: {
+      styleOverrides: {
+        root: {
+          '& .MuiPaper-root': {
+            borderRadius: '6px',
+            padding: '8px',
+          },
         },
       },
     },

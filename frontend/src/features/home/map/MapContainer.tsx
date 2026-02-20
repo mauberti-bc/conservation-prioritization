@@ -11,6 +11,11 @@ import { ensurePMTilesProtocol } from 'utils/pmtilesProtocol';
 interface MapContainerProps {
   pmtilesUrls?: string[];
   keepAliveKey?: string;
+  useSharedContext?: boolean;
+  interactive?: boolean;
+  showNavigationControl?: boolean;
+  showBaseLayer?: boolean;
+  pmtilesOpacity?: number;
 }
 
 /**
@@ -19,10 +24,19 @@ interface MapContainerProps {
  * @param {MapContainerProps} props
  * @returns {JSX.Element}
  */
-export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerProps) => {
-  console.log(pmtilesUrls);
+export const MapContainer = ({
+  pmtilesUrls = [],
+  keepAliveKey,
+  useSharedContext = true,
+  interactive = true,
+  showNavigationControl = true,
+  showBaseLayer = true,
+  pmtilesOpacity = 0.75,
+}: MapContainerProps) => {
   const mapHostRef = useRef<HTMLDivElement | null>(null);
-  const { mapRef, setIsMapReady } = useMapContext();
+  const { mapRef: sharedMapRef, setIsMapReady } = useMapContext();
+  const localMapRef = useRef<maplibregl.Map | null>(null);
+  const mapRef = useSharedContext ? sharedMapRef : localMapRef;
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [areLayersLoaded, setAreLayersLoaded] = useState(false);
 
@@ -43,9 +57,11 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
         mapRef.current = cached.map;
 
         const handleReady = () => {
-          ensureBaseLayer(cached.map);
+          ensureBaseLayer(cached.map, showBaseLayer);
           setIsMapInitialized(true);
-          setIsMapReady(true);
+          if (useSharedContext) {
+            setIsMapReady(true);
+          }
         };
 
         if (cached.map.isStyleLoaded()) {
@@ -62,7 +78,9 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
           mapRef.current = null;
           setIsMapInitialized(false);
           setAreLayersLoaded(false);
-          setIsMapReady(false);
+          if (useSharedContext) {
+            setIsMapReady(false);
+          }
         };
       }
     }
@@ -83,14 +101,19 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
       center: [-125, 55],
       zoom: 5,
       maxZoom: 11,
+      interactive,
     });
 
-    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+    if (showNavigationControl) {
+      map.addControl(new maplibregl.NavigationControl(), 'top-right');
+    }
 
     const handleMapReady = () => {
-      ensureBaseLayer(map);
+      ensureBaseLayer(map, showBaseLayer);
       setIsMapInitialized(true);
-      setIsMapReady(true);
+      if (useSharedContext) {
+        setIsMapReady(true);
+      }
     };
 
     map.once('load', handleMapReady);
@@ -114,9 +137,11 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
       mapRef.current = null;
       setIsMapInitialized(false);
       setAreLayersLoaded(false);
-      setIsMapReady(false);
+      if (useSharedContext) {
+        setIsMapReady(false);
+      }
     };
-  }, [keepAliveKey, mapRef, setIsMapReady]);
+  }, [interactive, keepAliveKey, mapRef, setIsMapReady, showBaseLayer, showNavigationControl, useSharedContext]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -152,7 +177,7 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
     setAreLayersLoaded(false);
 
     const applyLayers = () => {
-      updatePmtilesLayers(map, pmtilesUrls);
+      updatePmtilesLayers(map, pmtilesUrls, pmtilesOpacity);
 
       if (!pmtilesUrls.length) {
         setAreLayersLoaded(true);
@@ -197,7 +222,7 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
     return () => {
       cancelled = true;
     };
-  }, [isMapInitialized, mapRef, pmtilesUrls]);
+  }, [isMapInitialized, mapRef, pmtilesOpacity, pmtilesUrls]);
 
   return (
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -231,7 +256,19 @@ export const MapContainer = ({ pmtilesUrls = [], keepAliveKey }: MapContainerPro
  * @param {maplibregl.Map} map
  * @returns {void}
  */
-const ensureBaseLayer = (map: maplibregl.Map): void => {
+const ensureBaseLayer = (map: maplibregl.Map, showBaseLayer: boolean): void => {
+  if (!showBaseLayer) {
+    if (map.getLayer('osm-tiles')) {
+      map.removeLayer('osm-tiles');
+    }
+
+    if (map.getSource('osm')) {
+      map.removeSource('osm');
+    }
+
+    return;
+  }
+
   if (!map.getSource('osm')) {
     map.addSource('osm', {
       type: 'raster',
@@ -262,7 +299,7 @@ const ensureBaseLayer = (map: maplibregl.Map): void => {
  * @param {string[]} pmtilesUrls
  * @returns {void}
  */
-const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[]): void => {
+const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[], pmtilesOpacity: number): void => {
   const sourcePrefix = 'pmtiles-';
   const layerPrefix = 'pmtiles-layer-';
 
@@ -307,7 +344,7 @@ const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[]): void =
       id: layerId,
       type: 'raster',
       source: sourceId,
-      paint: { 'raster-opacity': 0.75 },
+      paint: { 'raster-opacity': pmtilesOpacity },
       minzoom: 0,
       maxzoom: 12,
     });

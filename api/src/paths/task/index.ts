@@ -127,7 +127,18 @@ GET.apiDoc = {
       Bearer: []
     }
   ],
-  parameters: [...paginationRequestQueryParamSchema],
+  parameters: [
+    ...paginationRequestQueryParamSchema,
+    {
+      in: 'query',
+      name: 'search',
+      required: false,
+      description: 'Case-insensitive task name/description search term.',
+      schema: {
+        type: 'string'
+      }
+    }
+  ],
   responses: {
     200: {
       description: 'List of tasks returned successfully.',
@@ -169,6 +180,7 @@ export function getTasks(): RequestHandler {
 
       const taskService = new TaskService(connection);
       const paginationRequest = makePaginationOptionsFromRequest(req);
+      const search = typeof req.query.search === 'string' ? req.query.search : undefined;
       const pagination =
         ensureCompletePaginationOptions({
           page: paginationRequest.page ?? 1,
@@ -182,7 +194,7 @@ export function getTasks(): RequestHandler {
           order: 'desc'
         };
 
-      const tasks = await taskService.getTasksForProfilePaginated(profileId, pagination);
+      const tasks = await taskService.getTasksForProfilePaginated(profileId, pagination, search);
 
       await connection.commit();
 
