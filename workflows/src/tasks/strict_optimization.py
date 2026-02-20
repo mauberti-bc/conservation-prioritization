@@ -23,7 +23,6 @@ from rasterio.enums import Resampling
 from rasterio.features import rasterize
 from rasterio.transform import array_bounds
 from rio_tiler.io.xarray import XarrayReader
-from scipy import stats
 from shapely import GeometryCollection, MultiLineString, MultiPolygon, unary_union
 from shapely.geometry import mapping, shape
 from shapely.geometry.base import BaseGeometry
@@ -182,20 +181,18 @@ def load_input_data(
             print(f"Warning: Non-square pixels detected in group '{group_path}'")
 
         source_resolution = (abs(source_resolution_x) + abs(source_resolution_y)) / 2
-        downsample_factor = resolution / source_resolution
-
-        needs_coarsening = downsample_factor > 1
-        new_transform = None  # FIX: Initialize to None for type safety
-        if needs_coarsening:
-            factor = int(round(downsample_factor))
-            new_transform = Affine(
-                original_transform.a * factor,
-                original_transform.b,
-                original_transform.c,
-                original_transform.d,
-                original_transform.e * factor,
-                original_transform.f,
-            )
+        should_resample = abs(source_resolution - float(resolution)) > 1e-6
+        target_resolution = (
+            float(resolution) if should_resample else float(source_resolution)
+        )
+        resampling_method_by_name: Dict[str, Resampling] = {
+            "min": Resampling.min,
+            "max": Resampling.max,
+            "mode": Resampling.mode,
+        }
+        resampling_method = resampling_method_by_name.get(resampling)
+        if resampling_method is None:
+            raise ValueError(f"Unsupported resampling method: {resampling}")
 
         processed_vars: Dict[str, xr.DataArray] = {}
         empty_vars: List[str] = []
@@ -224,47 +221,37 @@ def load_input_data(
                     width = bounds[2] - bounds[0]
                     height = bounds[3] - bounds[1]
 
-                    if needs_coarsening and new_transform is not None:
-                        effective_resolution = source_resolution * factor
-                    else:
-                        effective_resolution = source_resolution
-
-                    ncols = max(1, int(np.ceil(width / effective_resolution)))
-                    nrows = max(1, int(np.ceil(height / effective_resolution)))
-
-                    if needs_coarsening and new_transform is not None:
-                        transform_to_use = new_transform
-                    else:
-                        transform_to_use = original_transform
-
-                    x_coords = (
-                        np.arange(ncols) * transform_to_use.a
-                        + transform_to_use.c
-                        + bounds[0]
+                    ncols = max(1, int(np.ceil(width / target_resolution)))
+                    nrows = max(1, int(np.ceil(height / target_resolution)))
+                    transform_to_use = Affine(
+                        target_resolution,
+                        0.0,
+                        bounds[0],
+                        0.0,
+                        -target_resolution,
+                        bounds[3],
                     )
-                    y_coords = (
-                        np.arange(nrows) * transform_to_use.e
-                        + transform_to_use.f
-                        + bounds[3]
-                    )
+                    x_coords = bounds[0] + (np.arange(ncols) + 0.5) * target_resolution
+                    y_coords = bounds[3] - (np.arange(nrows) + 0.5) * target_resolution
 
                 else:
-                    if needs_coarsening:
-                        assert new_transform is not None  # Type guard
-                        nrows = len(original_ds.y) // factor
-                        ncols = len(original_ds.x) // factor
-                        transform_to_use = new_transform
-                    else:
-                        nrows = len(original_ds.y)
-                        ncols = len(original_ds.x)
-                        transform_to_use = original_transform
-
-                    x_coords = (
-                        np.arange(ncols) * transform_to_use.a + transform_to_use.c
+                    left, bottom, right, top = array_bounds(
+                        len(original_ds.y), len(original_ds.x), original_transform
                     )
-                    y_coords = (
-                        np.arange(nrows) * transform_to_use.e + transform_to_use.f
+                    width = right - left
+                    height = top - bottom
+                    ncols = max(1, int(np.ceil(width / target_resolution)))
+                    nrows = max(1, int(np.ceil(height / target_resolution)))
+                    transform_to_use = Affine(
+                        target_resolution,
+                        0.0,
+                        left,
+                        0.0,
+                        -target_resolution,
+                        top,
                     )
+                    x_coords = left + (np.arange(ncols) + 0.5) * target_resolution
+                    y_coords = top - (np.arange(nrows) + 0.5) * target_resolution
 
                 coords = {"y": y_coords, "x": x_coords}
 
@@ -280,36 +267,15 @@ def load_input_data(
                 processed_vars[var] = dummy
                 continue
 
-            if needs_coarsening:
-                assert new_transform is not None  # Type guard
-                factor = int(round(downsample_factor))
-                coarsened = da.coarsen(x=factor, y=factor, boundary="pad")
-
-                if resampling == "min":
-                    da = coarsened.reduce(np.nanmin)
-                elif resampling == "max":
-                    da = coarsened.reduce(np.nanmax)
-                elif resampling == "mode":
-
-                    def nanmode(data: np.ndarray, axis: int) -> np.ndarray:
-                        if np.isnan(data).all(axis=axis).any():
-                            result = np.full(
-                                data.shape[:axis] + data.shape[axis + 1 :], np.nan
-                            )
-                        else:
-                            mode_result = stats.mode(
-                                data, axis=axis, nan_policy="omit", keepdims=False
-                            )
-                            result = mode_result.mode
-                        return result
-
-                    da = coarsened.reduce(nanmode)
-                else:
-                    raise ValueError(f"Unsupported resampling method: {resampling}")
-
-                da = da.rio.write_crs(crs).rio.write_transform(new_transform)
+            da = da.rio.write_crs(crs)
+            if should_resample:
+                da = da.rio.reproject(
+                    da.rio.crs,
+                    resolution=(target_resolution, target_resolution),
+                    resampling=resampling_method,
+                )
             else:
-                da = da.rio.write_crs(crs).rio.write_transform(original_transform)
+                da = da.rio.write_transform(original_transform)
 
             processed_vars[var] = da
 
