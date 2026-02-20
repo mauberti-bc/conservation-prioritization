@@ -2,9 +2,10 @@ import Box from '@mui/material/Box';
 import { grey } from '@mui/material/colors';
 import Paper from '@mui/material/Paper';
 import { useTaskContext } from 'hooks/useContext';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiPaginationRequestOptions } from 'types/pagination';
+import { CreateTaskDialog } from '../../create/CreateTaskDialog';
 import { TaskViewPanel } from '../panel/TaskViewPanel';
 import { TASK_VIEW_DETAIL_WIDTH } from './task-view-sidebar.constants';
 import { TaskViewSidebarPreviewRail } from './TaskViewSidebarPreviewRail';
@@ -17,6 +18,7 @@ interface TaskViewSidebarProps {
 export const TaskViewSidebar = ({ isPreviewOpen, onTogglePreview }: TaskViewSidebarProps) => {
   const navigate = useNavigate();
   const { taskId, tasksDataLoader, setFocusedTask } = useTaskContext();
+  const [isCreateTaskDialogOpen, setIsCreateTaskDialogOpen] = useState(false);
   const defaultPagination = useMemo<ApiPaginationRequestOptions>(() => {
     return {
       page: 1,
@@ -63,6 +65,9 @@ export const TaskViewSidebar = ({ isPreviewOpen, onTogglePreview }: TaskViewSide
             onBackToTasks={() => {
               navigate('/');
             }}
+            onOpenCreateTask={() => {
+              setIsCreateTaskDialogOpen(true);
+            }}
             onSelectTask={(task) => {
               setFocusedTask(task);
             }}
@@ -81,6 +86,7 @@ export const TaskViewSidebar = ({ isPreviewOpen, onTogglePreview }: TaskViewSide
           <TaskViewPanel />
         </Box>
       </Box>
+      {isCreateTaskDialogOpen && <CreateTaskDialog onCloseNavigateTo={`/t/${taskId}`} />}
     </Box>
   );
 };

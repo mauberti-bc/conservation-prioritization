@@ -24,7 +24,7 @@ export const TaskViewSidebarPreviewList = ({ previewTasks, taskId, onSelectTask 
               }}>
               <ListItemText
                 primary={
-                  <Typography variant="body2" noWrap sx={{ color: isSelected ? undefined : grey[500] }}>
+                  <Typography variant="body2" noWrap sx={{ color: isSelected ? 'inherit' : grey[600] }}>
                     {task.name}
                   </Typography>
                 }

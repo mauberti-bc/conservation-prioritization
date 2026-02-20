@@ -1,4 +1,4 @@
-import { mdiArrowLeft, mdiDockRight } from '@mdi/js';
+import { mdiArrowLeft, mdiDockRight, mdiPlus } from '@mdi/js';
 import Icon from '@mdi/react';
 import { IconButton } from '@mui/material';
 import Box from '@mui/material/Box';
@@ -12,6 +12,7 @@ interface TaskViewSidebarPreviewRailProps {
   previewTasks: GetTaskResponse[];
   onTogglePreview: () => void;
   onBackToTasks: () => void;
+  onOpenCreateTask: () => void;
   onSelectTask: (task: GetTaskResponse) => void;
 }
 
@@ -21,6 +22,7 @@ export const TaskViewSidebarPreviewRail = ({
   previewTasks,
   onTogglePreview,
   onBackToTasks,
+  onOpenCreateTask,
   onSelectTask,
 }: TaskViewSidebarPreviewRailProps) => {
   if (!isPreviewOpen) {
@@ -62,9 +64,14 @@ export const TaskViewSidebarPreviewRail = ({
         <IconButton aria-label="Back to tasks" size="small" onClick={onBackToTasks}>
           <Icon path={mdiArrowLeft} size={1} />
         </IconButton>
-        <IconButton aria-label="Collapse task list sidebar" size="small" onClick={onTogglePreview}>
-          <Icon path={mdiDockRight} size={1} />
-        </IconButton>
+        <Box display="flex" alignItems="center" gap={0.5}>
+          <IconButton aria-label="Create task" size="small" onClick={onOpenCreateTask}>
+            <Icon path={mdiPlus} size={1} />
+          </IconButton>
+          <IconButton aria-label="Collapse task list sidebar" size="small" onClick={onTogglePreview}>
+            <Icon path={mdiDockRight} size={1} />
+          </IconButton>
+        </Box>
       </Box>
 
       <TaskViewSidebarPreviewList previewTasks={previewTasks} taskId={taskId} onSelectTask={onSelectTask} />

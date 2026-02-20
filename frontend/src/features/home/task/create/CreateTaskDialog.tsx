@@ -3,13 +3,17 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreateTaskDialogContent } from './CreateTaskDialogContent';
 
-export const CreateTaskDialog = () => {
+interface CreateTaskDialogProps {
+  onCloseNavigateTo?: string;
+}
+
+export const CreateTaskDialog = ({ onCloseNavigateTo = '/t/' }: CreateTaskDialogProps) => {
   const navigate = useNavigate();
   const submitRef = useRef<(() => void) | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleClose = () => {
-    navigate('/t/');
+    navigate(onCloseNavigateTo);
   };
 
   const handleSubmit = () => {

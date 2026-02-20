@@ -4,6 +4,7 @@ import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { useMapContext } from 'hooks/useContext';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { PMTiles } from 'pmtiles';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { attachMapContainer, detachMapContainer, getMapCacheEntry, setMapCacheEntry } from 'utils/mapInstanceCache';
 import { ensurePMTilesProtocol } from 'utils/pmtilesProtocol';
@@ -37,6 +38,8 @@ export const MapContainer = ({
   onPmtilesDisplayed,
   waitForPmtiles = true,
 }: MapContainerProps) => {
+  const DefaultFitBoundsPadding = 32;
+  const DefaultFitBoundsMaxZoom = 14;
   const PmtilesSourcePrefix = 'pmtiles-source-';
   const PmtilesLayerPrefix = 'pmtiles-layer-';
   const mapHostRef = useRef<HTMLDivElement | null>(null);
@@ -49,11 +52,16 @@ export const MapContainer = ({
   const addedLayerIdsRef = useRef<Set<string>>(new Set());
   const addedSourceIdsRef = useRef<Set<string>>(new Set());
   const sourceUrlBySourceIdRef = useRef<globalThis.Map<string, string>>(new globalThis.Map());
+  const boundsCacheRef = useRef<globalThis.Map<string, maplibregl.LngLatBounds>>(new globalThis.Map());
+  const lastFitKeyRef = useRef<string | null>(null);
   const normalizedPmtilesUrls = useMemo(() => {
     return pmtilesUrls.filter((url) => {
       return Boolean(url);
     });
   }, [pmtilesUrls]);
+  const fitKey = useMemo(() => {
+    return normalizedPmtilesUrls.map((url) => getStableTilesetUrlKey(url)).join('|');
+  }, [normalizedPmtilesUrls]);
   const hasPmtiles = normalizedPmtilesUrls.length > 0;
   const hasRenderedPmtiles = hasAnyPmtilesLayers(mapRef.current, PmtilesLayerPrefix);
 
@@ -232,6 +240,10 @@ export const MapContainer = ({
   }, [mapRef, isMapInitialized]);
 
   useEffect(() => {
+    lastFitKeyRef.current = null;
+  }, [fitKey]);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!map || !isMapInitialized) {
       return undefined;
@@ -335,6 +347,165 @@ export const MapContainer = ({
       cancelled = true;
     };
   }, [isMapInitialized, mapRef, normalizedPmtilesUrls, pmtilesOpacity, styleReadyTick]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapInitialized || !areLayersLoaded || !map.isStyleLoaded()) {
+      return;
+    }
+
+    if (!normalizedPmtilesUrls.length) {
+      return;
+    }
+
+    if (lastFitKeyRef.current === fitKey) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const normalizeBoundsValues = (
+      minLonValue: number,
+      minLatValue: number,
+      maxLonValue: number,
+      maxLatValue: number
+    ): [number, number, number, number] => {
+      const scale = Math.max(Math.abs(minLonValue), Math.abs(maxLonValue)) > 180 ? 1e7 : 1;
+      return [minLonValue / scale, minLatValue / scale, maxLonValue / scale, maxLatValue / scale];
+    };
+
+    const getBoundsFromMetadata = (metadata: Record<string, unknown>): maplibregl.LngLatBounds | null => {
+      const boundsValue = metadata.bounds ?? metadata['bounds'];
+      if (!boundsValue) {
+        return null;
+      }
+
+      if (Array.isArray(boundsValue)) {
+        const [minLon, minLat, maxLon, maxLat] = boundsValue.map((value) => Number(value));
+        if ([minLon, minLat, maxLon, maxLat].some((value) => Number.isNaN(value))) {
+          return null;
+        }
+
+        const [normalizedMinLon, normalizedMinLat, normalizedMaxLon, normalizedMaxLat] = normalizeBoundsValues(
+          minLon,
+          minLat,
+          maxLon,
+          maxLat
+        );
+        return new maplibregl.LngLatBounds([normalizedMinLon, normalizedMinLat], [normalizedMaxLon, normalizedMaxLat]);
+      }
+
+      if (typeof boundsValue === 'string') {
+        const parts = boundsValue.split(',').map((value) => Number(value));
+        if (parts.length !== 4 || parts.some((value) => Number.isNaN(value))) {
+          return null;
+        }
+
+        const [normalizedMinLon, normalizedMinLat, normalizedMaxLon, normalizedMaxLat] = normalizeBoundsValues(
+          parts[0],
+          parts[1],
+          parts[2],
+          parts[3]
+        );
+        return new maplibregl.LngLatBounds([normalizedMinLon, normalizedMinLat], [normalizedMaxLon, normalizedMaxLat]);
+      }
+
+      return null;
+    };
+
+    const getBoundsFromHeader = (header: Record<string, unknown>): maplibregl.LngLatBounds | null => {
+      const minLonRaw = header.minLon ?? header.min_lon ?? header.minlon;
+      const minLatRaw = header.minLat ?? header.min_lat ?? header.minlat;
+      const maxLonRaw = header.maxLon ?? header.max_lon ?? header.maxlon;
+      const maxLatRaw = header.maxLat ?? header.max_lat ?? header.maxlat;
+      const minLon = typeof minLonRaw === 'number' ? minLonRaw : Number(minLonRaw);
+      const minLat = typeof minLatRaw === 'number' ? minLatRaw : Number(minLatRaw);
+      const maxLon = typeof maxLonRaw === 'number' ? maxLonRaw : Number(maxLonRaw);
+      const maxLat = typeof maxLatRaw === 'number' ? maxLatRaw : Number(maxLatRaw);
+      if ([minLon, minLat, maxLon, maxLat].some((value) => Number.isNaN(value))) {
+        return null;
+      }
+
+      const [normalizedMinLon, normalizedMinLat, normalizedMaxLon, normalizedMaxLat] = normalizeBoundsValues(
+        minLon,
+        minLat,
+        maxLon,
+        maxLat
+      );
+      return new maplibregl.LngLatBounds([normalizedMinLon, normalizedMinLat], [normalizedMaxLon, normalizedMaxLat]);
+    };
+
+    const getBoundsSpanScore = (bounds: maplibregl.LngLatBounds): number => {
+      const longitudeSpan = Math.abs(bounds.getEast() - bounds.getWest());
+      const latitudeSpan = Math.abs(bounds.getNorth() - bounds.getSouth());
+      return longitudeSpan + latitudeSpan;
+    };
+
+    const fitPmtilesBounds = async () => {
+      const bounds = new maplibregl.LngLatBounds();
+
+      for (const url of normalizedPmtilesUrls) {
+        if (isCancelled) {
+          return;
+        }
+
+        const stableKey = getStableTilesetUrlKey(url);
+        const cachedBounds = boundsCacheRef.current.get(stableKey);
+        if (cachedBounds) {
+          bounds.extend(cachedBounds);
+          continue;
+        }
+
+        try {
+          const pmtiles = new PMTiles(url);
+          const metadata = (await pmtiles.getMetadata()) as Record<string, unknown>;
+          const metadataBounds = getBoundsFromMetadata(metadata);
+          const header = (await pmtiles.getHeader()) as unknown as Record<string, unknown>;
+          const headerBounds = getBoundsFromHeader(header);
+
+          let chosenBounds: maplibregl.LngLatBounds | null = null;
+          if (metadataBounds && headerBounds) {
+            chosenBounds =
+              getBoundsSpanScore(headerBounds) <= getBoundsSpanScore(metadataBounds) ? headerBounds : metadataBounds;
+          } else if (headerBounds) {
+            chosenBounds = headerBounds;
+          } else if (metadataBounds) {
+            chosenBounds = metadataBounds;
+          }
+
+          if (chosenBounds && !chosenBounds.isEmpty()) {
+            boundsCacheRef.current.set(stableKey, chosenBounds);
+            bounds.extend(chosenBounds);
+          }
+        } catch {
+          // Ignore PMTiles metadata failures and continue with available bounds.
+        }
+      }
+
+      if (isCancelled || bounds.isEmpty()) {
+        return;
+      }
+
+      lastFitKeyRef.current = fitKey;
+      if (bounds.getWest() === bounds.getEast() && bounds.getSouth() === bounds.getNorth()) {
+        map.setCenter(bounds.getCenter());
+        map.setZoom(DefaultFitBoundsMaxZoom);
+        return;
+      }
+
+      map.fitBounds(bounds, {
+        padding: DefaultFitBoundsPadding,
+        duration: 0,
+        maxZoom: DefaultFitBoundsMaxZoom,
+      });
+    };
+
+    void fitPmtilesBounds();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [areLayersLoaded, fitKey, isMapInitialized, mapRef, normalizedPmtilesUrls, styleReadyTick]);
 
   return (
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>

@@ -67,7 +67,9 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
         try {
           const parsed = JSON.parse(event.data) as TaskStatusMessage;
           setData(parsed);
-          if (parsed.status && terminalStatuses.includes(parsed.status)) {
+          const hasPmtilesUri = Boolean(parsed.tile?.pmtiles_uri);
+          const isCompletedWithoutTileset = parsed.status === TASK_STATUS.COMPLETED && !hasPmtilesUri;
+          if (parsed.status && terminalStatuses.includes(parsed.status) && !isCompletedWithoutTileset) {
             isTerminalRef.current = true;
           }
         } catch (parseError) {
