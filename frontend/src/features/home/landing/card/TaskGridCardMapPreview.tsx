@@ -7,8 +7,6 @@ interface TaskGridCardMapPreviewProps {
 }
 
 export const TaskGridCardMapPreview = ({ task }: TaskGridCardMapPreviewProps) => {
-  const hasTileset = Boolean(task.tileset_uri);
-
   return (
     <Box sx={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
       <MapContainer
@@ -16,8 +14,8 @@ export const TaskGridCardMapPreview = ({ task }: TaskGridCardMapPreviewProps) =>
         useSharedContext={false}
         interactive={false}
         showNavigationControl={false}
-        showBaseLayer={!hasTileset}
-        pmtilesOpacity={1}
+        showBaseLayer
+        pmtilesOpacity={0.75}
       />
     </Box>
   );

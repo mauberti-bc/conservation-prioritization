@@ -14,7 +14,7 @@ interface TaskSubmitPanelHeaderProps {
 
 export const TaskSubmitPanelHeader = ({ title, onBack, onEdit, onShare, onDelete }: TaskSubmitPanelHeaderProps) => {
   return (
-    <Box display="flex" alignItems="center" gap={1} px={2} pt={2}>
+    <Box display="flex" alignItems="center" gap={1}>
       <IconButton aria-label="Back to tasks" size="small" onClick={onBack}>
         <Icon path={mdiArrowLeft} size={1} />
       </IconButton>

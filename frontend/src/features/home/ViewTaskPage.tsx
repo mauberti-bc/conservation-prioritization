@@ -3,12 +3,12 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import { TASK_STATUS, TILE_STATUS } from 'constants/status';
 import { useMapContext, useTaskContext } from 'hooks/useContext';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
-import { TaskViewSidebar } from './task/view/sidebar/TaskViewSidebar';
-import { getTaskViewSidebarWidth } from './task/view/sidebar/task-view-sidebar.constants';
 import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
+import { getTaskViewSidebarWidth } from './task/view/sidebar/task-view-sidebar.constants';
+import { TaskViewSidebar } from './task/view/sidebar/TaskViewSidebar';
 
 /**
  * Task detail view for an existing submitted task.
@@ -18,22 +18,24 @@ import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
 export const ViewTaskPage = () => {
   const { drawControlsRef } = useMapContext();
   const { taskId, taskDataLoader, hoveredTilesetUri } = useTaskContext();
-  const { data: taskStatus } = useTaskStatusWebSocket(taskId);
+  const { data: taskStatus, stop: stopTaskStatusSocket } = useTaskStatusWebSocket(taskId);
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
+  const [isPmtilesDisplayed, setIsPmtilesDisplayed] = useState(false);
   const sidebarWidthPx = getTaskViewSidebarWidth(isPreviewOpen);
   const sidebarWidth = `${sidebarWidthPx}px`;
 
   const sidebarMinWidth = 320;
 
-  const pmtilesUrls = useMemo(() => {
-    const statusUri =
-      taskStatus?.tile?.status === TILE_STATUS.COMPLETED && taskStatus.tile.pmtiles_uri
-        ? taskStatus.tile.pmtiles_uri
-        : null;
-    const fallbackUri = taskDataLoader.data?.tileset_uri ?? null;
-    const resolvedUri = statusUri ?? fallbackUri;
+  const resolvedPmtilesUri = useMemo(() => {
+    if (taskStatus?.tile?.status === TILE_STATUS.COMPLETED && taskStatus.tile.pmtiles_uri) {
+      return taskStatus.tile.pmtiles_uri;
+    }
 
-    const baseUrls = resolvedUri ? [resolvedUri] : [];
+    return taskDataLoader.data?.tileset_uri ?? null;
+  }, [taskStatus, taskDataLoader.data]);
+
+  const pmtilesUrls = useMemo(() => {
+    const baseUrls = resolvedPmtilesUri ? [resolvedPmtilesUri] : [];
 
     if (hoveredTilesetUri) {
       if (baseUrls.includes(hoveredTilesetUri)) {
@@ -43,7 +45,19 @@ export const ViewTaskPage = () => {
     }
 
     return baseUrls;
-  }, [taskStatus, taskDataLoader.data, hoveredTilesetUri]);
+  }, [hoveredTilesetUri, resolvedPmtilesUri]);
+
+  useEffect(() => {
+    setIsPmtilesDisplayed(false);
+  }, [taskId, resolvedPmtilesUri]);
+
+  useEffect(() => {
+    if (!resolvedPmtilesUri || !isPmtilesDisplayed) {
+      return;
+    }
+
+    stopTaskStatusSocket();
+  }, [isPmtilesDisplayed, resolvedPmtilesUri, stopTaskStatusSocket]);
 
   const showStatusChip = useMemo(() => {
     const activeStatus = taskStatus?.status ?? taskDataLoader.data?.status;
@@ -57,7 +71,13 @@ export const ViewTaskPage = () => {
   const memoizedMap = useMemo(() => {
     return (
       <>
-        <MapContainer pmtilesUrls={pmtilesUrls} keepAliveKey="home-map" />
+        <MapContainer
+          pmtilesUrls={pmtilesUrls}
+          keepAliveKey="home-map"
+          onPmtilesDisplayed={(displayed) => {
+            setIsPmtilesDisplayed(displayed);
+          }}
+        />
         <DrawControls ref={drawControlsRef} />
       </>
     );
@@ -81,7 +101,7 @@ export const ViewTaskPage = () => {
               label={
                 <Box display="flex" alignItems="center" gap={1}>
                   Processing
-                  <CircularProgress size={14} color="inherit" />
+                  <CircularProgress size={14} color="inherit" thickness={8} />
                 </Box>
               }
               sx={{

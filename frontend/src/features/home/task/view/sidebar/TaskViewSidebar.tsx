@@ -72,7 +72,8 @@ export const TaskViewSidebar = ({ isPreviewOpen, onTogglePreview }: TaskViewSide
             minHeight: 0,
             overflow: 'hidden',
             boxSizing: 'border-box',
-            p: 2,
+            py: 2,
+            px: 3,
           }}>
           <TaskViewPanel />
         </Box>

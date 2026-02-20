@@ -1,13 +1,13 @@
-import { TASK_STATUS, TaskStatusValue } from 'constants/status';
 import { useConfigContext } from 'hooks/useContext';
 import useWebsocket from 'hooks/useWebsocket';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { TaskStatusMessage } from './task-status.interface';
 
 export interface UseTaskStatusWebSocketReturn {
   data: TaskStatusMessage | null;
   isConnected: boolean;
   error: string | null;
+  stop: () => void;
 }
 
 /**
@@ -22,20 +22,32 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
   const [data, setData] = useState<TaskStatusMessage | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isTerminalRef = useRef(false);
+  const stopSubscriptionRef = useRef<(() => void) | null>(null);
+
+  /**
+   * Stops the active websocket subscription.
+   *
+   * @returns {void}
+   */
+  const stop = useCallback(() => {
+    if (stopSubscriptionRef.current) {
+      stopSubscriptionRef.current();
+      stopSubscriptionRef.current = null;
+    }
+    setIsConnected(false);
+  }, []);
 
   useEffect(() => {
     if (!taskId) {
+      stop();
       setData(null);
-      setIsConnected(false);
       setError(null);
       return;
     }
 
     setData(null);
     setError(null);
-    isTerminalRef.current = false;
-    let stopSubscription: (() => void) | null = null;
+    stop();
 
     const subscription = websocket.subscribe(`/api/task/${taskId}/status`, undefined, {
       onOpen: () => {
@@ -45,18 +57,6 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
         try {
           const parsed = JSON.parse(event.data) as TaskStatusMessage;
           setData(parsed);
-
-          const terminalStatuses: TaskStatusValue[] = [
-            TASK_STATUS.COMPLETED,
-            TASK_STATUS.FAILED,
-            TASK_STATUS.FAILED_TO_SUBMIT,
-          ];
-
-          if (parsed.status && terminalStatuses.includes(parsed.status)) {
-            isTerminalRef.current = true;
-            setIsConnected(false);
-            stopSubscription?.();
-          }
         } catch (parseError) {
           console.error('Failed to parse task status message', parseError);
         }
@@ -65,23 +65,15 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
         setError('Task status connection error.');
       },
       onClose: () => {
-        if (isTerminalRef.current) {
-          setIsConnected(false);
-          return;
-        }
-
         setIsConnected(false);
       },
     });
-    stopSubscription = subscription.stop;
+    stopSubscriptionRef.current = subscription.stop;
 
     return () => {
-      if (stopSubscription) {
-        stopSubscription();
-        stopSubscription = null;
-      }
+      stop();
     };
-  }, [taskId, websocket]);
+  }, [taskId, stop, websocket]);
 
-  return { data, isConnected, error };
+  return { data, isConnected, error, stop };
 };

@@ -163,6 +163,7 @@ export const CreateTask = ({
               sx={{
                 flex: 1,
                 py: 2,
+                px: 2,
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: 0,
@@ -170,7 +171,7 @@ export const CreateTask = ({
                 height: '100%',
                 overflow: 'auto',
               }}>
-              <Box px={3} display="flex" alignItems="center" justifyContent="space-between" gap={1}>
+              <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
                 <Typography variant="h2" component="h2">
                   New Task
                 </Typography>
@@ -190,19 +191,19 @@ export const CreateTask = ({
             {/* Sticky footer */}
             {!hideInternalActions && (
               <Box
-                mr={0.5}
-                py={2}
                 sx={{
+                  px: 2,
+                  py: 2,
                   boxShadow: '0px -2px 25px 0px rgba(0,0,0,0.05)',
                   position: 'sticky',
                   bottom: 0,
                   backgroundColor: 'white',
                 }}>
-                <Box mx={3} mb={1}>
+                <Box mb={1}>
                   <TaskAdvancedSection />
                 </Box>
                 {/* Submit Button */}
-                <Box mx={3}>
+                <Box>
                   <Button
                     variant="contained"
                     loading={isSubmitting}

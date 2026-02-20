@@ -16,6 +16,7 @@ interface MapContainerProps {
   showNavigationControl?: boolean;
   showBaseLayer?: boolean;
   pmtilesOpacity?: number;
+  onPmtilesDisplayed?: (displayed: boolean) => void;
 }
 
 /**
@@ -32,6 +33,7 @@ export const MapContainer = ({
   showNavigationControl = true,
   showBaseLayer = true,
   pmtilesOpacity = 0.75,
+  onPmtilesDisplayed,
 }: MapContainerProps) => {
   const mapHostRef = useRef<HTMLDivElement | null>(null);
   const { mapRef: sharedMapRef, setIsMapReady } = useMapContext();
@@ -45,6 +47,14 @@ export const MapContainer = ({
   });
 
   const isMapLoading = !isMapInitialized || (hasPmtiles && !areLayersLoaded);
+
+  useEffect(() => {
+    if (!onPmtilesDisplayed) {
+      return;
+    }
+
+    onPmtilesDisplayed(hasPmtiles && areLayersLoaded);
+  }, [areLayersLoaded, hasPmtiles, onPmtilesDisplayed]);
 
   useEffect(() => {
     const mapHost = mapHostRef.current;
@@ -183,10 +193,18 @@ export const MapContainer = ({
     const pmtilesSignature = `${normalizedPmtilesUrls.join('|')}::${pmtilesOpacity}`;
 
     if (pmtilesSignature === lastPmtilesSignatureRef.current) {
-      return undefined;
+      if (hasExpectedPmtilesLayers(map, normalizedPmtilesUrls.length)) {
+        setAreLayersLoaded(true);
+        return undefined;
+      }
+    } else {
+      lastPmtilesSignatureRef.current = pmtilesSignature;
     }
 
-    lastPmtilesSignatureRef.current = pmtilesSignature;
+    if (!normalizedPmtilesUrls.length) {
+      setAreLayersLoaded(true);
+      return undefined;
+    }
 
     let cancelled = false;
     setAreLayersLoaded(false);
@@ -374,4 +392,27 @@ const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[], pmtiles
       maxzoom: 12,
     });
   });
+};
+
+/**
+ * Checks if expected PMTiles sources and layers already exist on the map.
+ *
+ * @param {maplibregl.Map} map
+ * @param {number} count
+ * @returns {boolean}
+ */
+const hasExpectedPmtilesLayers = (map: maplibregl.Map, count: number): boolean => {
+  if (count === 0) {
+    return true;
+  }
+
+  for (let index = 0; index < count; index += 1) {
+    const sourceId = `pmtiles-${index}`;
+    const layerId = `pmtiles-layer-${index}`;
+    if (!map.getSource(sourceId) || !map.getLayer(layerId)) {
+      return false;
+    }
+  }
+
+  return true;
 };
