@@ -1,7 +1,7 @@
 import { GetTaskResponse, GetTasksResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import useDataLoader, { DataLoader } from 'hooks/useDataLoader';
-import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
+import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ApiPaginationRequestOptions } from 'types/pagination';
 
@@ -31,6 +31,7 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
   const { taskId: activeTaskId } = useParams<{ taskId: string }>();
   const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
   const tasksDataLoader = useDataLoader(conservationApi.task.getAllTasks);
+  const lastRequestedTaskIdRef = useRef<string | null>(null);
   const [hoveredTilesetUri, setHoveredTilesetUri] = useState<string | null>(null);
   const defaultPagination = useMemo<ApiPaginationRequestOptions>(() => {
     return {
@@ -46,14 +47,17 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
   }
 
   useEffect(() => {
-    if (taskDataLoader.data?.task_id === activeTaskId) {
-      return;
-    }
-
     if (taskDataLoader.isLoading) {
       return;
     }
 
+    const hasRequestedRouteTask = lastRequestedTaskIdRef.current === activeTaskId;
+    const hasMismatchedLoadedTask = taskDataLoader.data?.task_id !== activeTaskId;
+    if (hasRequestedRouteTask && !hasMismatchedLoadedTask) {
+      return;
+    }
+
+    lastRequestedTaskIdRef.current = activeTaskId;
     void taskDataLoader.refresh(activeTaskId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTaskId, taskDataLoader.data?.task_id, taskDataLoader.isLoading]);
