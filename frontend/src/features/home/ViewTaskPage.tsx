@@ -84,11 +84,31 @@ export const ViewTaskPage = () => {
 
   const showStatusChip = useMemo(() => {
     const activeStatus = activeTaskStatus?.status ?? activeTaskData?.status;
+    const hasPmtilesUri = Boolean(activeTaskStatus?.tile?.pmtiles_uri ?? activeTaskData?.tileset_uri);
     if (!activeStatus) {
       return false;
     }
 
-    return activeStatus !== TASK_STATUS.DRAFT && activeStatus !== TASK_STATUS.COMPLETED;
+    if (activeStatus === TASK_STATUS.DRAFT) {
+      return false;
+    }
+
+    if (activeStatus === TASK_STATUS.COMPLETED) {
+      return !hasPmtilesUri;
+    }
+
+    return true;
+  }, [activeTaskData, activeTaskStatus]);
+
+  const statusChipLabel = useMemo(() => {
+    const activeStatus = activeTaskStatus?.status ?? activeTaskData?.status;
+    const hasPmtilesUri = Boolean(activeTaskStatus?.tile?.pmtiles_uri ?? activeTaskData?.tileset_uri);
+
+    if (activeStatus === TASK_STATUS.COMPLETED && !hasPmtilesUri) {
+      return 'Building map';
+    }
+
+    return 'Processing';
   }, [activeTaskData, activeTaskStatus]);
 
   return (
@@ -108,7 +128,7 @@ export const ViewTaskPage = () => {
               color="primary"
               label={
                 <Box display="flex" alignItems="center" gap={1}>
-                  Processing
+                  {statusChipLabel}
                   <CircularProgress size={14} color="inherit" thickness={8} />
                 </Box>
               }
