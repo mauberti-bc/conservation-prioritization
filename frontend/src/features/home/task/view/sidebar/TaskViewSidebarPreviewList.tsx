@@ -10,7 +10,7 @@ interface TaskViewSidebarPreviewListProps {
 
 export const TaskViewSidebarPreviewList = ({ previewTasks, taskId, onSelectTask }: TaskViewSidebarPreviewListProps) => {
   return (
-    <List dense sx={{ pt: 0, overflowY: 'auto', flex: 1 }}>
+    <List dense sx={{ pt: 0, overflowY: 'auto', flex: '1 1 0', minHeight: 0, height: '100%', maxHeight: '100%' }}>
       {previewTasks.map((task) => {
         const isSelected = task.task_id === taskId;
 

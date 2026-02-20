@@ -31,6 +31,7 @@ export const TaskViewSidebarPreviewRail = ({
         sx={{
           width: `${TASK_VIEW_PREVIEW_COLLAPSED_WIDTH}px`,
           minWidth: `${TASK_VIEW_PREVIEW_COLLAPSED_WIDTH}px`,
+          height: '100%',
           boxSizing: 'border-box',
           p: 2,
           borderRight: '1px solid',
@@ -52,6 +53,7 @@ export const TaskViewSidebarPreviewRail = ({
       sx={{
         width: `${TASK_VIEW_PREVIEW_WIDTH}px`,
         minWidth: `${TASK_VIEW_PREVIEW_WIDTH}px`,
+        height: '100%',
         boxSizing: 'border-box',
         p: 2,
         borderRight: '1px solid',
@@ -74,7 +76,9 @@ export const TaskViewSidebarPreviewRail = ({
         </Box>
       </Box>
 
-      <TaskViewSidebarPreviewList previewTasks={previewTasks} taskId={taskId} onSelectTask={onSelectTask} />
+      <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <TaskViewSidebarPreviewList previewTasks={previewTasks} taskId={taskId} onSelectTask={onSelectTask} />
+      </Box>
     </Box>
   );
 };

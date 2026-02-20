@@ -115,7 +115,7 @@ export const TaskList = ({
   };
 
   return (
-    <Box sx={{ overflowY: 'auto', maxHeight: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <LoadingGuard
         isLoading={isLoading}
         isLoadingFallback={<SkeletonList numberOfLines={3} />}
@@ -127,7 +127,7 @@ export const TaskList = ({
             </Typography>
           </Box>
         }>
-        <List dense sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <List dense sx={{ display: 'flex', flexDirection: 'column', gap: 1, overflowY: 'auto', flex: 1, minHeight: 0 }}>
           {tasks.map((task) => (
             <TaskListItem
               key={task.task_id}

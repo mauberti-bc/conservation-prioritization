@@ -54,7 +54,10 @@ export const TaskViewSidebar = ({ isPreviewOpen, onTogglePreview }: TaskViewSide
           height: '100%',
           minHeight: 0,
         }}>
-        <Box bgcolor={grey[50]} borderRight={`1px solid ${grey[200]}`} sx={{ minHeight: 0 }}>
+        <Box
+          bgcolor={grey[50]}
+          borderRight={`1px solid ${grey[200]}`}
+          sx={{ minHeight: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
           <TaskViewSidebarPreviewRail
             isPreviewOpen={isPreviewOpen}
             taskId={taskId}
