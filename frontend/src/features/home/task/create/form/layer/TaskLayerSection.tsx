@@ -6,6 +6,7 @@ import { grey } from '@mui/material/colors';
 import List from '@mui/material/List';
 import Stack from '@mui/material/Stack';
 import { TooltipPopover } from 'components/TooltipPopover';
+import { LayerCardItem } from 'features/home/layer-panel/card/LayerCardItem';
 import { LayerSearch } from 'features/layer/search/LayerSearch';
 import { useFormikContext } from 'formik';
 import { useDialogContext } from 'hooks/useContext';
@@ -262,6 +263,25 @@ export const TaskLayerSection = ({ isReadOnly = false, autoSearchOnMount = false
 
           <List disablePadding>
             {values.layers.map((layer, index) => {
+              if (isReadOnly) {
+                const readonlyLayerOption: TaskLayerOption = {
+                  path: layer.path,
+                  name: layer.name,
+                  description: layer.description ?? undefined,
+                  group: layer.path.split('/').slice(0, -1).join('/'),
+                };
+
+                return (
+                  <Box key={layer.name} mb={2}>
+                    <LayerCardItem
+                      layer={readonlyLayerOption}
+                      checked
+                      showCheckbox={false}
+                    />
+                  </Box>
+                );
+              }
+
               const errorObjects = collectFormikErrorMessages(errors.layers?.[index]);
 
               return (

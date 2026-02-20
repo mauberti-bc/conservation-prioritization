@@ -676,7 +676,7 @@ def create_continuous_priority_surface(
     """
     logger = get_run_logger()
 
-    _nrows, _ncols = valid_mask.shape
+    nrows, ncols = valid_mask.shape
     score = np.zeros((nrows, ncols), dtype=np.float32)
     candidate_mask = valid_mask.copy()
     locked_in_mask = np.zeros((nrows, ncols), dtype=bool)
