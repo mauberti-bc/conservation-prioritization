@@ -31,6 +31,7 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
   const { taskId: activeTaskId } = useParams<{ taskId: string }>();
   const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
   const tasksDataLoader = useDataLoader(conservationApi.task.getAllTasks);
+  const refreshTaskById = taskDataLoader.refresh;
   const [hoveredTilesetUri, setHoveredTilesetUri] = useState<string | null>(null);
   const defaultPagination = useMemo<ApiPaginationRequestOptions>(() => {
     return {
@@ -46,13 +47,12 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
   }
 
   useEffect(() => {
-    if (taskDataLoader.data?.task_id !== activeTaskId) {
-      taskDataLoader.load(activeTaskId);
-    }
-  }, [activeTaskId, taskDataLoader]);
+    void refreshTaskById(activeTaskId);
+  }, [activeTaskId, refreshTaskById]);
 
   const setFocusedTask = useCallback(
     (task: GetTaskResponse | null) => {
+      setHoveredTilesetUri(null);
       if (task) {
         navigate(`/t/${task.task_id}`);
         taskDataLoader.setData(task);
@@ -61,7 +61,7 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
         taskDataLoader.clearData();
       }
     },
-    [navigate, taskDataLoader]
+    [navigate, setHoveredTilesetUri, taskDataLoader]
   );
 
   const refreshTasks = useCallback(async () => {

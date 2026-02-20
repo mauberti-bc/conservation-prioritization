@@ -4,7 +4,7 @@ import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { useMapContext } from 'hooks/useContext';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { attachMapContainer, detachMapContainer, getMapCacheEntry, setMapCacheEntry } from 'utils/mapInstanceCache';
 import { ensurePMTilesProtocol } from 'utils/pmtilesProtocol';
 
@@ -37,18 +37,25 @@ export const MapContainer = ({
   onPmtilesDisplayed,
   waitForPmtiles = true,
 }: MapContainerProps) => {
+  const PmtilesSourcePrefix = 'pmtiles-source-';
+  const PmtilesLayerPrefix = 'pmtiles-layer-';
   const mapHostRef = useRef<HTMLDivElement | null>(null);
   const { mapRef: sharedMapRef, setIsMapReady } = useMapContext();
   const localMapRef = useRef<maplibregl.Map | null>(null);
   const mapRef = useSharedContext ? sharedMapRef : localMapRef;
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [areLayersLoaded, setAreLayersLoaded] = useState(false);
-  const lastPmtilesSignatureRef = useRef<string>('');
-  const normalizedPmtilesUrls = pmtilesUrls.filter((url) => {
-    return Boolean(url);
-  });
+  const [styleReadyTick, setStyleReadyTick] = useState(0);
+  const addedLayerIdsRef = useRef<Set<string>>(new Set());
+  const addedSourceIdsRef = useRef<Set<string>>(new Set());
+  const sourceUrlBySourceIdRef = useRef<globalThis.Map<string, string>>(new globalThis.Map());
+  const normalizedPmtilesUrls = useMemo(() => {
+    return pmtilesUrls.filter((url) => {
+      return Boolean(url);
+    });
+  }, [pmtilesUrls]);
   const hasPmtiles = normalizedPmtilesUrls.length > 0;
-  const hasRenderedPmtiles = hasAnyPmtilesLayers(mapRef.current);
+  const hasRenderedPmtiles = hasAnyPmtilesLayers(mapRef.current, PmtilesLayerPrefix);
 
   const isMapLoading = !isMapInitialized || (waitForPmtiles && hasPmtiles && !areLayersLoaded && !hasRenderedPmtiles);
 
@@ -73,10 +80,27 @@ export const MapContainer = ({
       if (cached) {
         attachMapContainer(cached, mapHost);
         mapRef.current = cached.map;
+        hydratePmtilesTrackingFromStyle(
+          cached.map,
+          PmtilesSourcePrefix,
+          PmtilesLayerPrefix,
+          addedSourceIdsRef.current,
+          addedLayerIdsRef.current,
+          sourceUrlBySourceIdRef.current
+        );
 
+        let didHandleReady = false;
         const handleReady = () => {
+          if (didHandleReady) {
+            return;
+          }
+
+          didHandleReady = true;
           ensureBaseLayer(cached.map, showBaseLayer);
           setIsMapInitialized(true);
+          setStyleReadyTick((prev) => {
+            return prev + 1;
+          });
           if (useSharedContext) {
             setIsMapReady(true);
           }
@@ -85,6 +109,7 @@ export const MapContainer = ({
         if (cached.map.isStyleLoaded()) {
           handleReady();
         } else {
+          cached.map.once('styledata', handleReady);
           cached.map.once('load', handleReady);
         }
 
@@ -92,6 +117,7 @@ export const MapContainer = ({
         cached.map.triggerRepaint();
 
         return () => {
+          didHandleReady = true;
           detachMapContainer(cached);
           mapRef.current = null;
           setIsMapInitialized(false);
@@ -126,14 +152,24 @@ export const MapContainer = ({
       map.addControl(new maplibregl.NavigationControl(), 'top-right');
     }
 
+    let didHandleMapReady = false;
     const handleMapReady = () => {
+      if (didHandleMapReady) {
+        return;
+      }
+
+      didHandleMapReady = true;
       ensureBaseLayer(map, showBaseLayer);
       setIsMapInitialized(true);
+      setStyleReadyTick((prev) => {
+        return prev + 1;
+      });
       if (useSharedContext) {
         setIsMapReady(true);
       }
     };
 
+    map.once('styledata', handleMapReady);
     map.once('load', handleMapReady);
     if (map.isStyleLoaded()) {
       handleMapReady();
@@ -146,6 +182,7 @@ export const MapContainer = ({
     }
 
     return () => {
+      didHandleMapReady = true;
       if (keepAliveKey) {
         detachMapContainer({ map, container: innerContainer });
       } else {
@@ -160,6 +197,15 @@ export const MapContainer = ({
       }
     };
   }, [interactive, keepAliveKey, mapRef, setIsMapReady, showBaseLayer, showNavigationControl, useSharedContext]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapInitialized || !map.isStyleLoaded()) {
+      return;
+    }
+
+    ensureBaseLayer(map, showBaseLayer);
+  }, [isMapInitialized, mapRef, showBaseLayer]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -191,83 +237,92 @@ export const MapContainer = ({
       return undefined;
     }
 
-    const pmtilesSignature = `${normalizedPmtilesUrls.join('|')}::${pmtilesOpacity}`;
-
-    if (pmtilesSignature === lastPmtilesSignatureRef.current) {
-      if (hasExpectedPmtilesLayers(map, normalizedPmtilesUrls.length)) {
-        setAreLayersLoaded(true);
-        return undefined;
-      }
-    } else {
-      lastPmtilesSignatureRef.current = pmtilesSignature;
-    }
-
     if (!normalizedPmtilesUrls.length) {
+      removeStalePmtilesLayersAndSources(
+        map,
+        new Set(),
+        new Set(),
+        addedLayerIdsRef.current,
+        addedSourceIdsRef.current,
+        sourceUrlBySourceIdRef.current
+      );
       setAreLayersLoaded(true);
       return undefined;
+    }
+
+    if (!map.isStyleLoaded()) {
+      let didNotify = false;
+      const notifyStyleReady = () => {
+        if (didNotify) {
+          return;
+        }
+
+        didNotify = true;
+        setStyleReadyTick((prev) => {
+          return prev + 1;
+        });
+      };
+      map.once('styledata', notifyStyleReady);
+      map.once('load', notifyStyleReady);
+
+      return () => {
+        didNotify = true;
+      };
     }
 
     let cancelled = false;
     setAreLayersLoaded(false);
 
-    const applyLayers = () => {
-      try {
-        updatePmtilesLayers(map, normalizedPmtilesUrls, pmtilesOpacity);
-        if (!cancelled) {
-          setAreLayersLoaded(true);
+    const applyLayers = async () => {
+      let didMarkLoaded = false;
+      let fallbackTimer: number | null = null;
+      const markLoaded = () => {
+        if (didMarkLoaded || cancelled) {
+          return;
         }
-      } catch (error) {
-        console.error('Failed to apply PMTiles layers', error);
-        if (!cancelled) {
-          setAreLayersLoaded(true);
-        }
-        return;
-      }
 
-      if (!normalizedPmtilesUrls.length) {
+        didMarkLoaded = true;
+        if (fallbackTimer) {
+          window.clearTimeout(fallbackTimer);
+          fallbackTimer = null;
+        }
         setAreLayersLoaded(true);
-        return;
-      }
-
-      let idleTimeout: number | null = null;
-
-      const handleIdle = () => {
-        if (idleTimeout) {
-          window.clearTimeout(idleTimeout);
-          idleTimeout = null;
-        }
-        if (!cancelled) {
-          setAreLayersLoaded(true);
-        }
       };
 
-      idleTimeout = window.setTimeout(() => {
-        if (!cancelled) {
-          setAreLayersLoaded(true);
-        }
-      }, 1500);
+      try {
+        await updatePmtilesLayers(
+          map,
+          normalizedPmtilesUrls,
+          pmtilesOpacity,
+          PmtilesSourcePrefix,
+          PmtilesLayerPrefix,
+          addedLayerIdsRef.current,
+          addedSourceIdsRef.current,
+          sourceUrlBySourceIdRef.current
+        );
+      } catch (error) {
+        console.error('Failed to apply PMTiles layers', error);
+        markLoaded();
+        return;
+      }
+
+      const handleIdle = () => {
+        markLoaded();
+      };
 
       map.once('idle', handleIdle);
       map.triggerRepaint();
+      fallbackTimer = window.setTimeout(() => {
+        markLoaded();
+      }, 1500);
     };
 
-    if (!map.isStyleLoaded()) {
-      map.once('load', () => {
-        if (!cancelled) {
-          applyLayers();
-        }
-      });
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    applyLayers();
+    void applyLayers();
 
     return () => {
       cancelled = true;
     };
-  }, [isMapInitialized, mapRef, normalizedPmtilesUrls, pmtilesOpacity]);
+  }, [isMapInitialized, mapRef, normalizedPmtilesUrls, pmtilesOpacity, styleReadyTick]);
 
   return (
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -346,92 +401,127 @@ const ensureBaseLayer = (map: maplibregl.Map, showBaseLayer: boolean): void => {
  * @param {string[]} pmtilesUrls
  * @returns {void}
  */
-const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[], pmtilesOpacity: number): void => {
-  const sourcePrefix = 'pmtiles-';
-  const layerPrefix = 'pmtiles-layer-';
+const updatePmtilesLayers = async (
+  map: maplibregl.Map,
+  pmtilesUrls: string[],
+  pmtilesOpacity: number,
+  sourcePrefix: string,
+  layerPrefix: string,
+  trackedLayerIds: Set<string>,
+  trackedSourceIds: Set<string>,
+  sourceUrlBySourceId: globalThis.Map<string, string>
+): Promise<void> => {
+  const desiredSourceIds = new Set<string>();
+  const desiredLayerIds = new Set<string>();
 
-  const style = map.getStyle();
+  for (const url of pmtilesUrls) {
+    const stableUrlKey = getStableTilesetUrlKey(url);
+    const sourceId = `${sourcePrefix}${toMapIdentifier(stableUrlKey)}`;
+    const layerId = `${layerPrefix}${toMapIdentifier(stableUrlKey)}`;
+    const hasSource = Boolean(map.getSource(sourceId));
+    const currentSourceUrl = sourceUrlBySourceId.get(sourceId);
+    const shouldRefreshSource = hasSource && currentSourceUrl !== url;
 
-  if (style.layers) {
-    style.layers
-      .filter((layer) => layer.id.startsWith(layerPrefix))
-      .forEach((layer) => {
-        if (map.getLayer(layer.id)) {
-          map.removeLayer(layer.id);
-        }
+    desiredSourceIds.add(sourceId);
+    desiredLayerIds.add(layerId);
+
+    if (shouldRefreshSource) {
+      if (map.getLayer(layerId)) {
+        map.removeLayer(layerId);
+      }
+      if (map.getSource(sourceId)) {
+        map.removeSource(sourceId);
+      }
+      trackedLayerIds.delete(layerId);
+      trackedSourceIds.delete(sourceId);
+    }
+
+    if (!map.getSource(sourceId)) {
+      map.addSource(sourceId, {
+        type: 'raster',
+        url: resolvePmtilesSourceUrl(url),
+        tileSize: 512,
       });
-  }
+      trackedSourceIds.add(sourceId);
+    }
+    sourceUrlBySourceId.set(sourceId, url);
 
-  if (style.sources) {
-    Object.keys(style.sources)
-      .filter((sourceId) => sourceId.startsWith(sourcePrefix))
-      .forEach((sourceId) => {
-        if (map.getSource(sourceId)) {
-          map.removeSource(sourceId);
-        }
+    if (!map.getLayer(layerId)) {
+      map.addLayer({
+        id: layerId,
+        type: 'raster',
+        source: sourceId,
+        paint: { 'raster-opacity': pmtilesOpacity },
+        minzoom: 0,
+        maxzoom: 12,
       });
-  }
-
-  pmtilesUrls.forEach((url, index) => {
-    const sourceId = `${sourcePrefix}${index}`;
-    const layerId = `${layerPrefix}${index}`;
-    const resolvedUrl = url.startsWith('pmtiles://')
-      ? url
-      : url.startsWith('http://') || url.startsWith('https://')
-        ? `pmtiles://${url}`
-        : url;
-
-    map.addSource(sourceId, {
-      type: 'raster',
-      url: resolvedUrl,
-      tileSize: 512,
-    });
-
-    map.addLayer({
-      id: layerId,
-      type: 'raster',
-      source: sourceId,
-      paint: { 'raster-opacity': pmtilesOpacity },
-      minzoom: 0,
-      maxzoom: 12,
-    });
-  });
-};
-
-/**
- * Checks if expected PMTiles sources and layers already exist on the map.
- *
- * @param {maplibregl.Map} map
- * @param {number} count
- * @returns {boolean}
- */
-const hasExpectedPmtilesLayers = (map: maplibregl.Map | null, count: number): boolean => {
-  if (!map) {
-    return false;
-  }
-
-  if (count === 0) {
-    return true;
-  }
-
-  for (let index = 0; index < count; index += 1) {
-    const sourceId = `pmtiles-${index}`;
-    const layerId = `pmtiles-layer-${index}`;
-    if (!map.getSource(sourceId) || !map.getLayer(layerId)) {
-      return false;
+      trackedLayerIds.add(layerId);
+    } else {
+      map.setPaintProperty(layerId, 'raster-opacity', pmtilesOpacity);
     }
   }
 
-  return true;
+  removeStalePmtilesLayersAndSources(
+    map,
+    desiredLayerIds,
+    desiredSourceIds,
+    trackedLayerIds,
+    trackedSourceIds,
+    sourceUrlBySourceId
+  );
+};
+
+/**
+ * Removes PMTiles layers and sources that are no longer desired.
+ *
+ * @param {maplibregl.Map} map
+ * @param {Set<string>} desiredLayerIds
+ * @param {Set<string>} desiredSourceIds
+ * @param {Set<string>} trackedLayerIds
+ * @param {Set<string>} trackedSourceIds
+ * @param {Map<string, string>} sourceUrlBySourceId
+ * @returns {void}
+ */
+const removeStalePmtilesLayersAndSources = (
+  map: maplibregl.Map,
+  desiredLayerIds: Set<string>,
+  desiredSourceIds: Set<string>,
+  trackedLayerIds: Set<string>,
+  trackedSourceIds: Set<string>,
+  sourceUrlBySourceId: globalThis.Map<string, string>
+): void => {
+  trackedLayerIds.forEach((layerId) => {
+    if (desiredLayerIds.has(layerId)) {
+      return;
+    }
+
+    if (map.getLayer(layerId)) {
+      map.removeLayer(layerId);
+    }
+    trackedLayerIds.delete(layerId);
+  });
+
+  trackedSourceIds.forEach((sourceId) => {
+    if (desiredSourceIds.has(sourceId)) {
+      return;
+    }
+
+    if (map.getSource(sourceId)) {
+      map.removeSource(sourceId);
+    }
+    trackedSourceIds.delete(sourceId);
+    sourceUrlBySourceId.delete(sourceId);
+  });
 };
 
 /**
  * Checks if any PMTiles layer currently exists on the map.
  *
  * @param {maplibregl.Map | null} map
+ * @param {string} layerPrefix
  * @returns {boolean}
  */
-const hasAnyPmtilesLayers = (map: maplibregl.Map | null): boolean => {
+const hasAnyPmtilesLayers = (map: maplibregl.Map | null, layerPrefix: string): boolean => {
   if (!map) {
     return false;
   }
@@ -442,6 +532,103 @@ const hasAnyPmtilesLayers = (map: maplibregl.Map | null): boolean => {
   }
 
   return style.layers.some((layer) => {
-    return layer.id.startsWith('pmtiles-layer-');
+    return layer.id.startsWith(layerPrefix);
+  });
+};
+
+/**
+ * Normalizes PMTiles URLs for stable source/layer identity.
+ *
+ * @param {string} tilesetUrl
+ * @returns {string}
+ */
+const getStableTilesetUrlKey = (tilesetUrl: string): string => {
+  try {
+    const parsed = new URL(tilesetUrl);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    const hashSplit = tilesetUrl.split('#')[0];
+    return hashSplit.split('?')[0];
+  }
+};
+
+/**
+ * Resolves a PMTiles source URL with the pmtiles protocol prefix.
+ *
+ * @param {string} url
+ * @returns {string}
+ */
+const resolvePmtilesSourceUrl = (url: string): string => {
+  if (url.startsWith('pmtiles://')) {
+    return url;
+  }
+
+  return `pmtiles://${url}`;
+};
+
+/**
+ * Converts a string value into a map-safe identifier suffix.
+ *
+ * @param {string} value
+ * @returns {string}
+ */
+const toMapIdentifier = (value: string): string => {
+  return value.replace(/[^a-zA-Z0-9_-]/g, '_');
+};
+
+/**
+ * Rehydrates tracked PMTiles source/layer IDs from the active map style.
+ *
+ * @param {maplibregl.Map} map
+ * @param {string} sourcePrefix
+ * @param {string} layerPrefix
+ * @param {Set<string>} trackedSourceIds
+ * @param {Set<string>} trackedLayerIds
+ * @param {Map<string, string>} sourceUrlBySourceId
+ * @returns {void}
+ */
+const hydratePmtilesTrackingFromStyle = (
+  map: maplibregl.Map,
+  sourcePrefix: string,
+  layerPrefix: string,
+  trackedSourceIds: Set<string>,
+  trackedLayerIds: Set<string>,
+  sourceUrlBySourceId: globalThis.Map<string, string>
+): void => {
+  trackedSourceIds.clear();
+  trackedLayerIds.clear();
+  sourceUrlBySourceId.clear();
+
+  const style = map.getStyle();
+  if (!style) {
+    return;
+  }
+
+  if (style.sources) {
+    Object.entries(style.sources).forEach(([sourceId, source]) => {
+      if (!sourceId.startsWith(sourcePrefix)) {
+        return;
+      }
+
+      trackedSourceIds.add(sourceId);
+      const sourceUrl = (source as { url?: string }).url;
+      if (!sourceUrl) {
+        return;
+      }
+
+      sourceUrlBySourceId.set(sourceId, sourceUrl.replace(/^pmtiles:\/\//, ''));
+    });
+  }
+
+  if (!style.layers) {
+    return;
+  }
+
+  style.layers.forEach((layer) => {
+    if (!layer.id.startsWith(layerPrefix)) {
+      return;
+    }
+
+    trackedLayerIds.add(layer.id);
   });
 };

@@ -31,14 +31,21 @@ export const ViewTaskPage = () => {
     return !taskDataLoader.data?.tileset_uri;
   }, [taskDataLoader.data?.tileset_uri, taskDataLoader.hasLoaded, taskId]);
   const { data: taskStatus } = useTaskStatusWebSocket(shouldSubscribeToTaskStatus ? taskId : null);
+  const activeTaskStatus = useMemo(() => {
+    if (!taskStatus || taskStatus.task_id !== taskId) {
+      return null;
+    }
+
+    return taskStatus;
+  }, [taskId, taskStatus]);
 
   const resolvedPmtilesUri = useMemo(() => {
-    if (taskStatus?.tile?.status === TILE_STATUS.COMPLETED && taskStatus.tile.pmtiles_uri) {
-      return taskStatus.tile.pmtiles_uri;
+    if (activeTaskStatus?.tile?.status === TILE_STATUS.COMPLETED && activeTaskStatus.tile.pmtiles_uri) {
+      return activeTaskStatus.tile.pmtiles_uri;
     }
 
     return taskDataLoader.data?.tileset_uri ?? null;
-  }, [taskStatus, taskDataLoader.data]);
+  }, [activeTaskStatus, taskDataLoader.data]);
 
   const pmtilesUrls = useMemo(() => {
     const baseUrls = resolvedPmtilesUri ? [resolvedPmtilesUri] : [];
@@ -54,13 +61,13 @@ export const ViewTaskPage = () => {
   }, [hoveredTilesetUri, resolvedPmtilesUri]);
 
   const showStatusChip = useMemo(() => {
-    const activeStatus = taskStatus?.status ?? taskDataLoader.data?.status;
+    const activeStatus = activeTaskStatus?.status ?? taskDataLoader.data?.status;
     if (!activeStatus) {
       return false;
     }
 
     return activeStatus !== TASK_STATUS.DRAFT && activeStatus !== TASK_STATUS.COMPLETED;
-  }, [taskStatus, taskDataLoader.data]);
+  }, [activeTaskStatus, taskDataLoader.data]);
 
   return (
     <Box position="relative" height="100%" overflow="hidden">
