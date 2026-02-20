@@ -39,6 +39,7 @@ interface TaskCreateFormProps {
   showAdvancedSection?: boolean;
   showBudgetSection?: boolean;
   showLayersSection?: boolean;
+  showLayersHeader?: boolean;
 }
 
 export const TaskCreateForm = ({
@@ -48,6 +49,7 @@ export const TaskCreateForm = ({
   showAdvancedSection = true,
   showBudgetSection = true,
   showLayersSection = true,
+  showLayersHeader = true,
 }: TaskCreateFormProps) => {
   const costLayer = COST_LAYER_OPTION;
   const { values, handleChange, touched, errors } = useFormikContext<TaskCreateFormValues>();
@@ -107,16 +109,18 @@ export const TaskCreateForm = ({
 
         {showLayersSection && (
           <Box>
-            <TooltipStack tooltip="Select layers to conserve or avoid" mb={1}>
-              <Typography
-                color="textSecondary"
-                fontWeight={700}
-                textTransform="uppercase"
-                letterSpacing={0.5}
-                variant="body2">
-                Layers
-              </Typography>
-            </TooltipStack>
+            {showLayersHeader && (
+              <TooltipStack tooltip="Select layers to conserve or avoid" mb={1}>
+                <Typography
+                  color="textSecondary"
+                  fontWeight={700}
+                  textTransform="uppercase"
+                  letterSpacing={0.5}
+                  variant="body2">
+                  Layers
+                </Typography>
+              </TooltipStack>
+            )}
             <TaskLayerSection isReadOnly={isReadOnly} autoSearchOnMount={autoSearchOnMount} />
           </Box>
         )}
