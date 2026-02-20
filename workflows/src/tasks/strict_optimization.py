@@ -154,8 +154,6 @@ def load_input_data(
                 f"No variable named '{first_var}' in group '{group_path}'. Found: {list(ds.data_vars)}"
             )
 
-        original_transform = ds[first_var].rio.transform()
-
         if geometry is not None:
             # FIX: Ensure geometry is properly handled as a sequence of BaseGeometry
             geom_union: BaseGeometry = unary_union(list(geometry))
@@ -173,6 +171,8 @@ def load_input_data(
                     x=slice(bounds[0], bounds[2]),
                     y=slice(bounds[3], bounds[1]),
                 )
+
+        original_transform = ds[first_var].rio.transform()
 
         source_resolution_x = original_transform.a
         source_resolution_y = -original_transform.e
@@ -203,6 +203,7 @@ def load_input_data(
                     f"No variable named '{var}' in group '{group_path}'. Found: {list(ds.data_vars)}"
                 )
             da: xr.DataArray = ds[var]
+            current_transform = da.rio.transform()
 
             if da.x.size == 0 or da.y.size == 0:
                 print(
@@ -235,8 +236,9 @@ def load_input_data(
                     y_coords = bounds[3] - (np.arange(nrows) + 0.5) * target_resolution
 
                 else:
+                    fallback_transform = original_ds[var].rio.transform()
                     left, bottom, right, top = array_bounds(
-                        len(original_ds.y), len(original_ds.x), original_transform
+                        len(original_ds.y), len(original_ds.x), fallback_transform
                     )
                     width = right - left
                     height = top - bottom
@@ -275,7 +277,7 @@ def load_input_data(
                     resampling=resampling_method,
                 )
             else:
-                da = da.rio.write_transform(original_transform)
+                da = da.rio.write_transform(current_transform)
 
             processed_vars[var] = da
 
@@ -781,8 +783,8 @@ def create_pmtiles_archive(
     bounds = array_bounds(height, width, transform)
     logger.info(f"Input bounds in CRS {crs}: {bounds}")
 
-    x_coords = np.linspace(bounds[0], bounds[2], width)
-    y_coords = np.linspace(bounds[3], bounds[1], height)
+    x_coords = transform.c + (np.arange(width) + 0.5) * transform.a
+    y_coords = transform.f + (np.arange(height) + 0.5) * transform.e
 
     uint8_array = (array * 255).astype(np.uint8)
     da = xr.DataArray(
@@ -794,7 +796,7 @@ def create_pmtiles_archive(
     da.rio.write_crs(crs, inplace=True)
     da.rio.write_transform(transform, inplace=True)
 
-    da_web = da.rio.reproject("EPSG:3857", resampling=Resampling.bilinear)
+    da_web = da.rio.reproject("EPSG:3857", resampling=Resampling.nearest)
     wm_bounds = tuple(map(float, da_web.rio.bounds()))
     logger.info(f"Reprojected bounds (EPSG:3857): {wm_bounds}")
 
