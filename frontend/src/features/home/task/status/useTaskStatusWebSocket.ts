@@ -1,7 +1,7 @@
 import { useConfigContext } from 'hooks/useContext';
 import useWebsocket from 'hooks/useWebsocket';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TASK_STATUS, TaskStatusValue } from 'constants/status';
+import { TASK_STATUS } from 'constants/status';
 import { TaskStatusMessage } from './task-status.interface';
 
 export interface UseTaskStatusWebSocketReturn {
@@ -53,12 +53,6 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
     isTerminalRef.current = false;
     stop();
 
-    const terminalStatuses: TaskStatusValue[] = [
-      TASK_STATUS.COMPLETED,
-      TASK_STATUS.FAILED,
-      TASK_STATUS.FAILED_TO_SUBMIT,
-    ];
-
     const subscription = websocket.subscribe(`/api/task/${taskId}/status`, undefined, {
       onOpen: () => {
         setIsConnected(true);
@@ -67,9 +61,11 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
         try {
           const parsed = JSON.parse(event.data) as TaskStatusMessage;
           setData(parsed);
-          const hasPmtilesUri = Boolean(parsed.tile?.pmtiles_uri);
-          const isCompletedWithoutTileset = parsed.status === TASK_STATUS.COMPLETED && !hasPmtilesUri;
-          if (parsed.status && terminalStatuses.includes(parsed.status) && !isCompletedWithoutTileset) {
+          const hasPmtilesUri = Boolean(parsed.tile?.pmtiles_uri ?? parsed.tileset_uri);
+          const isFailedTerminal =
+            parsed.status === TASK_STATUS.FAILED || parsed.status === TASK_STATUS.FAILED_TO_SUBMIT;
+          const isCompletedWithTileset = parsed.status === TASK_STATUS.COMPLETED && hasPmtilesUri;
+          if (isFailedTerminal || isCompletedWithTileset) {
             isTerminalRef.current = true;
           }
         } catch (parseError) {
