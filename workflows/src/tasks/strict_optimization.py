@@ -23,6 +23,7 @@ from rasterio.enums import Resampling
 from rasterio.features import rasterize
 from rasterio.transform import array_bounds
 from rio_tiler.io.xarray import XarrayReader
+from scipy import stats
 from shapely import GeometryCollection, MultiLineString, MultiPolygon, unary_union
 from shapely.geometry import mapping, shape
 from shapely.geometry.base import BaseGeometry
@@ -181,10 +182,48 @@ def load_input_data(
             print(f"Warning: Non-square pixels detected in group '{group_path}'")
 
         source_resolution = (abs(source_resolution_x) + abs(source_resolution_y)) / 2
-        should_resample = abs(source_resolution - float(resolution)) > 1e-6
-        target_resolution = (
-            float(resolution) if should_resample else float(source_resolution)
+        requested_resolution = float(resolution)
+        should_resample = abs(source_resolution - requested_resolution) > 1e-6
+
+        downsample_factor = requested_resolution / source_resolution
+        rounded_factor = int(round(downsample_factor))
+        can_use_integer_coarsen = (
+            downsample_factor > 1.0
+            and abs(downsample_factor - rounded_factor) <= 1e-6
         )
+
+        if can_use_integer_coarsen:
+            target_resolution = source_resolution * float(rounded_factor)
+            target_transform = Affine(
+                original_transform.a * rounded_factor,
+                original_transform.b,
+                original_transform.c,
+                original_transform.d,
+                original_transform.e * rounded_factor,
+                original_transform.f,
+            )
+            target_width = int(np.ceil(ds[first_var].x.size / rounded_factor))
+            target_height = int(np.ceil(ds[first_var].y.size / rounded_factor))
+        elif should_resample:
+            target_resolution = requested_resolution
+            left, bottom, right, top = array_bounds(
+                ds[first_var].y.size, ds[first_var].x.size, original_transform
+            )
+            target_width = max(1, int(np.ceil((right - left) / target_resolution)))
+            target_height = max(1, int(np.ceil((top - bottom) / target_resolution)))
+            target_transform = Affine(
+                target_resolution,
+                0.0,
+                left,
+                0.0,
+                -target_resolution,
+                top,
+            )
+        else:
+            target_resolution = source_resolution
+            target_transform = original_transform
+            target_width = ds[first_var].x.size
+            target_height = ds[first_var].y.size
         resampling_method_by_name: Dict[str, Resampling] = {
             "min": Resampling.min,
             "max": Resampling.max,
@@ -236,24 +275,37 @@ def load_input_data(
                     y_coords = bounds[3] - (np.arange(nrows) + 0.5) * target_resolution
 
                 else:
-                    fallback_transform = original_ds[var].rio.transform()
-                    left, bottom, right, top = array_bounds(
-                        len(original_ds.y), len(original_ds.x), fallback_transform
-                    )
-                    width = right - left
-                    height = top - bottom
-                    ncols = max(1, int(np.ceil(width / target_resolution)))
-                    nrows = max(1, int(np.ceil(height / target_resolution)))
-                    transform_to_use = Affine(
-                        target_resolution,
-                        0.0,
-                        left,
-                        0.0,
-                        -target_resolution,
-                        top,
-                    )
-                    x_coords = left + (np.arange(ncols) + 0.5) * target_resolution
-                    y_coords = top - (np.arange(nrows) + 0.5) * target_resolution
+                    if can_use_integer_coarsen or not should_resample:
+                        transform_to_use = target_transform
+                        ncols = target_width
+                        nrows = target_height
+                        x_coords = (
+                            transform_to_use.c
+                            + (np.arange(ncols) + 0.5) * transform_to_use.a
+                        )
+                        y_coords = (
+                            transform_to_use.f
+                            + (np.arange(nrows) + 0.5) * transform_to_use.e
+                        )
+                    else:
+                        fallback_transform = original_ds[var].rio.transform()
+                        left, bottom, right, top = array_bounds(
+                            len(original_ds.y), len(original_ds.x), fallback_transform
+                        )
+                        width = right - left
+                        height = top - bottom
+                        ncols = max(1, int(np.ceil(width / target_resolution)))
+                        nrows = max(1, int(np.ceil(height / target_resolution)))
+                        transform_to_use = Affine(
+                            target_resolution,
+                            0.0,
+                            left,
+                            0.0,
+                            -target_resolution,
+                            top,
+                        )
+                        x_coords = left + (np.arange(ncols) + 0.5) * target_resolution
+                        y_coords = top - (np.arange(nrows) + 0.5) * target_resolution
 
                 coords = {"y": y_coords, "x": x_coords}
 
@@ -269,13 +321,37 @@ def load_input_data(
                 processed_vars[var] = dummy
                 continue
 
-            da = da.rio.write_crs(crs)
+            da = da.astype(np.float32).rio.write_crs(crs)
             if should_resample:
-                da = da.rio.reproject(
-                    da.rio.crs,
-                    resolution=(target_resolution, target_resolution),
-                    resampling=resampling_method,
-                )
+                if can_use_integer_coarsen:
+                    coarsened = da.coarsen(
+                        x=rounded_factor, y=rounded_factor, boundary="pad"
+                    )
+                    if resampling == "min":
+                        da = coarsened.reduce(np.nanmin)
+                    elif resampling == "max":
+                        da = coarsened.reduce(np.nanmax)
+                    elif resampling == "mode":
+
+                        def nanmode(data: np.ndarray, axis: int) -> np.ndarray:
+                            mode_result = stats.mode(
+                                data, axis=axis, nan_policy="omit", keepdims=False
+                            )
+                            return np.asarray(mode_result.mode)
+
+                        da = coarsened.reduce(nanmode)
+                    else:
+                        raise ValueError(f"Unsupported resampling method: {resampling}")
+
+                    da = da.rio.write_transform(target_transform)
+                else:
+                    da = da.rio.reproject(
+                        da.rio.crs,
+                        transform=target_transform,
+                        shape=(target_height, target_width),
+                        resampling=resampling_method,
+                        nodata=np.nan,
+                    )
             else:
                 da = da.rio.write_transform(current_transform)
 
