@@ -13,7 +13,7 @@ interface ProjectSelectListProps {
  */
 export const ProjectSelectList = ({ projects, selectedProjectIds, onToggleProject }: ProjectSelectListProps) => {
   return (
-    <List dense sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <List dense sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {projects.map((project) => {
         const taskCount = project.task_count ?? project.tasks?.length ?? 0;
         const isSelected = selectedProjectIds.includes(project.project_id);

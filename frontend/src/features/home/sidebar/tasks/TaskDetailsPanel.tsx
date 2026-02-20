@@ -224,7 +224,7 @@ export const TaskDetailsPanel = () => {
         key={task?.task_id ?? 'publish-dashboard'}
         open={publishOpen}
         size="sm"
-        dialogTitle="Publish dashboard"
+        dialogTitle="Publish Dashboard"
         dialogSaveButtonLabel="Publish"
         dialogError={publishError ?? undefined}
         dialogLoading={isPublishing}

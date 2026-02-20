@@ -1,7 +1,17 @@
 import { mdiPlus } from '@mdi/js';
 import Icon from '@mdi/react';
 import { LoadingButton } from '@mui/lab';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  TextField,
+  Typography,
+} from '@mui/material';
 import { FieldArray, Form, Formik } from 'formik';
 import { useEffect, useState } from 'react';
 
@@ -58,11 +68,7 @@ export const InviteDialog = ({
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{title}</DialogTitle>
       <DialogContent dividers>
-        {description && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {description}
-          </Typography>
-        )}
+        {description && <DialogContentText>{description}</DialogContentText>}
         <Formik
           initialValues={{ emails: [''] }}
           onSubmit={(values) => {

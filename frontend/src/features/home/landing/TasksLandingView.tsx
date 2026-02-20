@@ -173,7 +173,7 @@ export const TasksLandingView = () => {
   const handleDeleteProject = (project: GetProjectResponse) => {
     dialogContext.setYesNoDialog({
       open: true,
-      dialogTitle: 'Delete project?',
+      dialogTitle: 'Delete Project?',
       dialogText: `Are you sure you want to delete "${project.name}"?`,
       onYes: async () => {
         dialogContext.setYesNoDialog({ open: false });
@@ -209,7 +209,7 @@ export const TasksLandingView = () => {
   const handleDeleteTask = (task: GetTaskResponse) => {
     dialogContext.setYesNoDialog({
       open: true,
-      dialogTitle: 'Delete task?',
+      dialogTitle: 'Delete Task?',
       dialogText: `Are you sure you want to delete "${task.name}"?`,
       onYes: async () => {
         dialogContext.setYesNoDialog({ open: false });
@@ -292,7 +292,7 @@ export const TasksLandingView = () => {
               onClick={() => {
                 navigate('/t/new');
               }}>
-              + Create
+              + Create Task
             </Button>
           </Box>
 

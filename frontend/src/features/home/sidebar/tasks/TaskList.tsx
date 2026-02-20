@@ -41,7 +41,7 @@ export const TaskList = ({
   const handleDeleteTask = (task: GetTaskResponse) => {
     dialogContext.setYesNoDialog({
       open: true,
-      dialogTitle: 'Delete task?',
+      dialogTitle: 'Delete Task?',
       dialogText: `Are you sure you want to delete "${task.name}"?`,
       onYes: async () => {
         dialogContext.setYesNoDialog({ open: false });

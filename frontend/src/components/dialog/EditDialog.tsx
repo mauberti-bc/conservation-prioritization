@@ -60,7 +60,7 @@ export const EditDialog = <T extends FormikValues>({
           <DialogTitle id="edit-dialog-title">{dialogTitle}</DialogTitle>
 
           <DialogContent>
-            {dialogText && <DialogContentText sx={{ mb: 1 }}>{dialogText}</DialogContentText>}
+            {dialogText && <DialogContentText>{dialogText}</DialogContentText>}
             {component.element}
           </DialogContent>
 

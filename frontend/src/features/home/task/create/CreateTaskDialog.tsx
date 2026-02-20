@@ -85,13 +85,18 @@ const CreateTaskDialogContent = ({
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
           zIndex: 1,
         }}>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Typography variant="h6" fontWeight={600}>
-            Create Task
+        <Box>
+          <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Typography variant="h6" fontWeight={600}>
+              Create Task
+            </Typography>
+            <IconButton aria-label="Close create task" onClick={onClose} size="small">
+              <Icon path={mdiClose} size={1} />
+            </IconButton>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Set up the task details and area to begin.
           </Typography>
-          <IconButton aria-label="Close create task" onClick={onClose} size="small">
-            <Icon path={mdiClose} size={1} />
-          </IconButton>
         </Box>
       </DialogTitle>
       <Divider />

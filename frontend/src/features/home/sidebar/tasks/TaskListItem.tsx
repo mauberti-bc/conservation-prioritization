@@ -73,7 +73,7 @@ export const TaskListItem = ({
   const handleRetryTask = async () => {
     dialogContext.setYesNoDialog({
       open: true,
-      dialogTitle: 'Retry task?',
+      dialogTitle: 'Retry Task?',
       dialogText: `Would you like to retry "${task.name}"?`,
       onYes: async () => {
         try {
@@ -97,7 +97,7 @@ export const TaskListItem = ({
   const handleStopTask = async () => {
     dialogContext.setYesNoDialog({
       open: true,
-      dialogTitle: 'Stop task?',
+      dialogTitle: 'Stop Task?',
       dialogText: `Stop "${task.name}"?`,
       onYes: async () => {
         try {
@@ -121,7 +121,7 @@ export const TaskListItem = ({
   const handleStartDraftTask = async () => {
     dialogContext.setYesNoDialog({
       open: true,
-      dialogTitle: 'Submit task?',
+      dialogTitle: 'Submit Task?',
       dialogText: `Submit "${task.name}" to Prefect?`,
       onYes: async () => {
         try {

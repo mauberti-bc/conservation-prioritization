@@ -350,6 +350,16 @@ export const appTheme = createTheme({
         },
       },
     },
+    MuiDialogContentText: {
+      styleOverrides: {
+        root: {
+          marginBottom: '16px',
+          color: 'rgb(112, 112, 112)',
+          fontSize: '0.9rem',
+          lineHeight: 1.5,
+        },
+      },
+    },
     MuiDialogActions: {
       styleOverrides: {
         root: {

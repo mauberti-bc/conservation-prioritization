@@ -25,85 +25,84 @@ export const ProjectEditForm = () => {
 
   return (
     <>
-      <TextField
-        fullWidth
-        id="name"
-        name="name"
-        label="Name"
-        value={values.name}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        error={touched.name && Boolean(errors.name)}
-        helperText={touched.name && errors.name}
-        margin="normal"
-        required
-      />
-      <TextField
-        fullWidth
-        id="description"
-        name="description"
-        label="Description"
-        value={values.description}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        error={touched.description && Boolean(errors.description)}
-        helperText={touched.description && errors.description}
-        margin="normal"
-        multiline
-        rows={3}
-      />
-      <TextField
-        fullWidth
-        id="colour"
-        name="colour"
-        label="Colour"
-        placeholder="e.g. 1A5A96"
-        value={values.colour}
-        onChange={undefined}
-        onBlur={handleBlur}
-        error={touched.colour && Boolean(errors.colour)}
-        helperText={touched.colour && errors.colour ? errors.colour : ''}
-        margin="normal"
-        slotProps={{
-          input: {
-            readOnly: true,
-            sx: {
-              pointerEvents: 'none',
-              '& .MuiInputAdornment-positionEnd': {
-                pointerEvents: 'auto',
+      <Stack spacing={2}>
+        <TextField
+          fullWidth
+          id="name"
+          name="name"
+          label="Name"
+          value={values.name}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          error={touched.name && Boolean(errors.name)}
+          helperText={touched.name && errors.name}
+          required
+        />
+        <TextField
+          fullWidth
+          id="description"
+          name="description"
+          label="Description"
+          value={values.description}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          error={touched.description && Boolean(errors.description)}
+          helperText={touched.description && errors.description}
+          multiline
+          rows={3}
+        />
+        <TextField
+          fullWidth
+          id="colour"
+          name="colour"
+          label="Colour"
+          placeholder="e.g. 1A5A96"
+          value={values.colour}
+          onChange={undefined}
+          onBlur={handleBlur}
+          error={touched.colour && Boolean(errors.colour)}
+          helperText={touched.colour && errors.colour ? errors.colour : ''}
+          slotProps={{
+            input: {
+              readOnly: true,
+              sx: {
+                pointerEvents: 'none',
+                '& .MuiInputAdornment-positionEnd': {
+                  pointerEvents: 'auto',
+                },
               },
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Typography fontWeight={700}>#</Typography>
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    ref={pickerAnchorRef}
+                    aria-label="Open colour picker"
+                    size="small"
+                    onClick={() => {
+                      setIsPickerOpen(true);
+                    }}>
+                    <Box
+                      sx={{
+                        width: 35,
+                        height: 35,
+                        borderRadius: '4px',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        backgroundColor: isValidColour ? normalizedColour : grey[100],
+                      }}
+                    />
+                  </IconButton>
+                </InputAdornment>
+              ),
             },
-            startAdornment: (
-              <InputAdornment position="start">
-                <Typography fontWeight={700}>#</Typography>
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  ref={pickerAnchorRef}
-                  aria-label="Open colour picker"
-                  size="small"
-                  onClick={() => {
-                    setIsPickerOpen(true);
-                  }}>
-                  <Box
-                    sx={{
-                      width: 35,
-                      height: 35,
-                      borderRadius: '4px',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      backgroundColor: isValidColour ? normalizedColour : grey[100],
-                    }}
-                  />
-                </IconButton>
-              </InputAdornment>
-            ),
-          },
-        }}
-        inputProps={{ maxLength: 6 }}
-      />
+          }}
+          inputProps={{ maxLength: 6 }}
+        />
+      </Stack>
       <Popover
         open={isPickerOpen}
         anchorEl={pickerAnchorRef.current}
