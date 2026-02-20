@@ -3,8 +3,9 @@ import Chip from '@mui/material/Chip';
 import { TASK_STATUS, TILE_STATUS } from 'constants/status';
 import { AuthContext } from 'context/authContext';
 import { ApiPaginationRequestOptions } from 'types/pagination';
-import { useMapContext, useProjectContext, useSidebarUIContext, useTaskContext } from 'hooks/useContext';
+import { useMapContext, useProjectContext, useTaskContext } from 'hooks/useContext';
 import { useContext, useEffect, useMemo } from 'react';
+import { getTaskStatusLabel } from 'utils/task-status';
 import { TasksLandingView } from './landing/TasksLandingView';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
@@ -22,13 +23,12 @@ export const HomePage = () => {
   const { drawControlsRef } = useMapContext();
   const { taskId, taskDataLoader, tasksDataLoader, hoveredTilesetUri } = useTaskContext();
   const { projectsDataLoader } = useProjectContext();
-  const { activeView, setActiveView } = useSidebarUIContext();
   const { data: taskStatus } = useTaskStatusWebSocket(taskId);
   const authContext = useContext(AuthContext);
   const isAuthenticated = Boolean(authContext?.auth?.isAuthenticated);
 
-  const sidebarWidth = activeView ? '50vw' : '180px';
-  const sidebarMinWidth = activeView ? 360 : 180;
+  const sidebarWidth = '42vw';
+  const sidebarMinWidth = 320;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -40,15 +40,7 @@ export const HomePage = () => {
       void projectsDataLoader.load();
       return;
     }
-
-    if (activeView === 'tasks') {
-      void tasksDataLoader.load(defaultPagination);
-    }
-
-    if (activeView === 'projects') {
-      void projectsDataLoader.load();
-    }
-  }, [activeView, isAuthenticated, taskId, tasksDataLoader, projectsDataLoader]);
+  }, [isAuthenticated, taskId, tasksDataLoader, projectsDataLoader]);
 
   const pmtilesUrls = useMemo(() => {
     const statusUri =
@@ -79,10 +71,15 @@ export const HomePage = () => {
     }
 
     if (activeStatus === TASK_STATUS.COMPLETED && tileStatus && tileStatus !== TILE_STATUS.COMPLETED) {
-      return `${activeStatus} (tiling: ${tileStatus})`;
+      return `${getTaskStatusLabel(activeStatus)} (tiling: ${tileStatus})`;
     }
 
-    return activeStatus;
+    return getTaskStatusLabel(activeStatus);
+  }, [taskStatus, taskDataLoader.data]);
+
+  const isSubmitting = useMemo(() => {
+    const activeStatus = taskStatus?.status ?? taskDataLoader.data?.status;
+    return activeStatus === TASK_STATUS.SUBMITTED;
   }, [taskStatus, taskDataLoader.data]);
 
   const memoizedMap = useMemo(() => {
@@ -101,15 +98,27 @@ export const HomePage = () => {
   return (
     <Box position="relative" height="100%" overflow="hidden">
       <Box height="100%" display="flex" flexDirection="column" overflow="hidden">
-        {taskId && statusLabel && (
+        {taskId && statusLabel && isSubmitting && (
           <Box
             sx={{
               position: 'absolute',
               top: 16,
-              left: `calc(${sidebarWidth} + 16px)`,
+              left: `calc(${sidebarWidth} + ((100% - ${sidebarWidth}) / 2))`,
+              transform: 'translateX(-50%)',
               zIndex: 10,
             }}>
-            <Chip size="small" color="primary" label={statusLabel} />
+            <Chip
+              size="medium"
+              color="primary"
+              label={statusLabel}
+              sx={{
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                px: 1.5,
+                py: 2,
+                boxShadow: 3,
+              }}
+            />
           </Box>
         )}
         {memoizedMap}
@@ -128,13 +137,7 @@ export const HomePage = () => {
           flexDirection: 'column',
           zIndex: 12,
         }}>
-        <Sidebar
-          activeView={activeView}
-          onViewChange={setActiveView}
-          tasksDataLoader={tasksDataLoader}
-          projectsDataLoader={projectsDataLoader}
-          isAuthenticated={isAuthenticated}
-        />
+        <Sidebar />
       </Box>
     </Box>
   );

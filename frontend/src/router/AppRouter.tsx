@@ -7,7 +7,6 @@ import { TaskContextProvider } from 'context/taskContext';
 import { RequestAccessPage } from 'features/access/RequestAccessPage';
 import { DashboardPage } from 'features/dashboard/DashboardPage';
 import { HomePage } from 'features/home/HomePage';
-import { CreateTaskDialog } from 'features/home/task/create/CreateTaskDialog';
 import { PublicTaskDashboardPage } from 'features/public/PublicTaskDashboardPage';
 import { AuthRedirectGuard } from 'guards/Guards';
 import { useAuthContext } from 'hooks/useContext';
@@ -46,28 +45,7 @@ export const AppRouter = () => {
           </DialogContextProvider>
         }
       />
-      <Route
-        path="/t/new"
-        element={
-          <AuthRedirectGuard redirectTo="/auth/login">
-            <DialogContextProvider>
-              <MapContextProvider>
-                <BaseLayout>
-                  <SidebarUIContextProvider>
-                    <TaskContextProvider>
-                      <ProjectContextProvider>
-                        <LayerSelectionContextProvider>
-                          <CreateTaskDialog />
-                        </LayerSelectionContextProvider>
-                      </ProjectContextProvider>
-                    </TaskContextProvider>
-                  </SidebarUIContextProvider>
-                </BaseLayout>
-              </MapContextProvider>
-            </DialogContextProvider>
-          </AuthRedirectGuard>
-        }
-      />
+      <Route path="/t/new" element={<Navigate to="/t/" replace />} />
       <Route
         path="/t/*"
         element={

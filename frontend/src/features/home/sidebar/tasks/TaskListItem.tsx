@@ -1,9 +1,9 @@
 import {
-  mdiAccountPlus,
+  mdiAccountPlusOutline,
   mdiAlertCircleOutline,
-  mdiDelete,
+  mdiDeleteOutline,
   mdiFolderPlusOutline,
-  mdiPencil,
+  mdiPencilOutline,
   mdiPlay,
   mdiProgressClock,
 } from '@mdi/js';
@@ -15,6 +15,7 @@ import { TASK_STATUS } from 'constants/status';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useTaskContext } from 'hooks/useContext';
+import { getTaskStatusLabel } from 'utils/task-status';
 
 interface TaskListItemProps {
   task: GetTaskResponse;
@@ -42,7 +43,7 @@ export const TaskListItem = ({
   const menuItems = [
     {
       label: 'Edit',
-      icon: mdiPencil,
+      icon: mdiPencilOutline,
       onClick: () => {
         onEditTask?.(task);
       },
@@ -56,14 +57,14 @@ export const TaskListItem = ({
     },
     {
       label: 'Invite',
-      icon: mdiAccountPlus,
+      icon: mdiAccountPlusOutline,
       onClick: () => {
         onInvite?.(task);
       },
     },
     {
       label: 'Delete',
-      icon: mdiDelete,
+      icon: mdiDeleteOutline,
       onClick: () => {
         onDeleteTask(task);
       },
@@ -191,7 +192,7 @@ export const TaskListItem = ({
       );
     }
 
-    return <Chip size="small" label={task.status} sx={{ px: 1, width: 'fit-content' }} />;
+    return <Chip size="small" label={getTaskStatusLabel(task.status)} sx={{ px: 1, width: 'fit-content' }} />;
   };
 
   return (

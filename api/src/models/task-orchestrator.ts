@@ -46,3 +46,19 @@ export interface CreateTaskRequest {
   geometry?: CreateTaskGeometryRequest[];
   budget?: CreateTaskLayerRequest;
 }
+
+/**
+ * Interface for creating a task draft.
+ */
+export interface CreateTaskDraftRequest {
+  name: string;
+  description?: string | null;
+}
+
+/**
+ * Interface for submitting an existing draft task.
+ */
+export interface SubmitTaskRequest {
+  layers: CreateTaskLayerRequest[];
+  budget?: CreateTaskLayerRequest;
+}

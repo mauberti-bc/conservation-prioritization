@@ -36,9 +36,22 @@ const COST_LAYER_OPTION: TaskLayerOption = {
 interface TaskCreateFormProps {
   isReadOnly?: boolean;
   autoSearchOnMount?: boolean;
+  showAboutSection?: boolean;
+  showAreaSection?: boolean;
+  showAdvancedSection?: boolean;
+  showBudgetSection?: boolean;
+  showLayersSection?: boolean;
 }
 
-export const TaskCreateForm = ({ isReadOnly = false, autoSearchOnMount = false }: TaskCreateFormProps) => {
+export const TaskCreateForm = ({
+  isReadOnly = false,
+  autoSearchOnMount = false,
+  showAboutSection = true,
+  showAreaSection = true,
+  showAdvancedSection = true,
+  showBudgetSection = true,
+  showLayersSection = true,
+}: TaskCreateFormProps) => {
   const costLayer = COST_LAYER_OPTION;
   const { values, handleChange, touched, errors } = useFormikContext<TaskCreateFormValues>();
 
@@ -51,7 +64,7 @@ export const TaskCreateForm = ({ isReadOnly = false, autoSearchOnMount = false }
           flexDirection: 'column',
           gap: 5,
         }}>
-        {!isReadOnly && (
+        {showAboutSection && !isReadOnly && (
           <LabelledSection label="About">
             <Stack spacing={2}>
               <TextField
@@ -77,41 +90,49 @@ export const TaskCreateForm = ({ isReadOnly = false, autoSearchOnMount = false }
             </Stack>
           </LabelledSection>
         )}
-        <Box>
-          <TaskAreaSection isReadOnly={isReadOnly} />
-        </Box>
+        {showAreaSection && (
+          <Box>
+            <TaskAreaSection isReadOnly={isReadOnly} />
+          </Box>
+        )}
 
-        <Box flex={0}>
-          <TooltipStack tooltip="Enter the amount of money you have to spend" mb={1}>
-            <Typography
-              color="textSecondary"
-              fontWeight={700}
-              textTransform="uppercase"
-              letterSpacing={0.5}
-              variant="body2">
-              Budget
-            </Typography>
-          </TooltipStack>
-          <TaskBudgetSection costLayer={costLayer} />
-        </Box>
+        {showBudgetSection && (
+          <Box flex={0}>
+            <TooltipStack tooltip="Enter the amount of money you have to spend" mb={1}>
+              <Typography
+                color="textSecondary"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing={0.5}
+                variant="body2">
+                Budget
+              </Typography>
+            </TooltipStack>
+            <TaskBudgetSection costLayer={costLayer} />
+          </Box>
+        )}
 
-        <Box>
-          <TooltipStack tooltip="Select layers to conserve or avoid" mb={1}>
-            <Typography
-              color="textSecondary"
-              fontWeight={700}
-              textTransform="uppercase"
-              letterSpacing={0.5}
-              variant="body2">
-              Layers
-            </Typography>
-          </TooltipStack>
-          <TaskLayerSection isReadOnly={isReadOnly} autoSearchOnMount={autoSearchOnMount} />
-        </Box>
+        {showLayersSection && (
+          <Box>
+            <TooltipStack tooltip="Select layers to conserve or avoid" mb={1}>
+              <Typography
+                color="textSecondary"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing={0.5}
+                variant="body2">
+                Layers
+              </Typography>
+            </TooltipStack>
+            <TaskLayerSection isReadOnly={isReadOnly} autoSearchOnMount={autoSearchOnMount} />
+          </Box>
+        )}
 
-        <Box>
-          <TaskAdvancedSection isReadOnly={isReadOnly} />
-        </Box>
+        {showAdvancedSection && (
+          <Box>
+            <TaskAdvancedSection isReadOnly={isReadOnly} />
+          </Box>
+        )}
       </Stack>
     </>
   );

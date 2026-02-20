@@ -22,18 +22,20 @@ export const TaskGridCard = ({ task, onClick, menuItems }: TaskGridCardProps) =>
     <Card
       elevation={0}
       sx={{
+        height: 320,
         borderRadius: 2,
         border: `2px solid ${theme.palette.divider}`,
         overflow: 'hidden',
       }}>
       <CardActionArea
+        sx={{ height: '100%' }}
         onClick={() => {
           onClick(task);
         }}>
         <Box
           sx={{
             position: 'relative',
-            aspectRatio: '4 / 3',
+            height: '100%',
           }}>
           <Box sx={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
             <MapContainer
@@ -54,6 +56,7 @@ export const TaskGridCard = ({ task, onClick, menuItems }: TaskGridCardProps) =>
               zIndex: 2,
               p: 1.5,
               py: 2,
+              minHeight: 92,
               bgcolor: theme.palette.common.white,
               color: theme.palette.text.primary,
             }}>
@@ -97,21 +100,18 @@ export const TaskGridCard = ({ task, onClick, menuItems }: TaskGridCardProps) =>
                 <IconMenuButton items={menuItems} />
               </Box>
             </Box>
-            {task.description && (
-              <Typography
-                variant="body2"
-                sx={{
-                  mt: 0.25,
-                  color: theme.palette.text.secondary,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                }}>
-                {task.description}
-              </Typography>
-            )}
+            <Typography
+              variant="body2"
+              sx={{
+                mt: 0.25,
+                minHeight: '1.25em',
+                color: theme.palette.text.secondary,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+              {task.description ?? ''}
+            </Typography>
           </Box>
         </Box>
       </CardActionArea>

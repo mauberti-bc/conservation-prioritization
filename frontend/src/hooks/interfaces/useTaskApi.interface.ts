@@ -64,6 +64,33 @@ export interface CreateTaskRequest {
 }
 
 /**
+ * Request interface for creating a draft task.
+ */
+export interface CreateDraftTaskRequest {
+  name: string;
+  description: string | null;
+}
+
+/**
+ * Request interface for submitting an existing draft task.
+ */
+export interface SubmitTaskRequest {
+  layers: CreateTaskLayer[];
+  budget?: CreateTaskLayer;
+}
+
+export interface UpdateTaskRequest {
+  name?: string;
+  description?: string | null;
+  resolution?: number | null;
+  resampling?: RESAMPLING | null;
+  variant?: OPTIMIZATION_VARIANT | null;
+  status?: TaskStatusValue;
+  layers?: CreateTaskLayer[];
+  budget?: CreateTaskLayer;
+}
+
+/**
  * Response interface for a task (including layers and constraints).
  */
 

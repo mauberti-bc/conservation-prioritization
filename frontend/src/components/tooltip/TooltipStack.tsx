@@ -14,11 +14,19 @@ interface TooltipStackProps extends BoxProps {
 export const TooltipStack = ({ tooltip, children, gap = 1, flexChildren, ...boxProps }: TooltipStackProps) => {
   return (
     <TooltipPopover tooltip={tooltip} placement="right">
-      <Box display="flex" alignItems="center" gap={gap} width="100%" sx={{ cursor: 'pointer' }} {...boxProps}>
-        <Box flex={flexChildren ? 1 : undefined}>{children}</Box>
+      <Box
+        display={flexChildren ? 'flex' : 'inline-flex'}
+        alignItems="center"
+        gap={gap}
+        width={flexChildren ? '100%' : 'fit-content'}
+        sx={{ cursor: 'pointer' }}
+        {...boxProps}>
+        <Box display="flex" alignItems="center" flex={flexChildren ? 1 : undefined}>
+          {children}
+        </Box>
 
-        <Box flexShrink={0}>
-          <Icon path={mdiInformationSlabCircleOutline} size={1} color={grey[500]} />
+        <Box display="flex" alignItems="center" flexShrink={0}>
+          <Icon path={mdiInformationSlabCircleOutline} size={0.8} color={grey[500]} />
         </Box>
       </Box>
     </TooltipPopover>

@@ -1,17 +1,7 @@
 import { mdiPlus } from '@mdi/js';
 import Icon from '@mdi/react';
 import { LoadingButton } from '@mui/lab';
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Box, Button, Dialog, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
 import { FieldArray, Form, Formik } from 'formik';
 import { useEffect, useState } from 'react';
 
@@ -67,8 +57,12 @@ export const InviteDialog = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{title}</DialogTitle>
-      <DialogContent dividers>
-        {description && <DialogContentText>{description}</DialogContentText>}
+      <DialogContent sx={{ pt: 0 }}>
+        {description && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {description}
+          </Typography>
+        )}
         <Formik
           initialValues={{ emails: [''] }}
           onSubmit={(values) => {
@@ -97,21 +91,23 @@ export const InviteDialog = ({
                       </Typography>
                     )}
                     <Button
-                      variant="text"
+                      variant="outlined"
+                      fullWidth={false}
                       startIcon={<Icon path={mdiPlus} size={0.8} />}
+                      sx={{ alignSelf: 'flex-start' }}
                       onClick={() => {
                         arrayHelpers.push('');
                       }}>
                       Add Another
                     </Button>
-                    <DialogActions sx={{ px: 0 }}>
-                      <LoadingButton variant="contained" type="submit" loading={isSubmitting}>
-                        {submitLabel}
-                      </LoadingButton>
+                    <Box display="flex" justifyContent="flex-end" gap={1}>
                       <LoadingButton variant="outlined" onClick={onClose} disabled={isSubmitting}>
                         Cancel
                       </LoadingButton>
-                    </DialogActions>
+                      <LoadingButton variant="contained" type="submit" loading={isSubmitting}>
+                        {submitLabel}
+                      </LoadingButton>
+                    </Box>
                   </Box>
                 )}
               />

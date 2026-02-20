@@ -1,4 +1,11 @@
-import { mdiAccountPlus, mdiDelete, mdiFolderPlusOutline, mdiMagnify, mdiPencil, mdiPlus } from '@mdi/js';
+import {
+  mdiAccountPlusOutline,
+  mdiDeleteOutline,
+  mdiFolderPlusOutline,
+  mdiMagnify,
+  mdiPencilOutline,
+  mdiPlus,
+} from '@mdi/js';
 import Icon from '@mdi/react';
 import {
   Box,
@@ -16,12 +23,15 @@ import {
 } from '@mui/material';
 import { grey } from '@mui/material/colors';
 import { IconMenuButton } from 'components/button/IconMenuButton';
+import { EditDialog } from 'components/dialog/EditDialog';
 import { InviteDialog } from 'components/dialog/InviteDialog';
 import { QUERY_PARAM } from 'constants/query-params';
 import { ProjectCreateDialog } from 'features/home/sidebar/projects/ProjectCreateDialog';
 import { ProjectEditDialog } from 'features/home/sidebar/projects/ProjectEditDialog';
 import { ProjectEditFormValues } from 'features/home/sidebar/projects/ProjectEditForm';
 import { AddTaskToProjectDialog } from 'features/home/sidebar/tasks/dialog/AddTaskToProjectDialog';
+import { useFormikContext } from 'formik';
+import { CreateDraftTaskDialog } from 'features/home/task/create/CreateDraftTaskDialog';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
@@ -30,6 +40,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiPaginationRequestOptions } from 'types/pagination';
 import { toApiHexColour } from 'utils/colour';
+import * as Yup from 'yup';
 import { TaskGridCard } from './TaskGridCard';
 
 const defaultPagination: ApiPaginationRequestOptions = {
@@ -37,6 +48,50 @@ const defaultPagination: ApiPaginationRequestOptions = {
   limit: 25,
   sort: 'created_at',
   order: 'desc',
+};
+
+interface TaskEditFormValues {
+  name: string;
+  description: string;
+}
+
+const taskEditSchema = Yup.object({
+  name: Yup.string().required('Name is required').max(100, 'Name must be 100 characters or less'),
+  description: Yup.string().max(500, 'Description must be 500 characters or less'),
+});
+
+const TaskEditForm = () => {
+  const { values, errors, touched, handleChange, handleBlur } = useFormikContext<TaskEditFormValues>();
+
+  return (
+    <Stack spacing={2}>
+      <TextField
+        fullWidth
+        id="name"
+        name="name"
+        label="Name"
+        value={values.name}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        error={touched.name && Boolean(errors.name)}
+        helperText={touched.name && errors.name ? errors.name : ''}
+        required
+      />
+      <TextField
+        fullWidth
+        id="description"
+        name="description"
+        label="Description"
+        value={values.description}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        error={touched.description && Boolean(errors.description)}
+        helperText={touched.description && errors.description ? errors.description : ''}
+        multiline
+        minRows={2}
+      />
+    </Stack>
+  );
 };
 
 /**
@@ -64,6 +119,10 @@ export const TasksLandingView = () => {
   const [inviteTask, setInviteTask] = useState<GetTaskResponse | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [draftTaskCreateOpen, setDraftTaskCreateOpen] = useState(false);
+  const [editTask, setEditTask] = useState<GetTaskResponse | null>(null);
+  const [editTaskError, setEditTaskError] = useState<string | null>(null);
+  const [editTaskSaving, setEditTaskSaving] = useState(false);
   const refreshTasksRef = useRef(tasksDataLoader.refresh);
   refreshTasksRef.current = tasksDataLoader.refresh;
 
@@ -248,6 +307,40 @@ export const TasksLandingView = () => {
     setInviteTask(task);
   };
 
+  const handleEditTask = (task: GetTaskResponse) => {
+    setEditTaskError(null);
+    setEditTask(task);
+  };
+
+  const handleEditTaskCancel = () => {
+    setEditTaskError(null);
+    setEditTask(null);
+  };
+
+  const handleEditTaskSave = async (values: TaskEditFormValues) => {
+    if (!editTask) {
+      return;
+    }
+
+    try {
+      setEditTaskSaving(true);
+      setEditTaskError(null);
+
+      await conservationApi.task.updateTask(editTask.task_id, {
+        name: values.name,
+        description: values.description.trim() ? values.description : null,
+      });
+
+      await refreshLandingTasks();
+      setEditTask(null);
+    } catch (error) {
+      console.error('Failed to update task', error);
+      setEditTaskError('Failed to update task. Please try again.');
+    } finally {
+      setEditTaskSaving(false);
+    }
+  };
+
   const handleInviteSubmit = async (emails: string[]) => {
     if (!inviteTask) {
       return;
@@ -290,7 +383,7 @@ export const TasksLandingView = () => {
             <Button
               variant="contained"
               onClick={() => {
-                navigate('/t/new');
+                setDraftTaskCreateOpen(true);
               }}>
               + Create Task
             </Button>
@@ -380,14 +473,14 @@ export const TasksLandingView = () => {
                         items={[
                           {
                             label: 'Edit',
-                            icon: mdiPencil,
+                            icon: mdiPencilOutline,
                             onClick: () => {
                               handleEditProject(project);
                             },
                           },
                           {
                             label: 'Delete',
-                            icon: mdiDelete,
+                            icon: mdiDeleteOutline,
                             onClick: () => {
                               handleDeleteProject(project);
                             },
@@ -469,7 +562,7 @@ export const TasksLandingView = () => {
                     menuItems={[
                       {
                         label: 'Share',
-                        icon: mdiAccountPlus,
+                        icon: mdiAccountPlusOutline,
                         onClick: () => {
                           handleInviteTask(task);
                         },
@@ -483,14 +576,14 @@ export const TasksLandingView = () => {
                       },
                       {
                         label: 'Edit',
-                        icon: mdiPencil,
+                        icon: mdiPencilOutline,
                         onClick: () => {
-                          handleOpenTask(task.task_id);
+                          handleEditTask(task);
                         },
                       },
                       {
                         label: 'Delete',
-                        icon: mdiDelete,
+                        icon: mdiDeleteOutline,
                         onClick: () => {
                           handleDeleteTask(task);
                         },
@@ -556,6 +649,31 @@ export const TasksLandingView = () => {
         onSubmit={handleInviteSubmit}
         isSubmitting={inviteLoading}
         error={inviteError}
+      />
+      <CreateDraftTaskDialog
+        open={draftTaskCreateOpen}
+        onClose={() => {
+          setDraftTaskCreateOpen(false);
+        }}
+      />
+      <EditDialog<TaskEditFormValues>
+        open={Boolean(editTask)}
+        dialogTitle="Edit Task"
+        dialogText="Update the task name and description."
+        dialogSaveButtonLabel="Save"
+        size="sm"
+        dialogLoading={editTaskSaving}
+        dialogError={editTaskError ?? undefined}
+        onCancel={handleEditTaskCancel}
+        onSave={handleEditTaskSave}
+        component={{
+          element: <TaskEditForm />,
+          initialValues: {
+            name: editTask?.name ?? '',
+            description: editTask?.description ?? '',
+          },
+          validationSchema: taskEditSchema,
+        }}
       />
     </Box>
   );

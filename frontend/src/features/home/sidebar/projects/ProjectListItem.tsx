@@ -1,4 +1,4 @@
-import { mdiAccountPlus, mdiDelete, mdiPencil } from '@mdi/js';
+import { mdiAccountPlusOutline, mdiDeleteOutline, mdiPencilOutline } from '@mdi/js';
 import { Box, Checkbox, Chip, ListItem, Typography } from '@mui/material';
 import { IconMenuButton } from 'components/button/IconMenuButton';
 import { InteractiveListItemButton } from 'components/list/InteractiveListItemButton';
@@ -29,21 +29,21 @@ export const ProjectListItem = ({
   const menuItems = [
     {
       label: 'Edit',
-      icon: mdiPencil,
+      icon: mdiPencilOutline,
       onClick: () => {
         onEditProject?.(project);
       },
     },
     {
       label: 'Invite',
-      icon: mdiAccountPlus,
+      icon: mdiAccountPlusOutline,
       onClick: () => {
         onInvite?.(project);
       },
     },
     {
       label: 'Delete',
-      icon: mdiDelete,
+      icon: mdiDeleteOutline,
       onClick: () => {
         onDeleteProject?.(project);
       },

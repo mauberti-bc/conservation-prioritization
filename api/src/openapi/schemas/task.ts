@@ -183,6 +183,152 @@ export const CreateTaskSchema: OpenAPIV3.SchemaObject = {
 };
 
 /**
+ * OpenAPI Schema for creating a draft task.
+ */
+export const CreateTaskDraftSchema: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  required: ['name'],
+  properties: {
+    name: {
+      type: 'string',
+      description: 'The name of the draft task.',
+      maxLength: 100
+    },
+    description: {
+      type: 'string',
+      description: 'A description of the draft task.',
+      maxLength: 500,
+      nullable: true
+    }
+  }
+};
+
+/**
+ * OpenAPI Schema for submitting an existing draft task.
+ */
+export const SubmitTaskSchema: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  required: ['layers'],
+  properties: {
+    layers: {
+      type: 'array',
+      description: 'List of layers associated with the task.',
+      items: {
+        type: 'object',
+        required: ['layer_name', 'mode', 'constraints'],
+        properties: {
+          layer_name: {
+            type: 'string',
+            description: 'The name of the layer.'
+          },
+          description: {
+            type: 'string',
+            description: 'A description of the layer.',
+            nullable: true
+          },
+          mode: {
+            type: 'string',
+            description: 'Configured mode for the task layer.',
+            enum: ['flexible', 'locked-in', 'locked-out']
+          },
+          importance: {
+            type: 'number',
+            nullable: true,
+            description: 'Relative importance when mode is flexible.'
+          },
+          threshold: {
+            type: 'number',
+            nullable: true,
+            description: 'Threshold when mode is locked-in or locked-out.'
+          },
+          constraints: {
+            type: 'array',
+            description: 'List of constraints for the task layer.',
+            items: {
+              type: 'object',
+              required: ['type'],
+              properties: {
+                type: {
+                  type: 'string',
+                  description: 'Constraint type.',
+                  enum: ['percent', 'unit']
+                },
+                min: {
+                  type: 'number',
+                  nullable: true,
+                  description: 'Minimum constraint value.'
+                },
+                max: {
+                  type: 'number',
+                  nullable: true,
+                  description: 'Maximum constraint value.'
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    budget: {
+      type: 'object',
+      description: 'Optional budget layer configuration.',
+      required: ['layer_name', 'mode', 'constraints'],
+      properties: {
+        layer_name: {
+          type: 'string',
+          description: 'The name of the layer.'
+        },
+        description: {
+          type: 'string',
+          description: 'A description of the layer.',
+          nullable: true
+        },
+        mode: {
+          type: 'string',
+          description: 'Configured mode for the task layer.',
+          enum: ['flexible', 'locked-in', 'locked-out']
+        },
+        importance: {
+          type: 'number',
+          nullable: true,
+          description: 'Relative importance when mode is flexible.'
+        },
+        threshold: {
+          type: 'number',
+          nullable: true,
+          description: 'Threshold when mode is locked-in or locked-out.'
+        },
+        constraints: {
+          type: 'array',
+          description: 'List of constraints for the task layer.',
+          items: {
+            type: 'object',
+            required: ['type'],
+            properties: {
+              type: {
+                type: 'string',
+                description: 'Constraint type.',
+                enum: ['percent', 'unit']
+              },
+              min: {
+                type: 'number',
+                nullable: true,
+                description: 'Minimum constraint value.'
+              },
+              max: {
+                type: 'number',
+                nullable: true,
+                description: 'Maximum constraint value.'
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+};
+
+/**
  * OpenAPI Schema for the response when getting a task.
  */
 export const GetTaskSchema: OpenAPIV3.SchemaObject = {
@@ -393,25 +539,21 @@ export const UpdateTaskSchema: OpenAPIV3.SchemaObject = {
     description: {
       type: 'string',
       description: 'A description of the task.',
-      maxLength: 500
+      maxLength: 500,
+      nullable: true
+    },
+    status: {
+      type: 'string',
+      description: 'Execution status for the task lifecycle.',
+      enum: ['draft', 'pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit']
     },
     layers: {
       type: 'array',
       description: 'List of layers associated with the task.',
       items: {
         type: 'object',
-        required: ['task_layer_id', 'task_id', 'layer_name', 'mode', 'constraints'],
+        required: ['layer_name', 'mode', 'constraints'],
         properties: {
-          task_layer_id: {
-            type: 'string',
-            format: 'uuid',
-            description: 'The ID of the task layer.'
-          },
-          task_id: {
-            type: 'string',
-            format: 'uuid',
-            description: 'The ID of the task.'
-          },
           layer_name: {
             type: 'string',
             description: 'The name of the layer.'
@@ -441,18 +583,8 @@ export const UpdateTaskSchema: OpenAPIV3.SchemaObject = {
             description: 'List of constraints for the task layer.',
             items: {
               type: 'object',
-              required: ['task_layer_constraint_id', 'task_layer_id', 'type'],
+              required: ['type'],
               properties: {
-                task_layer_constraint_id: {
-                  type: 'string',
-                  format: 'uuid',
-                  description: 'The ID of the task layer constraint.'
-                },
-                task_layer_id: {
-                  type: 'string',
-                  format: 'uuid',
-                  description: 'The ID of the task layer.'
-                },
                 type: {
                   type: 'string',
                   description: 'Constraint type.',
@@ -468,6 +600,62 @@ export const UpdateTaskSchema: OpenAPIV3.SchemaObject = {
                   nullable: true,
                   description: 'Maximum constraint value.'
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    budget: {
+      type: 'object',
+      description: 'Optional budget layer configuration.',
+      required: ['layer_name', 'mode', 'constraints'],
+      properties: {
+        layer_name: {
+          type: 'string',
+          description: 'The name of the layer.'
+        },
+        description: {
+          type: 'string',
+          description: 'A description of the layer.',
+          nullable: true
+        },
+        mode: {
+          type: 'string',
+          description: 'Configured mode for the task layer.',
+          enum: ['flexible', 'locked-in', 'locked-out']
+        },
+        importance: {
+          type: 'number',
+          nullable: true,
+          description: 'Relative importance when mode is flexible.'
+        },
+        threshold: {
+          type: 'number',
+          nullable: true,
+          description: 'Threshold when mode is locked-in or locked-out.'
+        },
+        constraints: {
+          type: 'array',
+          description: 'List of constraints for the task layer.',
+          items: {
+            type: 'object',
+            required: ['type'],
+            properties: {
+              type: {
+                type: 'string',
+                description: 'Constraint type.',
+                enum: ['percent', 'unit']
+              },
+              min: {
+                type: 'number',
+                nullable: true,
+                description: 'Minimum constraint value.'
+              },
+              max: {
+                type: 'number',
+                nullable: true,
+                description: 'Maximum constraint value.'
               }
             }
           }

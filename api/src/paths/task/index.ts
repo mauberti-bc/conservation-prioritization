@@ -1,13 +1,10 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getDBConnection } from '../../database/db';
-import { ApiGeneralError } from '../../errors/api-error';
-import { HTTP400, HTTP500 } from '../../errors/http-error';
-import { PrefectSubmissionError } from '../../errors/prefect-error';
-import { CreateTaskRequest } from '../../models/task-orchestrator';
+import { CreateTaskDraftRequest } from '../../models/task-orchestrator';
 import { defaultErrorResponses } from '../../openapi/schemas/http-responses';
 import { paginationRequestQueryParamSchema, paginationResponseSchema } from '../../openapi/schemas/pagination';
-import { CreateTaskSchema, GetTaskSchema } from '../../openapi/schemas/task';
+import { CreateTaskDraftSchema, GetTaskSchema } from '../../openapi/schemas/task';
 import { authorizeRequestHandler } from '../../request-handlers/security/authorization';
 import { TaskOrchestratorService } from '../../services/task-orchestrator-service';
 import { TaskService } from '../../services/task-service';
@@ -30,7 +27,7 @@ export const POST: Operation = [
 ];
 
 POST.apiDoc = {
-  description: 'Creates a new task in the system, with optional layers and constraints.',
+  description: 'Creates a new task in the system.',
   tags: ['tasks'],
   security: [
     {
@@ -41,7 +38,7 @@ POST.apiDoc = {
     required: true,
     content: {
       'application/json': {
-        schema: CreateTaskSchema
+        schema: CreateTaskDraftSchema
       }
     }
   },
@@ -59,7 +56,7 @@ POST.apiDoc = {
 };
 
 /**
- * Create a new task in the system, including optional layers and constraints.
+ * Create a new task in the system.
  *
  * @returns {RequestHandler}
  */
@@ -68,31 +65,20 @@ export function createTask(): RequestHandler {
     defaultLog.debug({ label: 'createTask' });
 
     const connection = getDBConnection(req.keycloak_token);
-    const payload = req.body as CreateTaskRequest;
+    const payload = req.body as CreateTaskDraftRequest;
 
     try {
       await connection.open();
 
       const profileId = connection.profileId();
       const taskService = new TaskOrchestratorService(connection);
-      const taskResponse = await taskService.createTaskAndSubmit(payload, profileId);
+      const taskResponse = await taskService.createDraftTask(payload, profileId);
 
       await connection.commit();
 
       return res.status(201).json(taskResponse);
     } catch (error) {
       defaultLog.error({ label: 'createTask', message: 'error', error });
-
-      if (error instanceof ApiGeneralError) {
-        await connection.rollback();
-        throw new HTTP400(error.message);
-      }
-
-      if (error instanceof PrefectSubmissionError) {
-        await connection.commit();
-        throw new HTTP500(error.message);
-      }
-
       await connection.rollback();
       throw error;
     } finally {

@@ -1,6 +1,6 @@
 import { mdiCurrencyUsd } from '@mdi/js';
 import Icon from '@mdi/react';
-import { Box, TextField } from '@mui/material';
+import { Box, InputAdornment, TextField } from '@mui/material';
 import { grey } from '@mui/material/colors';
 import { useFormikContext } from 'formik';
 import { formatBudget } from 'utils/currency';
@@ -88,7 +88,11 @@ export const TaskBudgetSection = ({ costLayer }: TaskBudgetSectionProps) => {
         disabled={!costLayer}
         slotProps={{
           input: {
-            startAdornment: <Icon path={mdiCurrencyUsd} size={1} style={{ color: grey[500] }} />,
+            startAdornment: (
+              <InputAdornment position="start">
+                <Icon path={mdiCurrencyUsd} size={1} style={{ color: grey[500] }} />
+              </InputAdornment>
+            ),
           },
         }}
       />

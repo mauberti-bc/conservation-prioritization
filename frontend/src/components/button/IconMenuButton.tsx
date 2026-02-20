@@ -23,6 +23,7 @@ export const IconMenuButton = ({ items, inlineTrigger = false }: IconMenuButtonP
   };
 
   const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
     handleOpenElement(event.currentTarget);
   };
 
@@ -30,7 +31,8 @@ export const IconMenuButton = ({ items, inlineTrigger = false }: IconMenuButtonP
     setAnchorEl(null);
   };
 
-  const handleItemClick = (onClick: () => void) => {
+  const handleItemClick = (event: React.MouseEvent<HTMLElement>, onClick: () => void) => {
+    event.stopPropagation();
     handleClose();
     onClick();
   };
@@ -81,7 +83,11 @@ export const IconMenuButton = ({ items, inlineTrigger = false }: IconMenuButtonP
 
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
         {items.map((item, i) => (
-          <MenuItem key={i} onClick={() => handleItemClick(item.onClick)}>
+          <MenuItem
+            key={i}
+            onClick={(event) => {
+              handleItemClick(event, item.onClick);
+            }}>
             <ListItemIcon>
               <Icon path={item.icon} size={0.9} />
             </ListItemIcon>
