@@ -3,7 +3,7 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import { TASK_STATUS, TILE_STATUS } from 'constants/status';
 import { useMapContext, useTaskContext } from 'hooks/useContext';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
 import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
@@ -19,6 +19,7 @@ export const ViewTaskPage = () => {
   const { drawControlsRef } = useMapContext();
   const { taskId, taskDataLoader, hoveredTilesetUri } = useTaskContext();
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
+  const [isResettingPmtiles, setIsResettingPmtiles] = useState(false);
   const sidebarWidthPx = getTaskViewSidebarWidth(isPreviewOpen);
   const sidebarWidth = `${sidebarWidthPx}px`;
 
@@ -60,6 +61,17 @@ export const ViewTaskPage = () => {
     return baseUrls;
   }, [hoveredTilesetUri, resolvedPmtilesUri]);
 
+  useEffect(() => {
+    setIsResettingPmtiles(true);
+    const resetTimer = window.setTimeout(() => {
+      setIsResettingPmtiles(false);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(resetTimer);
+    };
+  }, [taskId]);
+
   const showStatusChip = useMemo(() => {
     const activeStatus = activeTaskStatus?.status ?? taskDataLoader.data?.status;
     if (!activeStatus) {
@@ -100,7 +112,7 @@ export const ViewTaskPage = () => {
             />
           </Box>
         )}
-        <MapContainer pmtilesUrls={pmtilesUrls} />
+        <MapContainer pmtilesUrls={isResettingPmtiles ? [] : pmtilesUrls} />
         <DrawControls ref={drawControlsRef} />
       </Box>
 
