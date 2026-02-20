@@ -392,6 +392,19 @@ const ensureBaseLayer = (map: maplibregl.Map, showBaseLayer: boolean): void => {
       maxzoom: 19,
     });
   }
+
+  const style = map.getStyle();
+  if (!style || !style.layers) {
+    return;
+  }
+
+  const firstNonBaseLayerId = style.layers?.find((layer) => {
+    return layer.id !== 'osm-tiles';
+  })?.id;
+
+  if (firstNonBaseLayerId && map.getLayer('osm-tiles')) {
+    map.moveLayer('osm-tiles', firstNonBaseLayerId);
+  }
 };
 
 /**

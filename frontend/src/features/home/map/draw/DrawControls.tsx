@@ -23,7 +23,13 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
     if (!map) {
       return false;
     }
-    const sources = map.getStyle().sources ?? {};
+
+    const style = map.getStyle();
+    if (!style || !style.sources) {
+      return false;
+    }
+
+    const sources = style.sources;
     return Boolean(sources['mapbox-gl-draw-cold'] && sources['mapbox-gl-draw-hot']);
   }, [mapRef]);
 
