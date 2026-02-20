@@ -676,7 +676,7 @@ def create_continuous_priority_surface(
     """
     logger = get_run_logger()
 
-    nrows, ncols = valid_mask.shape
+    _nrows, _ncols = valid_mask.shape
     score = np.zeros((nrows, ncols), dtype=np.float32)
     candidate_mask = valid_mask.copy()
     locked_in_mask = np.zeros((nrows, ncols), dtype=bool)
@@ -735,9 +735,16 @@ def create_continuous_priority_surface(
         layer_min = float(np.nanmin(arr[finite_mask]))
         layer_max = float(np.nanmax(arr[finite_mask]))
         layer_range = layer_max - layer_min
+        logger.info(
+            f"Flexible layer '{layer_name}': importance={float(props.importance):.4f}, "
+            f"min={layer_min:.6f}, max={layer_max:.6f}, range={layer_range:.6f}"
+        )
 
         if layer_range <= 0:
-            normalized = np.zeros_like(arr, dtype=np.float32)
+            logger.warning(
+                f"Flexible layer '{layer_name}' has zero range in feasible area; skipping."
+            )
+            continue
         else:
             normalized = (arr - layer_min) / layer_range
             normalized = np.where(np.isnan(normalized), 0.0, normalized)
@@ -746,33 +753,49 @@ def create_continuous_priority_surface(
         weighted_layer_count += 1
 
     if weighted_layer_count == 0:
-        logger.warning(
-            "No weighted flexible layers found. Defaulting feasible cells to priority 1."
+        raise ValueError(
+            "Continuous output requested but no non-constant flexible layers contributed. "
+            "Add at least one flexible layer with non-zero importance and non-zero value range."
         )
-        score = np.where(candidate_mask, 1.0, 0.0).astype(np.float32)
     else:
         score = np.where(candidate_mask, score, 0.0).astype(np.float32)
+        logger.info(f"Contributing flexible layers: {weighted_layer_count}")
 
         finite_candidate = candidate_mask & (~np.isnan(score))
         if np.any(finite_candidate):
-            min_score = float(np.nanmin(score[finite_candidate]))
-            max_score = float(np.nanmax(score[finite_candidate]))
-            score_range = max_score - min_score
-
-            if score_range > 0:
-                score = (score - min_score) / score_range
+            p2, p98 = np.nanpercentile(score[finite_candidate], [2, 98])
+            percentile_range = float(p98 - p2)
+            logger.info(
+                f"Raw score percentiles in feasible area: p2={float(p2):.6f}, p98={float(p98):.6f}, "
+                f"range={percentile_range:.6f}"
+            )
+            if percentile_range > 1e-9:
+                score = (score - float(p2)) / percentile_range
             else:
-                score = np.where(candidate_mask, 1.0, 0.0).astype(np.float32)
+                logger.warning(
+                    "Continuous score has near-zero spread after aggregation; setting feasible cells to 0.5"
+                )
+                score = np.where(candidate_mask, 0.5, 0.0).astype(np.float32)
+        else:
+            raise ValueError(
+                "No finite candidate cells available for continuous score normalization."
+            )
 
     score = np.where(valid_mask, score, 0.0).astype(np.float32)
     score = np.where(locked_in_mask, 1.0, score).astype(np.float32)
+    score = np.clip(score, 0.0, 1.0).astype(np.float32)
+
+    finite_values = score[np.isfinite(score)]
+    rounded_unique_sample = np.unique(np.round(finite_values, 4))[:20]
+    percentiles = np.percentile(finite_values, [0, 1, 5, 25, 50, 75, 95, 99, 100]).tolist()
 
     logger.info(
-        f"Continuous surface generated: min={np.nanmin(score):.4f}, max={np.nanmax(score):.4f}, "
-        f"non_zero={np.count_nonzero(score)}"
+        f"Continuous surface generated: min={float(np.nanmin(score)):.4f}, max={float(np.nanmax(score)):.4f}, "
+        f"non_zero={np.count_nonzero(score)}, unique_sample={rounded_unique_sample.tolist()}, "
+        f"percentiles={percentiles}"
     )
 
-    return np.clip(score, 0.0, 1.0).astype(np.float32)
+    return score
 
 
 @task
@@ -1218,10 +1241,6 @@ def execute_optimization(
             conditions=layers,
             valid_mask=valid_mask,
         )
-        logger.info(
-            f"Continuous solution stats: sum={np.sum(solution_array):.4f}, "
-            f"non-zero={np.count_nonzero(solution_array)}"
-        )
     else:
         # Build optimization model
         logger.info("Building optimization model...")
@@ -1250,6 +1269,19 @@ def execute_optimization(
             transform=transform,
         )
         logger.info(f"Binary solution array sum: {np.sum(solution_array)}")
+
+    finite_solution_values = solution_array[np.isfinite(solution_array)]
+    rounded_solution_unique_sample = np.unique(np.round(finite_solution_values, 4))[:20]
+    solution_percentiles = np.percentile(
+        finite_solution_values, [0, 1, 5, 25, 50, 75, 95, 99, 100]
+    ).tolist()
+    logger.info(
+        f"Solution diagnostics pre-tiling: dtype={solution_array.dtype}, "
+        f"min={float(np.min(finite_solution_values)):.6f}, max={float(np.max(finite_solution_values)):.6f}, "
+        f"non_zero={int(np.count_nonzero(solution_array))}, "
+        f"unique_sample={rounded_solution_unique_sample.tolist()}, "
+        f"percentiles={solution_percentiles}"
+    )
 
     if not np.any(solution_array > 0):
         logger.warning("No solution found")
