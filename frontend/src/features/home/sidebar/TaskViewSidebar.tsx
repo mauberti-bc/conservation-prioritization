@@ -2,6 +2,7 @@ import { mdiArrowLeft, mdiDockRight } from '@mdi/js';
 import Icon from '@mdi/react';
 import { IconButton, List, ListItem, ListItemButton, ListItemText, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
+import { grey } from '@mui/material/colors';
 import Paper from '@mui/material/Paper';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useTaskContext } from 'hooks/useContext';
@@ -49,7 +50,7 @@ const PreviewRail = ({
           width: `${TASK_VIEW_PREVIEW_COLLAPSED_WIDTH}px`,
           minWidth: `${TASK_VIEW_PREVIEW_COLLAPSED_WIDTH}px`,
           boxSizing: 'border-box',
-          p: 2,
+          p: '10px !important',
           borderRight: '1px solid',
           borderColor: 'divider',
           display: 'flex',
@@ -70,7 +71,7 @@ const PreviewRail = ({
         width: `${TASK_VIEW_PREVIEW_WIDTH}px`,
         minWidth: `${TASK_VIEW_PREVIEW_WIDTH}px`,
         boxSizing: 'border-box',
-        p: 2.5,
+        p: 0.5,
         borderRight: '1px solid',
         borderColor: 'divider',
         display: 'flex',
@@ -79,7 +80,7 @@ const PreviewRail = ({
       }}>
       <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
         <IconButton aria-label="Back to tasks" size="small" onClick={onBackToTasks}>
-          <Icon path={mdiArrowLeft} size={0.85} />
+          <Icon path={mdiArrowLeft} size={1} />
         </IconButton>
         <IconButton aria-label="Collapse task list sidebar" size="small" onClick={onTogglePreview}>
           <Icon path={mdiDockRight} size={1} />
@@ -97,7 +98,7 @@ const PreviewRail = ({
                 }}>
                 <ListItemText
                   primary={
-                    <Typography variant="body2" noWrap>
+                    <Typography variant="body2" noWrap sx={{ color: grey[500] }}>
                       {task.name}
                     </Typography>
                   }
@@ -140,6 +141,7 @@ export const TaskViewSidebar = ({ isPreviewOpen, onTogglePreview }: TaskViewSide
       component={Paper}
       elevation={1}
       sx={{
+        p: 2,
         boxSizing: 'border-box',
         width: `${totalWidth}px`,
         minWidth: `${totalWidth}px`,

@@ -36,6 +36,7 @@ const COST_LAYER_OPTION: TaskLayerOption = {
 interface TaskCreateFormProps {
   isReadOnly?: boolean;
   autoSearchOnMount?: boolean;
+  containerPaddingX?: number;
   showAboutSection?: boolean;
   aboutSectionTitle?: string;
   aboutSectionTitleVariant?: 'body1' | 'h2';
@@ -49,6 +50,7 @@ interface TaskCreateFormProps {
 export const TaskCreateForm = ({
   isReadOnly = false,
   autoSearchOnMount = false,
+  containerPaddingX = 3,
   showAboutSection = true,
   aboutSectionTitle = 'About',
   aboutSectionTitleVariant = 'body1',
@@ -65,7 +67,7 @@ export const TaskCreateForm = ({
     <>
       <Stack
         sx={{
-          px: 3,
+          px: containerPaddingX,
           display: 'flex',
           flexDirection: 'column',
           gap: 4,
