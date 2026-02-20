@@ -199,6 +199,12 @@ export const TaskListItem = ({
     <ListItem
       key={task.task_id}
       disablePadding
+      onMouseEnter={() => {
+        setIsHovered(true);
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+      }}
       secondaryAction={
         showActions && isHovered ? (
           <Box
@@ -219,13 +225,11 @@ export const TaskListItem = ({
       <InteractiveListItemButton
         selected={task.task_id === taskId}
         onMouseEnter={() => {
-          setIsHovered(true);
           if (task.tileset_uri) {
             setHoveredTilesetUri(task.tileset_uri);
           }
         }}
         onMouseLeave={() => {
-          setIsHovered(false);
           setHoveredTilesetUri(null);
         }}
         onClick={() => {
