@@ -85,11 +85,20 @@ export const IconMenuButton = ({ items, inlineTrigger = false }: IconMenuButtonP
         {items.map((item, i) => (
           <MenuItem
             key={i}
+            sx={{
+              color: 'text.primary',
+              '& .MuiListItemIcon-root': {
+                color: 'inherit',
+              },
+              '& .MuiListItemText-primary': {
+                color: 'inherit',
+              },
+            }}
             onClick={(event) => {
               handleItemClick(event, item.onClick);
             }}>
             <ListItemIcon>
-              <Icon path={item.icon} size={0.9} />
+              <Icon path={item.icon} size={0.9} color="currentColor" />
             </ListItemIcon>
             <ListItemText>{item.label}</ListItemText>
           </MenuItem>

@@ -240,116 +240,104 @@ export const TaskSubmitPanel = () => {
               <Typography color="error">Failed to load task.</Typography>
             </Box>
           }>
-          {taskDataLoader.data?.status !== 'draft' && (
-            <Box p={3}>
-              <Typography color="text.secondary">
-                This panel is only available for tasks that have not been submitted yet.
-              </Typography>
-            </Box>
-          )}
-          {taskDataLoader.data?.status === 'draft' && (
-            <Formik
-              initialValues={initialValues as TaskCreateFormValues}
-              enableReinitialize
-              onSubmit={handleSubmit}
-              validationSchema={taskValidationSchema}
-              validateOnChange={false}
-              validateOnMount={false}
-              validateOnBlur={false}>
-              {({ handleSubmit }) => {
-                return (
+          <Formik
+            initialValues={initialValues as TaskCreateFormValues}
+            enableReinitialize
+            onSubmit={handleSubmit}
+            validationSchema={taskValidationSchema}
+            validateOnChange={false}
+            validateOnMount={false}
+            validateOnBlur={false}>
+            {({ handleSubmit }) => {
+              return (
+                <Box
+                  component="form"
+                  onSubmit={handleSubmit}
+                  sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                  <Box display="flex" alignItems="center" gap={1} px={2} pt={2}>
+                    <IconButton
+                      aria-label="Back to tasks"
+                      size="small"
+                      onClick={() => {
+                        setFocusedTask(null);
+                      }}>
+                      <Icon path={mdiArrowLeft} size={1} />
+                    </IconButton>
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight={600}
+                      sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                      {taskDataLoader.data?.name ?? 'Task'}
+                    </Typography>
+                    <IconMenuButton
+                      items={[
+                        {
+                          label: 'Edit',
+                          icon: mdiPencilOutline,
+                          onClick: () => {
+                            setEditTaskError(null);
+                            setEditTaskOpen(true);
+                          },
+                        },
+                        {
+                          label: 'Share',
+                          icon: mdiAccountPlusOutline,
+                          onClick: () => {
+                            setInviteError(null);
+                            setInviteOpen(true);
+                          },
+                        },
+                        {
+                          label: 'Delete',
+                          icon: mdiDeleteOutline,
+                          onClick: () => {
+                            handleDeleteTask();
+                          },
+                        },
+                      ]}
+                    />
+                  </Box>
                   <Box
-                    component="form"
-                    onSubmit={handleSubmit}
-                    sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-                    <Box display="flex" alignItems="center" gap={1} px={2} pt={2}>
-                      <IconButton
-                        aria-label="Back to tasks"
-                        size="small"
-                        onClick={() => {
-                          setFocusedTask(null);
-                        }}>
-                        <Icon path={mdiArrowLeft} size={1} />
-                      </IconButton>
-                      <Typography
-                        variant="subtitle1"
-                        fontWeight={600}
-                        sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                        {taskDataLoader.data?.name ?? 'Task'}
-                      </Typography>
-                      <IconMenuButton
-                        items={[
-                          {
-                            label: 'Edit',
-                            icon: mdiPencilOutline,
-                            onClick: () => {
-                              setEditTaskError(null);
-                              setEditTaskOpen(true);
-                            },
-                          },
-                          {
-                            label: 'Share',
-                            icon: mdiAccountPlusOutline,
-                            onClick: () => {
-                              setInviteError(null);
-                              setInviteOpen(true);
-                            },
-                          },
-                          {
-                            label: 'Delete',
-                            icon: mdiDeleteOutline,
-                            onClick: () => {
-                              handleDeleteTask();
-                            },
-                          },
-                        ]}
-                      />
-                    </Box>
-                    <Box
-                      sx={{
-                        flex: 1,
-                        py: 3,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        minHeight: 0,
-                        height: '100%',
-                        overflow: 'auto',
-                      }}>
-                      <TaskCreateForm autoSearchOnMount showAboutSection={false} showAdvancedSection={false} />
-                    </Box>
+                    sx={{
+                      flex: 1,
+                      py: 3,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      minHeight: 0,
+                      height: '100%',
+                      overflow: 'auto',
+                    }}>
+                    <TaskCreateForm autoSearchOnMount showAboutSection={false} showAdvancedSection={false} />
+                  </Box>
 
-                    <Box
-                      mr={0.5}
-                      py={2}
-                      sx={{
-                        boxShadow: '0px -2px 25px 0px rgba(0,0,0,0.05)',
-                        position: 'sticky',
-                        bottom: 0,
-                        backgroundColor: 'white',
-                      }}>
-                      <Box mx={3} mb={2}>
-                        <TaskAdvancedSection />
-                      </Box>
-                      <Box mx={3}>
-                        <LoadingButton
-                          variant="contained"
-                          size="large"
-                          loading={isSubmitting}
-                          type="submit"
-                          color="primary"
-                          fullWidth>
-                          Submit
-                        </LoadingButton>
-                      </Box>
-                      <Typography variant="body2" textAlign="center" mt={1.5} color="textSecondary">
-                        Your task will begin processing when you submit.
-                      </Typography>
+                  <Box
+                    mr={0.5}
+                    py={2}
+                    sx={{
+                      boxShadow: '0px -2px 25px 0px rgba(0,0,0,0.05)',
+                      position: 'sticky',
+                      bottom: 0,
+                      backgroundColor: 'white',
+                    }}>
+                    <Box mx={3} mb={2}>
+                      <TaskAdvancedSection />
+                    </Box>
+                    <Box mx={3}>
+                      <LoadingButton
+                        variant="contained"
+                        size="large"
+                        loading={isSubmitting}
+                        type="submit"
+                        color="primary"
+                        fullWidth>
+                        Submit
+                      </LoadingButton>
                     </Box>
                   </Box>
-                );
-              }}
-            </Formik>
-          )}
+                </Box>
+              );
+            }}
+          </Formik>
         </LoadingGuard>
       </LoadingGuard>
       <EditDialog<TaskEditFormValues>

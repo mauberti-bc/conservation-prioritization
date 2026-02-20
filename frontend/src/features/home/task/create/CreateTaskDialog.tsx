@@ -26,7 +26,7 @@ export const CreateTaskDialog = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleClose = () => {
-    navigate('/t/?v=tasks');
+    navigate('/t/');
   };
 
   const handleSubmit = () => {
@@ -121,7 +121,7 @@ const CreateTaskDialogContent = ({
               hideInternalActions
               onSubmittingChange={onSubmittingChange}
               onSubmitSuccess={() => {
-                navigate('/t/?v=tasks');
+                navigate('/t/');
               }}
             />
           </Box>

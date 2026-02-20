@@ -65,7 +65,7 @@ export const appTheme = createTheme({
     fontSize: 15,
     fontFamily: ['BCSans', 'Verdana', 'Arial', 'sans-serif'].join(','),
     h1: {
-      fontSize: '1.75rem',
+      fontSize: '1.5rem',
       fontWeight: 700,
       paddingTop: '4px',
       paddingBottom: '8px',

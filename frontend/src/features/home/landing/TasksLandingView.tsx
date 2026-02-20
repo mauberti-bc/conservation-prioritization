@@ -25,7 +25,6 @@ import { grey } from '@mui/material/colors';
 import { IconMenuButton } from 'components/button/IconMenuButton';
 import { EditDialog } from 'components/dialog/EditDialog';
 import { InviteDialog } from 'components/dialog/InviteDialog';
-import { QUERY_PARAM } from 'constants/query-params';
 import { ProjectCreateDialog } from 'features/home/sidebar/projects/ProjectCreateDialog';
 import { ProjectEditDialog } from 'features/home/sidebar/projects/ProjectEditDialog';
 import { ProjectEditFormValues } from 'features/home/sidebar/projects/ProjectEditForm';
@@ -35,7 +34,8 @@ import { CreateDraftTaskDialog } from 'features/home/task/create/CreateDraftTask
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useDialogContext, useProjectContext, useSidebarUIContext, useTaskContext } from 'hooks/useContext';
+import useDataLoader from 'hooks/useDataLoader';
+import { useDialogContext, useProjectContext } from 'hooks/useContext';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiPaginationRequestOptions } from 'types/pagination';
@@ -101,10 +101,9 @@ export const TasksLandingView = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const conservationApi = useConservationApi();
+  const tasksDataLoader = useDataLoader(conservationApi.task.getAllTasks);
   const dialogContext = useDialogContext();
-  const { tasksDataLoader, setFocusedTask } = useTaskContext();
   const { projectsDataLoader, refreshProjects } = useProjectContext();
-  const { setActiveView } = useSidebarUIContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -140,6 +139,10 @@ export const TasksLandingView = () => {
       debouncedSearch.clear();
     };
   }, [debouncedSearch]);
+
+  useEffect(() => {
+    void projectsDataLoader.load();
+  }, [projectsDataLoader]);
 
   useEffect(() => {
     void refreshTasksRef.current({
@@ -252,17 +255,7 @@ export const TasksLandingView = () => {
   };
 
   const handleOpenTask = (taskId: string) => {
-    setActiveView('tasks');
-    const selectedTask = rawTasks?.find((task) => {
-      return task.task_id === taskId;
-    });
-
-    if (selectedTask) {
-      setFocusedTask(selectedTask);
-      return;
-    }
-
-    navigate(`/t/?${QUERY_PARAM.TASK_ID}=${taskId}&${QUERY_PARAM.VIEW}=tasks`);
+    navigate(`/t/${taskId}`);
   };
 
   const handleDeleteTask = (task: GetTaskResponse) => {

@@ -1,9 +1,8 @@
 import { Box, TextField } from '@mui/material';
 import { EditDialog } from 'components/dialog/EditDialog';
-import { QUERY_PARAM } from 'constants/query-params';
 import { useFormikContext } from 'formik';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useDialogContext, useSidebarUIContext, useTaskContext } from 'hooks/useContext';
+import { useDialogContext } from 'hooks/useContext';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as Yup from 'yup';
@@ -65,8 +64,6 @@ const CreateDraftTaskForm = () => {
  */
 export const CreateDraftTaskDialog = ({ open, onClose }: CreateDraftTaskDialogProps) => {
   const conservationApi = useConservationApi();
-  const { setFocusedTask, refreshTasks } = useTaskContext();
-  const { setActiveView } = useSidebarUIContext();
   const dialogContext = useDialogContext();
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
@@ -87,11 +84,8 @@ export const CreateDraftTaskDialog = ({ open, onClose }: CreateDraftTaskDialogPr
         description: values.description.trim() ? values.description.trim() : null,
       });
 
-      setFocusedTask(createdTask);
-      setActiveView('tasks');
-      await refreshTasks();
       onClose();
-      navigate(`/t/?${QUERY_PARAM.TASK_ID}=${createdTask.task_id}&${QUERY_PARAM.VIEW}=tasks`);
+      navigate(`/t/${createdTask.task_id}`);
 
       dialogContext.setSnackbar({
         open: true,
