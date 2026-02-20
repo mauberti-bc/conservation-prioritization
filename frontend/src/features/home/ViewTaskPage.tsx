@@ -100,7 +100,7 @@ export const ViewTaskPage = () => {
             />
           </Box>
         )}
-        <MapContainer pmtilesUrls={pmtilesUrls} keepAliveKey="home-map" />
+        <MapContainer pmtilesUrls={pmtilesUrls} />
         <DrawControls ref={drawControlsRef} />
       </Box>
 
