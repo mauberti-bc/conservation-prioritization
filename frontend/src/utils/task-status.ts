@@ -20,6 +20,9 @@ export const getTaskStatusLabel = (status: TaskStatusValue): string => {
     case 'submitted': {
       return 'Submitted';
     }
+    case 'in_progress': {
+      return 'In Progress';
+    }
     case 'running': {
       return 'Running';
     }

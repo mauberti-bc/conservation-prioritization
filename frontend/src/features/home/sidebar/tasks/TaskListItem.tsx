@@ -174,6 +174,10 @@ export const TaskListItem = ({
       return <CircularProgress size={20} thickness={5} />;
     }
 
+    if (task.status === TASK_STATUS.IN_PROGRESS) {
+      return <CircularProgress size={20} thickness={5} />;
+    }
+
     if (task.status === TASK_STATUS.RUNNING) {
       return <CircularProgress size={20} thickness={5} />;
     }
