@@ -252,21 +252,33 @@ export const MapContainer = ({
 
     if (!map.isStyleLoaded()) {
       let didNotify = false;
+      let notifyTimer: number | null = null;
       const notifyStyleReady = () => {
         if (didNotify) {
           return;
         }
 
         didNotify = true;
+        if (notifyTimer !== null) {
+          window.clearTimeout(notifyTimer);
+          notifyTimer = null;
+        }
         setStyleReadyTick((prev) => {
           return prev + 1;
         });
       };
       map.once('styledata', notifyStyleReady);
       map.once('load', notifyStyleReady);
+      notifyTimer = window.setTimeout(() => {
+        notifyStyleReady();
+      }, 800);
 
       return () => {
         didNotify = true;
+        if (notifyTimer !== null) {
+          window.clearTimeout(notifyTimer);
+          notifyTimer = null;
+        }
       };
     }
 
