@@ -59,6 +59,12 @@ export interface CreateTaskDraftRequest {
  * Interface for submitting an existing draft task.
  */
 export interface SubmitTaskRequest {
-  layers: CreateTaskLayerRequest[];
-  budget?: CreateTaskLayerRequest;
+  layers?: CreateTaskLayerRequest[];
+  budget?: CreateTaskLayerRequest | null;
+  resolution?: number | null;
+  resampling?: 'mode' | 'min' | 'max' | null;
+  variant?: 'strict' | 'approximate' | null;
+  target_area?: number;
+  is_percentage?: boolean;
+  geometry?: CreateTaskGeometryRequest[];
 }

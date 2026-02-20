@@ -6,12 +6,12 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { Formik } from 'formik';
-import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router';
-import { CreateTaskLayer, CreateTaskRequest } from 'hooks/interfaces/useTaskApi.interface';
+import { CreateDraftTaskRequest, CreateTaskLayer, SubmitTaskRequest } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useMapContext } from 'hooks/useContext';
 import useDataLoader from 'hooks/useDataLoader';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router';
 import { mapTaskResponseToCreateFormValues } from 'utils/task-mapping';
 import { taskValidationSchema } from './TaskCreateYup';
 import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
@@ -71,16 +71,27 @@ export const EditTask = ({ taskId: taskIdProp }: EditTaskProps) => {
         })),
       }));
 
-      const taskData: CreateTaskRequest = {
+      const draftTaskData: CreateDraftTaskRequest = {
         name: values.name,
-        description: values.name,
+        description: values.description ?? null,
+      };
+
+      const submitData: SubmitTaskRequest = {
         variant: values.variant,
         resolution: values.resolution,
         resampling: values.resampling,
         layers: mappedLayers,
+        geometry: values.geometry.length
+          ? values.geometry.map((geometry) => ({
+              name: geometry.name,
+              description: geometry.description,
+              geojson: geometry.geojson,
+            }))
+          : undefined,
       };
 
-      await conservationApi.task.createTask(taskData);
+      const createdDraftTask = await conservationApi.task.createTask(draftTaskData);
+      await conservationApi.task.submitTask(createdDraftTask.task_id, submitData);
 
       dialogContext.setSnackbar({
         open: true,
@@ -179,9 +190,6 @@ export const EditTask = ({ taskId: taskIdProp }: EditTaskProps) => {
                       Create Copy
                     </Button>
                   </Box>
-                  <Typography variant="body2" textAlign="center" mt={1.5} color="textSecondary">
-                    Your task will begin processing when you submit.
-                  </Typography>
                 </Box>
               </Box>
             );

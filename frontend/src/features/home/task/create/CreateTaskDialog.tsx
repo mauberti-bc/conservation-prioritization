@@ -110,8 +110,8 @@ const CreateTaskDialogContent = ({
               submitRef={submitRef}
               hideInternalActions
               onSubmittingChange={onSubmittingChange}
-              onSubmitSuccess={() => {
-                navigate('/t/');
+              onSubmitSuccess={(task) => {
+                navigate(`/t/${task.task_id}`);
               }}
             />
           </Box>

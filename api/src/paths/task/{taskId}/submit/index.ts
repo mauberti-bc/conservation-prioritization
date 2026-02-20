@@ -26,7 +26,8 @@ export const POST: Operation = [
 ];
 
 POST.apiDoc = {
-  description: 'Submits an existing draft task to Prefect with provided layer configuration.',
+  description:
+    'Submits an existing draft task to Prefect with optional configuration updates. At least one non-budget layer must exist after merge.',
   tags: ['tasks'],
   security: [
     {
@@ -76,8 +77,14 @@ export function submitTask(): RequestHandler {
     const taskId = req.params.taskId as string;
     const body = req.body as SubmitTaskBody;
     const payload: SubmitTaskRequest = {
-      layers: body.layers ?? [],
-      budget: body.budget
+      layers: body.layers,
+      budget: body.budget,
+      geometry: body.geometry,
+      resolution: body.resolution,
+      resampling: body.resampling,
+      variant: body.variant,
+      target_area: body.target_area,
+      is_percentage: body.is_percentage
     };
 
     defaultLog.debug({ label: 'submitTask', message: `Submitting task ${taskId}` });

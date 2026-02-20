@@ -30,7 +30,6 @@ import { ProjectEditDialog } from 'features/home/sidebar/projects/ProjectEditDia
 import { ProjectEditFormValues } from 'features/home/sidebar/projects/ProjectEditForm';
 import { AddTaskToProjectDialog } from 'features/home/sidebar/tasks/dialog/AddTaskToProjectDialog';
 import { useFormikContext } from 'formik';
-import { CreateDraftTaskDialog } from 'features/home/task/create/CreateDraftTaskDialog';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
@@ -118,7 +117,6 @@ export const TasksLandingView = () => {
   const [inviteTask, setInviteTask] = useState<GetTaskResponse | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
-  const [draftTaskCreateOpen, setDraftTaskCreateOpen] = useState(false);
   const [editTask, setEditTask] = useState<GetTaskResponse | null>(null);
   const [editTaskError, setEditTaskError] = useState<string | null>(null);
   const [editTaskSaving, setEditTaskSaving] = useState(false);
@@ -376,7 +374,7 @@ export const TasksLandingView = () => {
             <Button
               variant="contained"
               onClick={() => {
-                setDraftTaskCreateOpen(true);
+                navigate('/t/new');
               }}>
               + Create Task
             </Button>
@@ -642,12 +640,6 @@ export const TasksLandingView = () => {
         onSubmit={handleInviteSubmit}
         isSubmitting={inviteLoading}
         error={inviteError}
-      />
-      <CreateDraftTaskDialog
-        open={draftTaskCreateOpen}
-        onClose={() => {
-          setDraftTaskCreateOpen(false);
-        }}
       />
       <EditDialog<TaskEditFormValues>
         open={Boolean(editTask)}

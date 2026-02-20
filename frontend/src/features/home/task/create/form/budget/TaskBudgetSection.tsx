@@ -11,9 +11,10 @@ const MAX_DIGITS = 15;
 
 interface TaskBudgetSectionProps {
   costLayer?: TaskLayerOption;
+  isReadOnly?: boolean;
 }
 
-export const TaskBudgetSection = ({ costLayer }: TaskBudgetSectionProps) => {
+export const TaskBudgetSection = ({ costLayer, isReadOnly = false }: TaskBudgetSectionProps) => {
   const { values, setFieldValue } = useFormikContext<TaskCreateFormValues>();
 
   const targetLayer = values.budget?.path === costLayer?.path ? values.budget : null;
@@ -85,7 +86,7 @@ export const TaskBudgetSection = ({ costLayer }: TaskBudgetSectionProps) => {
         value={existingMax !== null ? formatBudget(existingMax.toString()) : ''}
         onChange={handleChange}
         fullWidth
-        disabled={!costLayer}
+        disabled={!costLayer || isReadOnly}
         slotProps={{
           input: {
             startAdornment: (

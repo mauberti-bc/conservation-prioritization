@@ -9,7 +9,7 @@ import { EditDialog } from 'components/dialog/EditDialog';
 import { InviteDialog } from 'components/dialog/InviteDialog';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { Formik, useFormikContext } from 'formik';
-import { CreateTaskLayer } from 'hooks/interfaces/useTaskApi.interface';
+import { CreateDraftTaskRequest, CreateTaskLayer } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useTaskContext } from 'hooks/useContext';
 import { useMemo, useState } from 'react';
@@ -124,17 +124,28 @@ export const TaskSubmitPanel = () => {
           }
         : undefined;
 
-      await conservationApi.task.updateTask(taskId, {
+      const draftTaskData: CreateDraftTaskRequest = {
+        name: values.name,
+        description: values.description ?? null,
+      };
+
+      const createdDraftTask = await conservationApi.task.createTask(draftTaskData);
+      const updatedTask = await conservationApi.task.submitTask(createdDraftTask.task_id, {
+        layers: mappedLayers,
+        budget: mappedBudget,
         resolution: values.resolution,
         resampling: values.resampling,
         variant: values.variant,
+        geometry: values.geometry.length
+          ? values.geometry.map((geometry) => ({
+              name: geometry.name,
+              description: geometry.description,
+              geojson: geometry.geojson,
+            }))
+          : undefined,
       });
 
-      const updatedTask = await conservationApi.task.submitTask(taskId, {
-        layers: mappedLayers,
-        budget: mappedBudget,
-      });
-
+      setFocusedTask(updatedTask);
       taskDataLoader.setData(updatedTask);
       await refreshTasks();
 
@@ -143,7 +154,7 @@ export const TaskSubmitPanel = () => {
         snackbarMessage: (
           <Stack flexDirection="row" gap={1}>
             <Icon path={mdiCheck} size={1} />
-            Successfully submitted task
+            Successfully created and submitted task
           </Stack>
         ),
       });

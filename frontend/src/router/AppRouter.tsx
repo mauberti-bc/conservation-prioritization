@@ -6,8 +6,9 @@ import { SidebarUIContextProvider } from 'context/sidebarUIContext';
 import { TaskContextProvider } from 'context/taskContext';
 import { RequestAccessPage } from 'features/access/RequestAccessPage';
 import { DashboardPage } from 'features/dashboard/DashboardPage';
+import { CreateTaskPage } from 'features/home/CreateTaskPage';
 import { HomePage } from 'features/home/HomePage';
-import { TaskPage } from 'features/home/TaskPage';
+import { ViewTaskPage } from 'features/home/ViewTaskPage';
 import { PublicTaskDashboardPage } from 'features/public/PublicTaskDashboardPage';
 import { AuthRedirectGuard } from 'guards/Guards';
 import { useAuthContext } from 'hooks/useContext';
@@ -69,7 +70,26 @@ export const AppRouter = () => {
           </DialogContextProvider>
         }
       />
-      <Route path="/t/new" element={<Navigate to="/t/" replace />} />
+      <Route
+        path="/t/new"
+        element={
+          <AuthRedirectGuard redirectTo="/auth/login">
+            <DialogContextProvider>
+              <MapContextProvider>
+                <BaseLayout>
+                  <SidebarUIContextProvider>
+                    <ProjectContextProvider>
+                      <LayerSelectionContextProvider>
+                        <CreateTaskPage />
+                      </LayerSelectionContextProvider>
+                    </ProjectContextProvider>
+                  </SidebarUIContextProvider>
+                </BaseLayout>
+              </MapContextProvider>
+            </DialogContextProvider>
+          </AuthRedirectGuard>
+        }
+      />
       <Route
         path="/t/"
         element={
@@ -101,7 +121,7 @@ export const AppRouter = () => {
                     <TaskContextProvider>
                       <ProjectContextProvider>
                         <LayerSelectionContextProvider>
-                          <TaskPage />
+                          <ViewTaskPage />
                         </LayerSelectionContextProvider>
                       </ProjectContextProvider>
                     </TaskContextProvider>

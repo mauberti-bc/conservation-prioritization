@@ -2,7 +2,6 @@ import { AxiosInstance } from 'axios';
 import { InviteProfilesRequest, InviteProfilesResponse } from 'hooks/interfaces/invite.interface';
 import {
   CreateDraftTaskRequest,
-  CreateTaskRequest,
   GetTaskDashboardResponse,
   GetTaskResponse,
   GetTasksResponse,
@@ -23,12 +22,12 @@ import { ApiPaginationRequestOptions } from 'types/pagination';
  */
 export const useTaskApi = (axios: AxiosInstance) => {
   /**
-   * Create a new task.
+   * Create a new draft task.
    *
-   * @param {CreateTaskRequest} taskData - Data used to create the task.
-   * @return {Promise<GetTaskResponse>} The newly created task with optional layers and constraints.
+   * @param {CreateDraftTaskRequest} taskData
+   * @return {Promise<GetTaskResponse>}
    */
-  const createTask = async (taskData: CreateTaskRequest): Promise<GetTaskResponse> => {
+  const createTask = async (taskData: CreateDraftTaskRequest): Promise<GetTaskResponse> => {
     const { data } = await axios.post<GetTaskResponse>('/api/task', taskData);
     return data;
   };

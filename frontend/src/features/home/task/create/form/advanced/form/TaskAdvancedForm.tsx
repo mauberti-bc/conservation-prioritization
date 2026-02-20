@@ -29,7 +29,11 @@ const resamplingOptions = [
   { label: 'Min', value: 'min', description: 'Use the lowest value' },
 ];
 
-export const TaskAdvancedForm = () => {
+interface TaskAdvancedFormProps {
+  isReadOnly?: boolean;
+}
+
+export const TaskAdvancedForm = ({ isReadOnly = false }: TaskAdvancedFormProps) => {
   const { values, setFieldValue } = useFormikContext<TaskCreateFormValues>();
 
   return (
@@ -42,6 +46,7 @@ export const TaskAdvancedForm = () => {
           value={resolutionOptions.find((o) => o.value === values.resolution)}
           handleSelect={(option) => setFieldValue('resolution', option.value)}
           disableClearable
+          disabled={isReadOnly}
           sx={{ width: 250 }}
         />
       </TaskAdvancedInputRow>
@@ -54,6 +59,7 @@ export const TaskAdvancedForm = () => {
           value={resamplingOptions.find((o) => o.value === values.resampling)}
           handleSelect={(option) => setFieldValue('resampling', option.value)}
           disableClearable
+          disabled={isReadOnly}
           sx={{ width: 250 }}
         />
       </TaskAdvancedInputRow>
@@ -66,6 +72,7 @@ export const TaskAdvancedForm = () => {
           value={optimizationModeOptions.find((o) => o.value === values.variant)}
           handleSelect={(option) => setFieldValue('variant', option.value)}
           disableClearable
+          disabled={isReadOnly}
           sx={{ width: 250 }}
         />
       </TaskAdvancedInputRow>

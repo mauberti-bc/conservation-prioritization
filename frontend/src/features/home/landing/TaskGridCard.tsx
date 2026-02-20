@@ -1,4 +1,4 @@
-import { Box, Card, CardActionArea, Typography, useTheme } from '@mui/material';
+import { Box, Card, CardActionArea, Tooltip, Typography, useTheme } from '@mui/material';
 import { IconMenuButton, IconMenuItem } from 'components/button/IconMenuButton';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { MapContainer } from '../map/MapContainer';
@@ -77,17 +77,18 @@ export const TaskGridCard = ({ task, onClick, menuItems }: TaskGridCardProps) =>
                 {task.projects?.length ? (
                   <Box display="flex" alignItems="center" gap={0.5} flexShrink={0}>
                     {task.projects.map((project) => (
-                      <Box
-                        key={project.project_id}
-                        sx={{
-                          width: 12,
-                          height: 12,
-                          borderRadius: '50%',
-                          bgcolor: project.colour,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                        }}
-                      />
+                      <Tooltip key={project.project_id} title={project.name} arrow>
+                        <Box
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            bgcolor: project.colour,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                          }}
+                        />
+                      </Tooltip>
                     ))}
                   </Box>
                 ) : null}

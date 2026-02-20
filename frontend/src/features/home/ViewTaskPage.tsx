@@ -5,10 +5,15 @@ import { useMapContext, useTaskContext } from 'hooks/useContext';
 import { useMemo } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
-import { Sidebar } from './sidebar/Sidebar';
+import { TaskViewSidebar } from './sidebar/TaskViewSidebar';
 import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
 
-export const TaskPage = () => {
+/**
+ * Task detail view for an existing submitted task.
+ *
+ * @returns {JSX.Element}
+ */
+export const ViewTaskPage = () => {
   const { drawControlsRef } = useMapContext();
   const { taskId, taskDataLoader, hoveredTilesetUri } = useTaskContext();
   const { data: taskStatus } = useTaskStatusWebSocket(taskId);
@@ -96,7 +101,7 @@ export const TaskPage = () => {
           flexDirection: 'column',
           zIndex: 12,
         }}>
-        <Sidebar />
+        <TaskViewSidebar />
       </Box>
     </Box>
   );

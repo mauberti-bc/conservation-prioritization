@@ -167,18 +167,7 @@ export function getTasks(): RequestHandler {
       const taskService = new TaskService(connection);
       const paginationRequest = makePaginationOptionsFromRequest(req);
       const search = typeof req.query.search === 'string' ? req.query.search : undefined;
-      const pagination =
-        ensureCompletePaginationOptions({
-          page: paginationRequest.page ?? 1,
-          limit: paginationRequest.limit ?? 25,
-          sort: paginationRequest.sort ?? 'created_at',
-          order: paginationRequest.order ?? 'desc'
-        }) ?? {
-          page: 1,
-          limit: 25,
-          sort: 'created_at',
-          order: 'desc'
-        };
+      const pagination = ensureCompletePaginationOptions(paginationRequest) ?? { page: 1, limit: 25 };
 
       const tasks = await taskService.getTasksForProfilePaginated(profileId, pagination, search);
 

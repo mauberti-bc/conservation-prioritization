@@ -2,7 +2,7 @@ import { IDBConnection } from '../database/db';
 import { ApiGeneralError } from '../errors/api-error';
 import { PrefectSubmissionError } from '../errors/prefect-error';
 import { CreateGeometry } from '../models/geometry';
-import { CreateTask, TaskStatus } from '../models/task';
+import { CreateTask, TaskStatus, UpdateTask } from '../models/task';
 import { CreateTaskLayer } from '../models/task-layer';
 import { CreateTaskLayerConstraint } from '../models/task-layer-constraint';
 import { CreateTaskDraftRequest, CreateTaskRequest, SubmitTaskRequest } from '../models/task-orchestrator';
@@ -225,21 +225,119 @@ export class TaskOrchestratorService extends DBService {
       throw new ApiGeneralError('Only draft tasks can be submitted.');
     }
 
-    if (!request.layers.length && !request.budget) {
-      throw new ApiGeneralError('Task must include at least one layer path to submit.');
+    const mergedLayers = request.layers ?? task.layers.map((layer) => ({
+      layer_name: layer.layer_name,
+      description: layer.description ?? null,
+      mode: layer.mode,
+      importance: layer.importance ?? null,
+      threshold: layer.threshold ?? null,
+      constraints: layer.constraints.map((constraint) => ({
+        type: constraint.type,
+        min: constraint.min ?? null,
+        max: constraint.max ?? null
+      }))
+    }));
+
+    if (!mergedLayers.length) {
+      throw new ApiGeneralError('Task must include at least one non-budget layer path to submit.');
     }
 
-    await this.replaceTaskLayers(taskId, request);
+    const existingBudget = task.layers.find((layer) => {
+      return layer.layer_name === 'financial/cost';
+    });
+
+    const mergedBudget =
+      request.budget !== undefined
+        ? request.budget
+        : existingBudget
+          ? {
+              layer_name: existingBudget.layer_name,
+              description: existingBudget.description ?? null,
+              mode: existingBudget.mode,
+              importance: existingBudget.importance ?? null,
+              threshold: existingBudget.threshold ?? null,
+              constraints: existingBudget.constraints.map((constraint) => ({
+                type: constraint.type,
+                min: constraint.min ?? null,
+                max: constraint.max ?? null
+              }))
+            }
+          : undefined;
+
+    if (request.layers !== undefined || request.budget !== undefined) {
+      await this.replaceTaskLayers(taskId, {
+        layers: mergedLayers,
+        budget: mergedBudget ?? undefined
+      });
+    }
+
+    if (request.geometry !== undefined) {
+      await this.replaceTaskGeometry(taskId, request.geometry);
+    }
+
+    const taskUpdates: UpdateTask = {};
+    if (request.resolution !== undefined) {
+      taskUpdates.resolution = request.resolution ?? null;
+    }
+    if (request.resampling !== undefined) {
+      taskUpdates.resampling = request.resampling ?? null;
+    }
+    if (request.variant !== undefined) {
+      taskUpdates.variant = request.variant ?? null;
+    }
+
+    if (Object.keys(taskUpdates).length > 0) {
+      await this.taskService.updateTask(taskId, taskUpdates);
+    }
+
+    const refreshedTask = await this.taskService.getTaskById(taskId);
+    const refreshedLayers = refreshedTask.layers.filter((layer) => {
+      return layer.layer_name !== 'financial/cost';
+    });
+
+    if (!refreshedLayers.length) {
+      throw new ApiGeneralError('Task must include at least one non-budget layer path to submit.');
+    }
+
+    const refreshedBudgetLayer = refreshedTask.layers.find((layer) => {
+      return layer.layer_name === 'financial/cost';
+    });
 
     const submitRequest: CreateTaskRequest = {
-      name: task.name,
-      description: task.description ?? '',
-      resolution: task.resolution ?? undefined,
-      resampling: task.resampling ?? undefined,
-      variant: task.variant ?? undefined,
-      layers: request.layers,
-      budget: request.budget,
-      geometry: task.geometries?.map((geometry) => ({
+      name: refreshedTask.name,
+      description: refreshedTask.description ?? '',
+      resolution: refreshedTask.resolution ?? undefined,
+      resampling: refreshedTask.resampling ?? undefined,
+      variant: refreshedTask.variant ?? undefined,
+      layers: refreshedLayers.map((layer) => ({
+        layer_name: layer.layer_name,
+        description: layer.description ?? null,
+        mode: layer.mode,
+        importance: layer.importance ?? null,
+        threshold: layer.threshold ?? null,
+        constraints: layer.constraints.map((constraint) => ({
+          type: constraint.type,
+          min: constraint.min ?? null,
+          max: constraint.max ?? null
+        }))
+      })),
+      budget: refreshedBudgetLayer
+        ? {
+            layer_name: refreshedBudgetLayer.layer_name,
+            description: refreshedBudgetLayer.description ?? null,
+            mode: refreshedBudgetLayer.mode,
+            importance: refreshedBudgetLayer.importance ?? null,
+            threshold: refreshedBudgetLayer.threshold ?? null,
+            constraints: refreshedBudgetLayer.constraints.map((constraint) => ({
+              type: constraint.type,
+              min: constraint.min ?? null,
+              max: constraint.max ?? null
+            }))
+          }
+        : undefined,
+      target_area: request.target_area ?? 50,
+      is_percentage: request.is_percentage ?? true,
+      geometry: refreshedTask.geometries?.map((geometry) => ({
         name: geometry.name ?? null,
         description: geometry.description ?? null,
         geojson: this.normalizeGeoJsonPayload(geometry.geojson)
@@ -293,7 +391,10 @@ export class TaskOrchestratorService extends DBService {
    * @memberof TaskOrchestratorService
    */
   async configureTaskLayers(taskId: string, request: SubmitTaskRequest): Promise<TaskWithLayers> {
-    await this.replaceTaskLayers(taskId, request);
+    await this.replaceTaskLayers(taskId, {
+      layers: request.layers ?? [],
+      budget: request.budget ?? undefined
+    });
     return this.taskService.getTaskById(taskId);
   }
 
@@ -438,7 +539,35 @@ export class TaskOrchestratorService extends DBService {
    * @return {*}  {Promise<void>}
    * @memberof TaskOrchestratorService
    */
-  private async replaceTaskLayers(taskId: string, request: SubmitTaskRequest): Promise<void> {
+  private async replaceTaskLayers(
+    taskId: string,
+    request: {
+      layers: {
+        layer_name: string;
+        description: string | null;
+        mode: 'flexible' | 'locked-in' | 'locked-out';
+        importance?: number | null;
+        threshold?: number | null;
+        constraints: {
+          type: 'percent' | 'unit';
+          min?: number | null;
+          max?: number | null;
+        }[];
+      }[];
+      budget?: {
+        layer_name: string;
+        description: string | null;
+        mode: 'flexible' | 'locked-in' | 'locked-out';
+        importance?: number | null;
+        threshold?: number | null;
+        constraints: {
+          type: 'percent' | 'unit';
+          min?: number | null;
+          max?: number | null;
+        }[];
+      };
+    }
+  ): Promise<void> {
     await this.taskLayerConstraintService.deleteTaskLayerConstraintsByTaskId(taskId);
     await this.taskLayerService.deleteTaskLayersByTaskId(taskId);
 
@@ -490,6 +619,44 @@ export class TaskOrchestratorService extends DBService {
       };
 
       await this.taskLayerConstraintService.createTaskLayerConstraint(constraintData);
+    }
+  }
+
+  /**
+   * Replaces task geometry associations for a task.
+   *
+   * @private
+   * @param {string} taskId
+   * @param {{ name?: string | null; description?: string | null; geojson: { geometry: unknown; [key: string]: unknown } }[]} geometryRequest
+   * @return {*}  {Promise<void>}
+   * @memberof TaskOrchestratorService
+   */
+  private async replaceTaskGeometry(
+    taskId: string,
+    geometryRequest: {
+      name?: string | null;
+      description?: string | null;
+      geojson: { geometry: unknown; [key: string]: unknown };
+    }[]
+  ): Promise<void> {
+    await this.taskGeometryService.deleteTaskGeometriesByTaskId(taskId);
+
+    if (!geometryRequest.length) {
+      return;
+    }
+
+    for (const [index, geometry] of geometryRequest.entries()) {
+      const geometryPayload: CreateGeometry = {
+        name: geometry.name?.trim() || `Geometry ${index + 1}`,
+        description: geometry.description ?? null,
+        geojson: geometry.geojson
+      };
+
+      const createdGeometry = await this.geometryService.createGeometry(geometryPayload);
+      await this.taskGeometryService.createTaskGeometry({
+        task_id: taskId,
+        geometry_id: createdGeometry.geometry_id
+      });
     }
   }
 

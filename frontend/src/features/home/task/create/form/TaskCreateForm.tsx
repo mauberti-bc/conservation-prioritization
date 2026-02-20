@@ -1,12 +1,12 @@
 import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import Stack from '@mui/system/Stack';
-import { LabelledSection } from 'components/layout/LabelledSection';
 import { TooltipStack } from 'components/tooltip/TooltipStack';
 import { useFormikContext } from 'formik';
 import { Feature } from 'geojson';
 import { OPTIMIZATION_VARIANT, RESAMPLING } from 'hooks/interfaces/useTaskApi.interface';
+import { ReactNode } from 'react';
 import { TaskAdvancedSection } from './advanced/TaskAdvancedSection';
 import { TaskAreaSection } from './area/TaskAreaSection';
 import { TaskBudgetSection } from './budget/TaskBudgetSection';
@@ -37,6 +37,9 @@ interface TaskCreateFormProps {
   isReadOnly?: boolean;
   autoSearchOnMount?: boolean;
   showAboutSection?: boolean;
+  aboutSectionTitle?: string;
+  aboutSectionTitleVariant?: 'body1' | 'h2';
+  aboutSectionAction?: ReactNode;
   showAreaSection?: boolean;
   showAdvancedSection?: boolean;
   showBudgetSection?: boolean;
@@ -47,6 +50,9 @@ export const TaskCreateForm = ({
   isReadOnly = false,
   autoSearchOnMount = false,
   showAboutSection = true,
+  aboutSectionTitle = 'About',
+  aboutSectionTitleVariant = 'body1',
+  aboutSectionAction,
   showAreaSection = true,
   showAdvancedSection = true,
   showBudgetSection = true,
@@ -62,10 +68,24 @@ export const TaskCreateForm = ({
           px: 3,
           display: 'flex',
           flexDirection: 'column',
-          gap: 5,
+          gap: 4,
         }}>
         {showAboutSection && !isReadOnly && (
-          <LabelledSection label="About">
+          <Stack spacing={3}>
+            <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
+              <Typography
+                variant={aboutSectionTitleVariant}
+                component={aboutSectionTitleVariant === 'h2' ? 'h2' : 'p'}
+                fontWeight={700}
+                sx={{
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}>
+                {aboutSectionTitle}
+              </Typography>
+              {aboutSectionAction ? <Box>{aboutSectionAction}</Box> : null}
+            </Box>
             <Stack spacing={2}>
               <TextField
                 fullWidth
@@ -88,7 +108,7 @@ export const TaskCreateForm = ({
                 helperText={touched.description && errors.description ? String(errors.description) : ''}
               />
             </Stack>
-          </LabelledSection>
+          </Stack>
         )}
         {showAreaSection && (
           <Box>
@@ -108,7 +128,7 @@ export const TaskCreateForm = ({
                 Budget
               </Typography>
             </TooltipStack>
-            <TaskBudgetSection costLayer={costLayer} />
+            <TaskBudgetSection costLayer={costLayer} isReadOnly={isReadOnly} />
           </Box>
         )}
 

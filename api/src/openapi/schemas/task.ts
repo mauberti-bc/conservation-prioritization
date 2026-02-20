@@ -126,6 +126,7 @@ export const CreateTaskSchema: OpenAPIV3.SchemaObject = {
     budget: {
       type: 'object',
       description: 'Optional budget layer configuration.',
+      nullable: true,
       required: ['layer_name', 'mode', 'constraints'],
       properties: {
         layer_name: {
@@ -188,6 +189,7 @@ export const CreateTaskSchema: OpenAPIV3.SchemaObject = {
 export const CreateTaskDraftSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
   required: ['name'],
+  additionalProperties: false,
   properties: {
     name: {
       type: 'string',
@@ -208,7 +210,7 @@ export const CreateTaskDraftSchema: OpenAPIV3.SchemaObject = {
  */
 export const SubmitTaskSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
-  required: ['layers'],
+  additionalProperties: false,
   properties: {
     layers: {
       type: 'array',
@@ -266,6 +268,55 @@ export const SubmitTaskSchema: OpenAPIV3.SchemaObject = {
               }
             }
           }
+        }
+      }
+    },
+    resolution: {
+      type: 'number',
+      description: 'Optional output resolution override used for this submission.',
+      nullable: true
+    },
+    resampling: {
+      type: 'string',
+      description: 'Optional resampling override used for this submission.',
+      enum: ['mode', 'min', 'max'],
+      nullable: true
+    },
+    variant: {
+      type: 'string',
+      description: 'Optional optimization variant override used for this submission.',
+      enum: ['strict', 'approximate'],
+      nullable: true
+    },
+    target_area: {
+      type: 'number',
+      description: 'Optional target area override used for this submission.'
+    },
+    is_percentage: {
+      type: 'boolean',
+      description: 'Whether target_area is a percentage.',
+      default: true
+    },
+    geometry: {
+      type: 'array',
+      description:
+        'Optional geometry replacement for the task AOI. Omit to keep current AOI. Provide [] to clear current AOI.',
+      items: {
+        type: 'object',
+        required: ['geojson'],
+        properties: {
+          name: {
+            type: 'string',
+            maxLength: 100,
+            description: 'Optional geometry name.'
+          },
+          description: {
+            type: 'string',
+            maxLength: 500,
+            nullable: true,
+            description: 'Optional geometry description.'
+          },
+          geojson: GeoJSONFeature
         }
       }
     },
