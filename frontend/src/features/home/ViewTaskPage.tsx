@@ -129,7 +129,7 @@ export const ViewTaskPage = () => {
               label={
                 <Box display="flex" alignItems="center" gap={1}>
                   {statusChipLabel}
-                  <CircularProgress size={18} color="inherit" thickness={7} />
+                  <CircularProgress size={12} color="inherit" thickness={7} />
                 </Box>
               }
               sx={{

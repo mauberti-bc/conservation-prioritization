@@ -551,16 +551,10 @@ def build_pulp_model(
 
         # Locked-in constraints
         if mode == "locked-in":
-            threshold = props.threshold
-            if threshold is None:
-                raise ValueError(
-                    f"Threshold required for locked-in mode on layer '{layer_name}'"
-                )
-
             locked_cells = [
                 (r, c)
                 for r, c in cell_indices
-                if not np.isnan(arr[r, c]) and arr[r, c] >= threshold
+                if not np.isnan(arr[r, c]) and arr[r, c] > 0
             ]
 
             if locked_cells:
@@ -572,13 +566,7 @@ def build_pulp_model(
 
         # Locked-out constraints
         elif mode == "locked-out":
-            threshold = props.threshold
-            if threshold is None:
-                raise ValueError(
-                    f"Threshold required for locked-out mode on layer '{layer_name}'"
-                )
-
-            locked_out_mask = valid_mask & (~np.isnan(arr)) & (arr > threshold)
+            locked_out_mask = valid_mask & (~np.isnan(arr)) & (arr > 0)
             locked_rows, locked_cols = np.where(locked_out_mask)
 
             for r, c in zip(locked_rows, locked_cols, strict=False):
@@ -588,7 +576,7 @@ def build_pulp_model(
 
             logger.info(f"  Locked out: {len(locked_rows)} variables")
             logger.info(
-                f"  Total cells > threshold: {np.sum((arr > threshold) & (~np.isnan(arr)))}"
+                f"  Total cells with value > 0: {np.sum((arr > 0) & (~np.isnan(arr)))}"
             )
 
         # Value constraints
@@ -720,23 +708,11 @@ def create_continuous_priority_surface(
         arr = get_layer_array(layer_name)
 
         if props.mode == "locked-out":
-            threshold = props.threshold
-            if threshold is None:
-                raise ValueError(
-                    f"Threshold required for locked-out mode on layer '{layer_name}'"
-                )
-
-            layer_excluded = (~np.isnan(arr)) & (arr > threshold)
+            layer_excluded = (~np.isnan(arr)) & (arr > 0)
             candidate_mask[layer_excluded] = False
 
         if props.mode == "locked-in":
-            threshold = props.threshold
-            if threshold is None:
-                raise ValueError(
-                    f"Threshold required for locked-in mode on layer '{layer_name}'"
-                )
-
-            layer_locked_in = valid_mask & (~np.isnan(arr)) & (arr >= threshold)
+            layer_locked_in = valid_mask & (~np.isnan(arr)) & (arr > 0)
             locked_in_mask = locked_in_mask | layer_locked_in
 
     # Exclusions take precedence for feasibility.

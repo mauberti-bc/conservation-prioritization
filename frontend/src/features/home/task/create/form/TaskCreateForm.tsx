@@ -7,6 +7,7 @@ import { useFormikContext } from 'formik';
 import { Feature } from 'geojson';
 import { OPTIMIZATION_VARIANT, RESAMPLING } from 'hooks/interfaces/useTaskApi.interface';
 import { TaskAdvancedSection } from './advanced/TaskAdvancedSection';
+import { TaskAdvancedForm } from './advanced/form/TaskAdvancedForm';
 import { TaskAreaSection } from './area/TaskAreaSection';
 import { TaskBudgetSection } from './budget/TaskBudgetSection';
 import { TaskLayerSection } from './layer/TaskLayerSection';
@@ -125,11 +126,7 @@ export const TaskCreateForm = ({
           </Box>
         )}
 
-        {showAdvancedSection && (
-          <Box>
-            <TaskAdvancedSection isReadOnly={isReadOnly} />
-          </Box>
-        )}
+        {showAdvancedSection && <Box>{isReadOnly ? <TaskAdvancedForm isReadOnly /> : <TaskAdvancedSection />}</Box>}
       </Stack>
     </>
   );
