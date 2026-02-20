@@ -142,7 +142,7 @@ export const ViewTaskPage = () => {
             />
           </Box>
         )}
-        <MapContainer pmtilesUrls={isResettingPmtiles ? [] : pmtilesUrls} />
+        <MapContainer pmtilesUrls={isResettingPmtiles ? [] : pmtilesUrls} boundsRefreshKey={taskId} />
         <DrawControls ref={drawControlsRef} />
       </Box>
 

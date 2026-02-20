@@ -1,4 +1,4 @@
-export const TASK_VIEW_PREVIEW_WIDTH = 200;
+export const TASK_VIEW_PREVIEW_WIDTH = 240;
 export const TASK_VIEW_PREVIEW_COLLAPSED_WIDTH = 44;
 export const TASK_VIEW_DETAIL_WIDTH = 500;
 

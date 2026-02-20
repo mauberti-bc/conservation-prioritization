@@ -12,6 +12,7 @@ import { ensurePMTilesProtocol } from 'utils/pmtilesProtocol';
 interface MapContainerProps {
   pmtilesUrls?: string[];
   keepAliveKey?: string;
+  boundsRefreshKey?: string | number;
   useSharedContext?: boolean;
   interactive?: boolean;
   showNavigationControl?: boolean;
@@ -30,6 +31,7 @@ interface MapContainerProps {
 export const MapContainer = ({
   pmtilesUrls = [],
   keepAliveKey,
+  boundsRefreshKey,
   useSharedContext = true,
   interactive = true,
   showNavigationControl = true,
@@ -60,8 +62,13 @@ export const MapContainer = ({
     });
   }, [pmtilesUrls]);
   const fitKey = useMemo(() => {
-    return normalizedPmtilesUrls.map((url) => getStableTilesetUrlKey(url)).join('|');
-  }, [normalizedPmtilesUrls]);
+    const baseKey = normalizedPmtilesUrls.map((url) => getStableTilesetUrlKey(url)).join('|');
+    if (boundsRefreshKey === undefined || boundsRefreshKey === null) {
+      return baseKey;
+    }
+
+    return `${baseKey}::${boundsRefreshKey}`;
+  }, [boundsRefreshKey, normalizedPmtilesUrls]);
   const hasPmtiles = normalizedPmtilesUrls.length > 0;
   const hasRenderedPmtiles = hasAnyPmtilesLayers(mapRef.current, PmtilesLayerPrefix);
 

@@ -45,7 +45,7 @@ export const TaskAdvancedSection = ({ isReadOnly = false }: TaskAdvancedSectionP
       )}
 
       <Collapse in={shouldShowPanel} sx={{ width: '100%' }} timeout={100}>
-        <Box ml={1} my={1}>
+        <Box my={1}>
           <TaskAdvancedForm isReadOnly={isReadOnly} />
         </Box>
       </Collapse>

@@ -25,6 +25,7 @@ import { grey } from '@mui/material/colors';
 import { IconMenuButton } from 'components/button/IconMenuButton';
 import { EditDialog } from 'components/dialog/EditDialog';
 import { InviteDialog } from 'components/dialog/InviteDialog';
+import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { ProjectCreateDialog } from 'features/home/sidebar/projects/ProjectCreateDialog';
 import { ProjectEditDialog } from 'features/home/sidebar/projects/ProjectEditDialog';
 import { ProjectEditFormValues } from 'features/home/sidebar/projects/ProjectEditForm';
@@ -460,39 +461,76 @@ export const TasksLandingView = () => {
             </Box>
           </Box>
 
-          {tasksDataLoader.isLoading && (
-            <Box
-              sx={{
-                display: 'grid',
-                gap: 2,
-                gridTemplateColumns: {
-                  xs: '1fr',
-                  sm: 'repeat(2, minmax(0, 1fr))',
-                  lg: 'repeat(3, minmax(0, 1fr))',
-                  xl: 'repeat(4, minmax(0, 1fr))',
-                },
-              }}>
-              {Array.from({ length: 8 }).map((_, index) => {
-                return (
-                  <Box
-                    key={index}
-                    sx={{
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 2,
-                      overflow: 'hidden',
-                    }}>
-                    <Skeleton variant="rectangular" animation="wave" sx={{ aspectRatio: '4 / 3' }} />
-                    <Box sx={{ p: 2 }}>
-                      <Skeleton variant="text" width="70%" />
-                      <Skeleton variant="text" width="90%" />
+          <LoadingGuard
+            isLoading={tasksDataLoader.isLoading}
+            isLoadingFallback={
+              <Box
+                sx={{
+                  display: 'grid',
+                  gap: 2,
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: 'repeat(2, minmax(0, 1fr))',
+                    lg: 'repeat(3, minmax(0, 1fr))',
+                    xl: 'repeat(4, minmax(0, 1fr))',
+                  },
+                }}>
+                {Array.from({ length: 8 }).map((_, index) => {
+                  return (
+                    <Box
+                      key={index}
+                      sx={{
+                        height: 320,
+                        border: `2px solid ${theme.palette.divider}`,
+                        borderRadius: 2,
+                        overflow: 'hidden',
+                        position: 'relative',
+                      }}>
+                      <Skeleton variant="rectangular" animation="wave" sx={{ position: 'absolute', inset: 0 }} />
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          p: 1.5,
+                          py: 2,
+                          minHeight: 92,
+                          bgcolor: theme.palette.common.white,
+                        }}>
+                        <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
+                          <Box display="flex" alignItems="center" gap={0.75} minWidth={0} flex={1}>
+                            <Skeleton variant="text" width="60%" />
+                            <Box display="flex" alignItems="center" gap={0.5}>
+                              <Skeleton variant="circular" width={12} height={12} />
+                              <Skeleton variant="circular" width={12} height={12} />
+                            </Box>
+                          </Box>
+                          <Skeleton variant="rounded" width={26} height={26} />
+                        </Box>
+                        <Skeleton variant="text" width="85%" />
+                      </Box>
                     </Box>
-                  </Box>
-                );
-              })}
-            </Box>
-          )}
-
-          {!tasksDataLoader.isLoading && !hasNoFilteredTasks && (
+                  );
+                })}
+              </Box>
+            }
+            hasNoData={hasNoFilteredTasks}
+            hasNoDataFallback={
+              <Box
+                sx={{
+                  bgcolor: grey[50],
+                  border: `1px solid ${theme.palette.divider}`,
+                  borderRadius: 2,
+                  p: 8,
+                  textAlign: 'center',
+                }}>
+                <Typography fontWeight={700}>No tasks found</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+                  Try another search or create a new task.
+                </Typography>
+              </Box>
+            }>
             <Box
               sx={{
                 display: 'grid',
@@ -546,23 +584,7 @@ export const TasksLandingView = () => {
                 );
               })}
             </Box>
-          )}
-
-          {hasNoFilteredTasks && (
-            <Box
-              sx={{
-                bgcolor: grey[50],
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2,
-                p: 8,
-                textAlign: 'center',
-              }}>
-              <Typography fontWeight={700}>No tasks found</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
-                Try another search or create a new task.
-              </Typography>
-            </Box>
-          )}
+          </LoadingGuard>
         </Stack>
       </Container>
 

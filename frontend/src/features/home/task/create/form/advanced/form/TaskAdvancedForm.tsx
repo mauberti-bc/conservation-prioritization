@@ -1,4 +1,5 @@
 import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import { CustomAutocomplete } from 'components/input/CustomAutocomplete';
 import { useFormikContext } from 'formik';
 import { OPTIMIZATION_VARIANT } from 'hooks/interfaces/useTaskApi.interface';
@@ -35,6 +36,42 @@ interface TaskAdvancedFormProps {
 
 export const TaskAdvancedForm = ({ isReadOnly = false }: TaskAdvancedFormProps) => {
   const { values, setFieldValue } = useFormikContext<TaskCreateFormValues>();
+  const selectedResolution = resolutionOptions.find((option) => {
+    return option.value === values.resolution;
+  });
+  const selectedResampling = resamplingOptions.find((option) => {
+    return option.value === values.resampling;
+  });
+  const selectedVariant = optimizationModeOptions.find((option) => {
+    return option.value === values.variant;
+  });
+
+  if (isReadOnly) {
+    return (
+      <Stack gap={2} flex="1 1 auto" width="100%">
+        <Stack gap={0.25}>
+          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Resolution (metres)
+          </Typography>
+          <Typography variant="body2">{selectedResolution?.label ?? values.resolution}</Typography>
+        </Stack>
+
+        <Stack gap={0.25}>
+          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Resampling Method
+          </Typography>
+          <Typography variant="body2">{selectedResampling?.label ?? values.resampling}</Typography>
+        </Stack>
+
+        <Stack gap={0.25}>
+          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Optimization Mode
+          </Typography>
+          <Typography variant="body2">{selectedVariant?.label ?? values.variant}</Typography>
+        </Stack>
+      </Stack>
+    );
+  }
 
   return (
     <Stack gap={2} flex="1 1 auto" width="100%">

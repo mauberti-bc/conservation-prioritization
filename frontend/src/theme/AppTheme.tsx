@@ -101,6 +101,9 @@ export const appTheme = createTheme({
     body2: {
       fontSize: '0.8rem',
     },
+    caption: {
+      fontWeight: 700,
+    },
   },
   components: {
     MuiCssBaseline: {
