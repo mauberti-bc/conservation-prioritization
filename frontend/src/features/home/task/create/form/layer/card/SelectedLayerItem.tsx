@@ -54,6 +54,7 @@ export const SelectedLayerItem = ({
   const theme = useTheme();
   const isMobileViewport = useMediaQuery(theme.breakpoints.down('lg'));
   const isMobile = forceMobileLayout || isMobileViewport;
+  const canEdit = !isReadOnly;
 
   const getTrackColor = (value: number) => {
     if (value === 0) {
@@ -144,13 +145,12 @@ export const SelectedLayerItem = ({
 
               <Box display="flex" alignItems="center" gap={1}>
                 <ToggleButtonGroup
-                  disabled={isReadOnly}
                   exclusive
                   size="small"
                   value={layer.mode}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(_, newMode) => {
-                    if (newMode) {
+                    if (canEdit && newMode) {
                       onModeChange(layer, newMode);
                     }
                   }}
@@ -243,9 +243,16 @@ export const SelectedLayerItem = ({
                   <Slider
                     value={localImportance}
                     onClick={(e) => e.stopPropagation()}
-                    onChange={(_, value) => setLocalImportance(value as number)}
-                    onChangeCommitted={(_, value) => onLayerChange(layer, { ...layer, importance: value })}
-                    disabled={isReadOnly}
+                    onChange={(_, value) => {
+                      if (canEdit) {
+                        setLocalImportance(value as number);
+                      }
+                    }}
+                    onChangeCommitted={(_, value) => {
+                      if (canEdit) {
+                        onLayerChange(layer, { ...layer, importance: value });
+                      }
+                    }}
                     step={1}
                     min={-100}
                     max={100}
@@ -326,8 +333,16 @@ export const SelectedLayerItem = ({
                   <Slider
                     value={localImportance}
                     onClick={(e) => e.stopPropagation()}
-                    onChange={(_, value) => setLocalImportance(value as number)}
-                    onChangeCommitted={(_, value) => onLayerChange(layer, { ...layer, importance: value })}
+                    onChange={(_, value) => {
+                      if (canEdit) {
+                        setLocalImportance(value as number);
+                      }
+                    }}
+                    onChangeCommitted={(_, value) => {
+                      if (canEdit) {
+                        onLayerChange(layer, { ...layer, importance: value });
+                      }
+                    }}
                     step={1}
                     min={-100}
                     max={100}
@@ -354,7 +369,7 @@ export const SelectedLayerItem = ({
                   value={layer.mode}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(_, newMode) => {
-                    if (newMode) {
+                    if (canEdit && newMode) {
                       onModeChange(layer, newMode);
                     }
                   }}
@@ -409,18 +424,20 @@ export const SelectedLayerItem = ({
                   </TooltipPopover>
                 </ToggleButtonGroup>
 
-                <TooltipPopover tooltip="Add constraint">
-                  <IconButton
-                    color="primary"
-                    sx={{ borderRadius: '4px' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAddConstraint(layer);
-                    }}
-                    aria-label="Add Constraint">
-                    <Icon path={mdiPlusLock} size={1} />
-                  </IconButton>
-                </TooltipPopover>
+                {!isReadOnly && (
+                  <TooltipPopover tooltip="Add constraint">
+                    <IconButton
+                      color="primary"
+                      sx={{ borderRadius: '4px' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddConstraint(layer);
+                      }}
+                      aria-label="Add Constraint">
+                      <Icon path={mdiPlusLock} size={1} />
+                    </IconButton>
+                  </TooltipPopover>
+                )}
               </Box>
             </Box>
           </Box>

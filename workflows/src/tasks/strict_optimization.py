@@ -755,10 +755,11 @@ def create_continuous_priority_surface(
         weighted_layer_count += 1
 
     if weighted_layer_count == 0:
-        raise ValueError(
-            "Continuous output requested but no non-constant flexible layers contributed. "
-            "Add at least one flexible layer with non-zero importance and non-zero value range."
+        logger.warning(
+            "No non-constant flexible layers contributed to continuous scoring. "
+            "Falling back to neutral score 0.5 for feasible cells."
         )
+        score = np.where(candidate_mask, 0.5, 0.0).astype(np.float32)
     else:
         score = np.where(candidate_mask, score, 0.0).astype(np.float32)
         logger.info(f"Contributing flexible layers: {weighted_layer_count}")
