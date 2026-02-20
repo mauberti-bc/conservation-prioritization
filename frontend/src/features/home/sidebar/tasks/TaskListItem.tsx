@@ -1,11 +1,10 @@
 import {
   mdiAccountPlusOutline,
   mdiAlertCircleOutline,
-  mdiDeleteOutline,
-  mdiFolderPlusOutline,
   mdiPencilOutline,
   mdiPlay,
   mdiProgressClock,
+  mdiShareVariantOutline,
 } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Box, Chip, CircularProgress, IconButton, ListItem, ListItemText, Typography } from '@mui/material';
@@ -15,6 +14,7 @@ import { TASK_STATUS } from 'constants/status';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useTaskContext } from 'hooks/useContext';
+import { useState } from 'react';
 import { getTaskStatusLabel } from 'utils/task-status';
 
 interface TaskListItemProps {
@@ -39,20 +39,16 @@ export const TaskListItem = ({
   const dialogContext = useDialogContext();
   const conservationApi = useConservationApi();
   const { taskId, refreshTasks, setHoveredTilesetUri } = useTaskContext();
+  const [isHovered, setIsHovered] = useState(false);
+  void onDeleteTask;
+  void onAddToProject;
 
   const menuItems = [
     {
-      label: 'Edit',
-      icon: mdiPencilOutline,
+      label: 'Share',
+      icon: mdiShareVariantOutline,
       onClick: () => {
-        onEditTask?.(task);
-      },
-    },
-    {
-      label: 'Add to Project',
-      icon: mdiFolderPlusOutline,
-      onClick: () => {
-        onAddToProject(task);
+        onInvite?.(task);
       },
     },
     {
@@ -63,10 +59,10 @@ export const TaskListItem = ({
       },
     },
     {
-      label: 'Delete',
-      icon: mdiDeleteOutline,
+      label: 'Edit',
+      icon: mdiPencilOutline,
       onClick: () => {
-        onDeleteTask(task);
+        onEditTask?.(task);
       },
     },
   ];
@@ -204,10 +200,17 @@ export const TaskListItem = ({
       key={task.task_id}
       disablePadding
       secondaryAction={
-        showActions ? (
+        showActions && isHovered ? (
           <Box
             onClick={(event) => {
               event.stopPropagation();
+            }}
+            sx={{
+              '& .MuiIconButton-root': {
+                width: 28,
+                height: 28,
+                p: 0.25,
+              },
             }}>
             <IconMenuButton items={menuItems} />
           </Box>
@@ -216,11 +219,13 @@ export const TaskListItem = ({
       <InteractiveListItemButton
         selected={task.task_id === taskId}
         onMouseEnter={() => {
+          setIsHovered(true);
           if (task.tileset_uri) {
             setHoveredTilesetUri(task.tileset_uri);
           }
         }}
         onMouseLeave={() => {
+          setIsHovered(false);
           setHoveredTilesetUri(null);
         }}
         onClick={() => {

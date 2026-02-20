@@ -966,7 +966,9 @@ def create_pmtiles_archive(
     x_coords = transform.c + (np.arange(width) + 0.5) * transform.a
     y_coords = transform.f + (np.arange(height) + 0.5) * transform.e
 
-    uint8_array = (array * 255).astype(np.uint8)
+    normalized_array = np.nan_to_num(array, nan=0.0)
+    normalized_array = np.clip(normalized_array, 0.0, 1.0)
+    uint8_array = (normalized_array * 255).astype(np.uint8)
     da = xr.DataArray(
         uint8_array,
         dims=("y", "x"),
@@ -989,6 +991,16 @@ def create_pmtiles_archive(
 
     tms = defaults.tms.get("WebMercatorQuad")
     tiles_written = 0
+    viridis = plt.get_cmap("viridis")
+    colormap = {0: (0, 0, 0, 0)}
+    for i in range(1, 256):
+        r, g, b, _ = viridis(i / 255.0)
+        colormap[i] = (
+            int(round(r * 255)),
+            int(round(g * 255)),
+            int(round(b * 255)),
+            int(round(40 + (i / 255.0) * 200)),
+        )
 
     with open(out_path, "wb") as f, XarrayReader(input=da_web, tms=tms) as reader:
         writer = Writer(f)
@@ -1026,10 +1038,6 @@ def create_pmtiles_archive(
                         logger.warning(f"Skipping empty tile: {tile}")
                         continue
 
-                    colormap = {
-                        i: (255, 0, 0, 170) if i > 0 else (0, 0, 0, 0)
-                        for i in range(256)
-                    }
                     tile_bytes = tile_data.render(img_format="PNG", colormap=colormap)
                     tile_id = zxy_to_tileid(z, x, y)
                     writer.write_tile(tile_id, tile_bytes)
