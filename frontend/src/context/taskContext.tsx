@@ -31,7 +31,6 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
   const { taskId: activeTaskId } = useParams<{ taskId: string }>();
   const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
   const tasksDataLoader = useDataLoader(conservationApi.task.getAllTasks);
-  const refreshTaskById = taskDataLoader.refresh;
   const [hoveredTilesetUri, setHoveredTilesetUri] = useState<string | null>(null);
   const defaultPagination = useMemo<ApiPaginationRequestOptions>(() => {
     return {
@@ -47,8 +46,9 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
   }
 
   useEffect(() => {
-    void refreshTaskById(activeTaskId);
-  }, [activeTaskId, refreshTaskById]);
+    taskDataLoader.refresh(activeTaskId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTaskId]);
 
   const setFocusedTask = useCallback(
     (task: GetTaskResponse | null) => {
