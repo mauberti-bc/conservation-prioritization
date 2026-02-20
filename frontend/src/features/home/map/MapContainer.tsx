@@ -212,6 +212,9 @@ export const MapContainer = ({
     const applyLayers = () => {
       try {
         updatePmtilesLayers(map, normalizedPmtilesUrls, pmtilesOpacity);
+        if (!cancelled) {
+          setAreLayersLoaded(true);
+        }
       } catch (error) {
         console.error('Failed to apply PMTiles layers', error);
         if (!cancelled) {

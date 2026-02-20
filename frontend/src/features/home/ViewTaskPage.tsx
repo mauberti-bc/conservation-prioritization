@@ -3,7 +3,7 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import { TASK_STATUS, TILE_STATUS } from 'constants/status';
 import { useMapContext, useTaskContext } from 'hooks/useContext';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
 import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
@@ -18,13 +18,19 @@ import { TaskViewSidebar } from './task/view/sidebar/TaskViewSidebar';
 export const ViewTaskPage = () => {
   const { drawControlsRef } = useMapContext();
   const { taskId, taskDataLoader, hoveredTilesetUri } = useTaskContext();
-  const { data: taskStatus, stop: stopTaskStatusSocket } = useTaskStatusWebSocket(taskId);
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
-  const [isPmtilesDisplayed, setIsPmtilesDisplayed] = useState(false);
   const sidebarWidthPx = getTaskViewSidebarWidth(isPreviewOpen);
   const sidebarWidth = `${sidebarWidthPx}px`;
 
   const sidebarMinWidth = 320;
+  const shouldSubscribeToTaskStatus = useMemo(() => {
+    if (!taskId || !taskDataLoader.hasLoaded) {
+      return false;
+    }
+
+    return !taskDataLoader.data?.tileset_uri;
+  }, [taskDataLoader.data?.tileset_uri, taskDataLoader.hasLoaded, taskId]);
+  const { data: taskStatus } = useTaskStatusWebSocket(shouldSubscribeToTaskStatus ? taskId : null);
 
   const resolvedPmtilesUri = useMemo(() => {
     if (taskStatus?.tile?.status === TILE_STATUS.COMPLETED && taskStatus.tile.pmtiles_uri) {
@@ -47,18 +53,6 @@ export const ViewTaskPage = () => {
     return baseUrls;
   }, [hoveredTilesetUri, resolvedPmtilesUri]);
 
-  useEffect(() => {
-    setIsPmtilesDisplayed(false);
-  }, [taskId, resolvedPmtilesUri]);
-
-  useEffect(() => {
-    if (!resolvedPmtilesUri || !isPmtilesDisplayed) {
-      return;
-    }
-
-    stopTaskStatusSocket();
-  }, [isPmtilesDisplayed, resolvedPmtilesUri, stopTaskStatusSocket]);
-
   const showStatusChip = useMemo(() => {
     const activeStatus = taskStatus?.status ?? taskDataLoader.data?.status;
     if (!activeStatus) {
@@ -71,13 +65,7 @@ export const ViewTaskPage = () => {
   const memoizedMap = useMemo(() => {
     return (
       <>
-        <MapContainer
-          pmtilesUrls={pmtilesUrls}
-          keepAliveKey="home-map"
-          onPmtilesDisplayed={(displayed) => {
-            setIsPmtilesDisplayed(displayed);
-          }}
-        />
+        <MapContainer pmtilesUrls={pmtilesUrls} keepAliveKey="home-map" />
         <DrawControls ref={drawControlsRef} />
       </>
     );
