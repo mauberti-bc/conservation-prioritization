@@ -2,10 +2,10 @@ import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import { TASK_STATUS, TILE_STATUS } from 'constants/status';
 import { useMapContext, useTaskContext } from 'hooks/useContext';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
-import { TaskViewSidebar } from './sidebar/TaskViewSidebar';
+import { getTaskViewSidebarWidth, TaskViewSidebar } from './sidebar/TaskViewSidebar';
 import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
 
 /**
@@ -17,8 +17,10 @@ export const ViewTaskPage = () => {
   const { drawControlsRef } = useMapContext();
   const { taskId, taskDataLoader, hoveredTilesetUri } = useTaskContext();
   const { data: taskStatus } = useTaskStatusWebSocket(taskId);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(true);
+  const sidebarWidthPx = getTaskViewSidebarWidth(isPreviewOpen);
+  const sidebarWidth = `${sidebarWidthPx}px`;
 
-  const sidebarWidth = '42vw';
   const sidebarMinWidth = 320;
 
   const pmtilesUrls = useMemo(() => {
@@ -96,12 +98,17 @@ export const ViewTaskPage = () => {
           left: 0,
           width: sidebarWidth,
           maxWidth: sidebarWidth,
-          minWidth: sidebarMinWidth,
+          minWidth: `${sidebarMinWidth}px`,
           display: 'flex',
           flexDirection: 'column',
           zIndex: 12,
         }}>
-        <TaskViewSidebar />
+        <TaskViewSidebar
+          isPreviewOpen={isPreviewOpen}
+          onTogglePreview={() => {
+            setIsPreviewOpen((prev) => !prev);
+          }}
+        />
       </Box>
     </Box>
   );

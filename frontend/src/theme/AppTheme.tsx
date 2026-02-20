@@ -281,9 +281,20 @@ export const appTheme = createTheme({
     MuiListItemButton: {
       styleOverrides: {
         root: {
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: '8px',
+          border: 'none',
+          borderRadius: '10px',
+          paddingTop: 8,
+          paddingBottom: 8,
+          transition: 'background-color 0.15s ease',
+          '&:hover': {
+            backgroundColor: 'rgba(15, 23, 42, 0.06)',
+          },
+          '&.Mui-selected': {
+            backgroundColor: 'rgba(15, 23, 42, 0.10)',
+          },
+          '&.Mui-selected:hover': {
+            backgroundColor: 'rgba(15, 23, 42, 0.14)',
+          },
         },
       },
     },

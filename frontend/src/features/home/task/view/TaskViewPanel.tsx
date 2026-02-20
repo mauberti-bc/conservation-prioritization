@@ -218,7 +218,7 @@ export const TaskViewPanel = () => {
                   height: '100%',
                   overflow: 'auto',
                 }}>
-                <TaskCreateForm isReadOnly showAboutSection={false} autoSearchOnMount />
+                <TaskCreateForm isReadOnly showAboutSection aboutSectionTitle="Task" autoSearchOnMount={false} />
               </Box>
             </Box>
           </Formik>

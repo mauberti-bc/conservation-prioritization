@@ -70,7 +70,7 @@ export const TaskCreateForm = ({
           flexDirection: 'column',
           gap: 4,
         }}>
-        {showAboutSection && !isReadOnly && (
+        {showAboutSection && (
           <Stack spacing={3}>
             <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
               <Typography
@@ -93,6 +93,7 @@ export const TaskCreateForm = ({
                 name="name"
                 value={values.name}
                 onChange={handleChange}
+                disabled={isReadOnly}
                 error={touched.name && Boolean(errors.name)}
                 helperText={touched.name && errors.name ? String(errors.name) : ''}
               />
@@ -104,6 +105,7 @@ export const TaskCreateForm = ({
                 onChange={handleChange}
                 multiline
                 minRows={2}
+                disabled={isReadOnly}
                 error={touched.description && Boolean(errors.description)}
                 helperText={touched.description && errors.description ? String(errors.description) : ''}
               />

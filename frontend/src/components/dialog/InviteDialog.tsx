@@ -77,7 +77,7 @@ export const InviteDialog = ({
                     {values.emails.map((email, index) => (
                       <TextField
                         key={`email-${index}`}
-                        label={`Email ${index + 1}`}
+                        label={`Email`}
                         name={`emails.${index}`}
                         value={email}
                         onChange={handleChange}
@@ -91,7 +91,6 @@ export const InviteDialog = ({
                       </Typography>
                     )}
                     <Button
-                      variant="outlined"
                       fullWidth={false}
                       startIcon={<Icon path={mdiPlus} size={0.8} />}
                       sx={{ alignSelf: 'flex-start' }}
