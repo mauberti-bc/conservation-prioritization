@@ -1,4 +1,4 @@
-import { Box, Card, CardActionArea, useTheme } from '@mui/material';
+import { Box, Card, useTheme } from '@mui/material';
 import { IconMenuItem } from 'components/button/IconMenuButton';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { TaskGridCardFooter } from './card/TaskGridCardFooter';
@@ -27,20 +27,31 @@ export const TaskGridCard = ({ task, onClick, menuItems }: TaskGridCardProps) =>
         border: `2px solid ${theme.palette.divider}`,
         overflow: 'hidden',
       }}>
-      <CardActionArea
-        sx={{ height: '100%' }}
+      <Box
+        role="button"
+        tabIndex={0}
         onClick={() => {
           onClick(task);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onClick(task);
+          }
+        }}
+        sx={{
+          position: 'relative',
+          height: '100%',
+          width: '100%',
+          cursor: 'pointer',
+          outline: 'none',
+          '&:focus-visible': {
+            boxShadow: `inset 0 0 0 2px ${theme.palette.primary.main}`,
+          },
         }}>
-        <Box
-          sx={{
-            position: 'relative',
-            height: '100%',
-          }}>
-          <TaskGridCardMapPreview task={task} />
-          <TaskGridCardFooter task={task} menuItems={menuItems} />
-        </Box>
-      </CardActionArea>
+        <TaskGridCardMapPreview task={task} />
+        <TaskGridCardFooter task={task} menuItems={menuItems} />
+      </Box>
     </Card>
   );
 };

@@ -62,15 +62,6 @@ export const ViewTaskPage = () => {
     return activeStatus !== TASK_STATUS.DRAFT && activeStatus !== TASK_STATUS.COMPLETED;
   }, [taskStatus, taskDataLoader.data]);
 
-  const memoizedMap = useMemo(() => {
-    return (
-      <>
-        <MapContainer pmtilesUrls={pmtilesUrls} keepAliveKey="home-map" />
-        <DrawControls ref={drawControlsRef} />
-      </>
-    );
-  }, [drawControlsRef, pmtilesUrls]);
-
   return (
     <Box position="relative" height="100%" overflow="hidden">
       <Box height="100%" display="flex" flexDirection="column" overflow="hidden">
@@ -102,7 +93,8 @@ export const ViewTaskPage = () => {
             />
           </Box>
         )}
-        {memoizedMap}
+        <MapContainer pmtilesUrls={pmtilesUrls} keepAliveKey="home-map" />
+        <DrawControls ref={drawControlsRef} />
       </Box>
 
       <Box

@@ -1,4 +1,5 @@
 import Box from '@mui/material/Box';
+import { grey } from '@mui/material/colors';
 import Paper from '@mui/material/Paper';
 import { useTaskContext } from 'hooks/useContext';
 import { useEffect, useMemo } from 'react';
@@ -53,18 +54,20 @@ export const TaskViewSidebar = ({ isPreviewOpen, onTogglePreview }: TaskViewSide
           height: '100%',
           minHeight: 0,
         }}>
-        <TaskViewSidebarPreviewRail
-          isPreviewOpen={isPreviewOpen}
-          taskId={taskId}
-          previewTasks={previewTasks}
-          onTogglePreview={onTogglePreview}
-          onBackToTasks={() => {
-            navigate('/');
-          }}
-          onSelectTask={(task) => {
-            setFocusedTask(task);
-          }}
-        />
+        <Box bgcolor={grey[50]} borderRight={`1px solid ${grey[200]}`} sx={{ minHeight: 0 }}>
+          <TaskViewSidebarPreviewRail
+            isPreviewOpen={isPreviewOpen}
+            taskId={taskId}
+            previewTasks={previewTasks}
+            onTogglePreview={onTogglePreview}
+            onBackToTasks={() => {
+              navigate('/');
+            }}
+            onSelectTask={(task) => {
+              setFocusedTask(task);
+            }}
+          />
+        </Box>
 
         <Box
           sx={{

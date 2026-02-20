@@ -42,19 +42,21 @@ export const MapContainer = ({
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [areLayersLoaded, setAreLayersLoaded] = useState(false);
   const lastPmtilesSignatureRef = useRef<string>('');
-  const hasPmtiles = pmtilesUrls.some((url) => {
+  const normalizedPmtilesUrls = pmtilesUrls.filter((url) => {
     return Boolean(url);
   });
+  const hasPmtiles = normalizedPmtilesUrls.length > 0;
+  const hasRenderedPmtiles = hasAnyPmtilesLayers(mapRef.current);
 
-  const isMapLoading = !isMapInitialized || (hasPmtiles && !areLayersLoaded);
+  const isMapLoading = !isMapInitialized || (hasPmtiles && !areLayersLoaded && !hasRenderedPmtiles);
 
   useEffect(() => {
     if (!onPmtilesDisplayed) {
       return;
     }
 
-    onPmtilesDisplayed(hasPmtiles && areLayersLoaded);
-  }, [areLayersLoaded, hasPmtiles, onPmtilesDisplayed]);
+    onPmtilesDisplayed(hasPmtiles && (areLayersLoaded || hasRenderedPmtiles));
+  }, [areLayersLoaded, hasPmtiles, hasRenderedPmtiles, onPmtilesDisplayed]);
 
   useEffect(() => {
     const mapHost = mapHostRef.current;
@@ -187,9 +189,6 @@ export const MapContainer = ({
       return undefined;
     }
 
-    const normalizedPmtilesUrls = pmtilesUrls.filter((url) => {
-      return Boolean(url);
-    });
     const pmtilesSignature = `${normalizedPmtilesUrls.join('|')}::${pmtilesOpacity}`;
 
     if (pmtilesSignature === lastPmtilesSignatureRef.current) {
@@ -266,7 +265,7 @@ export const MapContainer = ({
     return () => {
       cancelled = true;
     };
-  }, [isMapInitialized, mapRef, pmtilesOpacity, pmtilesUrls]);
+  }, [isMapInitialized, mapRef, normalizedPmtilesUrls, pmtilesOpacity]);
 
   return (
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -404,7 +403,11 @@ const updatePmtilesLayers = (map: maplibregl.Map, pmtilesUrls: string[], pmtiles
  * @param {number} count
  * @returns {boolean}
  */
-const hasExpectedPmtilesLayers = (map: maplibregl.Map, count: number): boolean => {
+const hasExpectedPmtilesLayers = (map: maplibregl.Map | null, count: number): boolean => {
+  if (!map) {
+    return false;
+  }
+
   if (count === 0) {
     return true;
   }
@@ -418,4 +421,25 @@ const hasExpectedPmtilesLayers = (map: maplibregl.Map, count: number): boolean =
   }
 
   return true;
+};
+
+/**
+ * Checks if any PMTiles layer currently exists on the map.
+ *
+ * @param {maplibregl.Map | null} map
+ * @returns {boolean}
+ */
+const hasAnyPmtilesLayers = (map: maplibregl.Map | null): boolean => {
+  if (!map) {
+    return false;
+  }
+
+  const style = map.getStyle();
+  if (!style?.layers) {
+    return false;
+  }
+
+  return style.layers.some((layer) => {
+    return layer.id.startsWith('pmtiles-layer-');
+  });
 };

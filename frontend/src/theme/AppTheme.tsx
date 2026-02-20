@@ -290,7 +290,7 @@ export const appTheme = createTheme({
             backgroundColor: 'rgba(15, 23, 42, 0.06)',
           },
           '&.Mui-selected': {
-            backgroundColor: grey[100],
+            backgroundColor: grey[200],
           },
           '&.Mui-selected:hover': {
             backgroundColor: grey[50],
