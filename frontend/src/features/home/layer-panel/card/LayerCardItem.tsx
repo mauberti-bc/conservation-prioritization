@@ -9,12 +9,7 @@ interface LayerCardItemProps {
   showCheckbox?: boolean;
 }
 
-export const LayerCardItem = ({
-  layer,
-  checked,
-  onToggle,
-  showCheckbox = true,
-}: LayerCardItemProps) => {
+export const LayerCardItem = ({ layer, checked, onToggle, showCheckbox = true }: LayerCardItemProps) => {
   const chips = layer.group.split('/');
 
   return (

@@ -680,6 +680,7 @@ def create_continuous_priority_surface(
     score = np.zeros((nrows, ncols), dtype=np.float32)
     candidate_mask = valid_mask.copy()
     locked_in_mask = np.zeros((nrows, ncols), dtype=bool)
+    locked_out_mask = np.zeros((nrows, ncols), dtype=bool)
 
     def get_layer_array(layer_name: str) -> np.ndarray:
         *group_parts, var = layer_name.split("/")
@@ -710,6 +711,7 @@ def create_continuous_priority_surface(
         if props.mode == "locked-out":
             layer_excluded = (~np.isnan(arr)) & (arr > 0)
             candidate_mask[layer_excluded] = False
+            locked_out_mask = locked_out_mask | layer_excluded
 
         if props.mode == "locked-in":
             layer_locked_in = valid_mask & (~np.isnan(arr)) & (arr > 0)
@@ -782,7 +784,6 @@ def create_continuous_priority_surface(
             )
 
     score = np.where(valid_mask, score, 0.0).astype(np.float32)
-    score = np.where(locked_in_mask, 1.0, score).astype(np.float32)
     score = np.clip(score, 0.0, 1.0).astype(np.float32)
 
     finite_values = score[np.isfinite(score)]
@@ -791,7 +792,9 @@ def create_continuous_priority_surface(
 
     logger.info(
         f"Continuous surface generated: min={float(np.nanmin(score)):.4f}, max={float(np.nanmax(score)):.4f}, "
-        f"non_zero={np.count_nonzero(score)}, unique_sample={rounded_unique_sample.tolist()}, "
+        f"non_zero={np.count_nonzero(score)}, locked_in_cells={int(np.count_nonzero(locked_in_mask))}, "
+        f"locked_out_cells={int(np.count_nonzero(locked_out_mask))}, "
+        f"unique_sample={rounded_unique_sample.tolist()}, "
         f"percentiles={percentiles}"
     )
 
@@ -992,6 +995,11 @@ def create_pmtiles_archive(
     normalized_array = np.nan_to_num(array, nan=0.0)
     normalized_array = np.clip(normalized_array, 0.0, 1.0)
     uint8_array = (normalized_array * 255).astype(np.uint8)
+    unique_uint8_sample = np.unique(uint8_array)[:20].tolist()
+    logger.info(
+        f"Tiling source diagnostics: min={int(np.min(uint8_array))}, max={int(np.max(uint8_array))}, "
+        f"non_zero={int(np.count_nonzero(uint8_array))}, unique_sample={unique_uint8_sample}"
+    )
     da = xr.DataArray(
         uint8_array,
         dims=("y", "x"),

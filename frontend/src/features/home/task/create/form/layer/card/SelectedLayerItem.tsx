@@ -35,6 +35,7 @@ interface Props {
   errors?: { id: string; message: string }[];
   handleErrorClose: (message: string) => void;
   isReadOnly?: boolean;
+  forceMobileLayout?: boolean;
 }
 
 export const SelectedLayerItem = ({
@@ -47,10 +48,12 @@ export const SelectedLayerItem = ({
   errors,
   handleErrorClose,
   isReadOnly = false,
+  forceMobileLayout = false,
 }: Props) => {
   const [localImportance, setLocalImportance] = useState(layer.importance);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+  const isMobileViewport = useMediaQuery(theme.breakpoints.down('lg'));
+  const isMobile = forceMobileLayout || isMobileViewport;
 
   const getTrackColor = (value: number) => {
     if (value === 0) {
