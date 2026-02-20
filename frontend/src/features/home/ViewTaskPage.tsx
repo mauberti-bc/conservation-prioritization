@@ -25,12 +25,22 @@ export const ViewTaskPage = () => {
 
   const sidebarMinWidth = 320;
   const shouldSubscribeToTaskStatus = useMemo(() => {
+    const activeTaskDataForSubscription = taskDataLoader.data?.task_id === taskId ? taskDataLoader.data : null;
     if (!taskId || !taskDataLoader.hasLoaded) {
       return false;
     }
 
-    return !taskDataLoader.data?.tileset_uri;
-  }, [taskDataLoader.data?.tileset_uri, taskDataLoader.hasLoaded, taskId]);
+    return !activeTaskDataForSubscription?.tileset_uri;
+  }, [taskDataLoader.data, taskDataLoader.hasLoaded, taskId]);
+
+  const activeTaskData = useMemo(() => {
+    if (!taskDataLoader.data || taskDataLoader.data.task_id !== taskId) {
+      return null;
+    }
+
+    return taskDataLoader.data;
+  }, [taskDataLoader.data, taskId]);
+
   const { data: taskStatus } = useTaskStatusWebSocket(shouldSubscribeToTaskStatus ? taskId : null);
   const activeTaskStatus = useMemo(() => {
     if (!taskStatus || taskStatus.task_id !== taskId) {
@@ -45,8 +55,8 @@ export const ViewTaskPage = () => {
       return activeTaskStatus.tile.pmtiles_uri;
     }
 
-    return taskDataLoader.data?.tileset_uri ?? null;
-  }, [activeTaskStatus, taskDataLoader.data]);
+    return activeTaskData?.tileset_uri ?? null;
+  }, [activeTaskData, activeTaskStatus]);
 
   const pmtilesUrls = useMemo(() => {
     const baseUrls = resolvedPmtilesUri ? [resolvedPmtilesUri] : [];
@@ -73,13 +83,13 @@ export const ViewTaskPage = () => {
   }, [taskId]);
 
   const showStatusChip = useMemo(() => {
-    const activeStatus = activeTaskStatus?.status ?? taskDataLoader.data?.status;
+    const activeStatus = activeTaskStatus?.status ?? activeTaskData?.status;
     if (!activeStatus) {
       return false;
     }
 
     return activeStatus !== TASK_STATUS.DRAFT && activeStatus !== TASK_STATUS.COMPLETED;
-  }, [activeTaskStatus, taskDataLoader.data]);
+  }, [activeTaskData, activeTaskStatus]);
 
   return (
     <Box position="relative" height="100%" overflow="hidden">
