@@ -60,6 +60,8 @@ class OptimizationParameters(BaseModel):
             Default: 50 (50% of valid cells)
         is_percentage: Whether target_area is a percentage or absolute count
             Default: True
+        continuous_output: Whether to return a continuous 0-1 priority surface
+            instead of a binary selected/not-selected surface. Default: True
     """
 
     geometry: Optional[Sequence[BaseGeometry]] = None
@@ -68,6 +70,7 @@ class OptimizationParameters(BaseModel):
     layers: OptimizationLayers
     target_area: float = Field(default=50.0, ge=0)
     is_percentage: bool = Field(default=True)
+    continuous_output: bool = Field(default=True)
 
     class Config:
         arbitrary_types_allowed = True
@@ -649,19 +652,13 @@ def build_pulp_model(
                     has_explicit_constraints = True
                     logger.info(f"  Added: total_sum <= {max_val}")
 
-    # Add target area constraint if no explicit constraints
+    # Do not impose arbitrary target-area selection when no explicit constraints exist.
+    # In that case, the optimizer naturally selects all cells that improve the objective
+    # and excludes only cells constrained out (or with negative contribution).
     if not has_explicit_constraints:
-        if is_percentage:
-            target_cells = int((target_area / 100) * len(cell_indices))
-        else:
-            target_cells = int(target_area)
-
-        target_cells = max(1, min(target_cells, len(cell_indices)))
-
-        prob += pulp.lpSum(decision_vars.values()) == target_cells
-        logger.warning(
-            f"No explicit constraints found. Using target area constraint: "
-            f"select exactly {target_cells} cells ({100 * target_cells / len(cell_indices):.1f}% of {len(cell_indices)} valid cells)"
+        logger.info(
+            "No explicit constraints found. Skipping fallback target-area constraint "
+            "to avoid arbitrary omission of valid cells."
         )
 
     logger.info(
@@ -669,6 +666,137 @@ def build_pulp_model(
     )
 
     return prob, decision_vars
+
+
+@task
+def create_continuous_priority_surface(
+    dataset: Dict[str, xr.Dataset],
+    conditions: OptimizationLayers,
+    valid_mask: np.ndarray,
+) -> np.ndarray:
+    """
+    Create a continuous 0-1 priority surface using weighted normalized flexible layers,
+    while applying locked-out and locked-in constraints as hard feasibility controls.
+
+    Args:
+        dataset: Dictionary of xarray Datasets grouped by layer path
+        conditions: OptimizationLayers with mode, importance, threshold, constraints
+        valid_mask: Boolean mask of valid cells
+
+    Returns:
+        Continuous priority array with values in [0, 1]
+    """
+    logger = get_run_logger()
+
+    nrows, ncols = valid_mask.shape
+    score = np.zeros((nrows, ncols), dtype=np.float32)
+    candidate_mask = valid_mask.copy()
+    locked_in_mask = np.zeros((nrows, ncols), dtype=bool)
+
+    def get_layer_array(layer_name: str) -> np.ndarray:
+        *group_parts, var = layer_name.split("/")
+        group = "/".join(group_parts)
+
+        if group not in dataset:
+            raise ValueError(
+                f"Group '{group}' not found in dataset for layer '{layer_name}'. "
+                f"Available groups: {list(dataset.keys())}"
+            )
+
+        if var not in dataset[group]:
+            raise ValueError(
+                f"Variable '{var}' not found in group '{group}' for layer '{layer_name}'. "
+                f"Available variables: {list(dataset[group].data_vars.keys())}"
+            )
+
+        data_var = dataset[group][var]
+        if hasattr(data_var.data, "compute"):
+            return np.asarray(data_var.data.compute(), dtype=np.float32)
+
+        return np.asarray(data_var.values, dtype=np.float32)
+
+    # Apply hard inclusion/exclusion constraints to feasible candidate cells.
+    for layer_name, props in conditions.items():
+        arr = get_layer_array(layer_name)
+
+        if props.mode == "locked-out":
+            threshold = props.threshold
+            if threshold is None:
+                raise ValueError(
+                    f"Threshold required for locked-out mode on layer '{layer_name}'"
+                )
+
+            layer_excluded = (~np.isnan(arr)) & (arr > threshold)
+            candidate_mask[layer_excluded] = False
+
+        if props.mode == "locked-in":
+            threshold = props.threshold
+            if threshold is None:
+                raise ValueError(
+                    f"Threshold required for locked-in mode on layer '{layer_name}'"
+                )
+
+            layer_locked_in = valid_mask & (~np.isnan(arr)) & (arr >= threshold)
+            locked_in_mask = locked_in_mask | layer_locked_in
+
+    # Exclusions take precedence for feasibility.
+    locked_in_mask = locked_in_mask & candidate_mask
+
+    weighted_layer_count = 0
+    for layer_name, props in conditions.items():
+        if props.mode != "flexible" or props.importance is None or props.importance == 0:
+            continue
+
+        arr = get_layer_array(layer_name)
+        finite_mask = candidate_mask & (~np.isnan(arr))
+
+        if not np.any(finite_mask):
+            logger.warning(
+                f"No valid values in feasible area for flexible layer '{layer_name}'"
+            )
+            continue
+
+        layer_min = float(np.nanmin(arr[finite_mask]))
+        layer_max = float(np.nanmax(arr[finite_mask]))
+        layer_range = layer_max - layer_min
+
+        if layer_range <= 0:
+            normalized = np.zeros_like(arr, dtype=np.float32)
+        else:
+            normalized = (arr - layer_min) / layer_range
+            normalized = np.where(np.isnan(normalized), 0.0, normalized)
+
+        score += float(props.importance) * normalized.astype(np.float32)
+        weighted_layer_count += 1
+
+    if weighted_layer_count == 0:
+        logger.warning(
+            "No weighted flexible layers found. Defaulting feasible cells to priority 1."
+        )
+        score = np.where(candidate_mask, 1.0, 0.0).astype(np.float32)
+    else:
+        score = np.where(candidate_mask, score, 0.0).astype(np.float32)
+
+        finite_candidate = candidate_mask & (~np.isnan(score))
+        if np.any(finite_candidate):
+            min_score = float(np.nanmin(score[finite_candidate]))
+            max_score = float(np.nanmax(score[finite_candidate]))
+            score_range = max_score - min_score
+
+            if score_range > 0:
+                score = (score - min_score) / score_range
+            else:
+                score = np.where(candidate_mask, 1.0, 0.0).astype(np.float32)
+
+    score = np.where(valid_mask, score, 0.0).astype(np.float32)
+    score = np.where(locked_in_mask, 1.0, score).astype(np.float32)
+
+    logger.info(
+        f"Continuous surface generated: min={np.nanmin(score):.4f}, max={np.nanmax(score):.4f}, "
+        f"non_zero={np.count_nonzero(score)}"
+    )
+
+    return np.clip(score, 0.0, 1.0).astype(np.float32)
 
 
 @task
@@ -1099,33 +1227,45 @@ def execute_optimization(
         f"Valid mask shape: {valid_mask.shape}, Valid cells: {np.sum(valid_mask)}"
     )
 
-    # Build optimization model
-    logger.info("Building optimization model...")
-    pulp_model, cell_vars = build_pulp_model(
-        dataset=input_datasets,
-        conditions=layers,
-        valid_mask=valid_mask,
-        target_area=conditions.target_area,
-        is_percentage=conditions.is_percentage,
-    )
-    logger.info(f"Built model with {len(cell_vars)} decision variables")
+    if conditions.continuous_output:
+        logger.info("Generating continuous priority surface...")
+        solution_array = create_continuous_priority_surface(
+            dataset=input_datasets,
+            conditions=layers,
+            valid_mask=valid_mask,
+        )
+        logger.info(
+            f"Continuous solution stats: sum={np.sum(solution_array):.4f}, "
+            f"non-zero={np.count_nonzero(solution_array)}"
+        )
+    else:
+        # Build optimization model
+        logger.info("Building optimization model...")
+        pulp_model, cell_vars = build_pulp_model(
+            dataset=input_datasets,
+            conditions=layers,
+            valid_mask=valid_mask,
+            target_area=conditions.target_area,
+            is_percentage=conditions.is_percentage,
+        )
+        logger.info(f"Built model with {len(cell_vars)} decision variables")
 
-    # Solve LP
-    logger.info("Solving LP...")
-    status, solution_values = solve_lp(pulp_model, cell_vars)
-    logger.info(f"Solver status: {status}")
-    logger.info(f"Extracted {len(solution_values)} solution values")
+        # Solve LP
+        logger.info("Solving LP...")
+        status, solution_values = solve_lp(pulp_model, cell_vars)
+        logger.info(f"Solver status: {status}")
+        logger.info(f"Extracted {len(solution_values)} solution values")
 
-    # Extract solution
-    logger.info("Extracting solution...")
-    solution_array: np.ndarray = extract_solution(
-        solution_values=solution_values,
-        nrows=nrows,
-        ncols=ncols,
-        geometry=british_columbia_geometry,
-        transform=transform,
-    )
-    logger.info(f"Solution array sum: {np.sum(solution_array)}")
+        # Extract solution
+        logger.info("Extracting solution...")
+        solution_array = extract_solution(
+            solution_values=solution_values,
+            nrows=nrows,
+            ncols=ncols,
+            geometry=british_columbia_geometry,
+            transform=transform,
+        )
+        logger.info(f"Binary solution array sum: {np.sum(solution_array)}")
 
     if not np.any(solution_array > 0):
         logger.warning("No solution found")
