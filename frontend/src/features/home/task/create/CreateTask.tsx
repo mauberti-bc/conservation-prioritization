@@ -1,10 +1,10 @@
 import { mdiCheck, mdiClose } from '@mdi/js';
 import Icon from '@mdi/react';
-import { IconButton } from '@mui/material';
+import { IconButton, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
-import { Formik, useFormikContext } from 'formik';
+import { Formik } from 'formik';
 import {
   CreateDraftTaskRequest,
   CreateTaskLayer,
@@ -17,6 +17,7 @@ import { useDialogContext, useMapContext } from 'hooks/useContext';
 import { MutableRefObject, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TaskAdvancedSection } from './form/advanced/TaskAdvancedSection';
+import { CreateTaskSubmitRefBinder } from './form/shared/CreateTaskSubmitRefBinder';
 import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
 import { taskValidationSchema } from './TaskCreateYup';
 
@@ -37,34 +38,6 @@ interface CreateTaskProps {
   hideInternalActions?: boolean;
   onSubmittingChange?: (isSubmitting: boolean) => void;
 }
-
-const SubmitRefBinder = ({
-  submitRef,
-  onSubmittingChange,
-  isSubmitting,
-}: {
-  submitRef?: MutableRefObject<(() => void) | null>;
-  onSubmittingChange?: (isSubmitting: boolean) => void;
-  isSubmitting: boolean;
-}) => {
-  const { submitForm } = useFormikContext<TaskCreateFormValues>();
-
-  useEffect(() => {
-    if (!submitRef) {
-      return;
-    }
-    submitRef.current = submitForm;
-  }, [submitForm, submitRef]);
-
-  useEffect(() => {
-    if (!onSubmittingChange) {
-      return;
-    }
-    onSubmittingChange(isSubmitting);
-  }, [isSubmitting, onSubmittingChange]);
-
-  return null;
-};
 
 export const CreateTask = ({
   onSubmitSuccess,
@@ -181,7 +154,7 @@ export const CreateTask = ({
             component="form"
             onSubmit={handleSubmit}
             sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-            <SubmitRefBinder
+            <CreateTaskSubmitRefBinder
               submitRef={submitRef}
               onSubmittingChange={onSubmittingChange}
               isSubmitting={isSubmitting}
@@ -197,23 +170,21 @@ export const CreateTask = ({
                 height: '100%',
                 overflow: 'auto',
               }}>
-              <TaskCreateForm
-                autoSearchOnMount
-                showAdvancedSection={false}
-                aboutSectionTitle="New Task"
-                aboutSectionTitleVariant="h2"
-                aboutSectionAction={
-                  <IconButton
-                    aria-label="Close new task"
-                    onClick={() => {
-                      navigate('/t/');
-                    }}
-                    edge="end"
-                    size="small">
-                    <Icon path={mdiClose} size={1} />
-                  </IconButton>
-                }
-              />
+              <Box px={3} display="flex" alignItems="center" justifyContent="space-between" gap={1}>
+                <Typography variant="h2" component="h2">
+                  New Task
+                </Typography>
+                <IconButton
+                  aria-label="Close new task"
+                  onClick={() => {
+                    navigate('/t/');
+                  }}
+                  edge="end"
+                  size="small">
+                  <Icon path={mdiClose} size={1} />
+                </IconButton>
+              </Box>
+              <TaskCreateForm autoSearchOnMount showAdvancedSection={false} />
             </Box>
 
             {/* Sticky footer */}

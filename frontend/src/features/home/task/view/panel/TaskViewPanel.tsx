@@ -1,62 +1,16 @@
-import { mdiAccountPlusOutline, mdiDeleteOutline, mdiPencilOutline } from '@mdi/js';
-import { TextField, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import { IconMenuButton } from 'components/button/IconMenuButton';
-import { EditDialog } from 'components/dialog/EditDialog';
-import { InviteDialog } from 'components/dialog/InviteDialog';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
-import { Formik, useFormikContext } from 'formik';
+import { TaskCreateForm, TaskCreateFormValues } from 'features/home/task/create/form/TaskCreateForm';
+import { Formik } from 'formik';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useTaskContext } from 'hooks/useContext';
 import { useMemo, useState } from 'react';
 import { mapTaskResponseToSubmitFormValues } from 'utils/task-mapping';
-import * as Yup from 'yup';
-import { TaskCreateForm, TaskCreateFormValues } from '../create/form/TaskCreateForm';
-
-interface TaskEditFormValues {
-  name: string;
-  description: string;
-}
-
-const taskEditSchema = Yup.object({
-  name: Yup.string().required('Name is required').max(100, 'Name must be 100 characters or less'),
-  description: Yup.string().max(500, 'Description must be 500 characters or less'),
-});
-
-const TaskEditForm = () => {
-  const { values, errors, touched, handleChange, handleBlur } = useFormikContext<TaskEditFormValues>();
-
-  return (
-    <Stack spacing={2}>
-      <TextField
-        fullWidth
-        id="name"
-        name="name"
-        label="Name"
-        value={values.name}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        error={touched.name && Boolean(errors.name)}
-        helperText={touched.name && errors.name ? errors.name : ''}
-        required
-      />
-      <TextField
-        fullWidth
-        id="description"
-        name="description"
-        label="Description"
-        value={values.description}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        error={touched.description && Boolean(errors.description)}
-        helperText={touched.description && errors.description ? errors.description : ''}
-        multiline
-        minRows={2}
-      />
-    </Stack>
-  );
-};
+import { TaskViewEditDialog } from '../dialog/TaskViewEditDialog';
+import { TaskViewInviteDialog } from '../dialog/TaskViewInviteDialog';
+import { TaskViewPanelHeader } from './TaskViewPanelHeader';
+import { TaskEditFormValues } from './task-view-panel.interface';
 
 /**
  * Read-only task sidebar content for viewing an existing task.
@@ -172,41 +126,18 @@ export const TaskViewPanel = () => {
           }>
           <Formik initialValues={initialValues as TaskCreateFormValues} enableReinitialize onSubmit={async () => {}}>
             <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-              <Box display="flex" alignItems="center" gap={1} pb={1}>
-                <Typography
-                  variant="h6"
-                  fontWeight={600}
-                  sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                  {taskDataLoader.data?.name ?? 'Task'}
-                </Typography>
-                <IconMenuButton
-                  items={[
-                    {
-                      label: 'Edit',
-                      icon: mdiPencilOutline,
-                      onClick: () => {
-                        setEditTaskError(null);
-                        setEditTaskOpen(true);
-                      },
-                    },
-                    {
-                      label: 'Share',
-                      icon: mdiAccountPlusOutline,
-                      onClick: () => {
-                        setInviteError(null);
-                        setInviteOpen(true);
-                      },
-                    },
-                    {
-                      label: 'Delete',
-                      icon: mdiDeleteOutline,
-                      onClick: () => {
-                        handleDeleteTask();
-                      },
-                    },
-                  ]}
-                />
-              </Box>
+              <TaskViewPanelHeader
+                title={taskDataLoader.data?.name ?? 'Task'}
+                onEdit={() => {
+                  setEditTaskError(null);
+                  setEditTaskOpen(true);
+                }}
+                onShare={() => {
+                  setInviteError(null);
+                  setInviteOpen(true);
+                }}
+                onDelete={handleDeleteTask}
+              />
 
               <Box
                 sx={{
@@ -217,46 +148,28 @@ export const TaskViewPanel = () => {
                   height: '100%',
                   overflow: 'auto',
                 }}>
-                <TaskCreateForm
-                  isReadOnly
-                  showAboutSection
-                  aboutSectionTitle="Task"
-                  autoSearchOnMount={false}
-                  containerPaddingX={0}
-                />
+                <TaskCreateForm isReadOnly autoSearchOnMount={false} />
               </Box>
             </Box>
           </Formik>
         </LoadingGuard>
       </LoadingGuard>
 
-      <EditDialog<TaskEditFormValues>
+      <TaskViewEditDialog
         open={editTaskOpen}
-        dialogTitle="Edit Task"
-        dialogText="Update the task name and description."
-        dialogSaveButtonLabel="Save"
-        size="sm"
-        dialogLoading={editTaskSaving}
-        dialogError={editTaskError ?? undefined}
+        task={taskDataLoader.data}
+        isSaving={editTaskSaving}
+        error={editTaskError}
         onCancel={() => {
           setEditTaskOpen(false);
           setEditTaskError(null);
         }}
         onSave={handleEditTaskSave}
-        component={{
-          element: <TaskEditForm />,
-          initialValues: {
-            name: taskDataLoader.data?.name ?? '',
-            description: taskDataLoader.data?.description ?? '',
-          },
-          validationSchema: taskEditSchema,
-        }}
       />
 
-      <InviteDialog
+      <TaskViewInviteDialog
         open={inviteOpen}
-        title={taskDataLoader.data ? `Invite to ${taskDataLoader.data.name}` : 'Invite to Task'}
-        description="Enter email addresses to add existing profiles to this task."
+        task={taskDataLoader.data}
         onClose={() => {
           setInviteOpen(false);
         }}

@@ -6,7 +6,6 @@ import { TooltipStack } from 'components/tooltip/TooltipStack';
 import { useFormikContext } from 'formik';
 import { Feature } from 'geojson';
 import { OPTIMIZATION_VARIANT, RESAMPLING } from 'hooks/interfaces/useTaskApi.interface';
-import { ReactNode } from 'react';
 import { TaskAdvancedSection } from './advanced/TaskAdvancedSection';
 import { TaskAreaSection } from './area/TaskAreaSection';
 import { TaskBudgetSection } from './budget/TaskBudgetSection';
@@ -36,11 +35,6 @@ const COST_LAYER_OPTION: TaskLayerOption = {
 interface TaskCreateFormProps {
   isReadOnly?: boolean;
   autoSearchOnMount?: boolean;
-  containerPaddingX?: number;
-  showAboutSection?: boolean;
-  aboutSectionTitle?: string;
-  aboutSectionTitleVariant?: 'body1' | 'h2';
-  aboutSectionAction?: ReactNode;
   showAreaSection?: boolean;
   showAdvancedSection?: boolean;
   showBudgetSection?: boolean;
@@ -50,11 +44,6 @@ interface TaskCreateFormProps {
 export const TaskCreateForm = ({
   isReadOnly = false,
   autoSearchOnMount = false,
-  containerPaddingX = 3,
-  showAboutSection = true,
-  aboutSectionTitle = 'About',
-  aboutSectionTitleVariant = 'body1',
-  aboutSectionAction,
   showAreaSection = true,
   showAdvancedSection = true,
   showBudgetSection = true,
@@ -67,53 +56,33 @@ export const TaskCreateForm = ({
     <>
       <Stack
         sx={{
-          px: containerPaddingX,
-          display: 'flex',
           flexDirection: 'column',
           gap: 4,
         }}>
-        {showAboutSection && (
-          <Stack spacing={3}>
-            <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
-              <Typography
-                variant={aboutSectionTitleVariant}
-                component={aboutSectionTitleVariant === 'h2' ? 'h2' : 'p'}
-                fontWeight={700}
-                sx={{
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}>
-                {aboutSectionTitle}
-              </Typography>
-              {aboutSectionAction ? <Box>{aboutSectionAction}</Box> : null}
-            </Box>
-            <Stack spacing={2}>
-              <TextField
-                fullWidth
-                label="Name"
-                name="name"
-                value={values.name}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                error={touched.name && Boolean(errors.name)}
-                helperText={touched.name && errors.name ? String(errors.name) : ''}
-              />
-              <TextField
-                fullWidth
-                label="Description"
-                name="description"
-                value={values.description ?? ''}
-                onChange={handleChange}
-                multiline
-                minRows={2}
-                disabled={isReadOnly}
-                error={touched.description && Boolean(errors.description)}
-                helperText={touched.description && errors.description ? String(errors.description) : ''}
-              />
-            </Stack>
-          </Stack>
-        )}
+        <Stack spacing={2} pt={1}>
+          <TextField
+            fullWidth
+            label="Name"
+            name="name"
+            value={values.name}
+            onChange={handleChange}
+            disabled={isReadOnly}
+            error={touched.name && Boolean(errors.name)}
+            helperText={touched.name && errors.name ? String(errors.name) : ''}
+          />
+          <TextField
+            fullWidth
+            label="Description"
+            name="description"
+            value={values.description ?? ''}
+            onChange={handleChange}
+            multiline
+            minRows={2}
+            disabled={isReadOnly}
+            error={touched.description && Boolean(errors.description)}
+            helperText={touched.description && errors.description ? String(errors.description) : ''}
+          />
+        </Stack>
         {showAreaSection && (
           <Box>
             <TaskAreaSection isReadOnly={isReadOnly} />

@@ -1,67 +1,29 @@
-import { mdiAccountPlusOutline, mdiArrowLeft, mdiCheck, mdiDeleteOutline, mdiPencilOutline } from '@mdi/js';
+import { mdiCheck } from '@mdi/js';
 import Icon from '@mdi/react';
-import { IconButton, TextField, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
-import { IconMenuButton } from 'components/button/IconMenuButton';
 import { EditDialog } from 'components/dialog/EditDialog';
 import { InviteDialog } from 'components/dialog/InviteDialog';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
-import { Formik, useFormikContext } from 'formik';
+import { Formik } from 'formik';
 import { CreateDraftTaskRequest, CreateTaskLayer } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useTaskContext } from 'hooks/useContext';
 import { useMemo, useState } from 'react';
 import { mapTaskResponseToSubmitFormValues } from 'utils/task-mapping';
 import * as Yup from 'yup';
-import { TaskAdvancedSection } from './form/advanced/TaskAdvancedSection';
 import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
+import { TaskSubmitPanelFooter } from './panel/footer/TaskSubmitPanelFooter';
+import { TaskSubmitPanelHeader } from './panel/header/TaskSubmitPanelHeader';
+import { TaskSubmitEditFormValues } from './panel/task-submit-panel.interface';
+import { TaskSubmitPanelEditForm } from './panel/TaskSubmitPanelEditForm';
 import { taskValidationSchema } from './TaskCreateYup';
-
-interface TaskEditFormValues {
-  name: string;
-  description: string;
-}
 
 const taskEditSchema = Yup.object({
   name: Yup.string().required('Name is required').max(100, 'Name must be 100 characters or less'),
   description: Yup.string().max(500, 'Description must be 500 characters or less'),
 });
-
-const TaskEditForm = () => {
-  const { values, errors, touched, handleChange, handleBlur } = useFormikContext<TaskEditFormValues>();
-
-  return (
-    <Stack spacing={2}>
-      <TextField
-        fullWidth
-        id="name"
-        name="name"
-        label="Name"
-        value={values.name}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        error={touched.name && Boolean(errors.name)}
-        helperText={touched.name && errors.name ? errors.name : ''}
-        required
-      />
-      <TextField
-        fullWidth
-        id="description"
-        name="description"
-        label="Description"
-        value={values.description}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        error={touched.description && Boolean(errors.description)}
-        helperText={touched.description && errors.description ? errors.description : ''}
-        multiline
-        minRows={2}
-      />
-    </Stack>
-  );
-};
 
 /**
  * Sidebar panel for submitting an existing task.
@@ -171,7 +133,7 @@ export const TaskSubmitPanel = () => {
     }
   };
 
-  const handleEditTaskSave = async (values: TaskEditFormValues) => {
+  const handleEditTaskSave = async (values: TaskSubmitEditFormValues) => {
     if (!taskId) {
       return;
     }
@@ -273,49 +235,21 @@ export const TaskSubmitPanel = () => {
                   component="form"
                   onSubmit={handleSubmit}
                   sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-                  <Box display="flex" alignItems="center" gap={1} px={2} pt={2}>
-                    <IconButton
-                      aria-label="Back to tasks"
-                      size="small"
-                      onClick={() => {
-                        setFocusedTask(null);
-                      }}>
-                      <Icon path={mdiArrowLeft} size={1} />
-                    </IconButton>
-                    <Typography
-                      variant="subtitle1"
-                      fontWeight={600}
-                      sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                      {taskDataLoader.data?.name ?? 'Task'}
-                    </Typography>
-                    <IconMenuButton
-                      items={[
-                        {
-                          label: 'Edit',
-                          icon: mdiPencilOutline,
-                          onClick: () => {
-                            setEditTaskError(null);
-                            setEditTaskOpen(true);
-                          },
-                        },
-                        {
-                          label: 'Share',
-                          icon: mdiAccountPlusOutline,
-                          onClick: () => {
-                            setInviteError(null);
-                            setInviteOpen(true);
-                          },
-                        },
-                        {
-                          label: 'Delete',
-                          icon: mdiDeleteOutline,
-                          onClick: () => {
-                            handleDeleteTask();
-                          },
-                        },
-                      ]}
-                    />
-                  </Box>
+                  <TaskSubmitPanelHeader
+                    title={taskDataLoader.data?.name ?? 'Task'}
+                    onBack={() => {
+                      setFocusedTask(null);
+                    }}
+                    onEdit={() => {
+                      setEditTaskError(null);
+                      setEditTaskOpen(true);
+                    }}
+                    onShare={() => {
+                      setInviteError(null);
+                      setInviteOpen(true);
+                    }}
+                    onDelete={handleDeleteTask}
+                  />
                   <Box
                     sx={{
                       flex: 1,
@@ -326,40 +260,17 @@ export const TaskSubmitPanel = () => {
                       height: '100%',
                       overflow: 'auto',
                     }}>
-                    <TaskCreateForm autoSearchOnMount showAboutSection={false} showAdvancedSection={false} />
+                    <TaskCreateForm autoSearchOnMount showAdvancedSection={false} />
                   </Box>
 
-                  <Box
-                    mr={0.5}
-                    py={2}
-                    sx={{
-                      boxShadow: '0px -2px 25px 0px rgba(0,0,0,0.05)',
-                      position: 'sticky',
-                      bottom: 0,
-                      backgroundColor: 'white',
-                    }}>
-                    <Box mx={3} mb={2}>
-                      <TaskAdvancedSection />
-                    </Box>
-                    <Box mx={3}>
-                      <Button
-                        variant="contained"
-                        size="large"
-                        loading={isSubmitting}
-                        type="submit"
-                        color="primary"
-                        fullWidth>
-                        Submit
-                      </Button>
-                    </Box>
-                  </Box>
+                  <TaskSubmitPanelFooter isSubmitting={isSubmitting} />
                 </Box>
               );
             }}
           </Formik>
         </LoadingGuard>
       </LoadingGuard>
-      <EditDialog<TaskEditFormValues>
+      <EditDialog<TaskSubmitEditFormValues>
         open={editTaskOpen}
         dialogTitle="Edit Task"
         dialogText="Update the task name and description."
@@ -373,7 +284,7 @@ export const TaskSubmitPanel = () => {
         }}
         onSave={handleEditTaskSave}
         component={{
-          element: <TaskEditForm />,
+          element: <TaskSubmitPanelEditForm />,
           initialValues: {
             name: taskDataLoader.data?.name ?? '',
             description: taskDataLoader.data?.description ?? '',

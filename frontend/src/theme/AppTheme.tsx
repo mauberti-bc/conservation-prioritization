@@ -3,7 +3,7 @@ import { alpha, createTheme } from '@mui/material/styles';
 import 'styles.scss';
 import 'styles/fonts.scss';
 
-const disabledInputBackground = grey[100];
+const disabledInputBackground = grey[50];
 
 declare module '@mui/material/styles' {
   interface Palette {
@@ -282,7 +282,7 @@ export const appTheme = createTheme({
       styleOverrides: {
         root: {
           border: 'none',
-          borderRadius: '10px',
+          borderRadius: '6px',
           paddingTop: 8,
           paddingBottom: 8,
           transition: 'background-color 0.15s ease',
@@ -290,10 +290,10 @@ export const appTheme = createTheme({
             backgroundColor: 'rgba(15, 23, 42, 0.06)',
           },
           '&.Mui-selected': {
-            backgroundColor: 'rgba(15, 23, 42, 0.10)',
+            backgroundColor: grey[100],
           },
           '&.Mui-selected:hover': {
-            backgroundColor: 'rgba(15, 23, 42, 0.14)',
+            backgroundColor: grey[50],
           },
         },
       },

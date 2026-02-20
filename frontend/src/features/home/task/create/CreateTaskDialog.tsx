@@ -1,14 +1,7 @@
-import { mdiClose } from '@mdi/js';
-import Icon from '@mdi/react';
-import { Box, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Typography } from '@mui/material';
-import Button from '@mui/material/Button';
 import { MapContextProvider } from 'context/mapContext';
-import { useMapContext } from 'hooks/useContext';
-import { MutableRefObject, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DrawControls } from '../../map/draw/DrawControls';
-import { MapContainer } from '../../map/MapContainer';
-import { CreateTask } from './CreateTask';
+import { CreateTaskDialogContent } from './CreateTaskDialogContent';
 
 export const CreateTaskDialog = () => {
   const navigate = useNavigate();
@@ -36,106 +29,5 @@ export const CreateTaskDialog = () => {
         onSubmit={handleSubmit}
       />
     </MapContextProvider>
-  );
-};
-
-interface CreateTaskDialogContentProps {
-  submitRef: MutableRefObject<(() => void) | null>;
-  isSubmitting: boolean;
-  onSubmittingChange: (isSubmitting: boolean) => void;
-  onClose: () => void;
-  onSubmit: () => void;
-}
-
-const CreateTaskDialogContent = ({
-  submitRef,
-  isSubmitting,
-  onSubmittingChange,
-  onClose,
-  onSubmit,
-}: CreateTaskDialogContentProps) => {
-  const navigate = useNavigate();
-  const { drawControlsRef } = useMapContext();
-
-  return (
-    <Dialog
-      open
-      fullWidth
-      maxWidth="xl"
-      onClose={onClose}
-      PaperProps={{
-        sx: {
-          height: 'calc(100vh - 64px)',
-          maxHeight: 'none',
-        },
-      }}>
-      <DialogTitle
-        sx={{
-          p: 2,
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-          zIndex: 1,
-        }}>
-        <Box>
-          <Box display="flex" alignItems="center" justifyContent="space-between">
-            <Typography variant="h6" fontWeight={600}>
-              Create Task
-            </Typography>
-            <IconButton aria-label="Close create task" onClick={onClose} size="small">
-              <Icon path={mdiClose} size={1} />
-            </IconButton>
-          </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Set up the task details and area to begin.
-          </Typography>
-        </Box>
-      </DialogTitle>
-      <Divider />
-      <DialogContent sx={{ p: '0 !important', height: '100%', overflow: 'hidden', m: 0 }}>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-            height: '100%',
-          }}>
-          <Box
-            sx={{
-              borderRight: { md: '1px solid' },
-              borderColor: 'divider',
-              minHeight: 0,
-              height: '100%',
-              overflow: 'auto',
-              py: 2,
-            }}>
-            <CreateTask
-              submitRef={submitRef}
-              hideInternalActions
-              onSubmittingChange={onSubmittingChange}
-              onSubmitSuccess={(task) => {
-                navigate(`/t/${task.task_id}`);
-              }}
-            />
-          </Box>
-          <Box sx={{ position: 'relative', minHeight: 0, height: '100%' }}>
-            <MapContainer pmtilesUrls={[]} />
-            <DrawControls ref={drawControlsRef} />
-          </Box>
-        </Box>
-      </DialogContent>
-      <DialogActions
-        sx={{
-          px: 3,
-          py: 2,
-          justifyContent: 'flex-end',
-          boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.08)',
-          zIndex: 1,
-        }}>
-        <Button variant="contained" onClick={onSubmit} loading={isSubmitting}>
-          Submit
-        </Button>
-        <Button variant="outlined" onClick={onClose}>
-          Close
-        </Button>
-      </DialogActions>
-    </Dialog>
   );
 };

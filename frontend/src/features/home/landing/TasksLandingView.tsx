@@ -29,17 +29,18 @@ import { ProjectCreateDialog } from 'features/home/sidebar/projects/ProjectCreat
 import { ProjectEditDialog } from 'features/home/sidebar/projects/ProjectEditDialog';
 import { ProjectEditFormValues } from 'features/home/sidebar/projects/ProjectEditForm';
 import { AddTaskToProjectDialog } from 'features/home/sidebar/tasks/dialog/AddTaskToProjectDialog';
-import { useFormikContext } from 'formik';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
-import useDataLoader from 'hooks/useDataLoader';
 import { useDialogContext, useProjectContext } from 'hooks/useContext';
+import useDataLoader from 'hooks/useDataLoader';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiPaginationRequestOptions } from 'types/pagination';
 import { toApiHexColour } from 'utils/colour';
 import * as Yup from 'yup';
+import { TasksLandingTaskEditFormValues } from './form/tasks-landing.interface';
+import { TasksLandingTaskEditForm } from './form/TasksLandingTaskEditForm';
 import { TaskGridCard } from './TaskGridCard';
 
 const defaultPagination: ApiPaginationRequestOptions = {
@@ -49,49 +50,10 @@ const defaultPagination: ApiPaginationRequestOptions = {
   order: 'desc',
 };
 
-interface TaskEditFormValues {
-  name: string;
-  description: string;
-}
-
 const taskEditSchema = Yup.object({
   name: Yup.string().required('Name is required').max(100, 'Name must be 100 characters or less'),
   description: Yup.string().max(500, 'Description must be 500 characters or less'),
 });
-
-const TaskEditForm = () => {
-  const { values, errors, touched, handleChange, handleBlur } = useFormikContext<TaskEditFormValues>();
-
-  return (
-    <Stack spacing={2}>
-      <TextField
-        fullWidth
-        id="name"
-        name="name"
-        label="Name"
-        value={values.name}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        error={touched.name && Boolean(errors.name)}
-        helperText={touched.name && errors.name ? errors.name : ''}
-        required
-      />
-      <TextField
-        fullWidth
-        id="description"
-        name="description"
-        label="Description"
-        value={values.description}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        error={touched.description && Boolean(errors.description)}
-        helperText={touched.description && errors.description ? errors.description : ''}
-        multiline
-        minRows={2}
-      />
-    </Stack>
-  );
-};
 
 /**
  * Landing page content for browsing and filtering task tiles.
@@ -308,7 +270,7 @@ export const TasksLandingView = () => {
     setEditTask(null);
   };
 
-  const handleEditTaskSave = async (values: TaskEditFormValues) => {
+  const handleEditTaskSave = async (values: TasksLandingTaskEditFormValues) => {
     if (!editTask) {
       return;
     }
@@ -413,7 +375,7 @@ export const TasksLandingView = () => {
                   color: selectedProjectId ? undefined : theme.palette.selected.contrastText,
                   height: `${projectChipHeight}px`,
                 }}>
-                All Projects
+                All
               </Button>
               {projects.map((project) => {
                 const isSelected = selectedProjectId === project.project_id;
@@ -641,7 +603,7 @@ export const TasksLandingView = () => {
         isSubmitting={inviteLoading}
         error={inviteError}
       />
-      <EditDialog<TaskEditFormValues>
+      <EditDialog<TasksLandingTaskEditFormValues>
         open={Boolean(editTask)}
         dialogTitle="Edit Task"
         dialogText="Update the task name and description."
@@ -652,7 +614,7 @@ export const TasksLandingView = () => {
         onCancel={handleEditTaskCancel}
         onSave={handleEditTaskSave}
         component={{
-          element: <TaskEditForm />,
+          element: <TasksLandingTaskEditForm />,
           initialValues: {
             name: editTask?.name ?? '',
             description: editTask?.description ?? '',

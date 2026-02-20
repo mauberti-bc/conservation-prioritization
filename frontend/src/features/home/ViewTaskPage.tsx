@@ -1,11 +1,13 @@
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
 import { TASK_STATUS, TILE_STATUS } from 'constants/status';
 import { useMapContext, useTaskContext } from 'hooks/useContext';
 import { useMemo, useState } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
-import { getTaskViewSidebarWidth, TaskViewSidebar } from './sidebar/TaskViewSidebar';
+import { TaskViewSidebar } from './task/view/sidebar/TaskViewSidebar';
+import { getTaskViewSidebarWidth } from './task/view/sidebar/task-view-sidebar.constants';
 import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
 
 /**
@@ -76,7 +78,12 @@ export const ViewTaskPage = () => {
             <Chip
               size="medium"
               color="primary"
-              label="Processing"
+              label={
+                <Box display="flex" alignItems="center" gap={1}>
+                  Processing
+                  <CircularProgress size={14} color="inherit" />
+                </Box>
+              }
               sx={{
                 fontWeight: 700,
                 fontSize: '0.9rem',
