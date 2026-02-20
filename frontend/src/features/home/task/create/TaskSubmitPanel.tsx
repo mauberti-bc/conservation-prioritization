@@ -109,27 +109,32 @@ export const TaskSubmitPanel = () => {
         })),
       }));
 
-      const updatedTask = await conservationApi.task.updateTask(taskId, {
-        status: 'submitted',
+      const mappedBudget: CreateTaskLayer | undefined = values.budget
+        ? {
+            layer_name: values.budget.path,
+            description: null,
+            mode: values.budget.mode,
+            importance: values.budget.importance ?? null,
+            threshold: values.budget.threshold ?? null,
+            constraints: values.budget.constraints.map((constraint) => ({
+              min: constraint.min ?? null,
+              max: constraint.max ?? null,
+              type: constraint.type,
+            })),
+          }
+        : undefined;
+
+      await conservationApi.task.updateTask(taskId, {
         resolution: values.resolution,
         resampling: values.resampling,
         variant: values.variant,
-        layers: mappedLayers,
-        budget: values.budget
-          ? {
-              layer_name: values.budget.path,
-              description: null,
-              mode: values.budget.mode,
-              importance: values.budget.importance ?? null,
-              threshold: values.budget.threshold ?? null,
-              constraints: values.budget.constraints.map((constraint) => ({
-                min: constraint.min ?? null,
-                max: constraint.max ?? null,
-                type: constraint.type,
-              })),
-            }
-          : undefined,
       });
+
+      const updatedTask = await conservationApi.task.submitTask(taskId, {
+        layers: mappedLayers,
+        budget: mappedBudget,
+      });
+
       taskDataLoader.setData(updatedTask);
       await refreshTasks();
 

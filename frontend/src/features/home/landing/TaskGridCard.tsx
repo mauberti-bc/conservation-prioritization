@@ -80,8 +80,8 @@ export const TaskGridCard = ({ task, onClick, menuItems }: TaskGridCardProps) =>
                       <Box
                         key={project.project_id}
                         sx={{
-                          width: 8,
-                          height: 8,
+                          width: 12,
+                          height: 12,
                           borderRadius: '50%',
                           bgcolor: project.colour,
                           border: '1px solid',

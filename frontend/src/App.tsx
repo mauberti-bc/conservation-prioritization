@@ -33,7 +33,7 @@ const App = () => {
                       const authority = normalizedAuthority.includes('/realms/')
                         ? normalizedAuthority
                         : buildUrl(normalizedAuthority, `realms/${keycloakRealm}/`);
-                      const redirectUri = buildUrl(window.location.origin, 'auth/login');
+                      const redirectUri = buildUrl(window.location.origin);
                       const logoutRedirectUri = config?.SITEMINDER_LOGOUT_URL
                         ? `${config.SITEMINDER_LOGOUT_URL}?returl=${window.location.origin}&retnow=1`
                         : buildUrl(window.location.origin);

@@ -10,9 +10,33 @@ import { HomePage } from 'features/home/HomePage';
 import { TaskPage } from 'features/home/TaskPage';
 import { PublicTaskDashboardPage } from 'features/public/PublicTaskDashboardPage';
 import { AuthRedirectGuard } from 'guards/Guards';
+import { useAuthContext } from 'hooks/useContext';
 import { BaseLayout } from 'layouts/BaseLayout';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthRouter } from './AuthRouter';
+
+const RootRoute = () => {
+  const authContext = useAuthContext();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const hasOidcCallbackParams = params.has('code') && params.has('state');
+  const isLoggedIn =
+    authContext.auth.isAuthenticated || Boolean(authContext.auth.user && !authContext.auth.user.expired);
+
+  if (hasOidcCallbackParams) {
+    if (authContext.auth.isLoading || authContext.auth.activeNavigator === 'signinRedirect') {
+      return null;
+    }
+
+    if (isLoggedIn) {
+      return <Navigate to="/t/" replace />;
+    }
+
+    return <Navigate to="/auth/login" replace />;
+  }
+
+  return <Navigate to="/t/" replace />;
+};
 
 export const AppRouter = () => {
   return (
@@ -109,7 +133,7 @@ export const AppRouter = () => {
           </MapContextProvider>
         }
       />
-      <Route path="/" element={<Navigate to="/t/" replace />} />
+      <Route path="/" element={<RootRoute />} />
       <Route path="*" element={<Navigate to="/t/" replace />} />
     </Routes>
   );

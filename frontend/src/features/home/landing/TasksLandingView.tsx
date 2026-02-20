@@ -438,8 +438,8 @@ export const TasksLandingView = () => {
                       startIcon={
                         <Box
                           sx={{
-                            width: '8px',
-                            height: '8px',
+                            width: '12px',
+                            height: '12px',
                             borderRadius: '50%',
                             bgcolor: project.colour,
                             border: '1px solid',

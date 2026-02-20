@@ -86,8 +86,8 @@ export const ProjectListItem = ({
               </Typography>
               <Box
                 sx={{
-                  width: 10,
-                  height: 10,
+                  width: 14,
+                  height: 14,
                   borderRadius: '50%',
                   bgcolor: project.colour,
                   flexShrink: 0,

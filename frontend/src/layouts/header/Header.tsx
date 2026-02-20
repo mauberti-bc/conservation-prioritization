@@ -40,7 +40,9 @@ export const Header = () => {
               </picture>
             </RouterLink>
           </Box>
-          <Typography variant="h1">Conservation Prioritization Tool</Typography>
+          <Typography variant="h1" sx={{ display: { xs: 'none', md: 'block' } }}>
+            Conservation Prioritization Tool
+          </Typography>
         </Box>
         <Box flex="0 0 auto">
           <UnAuthGuard>
