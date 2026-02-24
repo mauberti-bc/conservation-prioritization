@@ -58,7 +58,9 @@ COPY package.json yarn.lock .yarnrc.yml ./
 # COPY .yarn/ .yarn/
 
 # Install only prod deps
-RUN yarn install --immutable --mode=production
+RUN yarn install --immutable
+RUN yarn workspaces focus --all --production
+# RUN yarn install --immutable --mode=production
 
 #####################################################
 # Stage 3: Final Image
