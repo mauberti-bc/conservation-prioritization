@@ -140,15 +140,15 @@ jobs:
           docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
           docker push ${BASE_IMAGE}:${GIT_SHA}
 
-      # - name: Build and push API image
-      #   working-directory: api
-      #   if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.api == 'true' }}
-      #   run: |
-      #     BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/api"
-      #     docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
-      #     docker push ${BASE_IMAGE}:${IMAGE_TAG}
-      #     docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-      #     docker push ${BASE_IMAGE}:${GIT_SHA}
+      - name: Build and push API image
+        working-directory: api
+        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.api == 'true' }}
+        run: |
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/api"
+          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
+          docker push ${BASE_IMAGE}:${GIT_SHA}
 
       - name: Build and push Prefect worker image
         working-directory: workflows
