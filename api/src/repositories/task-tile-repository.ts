@@ -153,7 +153,10 @@ export class TaskTileRepository extends BaseRepository {
 
     const response = await this.connection.sql(sqlStatement, TaskTile);
 
-    if (response.rowCount < 1) {
+    // if (response.rowCount < 1) {
+    //   return null;
+    // }
+    if (response.rows.length < 1) {
       return null;
     }
 
