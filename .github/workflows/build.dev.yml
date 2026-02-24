@@ -1,9 +1,9 @@
 name: Build and Push Images to OpenShift Registry
 
 on:
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
   workflow_dispatch:
 
 env:
