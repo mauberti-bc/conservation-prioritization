@@ -115,23 +115,6 @@ function getAdditionalMiddleware(): express.RequestHandler[] {
  * @param {string | string[] | undefined} origin
  * @return {*}  {string}
  */
-function getAllowedOrigin(origin: string | string[] | undefined): string {
-  const normalizedOrigin = Array.isArray(origin) ? origin[0] : origin;
-  const configuredOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
-    .split(',')
-    .map((value) => value.trim())
-    .filter((value) => value.length > 0);
-
-  if (!normalizedOrigin || configuredOrigins.length === 0) {
-    return '*';
-  }
-
-  if (configuredOrigins.includes(normalizedOrigin)) {
-    return normalizedOrigin;
-  }
-
-  return '*';
-}
 
 async function handleMultipart(req: Request, res: Response, next: NextFunction) {
   const multerHandler = multer({
