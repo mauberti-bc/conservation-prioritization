@@ -23,7 +23,7 @@ RUN corepack enable && corepack prepare yarn@4.11.0 --activate
 
 # Copy Yarn files
 COPY package.json yarn.lock .yarnrc.yml ./
-COPY .yarn/ .yarn/
+# COPY .yarn/ .yarn/
 
 # Install all deps (including dev)
 RUN yarn install --immutable
