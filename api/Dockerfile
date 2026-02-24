@@ -55,7 +55,7 @@ RUN corepack enable && corepack prepare yarn@4.11.0 --activate
 
 # Copy Yarn config
 COPY package.json yarn.lock .yarnrc.yml ./
-COPY .yarn/ .yarn/
+# COPY .yarn/ .yarn/
 
 # Install only prod deps
 RUN yarn install --immutable --mode=production
