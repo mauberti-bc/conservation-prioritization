@@ -1,10 +1,9 @@
 name: Build and Push Images to OpenShift Registry
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 env:
   OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
