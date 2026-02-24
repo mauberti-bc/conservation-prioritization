@@ -1,5 +1,5 @@
 import { IDBConnection } from '../database/db';
-import { HTTP403, HTTP404 } from '../errors/http-error';
+import { HTTP403, HTTP400 } from '../errors/http-error';
 import { SYSTEM_ROLE } from '../constants/roles';
 import { CreateDashboard, Dashboard } from '../models/dashboard';
 import { DashboardPermissionRepository } from '../repositories/dashboard-permission-repository';
@@ -112,7 +112,7 @@ export class DashboardService extends DBService {
     const dashboardId = await this.dashboardTaskRepository.getLatestDashboardIdForTask(taskId);
 
     if (!dashboardId) {
-      throw new HTTP404('Dashboard not found.');
+      throw new HTTP400('Dashboard not found.');
     }
 
     return this.getDashboardWithTasks(dashboardId, profileId);
@@ -130,19 +130,19 @@ export class DashboardService extends DBService {
     const dashboard = await this.dashboardRepository.findDashboardById(dashboardId);
 
     if (!dashboard) {
-      throw new HTTP404('Dashboard not found.');
+      throw new HTTP400('Dashboard not found.');
     }
 
     if (dashboard.access_scheme === 'NOBODY') {
       if (!profileId) {
-        throw new HTTP404('Dashboard not found.');
+        throw new HTTP400('Dashboard not found.');
       }
       throw new HTTP403('Access denied.');
     }
 
     if (dashboard.access_scheme === 'MEMBERS_ONLY') {
       if (!profileId) {
-        throw new HTTP404('Dashboard not found.');
+        throw new HTTP400('Dashboard not found.');
       }
 
       const permission = await this.dashboardPermissionRepository.getDashboardPermission(dashboardId, profileId);
