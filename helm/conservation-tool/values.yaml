@@ -139,6 +139,7 @@ prefect-server:
   migrations:
     enabled: true
     backoffLimit: 3
+    # TODO split into podSecurityContext and containerSecurityContext
     securityContext:
       runAsUser: 1003600000
 
@@ -159,9 +160,10 @@ prefect-worker:
       memory: 1028Mi
   replicas: 0
   pool: pool
+  # TODO: split into podSecurityContext and containerSecurityContext
   securityContext:
     runAsUser: 1003600000
-    fsGroup: 1003600000
+    # fsGroup: 1003600000
 
 prefect-deploy:
   resources:
@@ -172,9 +174,10 @@ prefect-deploy:
       cpu: 100m
       memory: 1028Mi
   replicas: 0
+  # TODO: split into podSecurityContext and containerSecurityContext
   securityContext:
     runAsUser: 1003600000
-    fsGroup: 1003600000
+    # fsGroup: 1003600000
 
 # ========================
 # Services Configuration
@@ -192,6 +195,7 @@ services:
       targetPort: 7070
     route:
       host: "conservation123.nrs.gov.bc.ca"
+    # TODO: split into podSecurityContext and containerSecurityContext
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
@@ -234,9 +238,10 @@ services:
         type: ClusterIP
         port: 80
         targetPort: 8081
+      # TODO: split into podSecurityContext and containerSecurityContext
       securityContext:
         runAsUser: 1003600000
-        fsGroup: 1003600000
+        # fsGroup: 1003600000
 
     deploy:
       replicas: 0
@@ -251,9 +256,10 @@ services:
         limits:
           cpu: 100m
           memory: 1028Mi
+      # TODO: split into podSecurityContext and containerSecurityContext
       securityContext:
         runAsUser: 1003600000
-        fsGroup: 1003600000
+        # fsGroup: 1003600000
 
   api:
     replicas: 0
@@ -265,6 +271,7 @@ services:
       type: ClusterIP
       port: 5200
       targetPort: 5200
+    # TODO: split into podSecurityContext and containerSecurityContext
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
@@ -292,9 +299,10 @@ services:
       limits:
         cpu: 100m
         memory: 512Mi
+    # TODO: split into podSecurityContext and containerSecurityContext
     securityContext:
       runAsUser: 1003600000
-      fsGroup: 1003600000
+      # fsGroup: 1003600000
     persistence:
       enabled: true
       size: 0.5Gi
@@ -319,6 +327,8 @@ backgroundServices:
 # ========================
 # Global Environment Variables (Flat structure for runtime injection)
 # ========================
+# TODO: move runAsUser and fsGroup to global variables
+
 env:
   # Node / General
   NODE_ENV: "development"
