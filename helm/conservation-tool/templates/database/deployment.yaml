@@ -73,10 +73,11 @@ spec:
             failureThreshold: 3
           resources:
             {{- toYaml .Values.services.db.resources | nindent 12 }}
+          # TODO: modify this
           securityContext:
             runAsNonRoot: true
             runAsUser: {{ .Values.services.db.securityContext.runAsUser | default 1003600000 }}
-            fsGroup: {{ .Values.services.db.securityContext.fsGroup | default 1003600000 }}
+            # fsGroup: {{ .Values.services.db.securityContext.fsGroup | default 1003600000 }}
           volumeMounts:
             - name: {{ include "conservation-tool.fullname.db" . }}-data
               mountPath: /var/lib/postgresql/data
