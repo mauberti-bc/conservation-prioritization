@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "conservation-tool.fullname.db" . }}
-  namespace: {{ .Values.namespace | default "default" }}
+  # namespace: {{ .Values.namespace | default "default" }}
   labels:
     {{- include "conservation-tool.labels" . | nindent 4 }}
   annotations:
