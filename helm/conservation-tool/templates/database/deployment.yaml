@@ -89,7 +89,7 @@ spec:
           securityContext:
             runAsNonRoot: true
             runAsUser: {{ .Values.services.db.containerSecurityContext.runAsUser | default 1003600000 }}
-            runAsUser: {{ .Values.services.db.securityContext.runAsUser | default 1003600000 }}
+            # runAsUser: {{ .Values.services.db.securityContext.runAsUser | default 1003600000 }}
           volumeMounts:
             - name: {{ include "conservation-tool.fullname.db" . }}-data
               mountPath: /var/lib/postgresql/data
