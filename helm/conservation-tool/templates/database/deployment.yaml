@@ -23,9 +23,10 @@ spec:
     spec:
       # pod-level security context
       securityContext:
-        {{- with .Values.services.db.podSecurityContext }}
-        {{- toYaml . | nindent 4 }}
-        {{- end }}
+        runAsNoneRoot: true
+        fsGroup: {{ .Values.services.db.podSecurityContext.fsGroup | default 1003600000 }}
+        runAsUser: {{ .Values.services.db.podSecurityContext.runAsUser | default 1003600000 }}
+        fsGroupChangePolicy: {{ .Values.services.db.podSecurityContext.fsGroupChangePolicy | default "OnRootMismatch" | quote }}
       containers:
         - name: postgresql
           image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
