@@ -195,7 +195,6 @@ services:
       targetPort: 7070
     route:
       host: "conservation123.nrs.gov.bc.ca"
-    # TODO: split into podSecurityContext and containerSecurityContext
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
@@ -301,15 +300,15 @@ services:
       limits:
         cpu: 100m
         memory: 512Mi
-    podSecurityContext:
+    # podSecurityContext:
+    #   runAsUser: 1003600000
+    #   fsGroup: 1003600000
+    #   fsGroupChangePolicy: "OnRootMismatch"
+    # containerSecurityContext:
+    #   runAsUser: 1003600000
+    securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
-      fsGroupChangePolicy: "OnRootMismatch"
-    containerSecurityContext:
-      runAsUser: 1003600000
-    # securityContext:
-    #   runAsUser: 1003600000
-      # fsGroup: 1003600000
     persistence:
       enabled: true
       size: 0.5Gi

@@ -24,13 +24,21 @@ spec:
       # pod-level security context
       securityContext:
         runAsNonRoot: true
-        fsGroup: {{ .Values.services.db.podSecurityContext.fsGroup | default 1003600000 }}
-        runAsUser: {{ .Values.services.db.podSecurityContext.runAsUser | default 1003600000 }}
-        fsGroupChangePolicy: {{ .Values.services.db.podSecurityContext.fsGroupChangePolicy | default "OnRootMismatch" | quote }}
+        {{- if .Values.services.db.securityContext.runAsUser }}
+        runAsUser: {{ .Values.services.db.securityContext.runAsUser }}
+        {{- end }}
+        {{- if .Values.services.db.securityContext.fsGroup }}
+        fsGroup: {{ .Values.services.db.securityContext.fsGroup }}
+        {{- end }}
       containers:
         - name: postgresql
           image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
           imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "IfNotPresent" }}
+          securityContext:
+            runAsNonRoot: true
+            {{- if .Values.services.db.securityContext.runAsUser }}
+            runAsUser: {{ .Values.services.db.securityContext.runAsUser }}
+            {{- end }}
           env:
             - name: POSTGRES_DB
               value: "{{ .Values.database.name }}"
@@ -87,9 +95,6 @@ spec:
             failureThreshold: 3
           resources:
             {{- toYaml .Values.services.db.resources | nindent 12 }}
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: {{ .Values.services.db.containerSecurityContext.runAsUser | default 1003600000 }}
           volumeMounts:
             - name: {{ include "conservation-tool.fullname.db" . }}-data
               mountPath: /var/lib/postgresql/data
