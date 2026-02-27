@@ -23,7 +23,7 @@ spec:
     spec:
       # pod-level security context
       securityContext:
-        runAsNoneRoot: true
+        runAsNonRoot: true
         fsGroup: {{ .Values.services.db.podSecurityContext.fsGroup | default 1003600000 }}
         runAsUser: {{ .Values.services.db.podSecurityContext.runAsUser | default 1003600000 }}
         fsGroupChangePolicy: {{ .Values.services.db.podSecurityContext.fsGroupChangePolicy | default "OnRootMismatch" | quote }}
