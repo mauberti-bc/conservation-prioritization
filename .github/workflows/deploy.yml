@@ -173,8 +173,6 @@ jobs:
       - name: Build and push Database image
         working-directory: database
         if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.database == 'true' }}
-        # env vars:
-        # PG_MAJOR - what is this?
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/database"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
