@@ -78,9 +78,17 @@ spec:
                   key: DB_USER_API_PASS
               # value: {{ .Values.env.DB_USER_API_PASS | quote }}
             - name: DB_USER_PREFECT
-              value: {{ .Values.env.DB_USER_PREFECT | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname" . }}-db
+                  key: DB_USER_PREFECT
+              # value: {{ .Values.env.DB_USER_PREFECT | quote }}
             - name: DB_USER_PREFECT_PASS
-              value: {{ .Values.env.DB_USER_PREFECT_PASS | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname" . }}-db
+                  key: DB_USER_PREFECT_PASS
+              # value: {{ .Values.env.DB_USER_PREFECT_PASS | quote }}
             - name: DB_ADMIN
               value: {{ .Values.env.DB_ADMIN | quote }}
             - name: DB_ADMIN_PASS
