@@ -55,7 +55,7 @@ spec:
                   key: DB_ADMIN_PASS
               # value: "{{ .Values.database.adminPassword }}"
             - name: PGDATA
-              value: '{{ .Values.database.pgData | default "/var/lib/postgresql/data" }}
+              value: '{{ .Values.database.pgData | default "/var/lib/postgresql/data" }}'
             - name: PGOPTIONS
               value: "-c maintenance_work_mem=128MB"
             - name: PGTZ
@@ -101,7 +101,6 @@ spec:
             # testing this
             - name: run-postgresql
               mountPath: /var/run/postgresql
-
       restartPolicy: Always
       dnsPolicy: ClusterFirst
       volumes:
