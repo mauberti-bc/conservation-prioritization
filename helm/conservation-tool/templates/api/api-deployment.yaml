@@ -101,7 +101,7 @@ spec:
             - name: DB_USER_PREFECT_PASS
               valueFrom:
                 secretKeyRef:
-                  name: conservation-tool-prefect-db
+                  name: conservation-tool-db
                   # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_USER_PREFECT_PASS
               # value: {{ .Values.env.DB_USER_PREFECT_PASS | quote }}
