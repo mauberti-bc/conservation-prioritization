@@ -285,8 +285,10 @@ services:
 
   db:
     image:
-      stream: "postgres"
-      tag: "17-alpine"
+      # stream: "postgres"
+      # tag: "17-alpine"
+      stream: "database"
+      tag: "dev"
       pullPolicy: "IfNotPresent"
     service:
       type: ClusterIP
