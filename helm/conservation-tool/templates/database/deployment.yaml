@@ -26,12 +26,21 @@ spec:
           image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
           imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "IfNotPresent" }}
           env:
+            # TODO assign these variables a value
             - name: POSTGRES_DB
               value: "{{ .Values.database.name }}"
             - name: POSTGRES_USER
-              value: "{{ .Values.database.admin }}"
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_ADMIN
+              # value: "{{ .Values.database.admin }}"
             - name: POSTGRES_PASSWORD
-              value: "{{ .Values.database.adminPassword }}"
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_ADMIN_PASS
+              # value: "{{ .Values.database.adminPassword }}"
             - name: PGDATA
               value: "{{ .Values.database.pgData | default "/var/lib/postgresql/data" }}"
             - name: PGOPTIONS

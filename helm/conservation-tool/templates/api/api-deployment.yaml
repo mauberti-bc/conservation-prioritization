@@ -94,12 +94,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_USER_PREFECT
-              # TODO: match this syntax
-              # valueFrom:
-                # secretKeyRef:
-                #   name: {{ include "conservation-tool.fullname.db" . }}
-                #   key: database-admin
-              # value: {{ .Values.env.DB_USER_PREFECT | quote }}
+              # TODO: update to correct syntax
             - name: DB_USER_PREFECT_PASS
               valueFrom:
                 secretKeyRef:
