@@ -170,6 +170,18 @@ jobs:
           docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
           docker push ${BASE_IMAGE}:${GIT_SHA}
 
+      - name: Build and push Database image
+        working-directory: database
+        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.database == 'true' }}
+        # env vars:
+        # PG_MAJOR - what is this?
+        run: |
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/database"
+          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile. deploy .
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
+          docker push ${BASE_IMAGE}:${GIT_SHA}
+
   install-helm:
     runs-on: ubuntu-latest
     needs: [build-push]
