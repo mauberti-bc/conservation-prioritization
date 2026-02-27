@@ -54,7 +54,7 @@ spec:
             - name: API_PORT
               value: {{ .Values.env.API_PORT | quote }}
             - name: APP_HOST
-              value: {{ .Values.env.APP_HOST | quote }}
+              value: {{ .Values.env.APP_HOST | quote }} # need to set this to not an empty string
             - name: ZARR_STORE_PATH
               value: {{ .Values.env.ZARR_STORE_PATH | quote }}
             - name: DB_HOST
@@ -80,37 +80,43 @@ spec:
             - name: DB_USER_API
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname" . }}-db
+                  name: conservation-tool-db
+                  # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_USER_API
               # value: {{ .Values.env.DB_USER_API | quote }}
             - name: DB_USER_API_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname" . }}-db
+                  name: conservation-tool-db
+                  # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_USER_API_PASS
               # value: {{ .Values.env.DB_USER_API_PASS | quote }}
             - name: DB_USER_PREFECT
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname" . }}-db
+                  name: conservation-tool-prefect-db
+                  # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_USER_PREFECT
               # TODO: update to correct syntax
             - name: DB_USER_PREFECT_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname" . }}-db
+                  name: conservation-tool-prefect-db
+                  # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_USER_PREFECT_PASS
               # value: {{ .Values.env.DB_USER_PREFECT_PASS | quote }}
             - name: DB_ADMIN
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname" . }}-db
+                  name: conservation-tool-db
+                  # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_ADMIN
               # value: {{ .Values.env.DB_ADMIN | quote }}
             - name: DB_ADMIN_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname" . }}-db
+                  name: conservation-tool-db
+                  # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_ADMIN_PASS
               # value: {{ .Values.env.DB_ADMIN_PASS | quote }}
             - name: DB_POOL_SIZE
@@ -122,41 +128,101 @@ spec:
             - name: DB_IDLE_TIMEOUT
               value: {{ .Values.env.DB_IDLE_TIMEOUT | quote }}
             - name: KEYCLOAK_HOST
-              value: {{ .Values.env.KEYCLOAK_HOST | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_HOST
+              # value: {{ .Values.env.KEYCLOAK_HOST | quote }}
             - name: KEYCLOAK_REALM
-              value: {{ .Values.env.KEYCLOAK_REALM | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_REALM
+              # value: {{ .Values.env.KEYCLOAK_REALM | quote }}
             - name: KEYCLOAK_ADMIN_USERNAME
-              value: {{ .Values.env.KEYCLOAK_ADMIN_USERNAME | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_ADMIN_USERNAME
+              # value: {{ .Values.env.KEYCLOAK_ADMIN_USERNAME | quote }}
             - name: KEYCLOAK_ADMIN_PASSWORD
-              value: {{ .Values.env.KEYCLOAK_ADMIN_PASSWORD | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_ADMIN_PASSWORD
+              # value: {{ .Values.env.KEYCLOAK_ADMIN_PASSWORD | quote }}
             - name: KEYCLOAK_API_TOKEN_URL
-              value: {{ .Values.env.KEYCLOAK_API_TOKEN_URL | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_API_TOKEN_URL
+              # value: {{ .Values.env.KEYCLOAK_API_TOKEN_URL | quote }}
             - name: KEYCLOAK_API_CLIENT_ID
-              value: {{ .Values.env.KEYCLOAK_API_CLIENT_ID | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_API_CLIENT_ID
+              # value: {{ .Values.env.KEYCLOAK_API_CLIENT_ID | quote }}
             - name: KEYCLOAK_API_CLIENT_SECRET
-              value: {{ .Values.env.KEYCLOAK_API_CLIENT_SECRET | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_API_CLIENT_SECRET
+              # value: {{ .Values.env.KEYCLOAK_API_CLIENT_SECRET | quote }}
             - name: KEYCLOAK_API_HOST
-              value: {{ .Values.env.KEYCLOAK_API_HOST | quote }}
+              # value: {{ .Values.env.KEYCLOAK_API_HOST | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_API_HOST
             - name: KEYCLOAK_API_ENVIRONMENT
-              value: {{ .Values.env.KEYCLOAK_API_ENVIRONMENT | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_API_ENVIRONMENT
+              # value: {{ .Values.env.KEYCLOAK_API_ENVIRONMENT | quote }}
             - name: OBJECT_STORE_URL
-              value: {{ .Values.env.OBJECT_STORE_URL | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: OBJECT_STORE_URL
+              # value: {{ .Values.env.OBJECT_STORE_URL | quote }}
             - name: OBJECT_STORE_ACCESS_KEY_ID
-              value: {{ .Values.env.OBJECT_STORE_ACCESS_KEY_ID | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: OBJECT_STORE_ACCESS_KEY_ID
+              # value: {{ .Values.env.OBJECT_STORE_ACCESS_KEY_ID | quote }}
             - name: OBJECT_STORE_SECRET_KEY_ID
-              value: {{ .Values.env.OBJECT_STORE_SECRET_KEY_ID | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: OBJECT_STORE_SECRET_KEY_ID
+              # value: {{ .Values.env.OBJECT_STORE_SECRET_KEY_ID | quote }}
             - name: OBJECT_STORE_BUCKET_NAME
-              value: {{ .Values.env.OBJECT_STORE_BUCKET_NAME | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: OBJECT_STORE_BUCKET_NAME
+              # value: {{ .Values.env.OBJECT_STORE_BUCKET_NAME | quote }}
             - name: S3_KEY_PREFIX
-              value: {{ .Values.env.S3_KEY_PREFIX | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: S3_KEY_PREFIX
+              # value: {{ .Values.env.S3_KEY_PREFIX | quote }}
             - name: PREFECT_API_URL
               value: {{ .Values.env.PREFECT_API_URL | quote }}
             - name: PREFECT_API_KEY
               value: {{ .Values.env.PREFECT_API_KEY | quote }}
             - name: CONSERVATION_API_URL
-              value: {{ .Values.env.CONSERVATION_API_URL | quote }}
+              value: {{ .Values.env.CONSERVATION_API_URL | quote }} # optional
             - name: INTERNAL_API_KEY
-              value: {{ .Values.env.INTERNAL_API_KEY | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-api
+                  key: INTERNAL_API_KEY
+              # value: {{ .Values.env.INTERNAL_API_KEY | quote }}
             {{- if .Values.services.api.env }}
             {{- toYaml .Values.services.api.env | nindent 12 }}
             {{- end }}
