@@ -55,11 +55,11 @@ spec:
                   key: DB_ADMIN_PASS
               # value: "{{ .Values.database.adminPassword }}"
             - name: PGDATA
-              value: "{{ .Values.database.pgData | default "/var/lib/postgresql/data" }}"
+              value: '{{ .Values.database.pgData | default "/var/lib/postgresql/data" }}
             - name: PGOPTIONS
               value: "-c maintenance_work_mem=128MB"
             - name: PGTZ
-              value: "{{ .Values.database.timezone | default "UTC" }}"
+              value: '{{ .Values.database.timezone | default "UTC" }}'
           ports:
             - containerPort: {{ .Values.services.db.service.port | default 5432 }}
               protocol: TCP
@@ -98,9 +98,16 @@ spec:
           volumeMounts:
             - name: {{ include "conservation-tool.fullname.db" . }}-data
               mountPath: /var/lib/postgresql/data
+            # testing this
+            - name: run-postgresql
+              mountPath: /var/run/postgresql
+
       restartPolicy: Always
       dnsPolicy: ClusterFirst
       volumes:
         - name: {{ include "conservation-tool.fullname.db" . }}-data
           persistentVolumeClaim:
             claimName: {{ .Values.services.db.persistence.existingClaim | default (include "conservation-tool.fullname.db" .) }}
+        # testing this
+        - name: run-postgresql
+          emptyDir: {}
