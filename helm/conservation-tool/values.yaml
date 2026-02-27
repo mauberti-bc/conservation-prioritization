@@ -42,7 +42,7 @@ database:
   admin: ""  # Set via --set by workflow - - do we need to pull this from openshift secrets?
   adminPassword: ""  # Set via --set by workflow - do we need to pull this from openshift secrets? 
   schema: "public"
-  pgData: "/var/lib/postgresql/data"
+  pgData: "var/lib/postgresql/data/pgdata"
   timezone: "UTC"
   postgresql:
     primary:
@@ -300,12 +300,6 @@ services:
       limits:
         cpu: 100m
         memory: 512Mi
-    # podSecurityContext:
-    #   runAsUser: 1003600000
-    #   fsGroup: 1003600000
-    #   fsGroupChangePolicy: "OnRootMismatch"
-    # containerSecurityContext:
-    #   runAsUser: 1003600000
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
