@@ -301,9 +301,14 @@ services:
       limits:
         cpu: 100m
         memory: 512Mi
-    # TODO: split into podSecurityContext and containerSecurityContext
-    securityContext:
+    podSecurityContext:
       runAsUser: 1003600000
+      fsGroup: 1003600000
+      fsGroupChangePolicy: "OnRootMismatch"
+    containerSecurityContext:
+      runAsUser: 1003600000
+    # securityContext:
+    #   runAsUser: 1003600000
       # fsGroup: 1003600000
     persistence:
       enabled: true
