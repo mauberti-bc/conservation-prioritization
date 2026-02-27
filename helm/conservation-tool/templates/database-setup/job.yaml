@@ -18,6 +18,7 @@ spec:
         role: setup
     spec:
       initContainers:
+        # is this the right image? should it be the same as the db image?
         - name: wait-for-database
           image: "postgres:17-alpine"
           command: ['sh', '-c']
