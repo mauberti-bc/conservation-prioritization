@@ -94,6 +94,12 @@ prefect-server:
   serviceAccount:
     create: false
     name: "prefect-server"
+  extraVolumes:
+    - name: prefect-tmp
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: prefect-tmp
+      mountPath: /tmp/prefect
 
   ui:
     enabled: true
@@ -115,6 +121,9 @@ prefect-server:
       limits:
         cpu: 50m
         memory: 128Mi
+    env:
+      - name: PREFECT_HOME
+        value: /tmp/prefect
 
   server:
     podSecurityContext:
@@ -135,11 +144,13 @@ prefect-server:
       limits:
         cpu: 100m
         memory: 256Mi
+    env:
+      - name: PREFECT_HOME
+        value: /tmp/prefect
 
   migrations:
     enabled: true
     backoffLimit: 3
-    # TODO split into podSecurityContext and containerSecurityContext
     securityContext:
       runAsUser: 1003600000
 
@@ -160,10 +171,11 @@ prefect-worker:
       memory: 1028Mi
   replicas: 0
   pool: pool
-  # TODO: split into podSecurityContext and containerSecurityContext
   securityContext:
     runAsUser: 1003600000
-    # fsGroup: 1003600000
+  env:
+    - name: PREFECT_HOME
+      value: /tmp/prefect
 
 prefect-deploy:
   resources:
@@ -174,10 +186,11 @@ prefect-deploy:
       cpu: 100m
       memory: 1028Mi
   replicas: 0
-  # TODO: split into podSecurityContext and containerSecurityContext
   securityContext:
     runAsUser: 1003600000
-    # fsGroup: 1003600000
+  env:
+    - name: PREFECT_HOME
+      value: /tmp/prefect  
 
 # ========================
 # Services Configuration
