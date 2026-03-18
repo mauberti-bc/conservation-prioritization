@@ -37,6 +37,7 @@ export interface WebsocketSubscriptionHandlers {
   onOpen?: () => void;
   onClose?: (event: CloseEvent) => void;
   onError?: (event: Event) => void;
+  shouldReconnect?: (event: CloseEvent) => boolean;
 }
 
 /**
@@ -280,7 +281,8 @@ export const useWebsocket = (baseUrl?: string): WebsocketClient => {
             wasClean: event.wasClean,
           });
           handlers.onClose?.(event);
-          if (!stopped) {
+          const shouldReconnect = handlers.shouldReconnect ? handlers.shouldReconnect(event) : true;
+          if (!stopped && shouldReconnect) {
             scheduleReconnect();
           }
         };

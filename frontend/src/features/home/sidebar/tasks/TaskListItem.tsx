@@ -1,12 +1,10 @@
 import {
-  mdiAccountPlus,
+  mdiAccountPlusOutline,
   mdiAlertCircleOutline,
-  mdiCheck,
-  mdiDelete,
-  mdiFolderPlusOutline,
-  mdiPencil,
+  mdiPencilOutline,
   mdiPlay,
   mdiProgressClock,
+  mdiShareVariantOutline,
 } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Box, Chip, CircularProgress, IconButton, ListItem, ListItemText, Typography } from '@mui/material';
@@ -16,6 +14,8 @@ import { TASK_STATUS } from 'constants/status';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useTaskContext } from 'hooks/useContext';
+import { useState } from 'react';
+import { getTaskStatusLabel } from 'utils/task-status';
 
 interface TaskListItemProps {
   task: GetTaskResponse;
@@ -38,35 +38,31 @@ export const TaskListItem = ({
 }: TaskListItemProps) => {
   const dialogContext = useDialogContext();
   const conservationApi = useConservationApi();
-  const { taskId, refreshTasks } = useTaskContext();
+  const { taskId, refreshTasks, setHoveredTilesetUri } = useTaskContext();
+  const [isHovered, setIsHovered] = useState(false);
+  void onDeleteTask;
+  void onAddToProject;
 
   const menuItems = [
     {
-      label: 'Edit',
-      icon: mdiPencil,
-      onClick: () => {
-        onEditTask?.(task);
-      },
-    },
-    {
-      label: 'Add to Project',
-      icon: mdiFolderPlusOutline,
-      onClick: () => {
-        onAddToProject(task);
-      },
-    },
-    {
-      label: 'Invite',
-      icon: mdiAccountPlus,
+      label: 'Share',
+      icon: mdiShareVariantOutline,
       onClick: () => {
         onInvite?.(task);
       },
     },
     {
-      label: 'Delete',
-      icon: mdiDelete,
+      label: 'Invite',
+      icon: mdiAccountPlusOutline,
       onClick: () => {
-        onDeleteTask(task);
+        onInvite?.(task);
+      },
+    },
+    {
+      label: 'Edit',
+      icon: mdiPencilOutline,
+      onClick: () => {
+        onEditTask?.(task);
       },
     },
   ];
@@ -74,7 +70,7 @@ export const TaskListItem = ({
   const handleRetryTask = async () => {
     dialogContext.setYesNoDialog({
       open: true,
-      dialogTitle: 'Retry task?',
+      dialogTitle: 'Retry Task?',
       dialogText: `Would you like to retry "${task.name}"?`,
       onYes: async () => {
         try {
@@ -98,7 +94,7 @@ export const TaskListItem = ({
   const handleStopTask = async () => {
     dialogContext.setYesNoDialog({
       open: true,
-      dialogTitle: 'Stop task?',
+      dialogTitle: 'Stop Task?',
       dialogText: `Stop "${task.name}"?`,
       onYes: async () => {
         try {
@@ -122,7 +118,7 @@ export const TaskListItem = ({
   const handleStartDraftTask = async () => {
     dialogContext.setYesNoDialog({
       open: true,
-      dialogTitle: 'Submit task?',
+      dialogTitle: 'Submit Task?',
       dialogText: `Submit "${task.name}" to Prefect?`,
       onYes: async () => {
         try {
@@ -174,6 +170,10 @@ export const TaskListItem = ({
       return <CircularProgress size={20} thickness={5} />;
     }
 
+    if (task.status === TASK_STATUS.IN_PROGRESS) {
+      return <CircularProgress size={20} thickness={5} />;
+    }
+
     if (task.status === TASK_STATUS.RUNNING) {
       return <CircularProgress size={20} thickness={5} />;
     }
@@ -192,32 +192,31 @@ export const TaskListItem = ({
       );
     }
 
-    if (task.status === TASK_STATUS.COMPLETED) {
-      return (
-        <IconButton
-          color="success"
-          size="small"
-          onClick={(event) => {
-            event.stopPropagation();
-            void handleRetryTask();
-          }}>
-          <Icon path={mdiCheck} size={1} />
-        </IconButton>
-      );
-    }
-
-    return <Chip size="small" label={task.status} sx={{ px: 1, width: 'fit-content' }} />;
+    return <Chip size="small" label={getTaskStatusLabel(task.status)} sx={{ px: 1, width: 'fit-content' }} />;
   };
 
   return (
     <ListItem
       key={task.task_id}
       disablePadding
+      onMouseEnter={() => {
+        setIsHovered(true);
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+      }}
       secondaryAction={
-        showActions ? (
+        showActions && isHovered ? (
           <Box
             onClick={(event) => {
               event.stopPropagation();
+            }}
+            sx={{
+              '& .MuiIconButton-root': {
+                width: 28,
+                height: 28,
+                p: 0.25,
+              },
             }}>
             <IconMenuButton items={menuItems} />
           </Box>
@@ -240,8 +239,8 @@ export const TaskListItem = ({
                     <Box
                       key={project.project_id}
                       sx={{
-                        width: 8,
-                        height: 8,
+                        width: 12,
+                        height: 12,
                         borderRadius: '50%',
                         bgcolor: project.colour,
                       }}

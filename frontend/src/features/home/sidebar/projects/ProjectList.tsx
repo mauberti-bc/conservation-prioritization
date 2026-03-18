@@ -4,6 +4,7 @@ import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useProjectContext } from 'hooks/useContext';
+import { toApiHexColour } from 'utils/colour';
 import { useState } from 'react';
 import { ProjectEditDialog } from './ProjectEditDialog';
 import { ProjectListItem } from './ProjectListItem';
@@ -59,7 +60,7 @@ export const ProjectList = ({
       await conservationApi.project.updateProject(editProject.project_id, {
         name: values.name,
         description: values.description.trim() ? values.description : undefined,
-        colour: values.colour.trim() ? values.colour : undefined,
+        colour: toApiHexColour(values.colour),
       });
 
       await refreshProjects();

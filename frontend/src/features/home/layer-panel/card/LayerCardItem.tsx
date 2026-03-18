@@ -6,14 +6,15 @@ interface LayerCardItemProps {
   layer: TaskLayerOption;
   checked: boolean;
   onToggle?: () => void;
+  showCheckbox?: boolean;
 }
 
-export const LayerCardItem = ({ layer, checked, onToggle }: LayerCardItemProps) => {
+export const LayerCardItem = ({ layer, checked, onToggle, showCheckbox = true }: LayerCardItemProps) => {
   const chips = layer.group.split('/');
 
   return (
     <Stack direction="row" gap={1} alignItems="flex-start" flex="1 1 auto">
-      <Checkbox checked={checked} onChange={onToggle} color="primary" sx={{ mt: 1.5 }} />
+      {showCheckbox && <Checkbox checked={checked} onChange={onToggle} color="primary" sx={{ mt: 1.5 }} />}
       <Card
         variant="outlined"
         sx={{
@@ -21,7 +22,13 @@ export const LayerCardItem = ({ layer, checked, onToggle }: LayerCardItemProps) 
           boxShadow: 'none',
           borderColor: 'divider',
         }}>
-        <CardContent sx={{ p: 2, cursor: 'pointer' }} onClick={onToggle}>
+        <CardContent
+          sx={{ p: 2, cursor: onToggle ? 'pointer' : 'default' }}
+          onClick={() => {
+            if (onToggle) {
+              onToggle();
+            }
+          }}>
           <Stack spacing={1}>
             <Box display="flex" alignItems="center" justifyContent="space-between" gap={2}>
               <Typography fontWeight={700}>{layer.name}</Typography>

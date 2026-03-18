@@ -22,7 +22,12 @@ const makePaginationOptionsFromSource = (source: Record<string, unknown>): Parti
 
   const sort = typeof source.sort === 'string' ? source.sort : undefined;
 
-  return { page, limit, sort, order };
+  return {
+    page: page ?? 1,
+    limit: limit ?? 25,
+    sort: sort ?? 'created_at',
+    order: order ?? 'desc'
+  };
 };
 
 /**
@@ -74,7 +79,6 @@ export const makePaginationResponse = (
 export const ensureCompletePaginationOptions = (
   pagination: Partial<ApiPaginationOptions>
 ): ApiPaginationOptions | undefined => {
-  // Type guard: ensures both properties exist
   if (pagination.limit !== undefined && pagination.page !== undefined) {
     return {
       limit: pagination.limit,

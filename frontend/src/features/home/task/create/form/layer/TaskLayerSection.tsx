@@ -279,6 +279,7 @@ export const TaskLayerSection = ({ isReadOnly = false, autoSearchOnMount = false
                     setFieldError(`layers[${index}]`, updated.length > 0 ? updated[0].message : undefined);
                   }}
                   isReadOnly={isReadOnly}
+                  forceMobileLayout={isReadOnly}
                 />
               );
             })}
