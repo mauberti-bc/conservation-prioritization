@@ -1,15 +1,14 @@
-import { HomeQueryParams, QUERY_PARAM } from 'constants/query-params';
 import { GetTaskResponse, GetTasksResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import useDataLoader, { DataLoader } from 'hooks/useDataLoader';
-import { useSearchParams } from 'hooks/useSearchParams';
-import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
+import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ApiPaginationRequestOptions } from 'types/pagination';
 
 export interface ITaskContext {
   taskDataLoader: DataLoader<[task_id: string], GetTaskResponse, unknown>;
   tasksDataLoader: DataLoader<[pagination?: ApiPaginationRequestOptions], GetTasksResponse, unknown>;
-  taskId: string | null; // Allow taskId to be null
+  taskId: string;
   setFocusedTask: (task: GetTaskResponse | null) => void;
   refreshTasks: () => Promise<GetTasksResponse | undefined>;
   hoveredTilesetUri: string | null;
@@ -19,7 +18,7 @@ export interface ITaskContext {
 export const TaskContext = createContext<ITaskContext>({
   taskDataLoader: {} as DataLoader<[task_id: string], GetTaskResponse, unknown>,
   tasksDataLoader: {} as DataLoader<[pagination?: ApiPaginationRequestOptions], GetTasksResponse, unknown>,
-  taskId: null, // Set default to null
+  taskId: '',
   setFocusedTask: () => undefined,
   refreshTasks: async () => undefined,
   hoveredTilesetUri: null,
@@ -28,10 +27,11 @@ export const TaskContext = createContext<ITaskContext>({
 
 export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>) => {
   const conservationApi = useConservationApi();
+  const navigate = useNavigate();
+  const { taskId: activeTaskId } = useParams<{ taskId: string }>();
   const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
   const tasksDataLoader = useDataLoader(conservationApi.task.getAllTasks);
-  const { searchParams, setSearchParams } = useSearchParams<HomeQueryParams>();
-  const activeTaskId = searchParams.get(QUERY_PARAM.TASK_ID);
+  const lastRequestedTaskIdRef = useRef<string | null>(null);
   const [hoveredTilesetUri, setHoveredTilesetUri] = useState<string | null>(null);
   const defaultPagination = useMemo<ApiPaginationRequestOptions>(() => {
     return {
@@ -42,26 +42,39 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
     };
   }, []);
 
+  if (!activeTaskId) {
+    throw new Error('TaskContextProvider requires a :taskId route parameter.');
+  }
+
   useEffect(() => {
-    if (activeTaskId && taskDataLoader.data?.task_id !== activeTaskId) {
-      taskDataLoader.load(activeTaskId);
+    if (taskDataLoader.isLoading) {
+      return;
     }
-  }, [activeTaskId, taskDataLoader]);
+
+    const hasRequestedRouteTask = lastRequestedTaskIdRef.current === activeTaskId;
+    const hasMismatchedLoadedTask = taskDataLoader.data?.task_id !== activeTaskId;
+    if (hasRequestedRouteTask && !hasMismatchedLoadedTask) {
+      return;
+    }
+
+    lastRequestedTaskIdRef.current = activeTaskId;
+    void taskDataLoader.refresh(activeTaskId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTaskId, taskDataLoader.data?.task_id, taskDataLoader.isLoading]);
 
   const setFocusedTask = useCallback(
     (task: GetTaskResponse | null) => {
+      setHoveredTilesetUri(null);
       if (task) {
-        searchParams.set(QUERY_PARAM.TASK_ID, task.task_id);
-        setSearchParams(searchParams);
+        navigate(`/t/${task.task_id}`);
         taskDataLoader.setData(task);
       } else {
-        searchParams.delete(QUERY_PARAM.TASK_ID);
-        setSearchParams(searchParams);
+        navigate('/t/');
         taskDataLoader.clearData();
         setHoveredTilesetUri(null); // clear hovered layer too
       }
     },
-    [searchParams, setSearchParams, taskDataLoader]
+    [navigate, setHoveredTilesetUri, taskDataLoader]
   );
 
   const refreshTasks = useCallback(async () => {
@@ -72,7 +85,7 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
     return {
       taskDataLoader,
       tasksDataLoader,
-      taskId: activeTaskId || null,
+      taskId: activeTaskId,
       setFocusedTask,
       refreshTasks,
       hoveredTilesetUri,

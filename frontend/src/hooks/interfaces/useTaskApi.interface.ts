@@ -40,27 +40,40 @@ export interface ITask {
 }
 
 /**
- * Request interface for creating a task.
+ * Request interface for creating a draft task.
  */
-export interface CreateTaskRequest {
-  name: string; // Name of the task
-  description: string | null; // Description of the task
-  layers: CreateTaskLayer[]; // Layers for the task (each layer can have constraints)
-  resolution: number; // Resolution for the task
-  resampling: RESAMPLING; // Resampling method
-  target_area?: number; // Target area for optimization (percentage or absolute)
-  is_percentage?: boolean; // Whether target_area is a percentage
+export interface CreateDraftTaskRequest {
+  name: string;
+  description: string | null;
+}
+
+/**
+ * Request interface for submitting an existing draft task.
+ */
+export interface SubmitTaskRequest {
+  layers?: CreateTaskLayer[];
+  budget?: CreateTaskLayer | null;
   geometry?: {
     name?: string;
     description?: string | null;
     geojson: Feature<Geometry, GeoJsonProperties>;
   }[];
-  budget?: {
-    name: string;
-    path: string;
-    constraints: CreateTaskLayerConstraint[]; // Constraints for the budget layer
-  }; // Optional budget layer
-  variant: OPTIMIZATION_VARIANT; // Optimization variant
+  resolution?: number | null;
+  resampling?: RESAMPLING | null;
+  variant?: OPTIMIZATION_VARIANT | null;
+  target_area?: number;
+  is_percentage?: boolean;
+}
+
+export interface UpdateTaskRequest {
+  name?: string;
+  description?: string | null;
+  resolution?: number | null;
+  resampling?: RESAMPLING | null;
+  variant?: OPTIMIZATION_VARIANT | null;
+  status?: TaskStatusValue;
+  layers?: CreateTaskLayer[];
+  budget?: CreateTaskLayer;
 }
 
 /**

@@ -1,19 +1,23 @@
-import { mdiCheck } from '@mdi/js';
+import { mdiCheck, mdiClose } from '@mdi/js';
 import Icon from '@mdi/react';
-import { Typography } from '@mui/material';
+import { IconButton, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
-import { Formik, useFormikContext } from 'formik';
+import { Formik } from 'formik';
 import {
+  CreateDraftTaskRequest,
   CreateTaskLayer,
-  CreateTaskRequest,
   GetTaskResponse,
   OPTIMIZATION_VARIANT,
+  SubmitTaskRequest,
 } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useDialogContext, useMapContext, useTaskContext } from 'hooks/useContext';
+import { useDialogContext, useMapContext } from 'hooks/useContext';
 import { MutableRefObject, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { TaskAdvancedSection } from './form/advanced/TaskAdvancedSection';
+import { CreateTaskSubmitRefBinder } from './form/shared/CreateTaskSubmitRefBinder';
 import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
 import { taskValidationSchema } from './TaskCreateYup';
 
@@ -21,7 +25,7 @@ const initialValues: TaskCreateFormValues = {
   resolution: 1000,
   description: null,
   resampling: 'mode',
-  name: 'Untitled Task',
+  name: '',
   variant: OPTIMIZATION_VARIANT.STRICT,
   budget: null,
   layers: [],
@@ -35,34 +39,6 @@ interface CreateTaskProps {
   onSubmittingChange?: (isSubmitting: boolean) => void;
 }
 
-const SubmitRefBinder = ({
-  submitRef,
-  onSubmittingChange,
-  isSubmitting,
-}: {
-  submitRef?: MutableRefObject<(() => void) | null>;
-  onSubmittingChange?: (isSubmitting: boolean) => void;
-  isSubmitting: boolean;
-}) => {
-  const { submitForm } = useFormikContext<TaskCreateFormValues>();
-
-  useEffect(() => {
-    if (!submitRef) {
-      return;
-    }
-    submitRef.current = submitForm;
-  }, [submitForm, submitRef]);
-
-  useEffect(() => {
-    if (!onSubmittingChange) {
-      return;
-    }
-    onSubmittingChange(isSubmitting);
-  }, [isSubmitting, onSubmittingChange]);
-
-  return null;
-};
-
 export const CreateTask = ({
   onSubmitSuccess,
   submitRef,
@@ -73,7 +49,7 @@ export const CreateTask = ({
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
   const { drawControlsRef, mapRef } = useMapContext();
-  const { setFocusedTask, refreshTasks } = useTaskContext();
+  const navigate = useNavigate();
 
   // Clean up drawn features when component unmounts
   useEffect(() => {
@@ -103,14 +79,32 @@ export const CreateTask = ({
         })),
       }));
 
-      // Create the task payload
-      const taskData: CreateTaskRequest = {
+      const mappedBudget: CreateTaskLayer | undefined = values.budget
+        ? {
+            layer_name: values.budget.path,
+            description: null,
+            mode: values.budget.mode,
+            importance: values.budget.importance ?? null,
+            threshold: values.budget.threshold ?? null,
+            constraints: values.budget.constraints.map((constraint) => ({
+              min: constraint.min ?? null,
+              max: constraint.max ?? null,
+              type: constraint.type,
+            })),
+          }
+        : undefined;
+
+      const draftTaskData: CreateDraftTaskRequest = {
         name: values.name,
         description: values.description ?? null,
+      };
+
+      const submitData: SubmitTaskRequest = {
         variant: values.variant,
         resolution: values.resolution,
         resampling: values.resampling,
         layers: mappedLayers,
+        budget: mappedBudget,
         geometry: values.geometry.length
           ? values.geometry.map((geometry) => ({
               name: geometry.name,
@@ -120,10 +114,9 @@ export const CreateTask = ({
           : undefined,
       };
 
-      // Call the API to create the task
-      const createdTask = await conservationApi.task.createTask(taskData);
-      setFocusedTask(createdTask);
-      await refreshTasks();
+      const createdDraftTask = await conservationApi.task.createTask(draftTaskData);
+      const createdTask = await conservationApi.task.submitTask(createdDraftTask.task_id, submitData);
+
       onSubmitSuccess?.(createdTask);
 
       // Success message
@@ -161,7 +154,7 @@ export const CreateTask = ({
             component="form"
             onSubmit={handleSubmit}
             sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-            <SubmitRefBinder
+            <CreateTaskSubmitRefBinder
               submitRef={submitRef}
               onSubmittingChange={onSubmittingChange}
               isSubmitting={isSubmitting}
@@ -169,7 +162,8 @@ export const CreateTask = ({
             <Box
               sx={{
                 flex: 1,
-                pb: 3,
+                py: 2,
+                px: 2,
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: 0,
@@ -177,22 +171,39 @@ export const CreateTask = ({
                 height: '100%',
                 overflow: 'auto',
               }}>
-              <TaskCreateForm autoSearchOnMount />
+              <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
+                <Typography variant="h2" component="h2">
+                  New Task
+                </Typography>
+                <IconButton
+                  aria-label="Close new task"
+                  onClick={() => {
+                    navigate('/t/');
+                  }}
+                  edge="end"
+                  size="small">
+                  <Icon path={mdiClose} size={1} />
+                </IconButton>
+              </Box>
+              <TaskCreateForm autoSearchOnMount showAdvancedSection={false} />
             </Box>
 
             {/* Sticky footer */}
             {!hideInternalActions && (
               <Box
-                mr={0.5}
-                py={2}
                 sx={{
+                  px: 2,
+                  py: 2,
                   boxShadow: '0px -2px 25px 0px rgba(0,0,0,0.05)',
                   position: 'sticky',
                   bottom: 0,
                   backgroundColor: 'white',
                 }}>
+                <Box mb={1}>
+                  <TaskAdvancedSection />
+                </Box>
                 {/* Submit Button */}
-                <Box mx={3}>
+                <Box>
                   <Button
                     variant="contained"
                     loading={isSubmitting}
@@ -203,9 +214,6 @@ export const CreateTask = ({
                     Submit
                   </Button>
                 </Box>
-                <Typography variant="body2" textAlign="center" mt={1.5} color="textSecondary">
-                  Your task will begin processing when you submit.
-                </Typography>
               </Box>
             )}
           </Box>

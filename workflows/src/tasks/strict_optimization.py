@@ -60,6 +60,8 @@ class OptimizationParameters(BaseModel):
             Default: 50 (50% of valid cells)
         is_percentage: Whether target_area is a percentage or absolute count
             Default: True
+        continuous_output: Whether to return a continuous 0-1 priority surface
+            instead of a binary selected/not-selected surface. Default: True
     """
 
     geometry: Optional[Sequence[BaseGeometry]] = None
@@ -68,6 +70,7 @@ class OptimizationParameters(BaseModel):
     layers: OptimizationLayers
     target_area: float = Field(default=50.0, ge=0)
     is_percentage: bool = Field(default=True)
+    continuous_output: bool = Field(default=True)
 
     class Config:
         arbitrary_types_allowed = True
@@ -155,8 +158,6 @@ def load_input_data(
                 f"No variable named '{first_var}' in group '{group_path}'. Found: {list(ds.data_vars)}"
             )
 
-        original_transform = ds[first_var].rio.transform()
-
         if geometry is not None:
             # FIX: Ensure geometry is properly handled as a sequence of BaseGeometry
             geom_union: BaseGeometry = unary_union(list(geometry))
@@ -175,6 +176,8 @@ def load_input_data(
                     y=slice(bounds[3], bounds[1]),
                 )
 
+        original_transform = ds[first_var].rio.transform()
+
         source_resolution_x = original_transform.a
         source_resolution_y = -original_transform.e
 
@@ -182,20 +185,56 @@ def load_input_data(
             print(f"Warning: Non-square pixels detected in group '{group_path}'")
 
         source_resolution = (abs(source_resolution_x) + abs(source_resolution_y)) / 2
-        downsample_factor = resolution / source_resolution
+        requested_resolution = float(resolution)
+        should_resample = abs(source_resolution - requested_resolution) > 1e-6
 
-        needs_coarsening = downsample_factor > 1
-        new_transform = None  # FIX: Initialize to None for type safety
-        if needs_coarsening:
-            factor = int(round(downsample_factor))
-            new_transform = Affine(
-                original_transform.a * factor,
+        downsample_factor = requested_resolution / source_resolution
+        rounded_factor = int(round(downsample_factor))
+        can_use_integer_coarsen = (
+            downsample_factor > 1.0
+            and abs(downsample_factor - rounded_factor) <= 1e-6
+        )
+
+        if can_use_integer_coarsen:
+            target_resolution = source_resolution * float(rounded_factor)
+            target_transform = Affine(
+                original_transform.a * rounded_factor,
                 original_transform.b,
                 original_transform.c,
                 original_transform.d,
-                original_transform.e * factor,
+                original_transform.e * rounded_factor,
                 original_transform.f,
             )
+            target_width = int(np.ceil(ds[first_var].x.size / rounded_factor))
+            target_height = int(np.ceil(ds[first_var].y.size / rounded_factor))
+        elif should_resample:
+            target_resolution = requested_resolution
+            left, bottom, right, top = array_bounds(
+                ds[first_var].y.size, ds[first_var].x.size, original_transform
+            )
+            target_width = max(1, int(np.ceil((right - left) / target_resolution)))
+            target_height = max(1, int(np.ceil((top - bottom) / target_resolution)))
+            target_transform = Affine(
+                target_resolution,
+                0.0,
+                left,
+                0.0,
+                -target_resolution,
+                top,
+            )
+        else:
+            target_resolution = source_resolution
+            target_transform = original_transform
+            target_width = ds[first_var].x.size
+            target_height = ds[first_var].y.size
+        resampling_method_by_name: Dict[str, Resampling] = {
+            "min": Resampling.min,
+            "max": Resampling.max,
+            "mode": Resampling.mode,
+        }
+        resampling_method = resampling_method_by_name.get(resampling)
+        if resampling_method is None:
+            raise ValueError(f"Unsupported resampling method: {resampling}")
 
         processed_vars: Dict[str, xr.DataArray] = {}
         empty_vars: List[str] = []
@@ -206,6 +245,7 @@ def load_input_data(
                     f"No variable named '{var}' in group '{group_path}'. Found: {list(ds.data_vars)}"
                 )
             da: xr.DataArray = ds[var]
+            current_transform = da.rio.transform()
 
             if da.x.size == 0 or da.y.size == 0:
                 print(
@@ -224,47 +264,51 @@ def load_input_data(
                     width = bounds[2] - bounds[0]
                     height = bounds[3] - bounds[1]
 
-                    if needs_coarsening and new_transform is not None:
-                        effective_resolution = source_resolution * factor
-                    else:
-                        effective_resolution = source_resolution
-
-                    ncols = max(1, int(np.ceil(width / effective_resolution)))
-                    nrows = max(1, int(np.ceil(height / effective_resolution)))
-
-                    if needs_coarsening and new_transform is not None:
-                        transform_to_use = new_transform
-                    else:
-                        transform_to_use = original_transform
-
-                    x_coords = (
-                        np.arange(ncols) * transform_to_use.a
-                        + transform_to_use.c
-                        + bounds[0]
+                    ncols = max(1, int(np.ceil(width / target_resolution)))
+                    nrows = max(1, int(np.ceil(height / target_resolution)))
+                    transform_to_use = Affine(
+                        target_resolution,
+                        0.0,
+                        bounds[0],
+                        0.0,
+                        -target_resolution,
+                        bounds[3],
                     )
-                    y_coords = (
-                        np.arange(nrows) * transform_to_use.e
-                        + transform_to_use.f
-                        + bounds[3]
-                    )
+                    x_coords = bounds[0] + (np.arange(ncols) + 0.5) * target_resolution
+                    y_coords = bounds[3] - (np.arange(nrows) + 0.5) * target_resolution
 
                 else:
-                    if needs_coarsening:
-                        assert new_transform is not None  # Type guard
-                        nrows = len(original_ds.y) // factor
-                        ncols = len(original_ds.x) // factor
-                        transform_to_use = new_transform
+                    if can_use_integer_coarsen or not should_resample:
+                        transform_to_use = target_transform
+                        ncols = target_width
+                        nrows = target_height
+                        x_coords = (
+                            transform_to_use.c
+                            + (np.arange(ncols) + 0.5) * transform_to_use.a
+                        )
+                        y_coords = (
+                            transform_to_use.f
+                            + (np.arange(nrows) + 0.5) * transform_to_use.e
+                        )
                     else:
-                        nrows = len(original_ds.y)
-                        ncols = len(original_ds.x)
-                        transform_to_use = original_transform
-
-                    x_coords = (
-                        np.arange(ncols) * transform_to_use.a + transform_to_use.c
-                    )
-                    y_coords = (
-                        np.arange(nrows) * transform_to_use.e + transform_to_use.f
-                    )
+                        fallback_transform = original_ds[var].rio.transform()
+                        left, bottom, right, top = array_bounds(
+                            len(original_ds.y), len(original_ds.x), fallback_transform
+                        )
+                        width = right - left
+                        height = top - bottom
+                        ncols = max(1, int(np.ceil(width / target_resolution)))
+                        nrows = max(1, int(np.ceil(height / target_resolution)))
+                        transform_to_use = Affine(
+                            target_resolution,
+                            0.0,
+                            left,
+                            0.0,
+                            -target_resolution,
+                            top,
+                        )
+                        x_coords = left + (np.arange(ncols) + 0.5) * target_resolution
+                        y_coords = top - (np.arange(nrows) + 0.5) * target_resolution
 
                 coords = {"y": y_coords, "x": x_coords}
 
@@ -280,36 +324,39 @@ def load_input_data(
                 processed_vars[var] = dummy
                 continue
 
-            if needs_coarsening:
-                assert new_transform is not None  # Type guard
-                factor = int(round(downsample_factor))
-                coarsened = da.coarsen(x=factor, y=factor, boundary="pad")
+            da = da.astype(np.float32).rio.write_crs(crs)
+            if should_resample:
+                if can_use_integer_coarsen:
+                    coarsened = da.coarsen(
+                        x=rounded_factor, y=rounded_factor, boundary="pad"
+                    )
+                    if resampling == "min":
+                        da = coarsened.reduce(np.nanmin)
+                    elif resampling == "max":
+                        da = coarsened.reduce(np.nanmax)
+                    elif resampling == "mode":
 
-                if resampling == "min":
-                    da = coarsened.reduce(np.nanmin)
-                elif resampling == "max":
-                    da = coarsened.reduce(np.nanmax)
-                elif resampling == "mode":
-
-                    def nanmode(data: np.ndarray, axis: int) -> np.ndarray:
-                        if np.isnan(data).all(axis=axis).any():
-                            result = np.full(
-                                data.shape[:axis] + data.shape[axis + 1 :], np.nan
-                            )
-                        else:
+                        def nanmode(data: np.ndarray, axis: int) -> np.ndarray:
                             mode_result = stats.mode(
                                 data, axis=axis, nan_policy="omit", keepdims=False
                             )
-                            result = mode_result.mode
-                        return result
+                            return np.asarray(mode_result.mode)
 
-                    da = coarsened.reduce(nanmode)
+                        da = coarsened.reduce(nanmode)
+                    else:
+                        raise ValueError(f"Unsupported resampling method: {resampling}")
+
+                    da = da.rio.write_transform(target_transform)
                 else:
-                    raise ValueError(f"Unsupported resampling method: {resampling}")
-
-                da = da.rio.write_crs(crs).rio.write_transform(new_transform)
+                    da = da.rio.reproject(
+                        da.rio.crs,
+                        transform=target_transform,
+                        shape=(target_height, target_width),
+                        resampling=resampling_method,
+                        nodata=np.nan,
+                    )
             else:
-                da = da.rio.write_crs(crs).rio.write_transform(original_transform)
+                da = da.rio.write_transform(current_transform)
 
             processed_vars[var] = da
 
@@ -504,16 +551,10 @@ def build_pulp_model(
 
         # Locked-in constraints
         if mode == "locked-in":
-            threshold = props.threshold
-            if threshold is None:
-                raise ValueError(
-                    f"Threshold required for locked-in mode on layer '{layer_name}'"
-                )
-
             locked_cells = [
                 (r, c)
                 for r, c in cell_indices
-                if not np.isnan(arr[r, c]) and arr[r, c] >= threshold
+                if not np.isnan(arr[r, c]) and arr[r, c] > 0
             ]
 
             if locked_cells:
@@ -525,13 +566,7 @@ def build_pulp_model(
 
         # Locked-out constraints
         elif mode == "locked-out":
-            threshold = props.threshold
-            if threshold is None:
-                raise ValueError(
-                    f"Threshold required for locked-out mode on layer '{layer_name}'"
-                )
-
-            locked_out_mask = valid_mask & (~np.isnan(arr)) & (arr > threshold)
+            locked_out_mask = valid_mask & (~np.isnan(arr)) & (arr > 0)
             locked_rows, locked_cols = np.where(locked_out_mask)
 
             for r, c in zip(locked_rows, locked_cols, strict=False):
@@ -541,7 +576,7 @@ def build_pulp_model(
 
             logger.info(f"  Locked out: {len(locked_rows)} variables")
             logger.info(
-                f"  Total cells > threshold: {np.sum((arr > threshold) & (~np.isnan(arr)))}"
+                f"  Total cells with value > 0: {np.sum((arr > 0) & (~np.isnan(arr)))}"
             )
 
         # Value constraints
@@ -605,19 +640,13 @@ def build_pulp_model(
                     has_explicit_constraints = True
                     logger.info(f"  Added: total_sum <= {max_val}")
 
-    # Add target area constraint if no explicit constraints
+    # Do not impose arbitrary target-area selection when no explicit constraints exist.
+    # In that case, the optimizer naturally selects all cells that improve the objective
+    # and excludes only cells constrained out (or with negative contribution).
     if not has_explicit_constraints:
-        if is_percentage:
-            target_cells = int((target_area / 100) * len(cell_indices))
-        else:
-            target_cells = int(target_area)
-
-        target_cells = max(1, min(target_cells, len(cell_indices)))
-
-        prob += pulp.lpSum(decision_vars.values()) == target_cells
-        logger.warning(
-            f"No explicit constraints found. Using target area constraint: "
-            f"select exactly {target_cells} cells ({100 * target_cells / len(cell_indices):.1f}% of {len(cell_indices)} valid cells)"
+        logger.info(
+            "No explicit constraints found. Skipping fallback target-area constraint "
+            "to avoid arbitrary omission of valid cells."
         )
 
     logger.info(
@@ -625,6 +654,152 @@ def build_pulp_model(
     )
 
     return prob, decision_vars
+
+
+@task
+def create_continuous_priority_surface(
+    dataset: Dict[str, xr.Dataset],
+    conditions: OptimizationLayers,
+    valid_mask: np.ndarray,
+) -> np.ndarray:
+    """
+    Create a continuous 0-1 priority surface using weighted normalized flexible layers,
+    while applying locked-out and locked-in constraints as hard feasibility controls.
+
+    Args:
+        dataset: Dictionary of xarray Datasets grouped by layer path
+        conditions: OptimizationLayers with mode, importance, threshold, constraints
+        valid_mask: Boolean mask of valid cells
+
+    Returns:
+        Continuous priority array with values in [0, 1]
+    """
+    logger = get_run_logger()
+
+    nrows, ncols = valid_mask.shape
+    score = np.zeros((nrows, ncols), dtype=np.float32)
+    candidate_mask = valid_mask.copy()
+    locked_in_mask = np.zeros((nrows, ncols), dtype=bool)
+    locked_out_mask = np.zeros((nrows, ncols), dtype=bool)
+
+    def get_layer_array(layer_name: str) -> np.ndarray:
+        *group_parts, var = layer_name.split("/")
+        group = "/".join(group_parts)
+
+        if group not in dataset:
+            raise ValueError(
+                f"Group '{group}' not found in dataset for layer '{layer_name}'. "
+                f"Available groups: {list(dataset.keys())}"
+            )
+
+        if var not in dataset[group]:
+            raise ValueError(
+                f"Variable '{var}' not found in group '{group}' for layer '{layer_name}'. "
+                f"Available variables: {list(dataset[group].data_vars.keys())}"
+            )
+
+        data_var = dataset[group][var]
+        if hasattr(data_var.data, "compute"):
+            return np.asarray(data_var.data.compute(), dtype=np.float32)
+
+        return np.asarray(data_var.values, dtype=np.float32)
+
+    # Apply hard inclusion/exclusion constraints to feasible candidate cells.
+    for layer_name, props in conditions.items():
+        arr = get_layer_array(layer_name)
+
+        if props.mode == "locked-out":
+            layer_excluded = (~np.isnan(arr)) & (arr > 0)
+            candidate_mask[layer_excluded] = False
+            locked_out_mask = locked_out_mask | layer_excluded
+
+        if props.mode == "locked-in":
+            layer_locked_in = valid_mask & (~np.isnan(arr)) & (arr > 0)
+            locked_in_mask = locked_in_mask | layer_locked_in
+
+    # Exclusions take precedence for feasibility.
+    locked_in_mask = locked_in_mask & candidate_mask
+
+    weighted_layer_count = 0
+    for layer_name, props in conditions.items():
+        if props.mode != "flexible" or props.importance is None or props.importance == 0:
+            continue
+
+        arr = get_layer_array(layer_name)
+        finite_mask = candidate_mask & (~np.isnan(arr))
+
+        if not np.any(finite_mask):
+            logger.warning(
+                f"No valid values in feasible area for flexible layer '{layer_name}'"
+            )
+            continue
+
+        layer_min = float(np.nanmin(arr[finite_mask]))
+        layer_max = float(np.nanmax(arr[finite_mask]))
+        layer_range = layer_max - layer_min
+        logger.info(
+            f"Flexible layer '{layer_name}': importance={float(props.importance):.4f}, "
+            f"min={layer_min:.6f}, max={layer_max:.6f}, range={layer_range:.6f}"
+        )
+
+        if layer_range <= 0:
+            logger.warning(
+                f"Flexible layer '{layer_name}' has zero range in feasible area; skipping."
+            )
+            continue
+        else:
+            normalized = (arr - layer_min) / layer_range
+            normalized = np.where(np.isnan(normalized), 0.0, normalized)
+
+        score += float(props.importance) * normalized.astype(np.float32)
+        weighted_layer_count += 1
+
+    if weighted_layer_count == 0:
+        logger.warning(
+            "No non-constant flexible layers contributed to continuous scoring. "
+            "Falling back to neutral score 0.5 for feasible cells."
+        )
+        score = np.where(candidate_mask, 0.5, 0.0).astype(np.float32)
+    else:
+        score = np.where(candidate_mask, score, 0.0).astype(np.float32)
+        logger.info(f"Contributing flexible layers: {weighted_layer_count}")
+
+        finite_candidate = candidate_mask & (~np.isnan(score))
+        if np.any(finite_candidate):
+            p2, p98 = np.nanpercentile(score[finite_candidate], [2, 98])
+            percentile_range = float(p98 - p2)
+            logger.info(
+                f"Raw score percentiles in feasible area: p2={float(p2):.6f}, p98={float(p98):.6f}, "
+                f"range={percentile_range:.6f}"
+            )
+            if percentile_range > 1e-9:
+                score = (score - float(p2)) / percentile_range
+            else:
+                logger.warning(
+                    "Continuous score has near-zero spread after aggregation; setting feasible cells to 0.5"
+                )
+                score = np.where(candidate_mask, 0.5, 0.0).astype(np.float32)
+        else:
+            raise ValueError(
+                "No finite candidate cells available for continuous score normalization."
+            )
+
+    score = np.where(valid_mask, score, 0.0).astype(np.float32)
+    score = np.clip(score, 0.0, 1.0).astype(np.float32)
+
+    finite_values = score[np.isfinite(score)]
+    rounded_unique_sample = np.unique(np.round(finite_values, 4))[:20]
+    percentiles = np.percentile(finite_values, [0, 1, 5, 25, 50, 75, 95, 99, 100]).tolist()
+
+    logger.info(
+        f"Continuous surface generated: min={float(np.nanmin(score)):.4f}, max={float(np.nanmax(score)):.4f}, "
+        f"non_zero={np.count_nonzero(score)}, locked_in_cells={int(np.count_nonzero(locked_in_mask))}, "
+        f"locked_out_cells={int(np.count_nonzero(locked_out_mask))}, "
+        f"unique_sample={rounded_unique_sample.tolist()}, "
+        f"percentiles={percentiles}"
+    )
+
+    return score
 
 
 @task
@@ -815,10 +990,17 @@ def create_pmtiles_archive(
     bounds = array_bounds(height, width, transform)
     logger.info(f"Input bounds in CRS {crs}: {bounds}")
 
-    x_coords = np.linspace(bounds[0], bounds[2], width)
-    y_coords = np.linspace(bounds[3], bounds[1], height)
+    x_coords = transform.c + (np.arange(width) + 0.5) * transform.a
+    y_coords = transform.f + (np.arange(height) + 0.5) * transform.e
 
-    uint8_array = (array * 255).astype(np.uint8)
+    normalized_array = np.nan_to_num(array, nan=0.0)
+    normalized_array = np.clip(normalized_array, 0.0, 1.0)
+    uint8_array = (normalized_array * 255).astype(np.uint8)
+    unique_uint8_sample = np.unique(uint8_array)[:20].tolist()
+    logger.info(
+        f"Tiling source diagnostics: min={int(np.min(uint8_array))}, max={int(np.max(uint8_array))}, "
+        f"non_zero={int(np.count_nonzero(uint8_array))}, unique_sample={unique_uint8_sample}"
+    )
     da = xr.DataArray(
         uint8_array,
         dims=("y", "x"),
@@ -828,7 +1010,7 @@ def create_pmtiles_archive(
     da.rio.write_crs(crs, inplace=True)
     da.rio.write_transform(transform, inplace=True)
 
-    da_web = da.rio.reproject("EPSG:3857", resampling=Resampling.bilinear)
+    da_web = da.rio.reproject("EPSG:3857", resampling=Resampling.nearest)
     wm_bounds = tuple(map(float, da_web.rio.bounds()))
     logger.info(f"Reprojected bounds (EPSG:3857): {wm_bounds}")
 
@@ -841,6 +1023,16 @@ def create_pmtiles_archive(
 
     tms = defaults.tms.get("WebMercatorQuad")
     tiles_written = 0
+    viridis = plt.get_cmap("viridis")
+    colormap = {0: (0, 0, 0, 0)}
+    for i in range(1, 256):
+        r, g, b, _ = viridis(i / 255.0)
+        colormap[i] = (
+            int(round(r * 255)),
+            int(round(g * 255)),
+            int(round(b * 255)),
+            int(round(40 + (i / 255.0) * 200)),
+        )
 
     with open(out_path, "wb") as f, XarrayReader(input=da_web, tms=tms) as reader:
         writer = Writer(f)
@@ -878,10 +1070,6 @@ def create_pmtiles_archive(
                         logger.warning(f"Skipping empty tile: {tile}")
                         continue
 
-                    colormap = {
-                        i: (255, 0, 0, 170) if i > 0 else (0, 0, 0, 0)
-                        for i in range(256)
-                    }
                     tile_bytes = tile_data.render(img_format="PNG", colormap=colormap)
                     tile_id = zxy_to_tileid(z, x, y)
                     writer.write_tile(tile_id, tile_bytes)
@@ -1055,33 +1243,54 @@ def execute_optimization(
         f"Valid mask shape: {valid_mask.shape}, Valid cells: {np.sum(valid_mask)}"
     )
 
-    # Build optimization model
-    logger.info("Building optimization model...")
-    pulp_model, cell_vars = build_pulp_model(
-        dataset=input_datasets,
-        conditions=layers,
-        valid_mask=valid_mask,
-        target_area=conditions.target_area,
-        is_percentage=conditions.is_percentage,
-    )
-    logger.info(f"Built model with {len(cell_vars)} decision variables")
+    if conditions.continuous_output:
+        logger.info("Generating continuous priority surface...")
+        solution_array = create_continuous_priority_surface(
+            dataset=input_datasets,
+            conditions=layers,
+            valid_mask=valid_mask,
+        )
+    else:
+        # Build optimization model
+        logger.info("Building optimization model...")
+        pulp_model, cell_vars = build_pulp_model(
+            dataset=input_datasets,
+            conditions=layers,
+            valid_mask=valid_mask,
+            target_area=conditions.target_area,
+            is_percentage=conditions.is_percentage,
+        )
+        logger.info(f"Built model with {len(cell_vars)} decision variables")
 
-    # Solve LP
-    logger.info("Solving LP...")
-    status, solution_values = solve_lp(pulp_model, cell_vars)
-    logger.info(f"Solver status: {status}")
-    logger.info(f"Extracted {len(solution_values)} solution values")
+        # Solve LP
+        logger.info("Solving LP...")
+        status, solution_values = solve_lp(pulp_model, cell_vars)
+        logger.info(f"Solver status: {status}")
+        logger.info(f"Extracted {len(solution_values)} solution values")
 
-    # Extract solution
-    logger.info("Extracting solution...")
-    solution_array: np.ndarray = extract_solution(
-        solution_values=solution_values,
-        nrows=nrows,
-        ncols=ncols,
-        geometry=british_columbia_geometry,
-        transform=transform,
+        # Extract solution
+        logger.info("Extracting solution...")
+        solution_array = extract_solution(
+            solution_values=solution_values,
+            nrows=nrows,
+            ncols=ncols,
+            geometry=british_columbia_geometry,
+            transform=transform,
+        )
+        logger.info(f"Binary solution array sum: {np.sum(solution_array)}")
+
+    finite_solution_values = solution_array[np.isfinite(solution_array)]
+    rounded_solution_unique_sample = np.unique(np.round(finite_solution_values, 4))[:20]
+    solution_percentiles = np.percentile(
+        finite_solution_values, [0, 1, 5, 25, 50, 75, 95, 99, 100]
+    ).tolist()
+    logger.info(
+        f"Solution diagnostics pre-tiling: dtype={solution_array.dtype}, "
+        f"min={float(np.min(finite_solution_values)):.6f}, max={float(np.max(finite_solution_values)):.6f}, "
+        f"non_zero={int(np.count_nonzero(solution_array))}, "
+        f"unique_sample={rounded_solution_unique_sample.tolist()}, "
+        f"percentiles={solution_percentiles}"
     )
-    logger.info(f"Solution array sum: {np.sum(solution_array)}")
 
     if not np.any(solution_array > 0):
         logger.warning("No solution found")

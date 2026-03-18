@@ -1,13 +1,10 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getDBConnection } from '../../database/db';
-import { ApiGeneralError } from '../../errors/api-error';
-import { HTTP400, HTTP500 } from '../../errors/http-error';
-import { PrefectSubmissionError } from '../../errors/prefect-error';
-import { CreateTaskRequest } from '../../models/task-orchestrator';
+import { CreateTaskDraftRequest } from '../../models/task-orchestrator';
 import { defaultErrorResponses } from '../../openapi/schemas/http-responses';
 import { paginationRequestQueryParamSchema, paginationResponseSchema } from '../../openapi/schemas/pagination';
-import { CreateTaskSchema, GetTaskSchema } from '../../openapi/schemas/task';
+import { CreateTaskDraftSchema, GetTaskSchema } from '../../openapi/schemas/task';
 import { authorizeRequestHandler } from '../../request-handlers/security/authorization';
 import { TaskOrchestratorService } from '../../services/task-orchestrator-service';
 import { TaskService } from '../../services/task-service';
@@ -30,7 +27,7 @@ export const POST: Operation = [
 ];
 
 POST.apiDoc = {
-  description: 'Creates a new task in the system, with optional layers and constraints.',
+  description: 'Creates a new task in the system.',
   tags: ['tasks'],
   security: [
     {
@@ -41,7 +38,7 @@ POST.apiDoc = {
     required: true,
     content: {
       'application/json': {
-        schema: CreateTaskSchema
+        schema: CreateTaskDraftSchema
       }
     }
   },
@@ -59,7 +56,7 @@ POST.apiDoc = {
 };
 
 /**
- * Create a new task in the system, including optional layers and constraints.
+ * Create a new task in the system.
  *
  * @returns {RequestHandler}
  */
@@ -68,31 +65,20 @@ export function createTask(): RequestHandler {
     defaultLog.debug({ label: 'createTask' });
 
     const connection = getDBConnection(req.keycloak_token);
-    const payload = req.body as CreateTaskRequest;
+    const payload = req.body as CreateTaskDraftRequest;
 
     try {
       await connection.open();
 
       const profileId = connection.profileId();
       const taskService = new TaskOrchestratorService(connection);
-      const taskResponse = await taskService.createTaskAndSubmit(payload, profileId);
+      const taskResponse = await taskService.createDraftTask(payload, profileId);
 
       await connection.commit();
 
       return res.status(201).json(taskResponse);
     } catch (error) {
       defaultLog.error({ label: 'createTask', message: 'error', error });
-
-      if (error instanceof ApiGeneralError) {
-        await connection.rollback();
-        throw new HTTP400(error.message);
-      }
-
-      if (error instanceof PrefectSubmissionError) {
-        await connection.commit();
-        throw new HTTP500(error.message);
-      }
-
       await connection.rollback();
       throw error;
     } finally {
@@ -127,7 +113,18 @@ GET.apiDoc = {
       Bearer: []
     }
   ],
-  parameters: [...paginationRequestQueryParamSchema],
+  parameters: [
+    ...paginationRequestQueryParamSchema,
+    {
+      in: 'query',
+      name: 'search',
+      required: false,
+      description: 'Case-insensitive task name/description search term.',
+      schema: {
+        type: 'string'
+      }
+    }
+  ],
   responses: {
     200: {
       description: 'List of tasks returned successfully.',
@@ -169,20 +166,10 @@ export function getTasks(): RequestHandler {
 
       const taskService = new TaskService(connection);
       const paginationRequest = makePaginationOptionsFromRequest(req);
-      const pagination =
-        ensureCompletePaginationOptions({
-          page: paginationRequest.page ?? 1,
-          limit: paginationRequest.limit ?? 25,
-          sort: paginationRequest.sort ?? 'created_at',
-          order: paginationRequest.order ?? 'desc'
-        }) ?? {
-          page: 1,
-          limit: 25,
-          sort: 'created_at',
-          order: 'desc'
-        };
+      const search = typeof req.query.search === 'string' ? req.query.search : undefined;
+      const pagination = ensureCompletePaginationOptions(paginationRequest) ?? { page: 1, limit: 25 };
 
-      const tasks = await taskService.getTasksForProfilePaginated(profileId, pagination);
+      const tasks = await taskService.getTasksForProfilePaginated(profileId, pagination, search);
 
       await connection.commit();
 

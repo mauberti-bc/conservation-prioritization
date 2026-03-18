@@ -1,7 +1,7 @@
 import { Button, Stack } from '@mui/material';
 import { useAuthContext } from 'hooks/useContext';
 import { useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * Login page that triggers OIDC sign-in.
@@ -9,27 +9,36 @@ import { useLocation, useNavigate } from 'react-router-dom';
 export const LoginPage = () => {
   const authContext = useAuthContext();
   const navigate = useNavigate();
-  const location = useLocation();
+  const isLoggedIn =
+    authContext.auth.isAuthenticated || Boolean(authContext.auth.user && !authContext.auth.user.expired);
+
+  const handleLogin = async () => {
+    try {
+      await authContext.auth.signinRedirect();
+    } catch (error) {
+      console.error('signinRedirect failed on LoginPage', error);
+    }
+  };
 
   useEffect(() => {
     if (authContext.auth.isLoading) {
       return;
     }
 
-    if (authContext.auth.isAuthenticated) {
-      const nextPath = (location.state as { from?: string } | null)?.from ?? '/t/';
-      const safePath = nextPath.startsWith('/auth') ? '/t/' : nextPath;
-      window.history.replaceState({}, document.title, location.pathname);
-      navigate(safePath, { replace: true });
+    if (isLoggedIn) {
+      window.history.replaceState({}, document.title, '/');
+      navigate('/', { replace: true });
     }
-  }, [authContext.auth.isAuthenticated, authContext.auth.isLoading, location.state, location.pathname, navigate]);
+  }, [authContext.auth.isLoading, isLoggedIn, navigate]);
 
   return (
     <Stack alignItems="center" justifyContent="center" height="100vh">
       <Button
         variant="contained"
         size="large"
-        onClick={() => authContext.auth.signinRedirect()}
+        onClick={() => {
+          void handleLogin();
+        }}
         sx={{ px: 6, py: 2, fontSize: '1.1rem' }}>
         Login
       </Button>

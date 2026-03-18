@@ -176,11 +176,14 @@ export class TaskRepository extends BaseRepository {
    */
   async getTasksByProfileIdPaginated(
     profileId: string,
-    pagination: ApiPaginationOptions
+    pagination: ApiPaginationOptions,
+    search?: string
   ): Promise<{ tasks: Task[]; total: number }> {
     const sortField = this.resolveTaskSortField(pagination.sort);
     const sortOrder = pagination.order === 'asc' ? 'ASC' : 'DESC';
     const offset = (pagination.page - 1) * pagination.limit;
+    const normalizedSearch = search?.trim();
+    const likeSearch = normalizedSearch ? `%${normalizedSearch}%` : null;
 
     const countStatement = SQL`
       SELECT COUNT(*)::int AS total
@@ -194,6 +197,10 @@ export class TaskRepository extends BaseRepository {
       AND r.record_end_date IS NULL
       AND t.record_end_date IS NULL
     `;
+
+    if (likeSearch) {
+      countStatement.append(SQL` AND (t.name ILIKE ${likeSearch} OR COALESCE(t.description, '') ILIKE ${likeSearch})`);
+    }
 
     const countResponse = await this.connection.sql(countStatement);
     const total = countResponse.rows?.[0]?.total ?? 0;
@@ -222,6 +229,10 @@ export class TaskRepository extends BaseRepository {
       AND r.record_end_date IS NULL
       AND t.record_end_date IS NULL
     `;
+
+    if (likeSearch) {
+      sqlStatement.append(SQL` AND (t.name ILIKE ${likeSearch} OR COALESCE(t.description, '') ILIKE ${likeSearch})`);
+    }
 
     sqlStatement.append(` ORDER BY ${sortField} ${sortOrder}`);
     sqlStatement.append(SQL` LIMIT ${pagination.limit} OFFSET ${offset}`);

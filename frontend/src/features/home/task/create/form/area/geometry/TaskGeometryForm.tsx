@@ -1,4 +1,4 @@
-import { mdiDelete, mdiPencil } from '@mdi/js';
+import { mdiDeleteOutline, mdiPencilOutline } from '@mdi/js';
 import { Box, Paper, Stack, Typography } from '@mui/material';
 import { grey } from '@mui/material/colors';
 import { IconMenuButton } from 'components/button/IconMenuButton';
@@ -80,8 +80,8 @@ export const TaskGeometryForm = ({ geometry, onDelete, isReadOnly = false }: Tas
             {!isReadOnly && (
               <IconMenuButton
                 items={[
-                  { label: 'Edit', icon: mdiPencil, onClick: () => handleEditClick(g) },
-                  { label: 'Delete', icon: mdiDelete, onClick: () => onDelete(g.id) },
+                  { label: 'Edit', icon: mdiPencilOutline, onClick: () => handleEditClick(g) },
+                  { label: 'Delete', icon: mdiDeleteOutline, onClick: () => onDelete(g.id) },
                 ]}
               />
             )}

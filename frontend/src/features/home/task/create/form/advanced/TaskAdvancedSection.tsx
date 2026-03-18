@@ -31,9 +31,9 @@ export const TaskAdvancedSection = ({ isReadOnly = false }: TaskAdvancedSectionP
             endIcon={
               <Icon
                 path={mdiChevronDown}
-                size={1}
+                size={0.8}
                 style={{
-                  transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transform: open ? 'rotate(0deg)' : 'rotate(180deg)',
                   transition: 'transform 0.2s ease',
                 }}
               />
@@ -45,8 +45,8 @@ export const TaskAdvancedSection = ({ isReadOnly = false }: TaskAdvancedSectionP
       )}
 
       <Collapse in={shouldShowPanel} sx={{ width: '100%' }} timeout={100}>
-        <Box ml={1} my={1}>
-          <TaskAdvancedForm />
+        <Box my={1}>
+          <TaskAdvancedForm isReadOnly={isReadOnly} />
         </Box>
       </Collapse>
     </Box>

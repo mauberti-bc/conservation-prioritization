@@ -2,10 +2,11 @@ import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import { TASK_STATUS, TILE_STATUS } from 'constants/status';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useAuthContext, useProjectContext, useSidebarUIContext, useTaskContext } from 'hooks/useContext';
+import { useAuthContext, useTaskContext } from 'hooks/useContext';
 import useDataLoader from 'hooks/useDataLoader';
 import { useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { getTaskStatusLabel } from 'utils/task-status';
 import { MapContainer } from 'features/home/map/MapContainer';
 import { useTaskStatusWebSocket } from 'features/home/task/status/useTaskStatusWebSocket';
 import { Sidebar } from 'features/home/sidebar/Sidebar';
@@ -17,9 +18,7 @@ export const DashboardPage = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const conservationApi = useConservationApi();
   const authContext = useAuthContext();
-  const { taskId, taskDataLoader, tasksDataLoader, setFocusedTask, hoveredTilesetUri } = useTaskContext();
-  const { projectsDataLoader } = useProjectContext();
-  const { activeView, setActiveView } = useSidebarUIContext();
+  const { taskId, taskDataLoader, setFocusedTask, hoveredTilesetUri } = useTaskContext();
   const navigate = useNavigate();
   const location = useLocation();
   const dashboardDataLoader = useDataLoader(conservationApi.dashboard.getDashboardById);
@@ -65,26 +64,6 @@ export const DashboardPage = () => {
     }
   }, [primaryTaskId, setFocusedTask, taskDataLoader.data, taskId]);
 
-  useEffect(() => {
-    if (!activeView) {
-      setActiveView('tasks');
-    }
-  }, [activeView, setActiveView]);
-
-  useEffect(() => {
-    if (!authContext.auth.isAuthenticated) {
-      return;
-    }
-
-    if (activeView === 'tasks') {
-      void tasksDataLoader.load();
-    }
-
-    if (activeView === 'projects') {
-      void projectsDataLoader.load();
-    }
-  }, [activeView, authContext.auth.isAuthenticated, projectsDataLoader, tasksDataLoader]);
-
   const { data: taskStatus } = useTaskStatusWebSocket(primaryTaskId);
 
   const pmtilesUrls = useMemo(() => {
@@ -115,14 +94,14 @@ export const DashboardPage = () => {
     }
 
     if (activeStatus === TASK_STATUS.COMPLETED && tileStatus && tileStatus !== TILE_STATUS.COMPLETED) {
-      return `${activeStatus} (tiling: ${tileStatus})`;
+      return `${getTaskStatusLabel(activeStatus)} (tiling: ${tileStatus})`;
     }
 
-    return activeStatus;
+    return getTaskStatusLabel(activeStatus);
   }, [taskStatus, taskDataLoader.data]);
 
-  const sidebarWidth = activeView ? '50vw' : '180px';
-  const sidebarMinWidth = activeView ? 360 : 180;
+  const sidebarWidth = '50vw';
+  const sidebarMinWidth = 360;
 
   return (
     <Box position="relative" height="100%" overflow="hidden">
@@ -155,13 +134,7 @@ export const DashboardPage = () => {
           flexDirection: 'column',
           zIndex: 12,
         }}>
-        <Sidebar
-          activeView={activeView}
-          onViewChange={setActiveView}
-          tasksDataLoader={tasksDataLoader}
-          projectsDataLoader={projectsDataLoader}
-          isAuthenticated={Boolean(authContext.auth.isAuthenticated)}
-        />
+        <Sidebar />
       </Box>
     </Box>
   );

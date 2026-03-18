@@ -49,6 +49,7 @@ export const FileDropzone = ({ onFilesSelected, label, accept, showExtensions }:
       {...getRootProps()}
       sx={{
         p: 2,
+        borderWidth: 1.5,
         borderStyle: 'dashed',
         borderColor: isDragActive ? 'primary.main' : grey[400],
         backgroundColor: isDragActive ? grey[100] : grey[50],
