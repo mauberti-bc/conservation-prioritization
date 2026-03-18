@@ -82,6 +82,7 @@ export const MapContainer = ({
     onPmtilesDisplayed(hasPmtiles && (areLayersLoaded || hasRenderedPmtiles));
   }, [areLayersLoaded, hasPmtiles, hasRenderedPmtiles, onPmtilesDisplayed]);
 
+  // Mount / cache effect
   useEffect(() => {
     const mapHost = mapHostRef.current;
     if (!mapHost) {
@@ -188,6 +189,8 @@ export const MapContainer = ({
     map.once('load', handleMapReady);
     if (map.isStyleLoaded()) {
       handleMapReady();
+    } else {
+      map.once('load', handleMapReady);
     }
 
     mapRef.current = map;
@@ -222,37 +225,29 @@ export const MapContainer = ({
     ensureBaseLayer(map, showBaseLayer);
   }, [isMapInitialized, mapRef, showBaseLayer]);
 
+  // Resize observer effect
   useEffect(() => {
     const map = mapRef.current;
     const host = mapHostRef.current;
-
     if (!map || !host) {
       return undefined;
     }
 
-    const handleResize = () => {
-      map.resize();
-    };
-
-    const resizeObserver = new ResizeObserver(() => {
-      handleResize();
-    });
-
+    const resizeObserver = new ResizeObserver(() => map.resize());
     resizeObserver.observe(host);
-    handleResize();
+    map.resize();
 
-    return () => {
-      resizeObserver.disconnect();
-    };
+    return () => resizeObserver.disconnect();
   }, [mapRef, isMapInitialized]);
 
+  // Layer update effect — runs silently whenever pmtilesUrls changes
   useEffect(() => {
     lastFitKeyRef.current = null;
   }, [fitKey]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !isMapInitialized) {
+    if (!map) {
       return undefined;
     }
 
@@ -542,9 +537,6 @@ export const MapContainer = ({
 
 /**
  * Ensure the base OSM raster layer exists.
- *
- * @param {maplibregl.Map} map
- * @returns {void}
  */
 const ensureBaseLayer = (map: maplibregl.Map, showBaseLayer: boolean): void => {
   if (!showBaseLayer) {
@@ -599,10 +591,6 @@ const ensureBaseLayer = (map: maplibregl.Map, showBaseLayer: boolean): void => {
 
 /**
  * Replace PMTiles layers with the provided list of archive URLs.
- *
- * @param {maplibregl.Map} map
- * @param {string[]} pmtilesUrls
- * @returns {void}
  */
 const updatePmtilesLayers = async (
   map: maplibregl.Map,

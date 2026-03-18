@@ -196,6 +196,7 @@ export class TaskOrchestratorService extends DBService {
       });
     } catch (error) {
       console.log(error);
+      await this.connection.rollback();
       await this.taskService.updateTaskExecution(task.task_id, {
         status: TASK_STATUS.FAILED_TO_SUBMIT,
         status_message: error instanceof Error ? error.message : 'Failed to submit task to Prefect.'
@@ -459,6 +460,8 @@ export class TaskOrchestratorService extends DBService {
         prefect_deployment_id: deploymentId
       });
     } catch (error) {
+      await this.connection.rollback();
+
       await this.taskService.updateTaskExecution(task.task_id, {
         status: TASK_STATUS.FAILED_TO_SUBMIT,
         status_message: error instanceof Error ? error.message : 'Failed to submit task to Prefect.'

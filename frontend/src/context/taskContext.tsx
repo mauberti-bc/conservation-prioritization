@@ -71,6 +71,7 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
       } else {
         navigate('/t/');
         taskDataLoader.clearData();
+        setHoveredTilesetUri(null); // clear hovered layer too
       }
     },
     [navigate, setHoveredTilesetUri, taskDataLoader]

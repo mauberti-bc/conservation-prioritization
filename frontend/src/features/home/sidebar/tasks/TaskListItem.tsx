@@ -224,16 +224,7 @@ export const TaskListItem = ({
       }>
       <InteractiveListItemButton
         selected={task.task_id === taskId}
-        onMouseEnter={() => {
-          if (task.tileset_uri) {
-            setHoveredTilesetUri(task.tileset_uri);
-          }
-        }}
-        onMouseLeave={() => {
-          setHoveredTilesetUri(null);
-        }}
         onClick={() => {
-          setHoveredTilesetUri(null);
           onSelectTask(task);
         }}>
         <ListItemText

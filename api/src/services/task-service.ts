@@ -91,6 +91,8 @@ export class TaskService extends DBService {
     const dashboardId = await this.dashboardTaskRepository.getLatestDashboardIdForTask(taskId);
     const tilesetUri = await this.toPresignedTilesetUri(task.tileset_uri);
 
+    // Generate presigned URL
+
     return {
       ...task,
       tileset_uri: tilesetUri,

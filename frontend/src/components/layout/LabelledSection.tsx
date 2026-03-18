@@ -1,10 +1,9 @@
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { ReactNode } from 'react';
+import { PropsWithChildren } from 'react';
 
-interface LabelledSectionProps {
-  label: string;
-  children: ReactNode;
+interface LabelledSectionProps extends PropsWithChildren {
+  label?: string;
 }
 
 /**

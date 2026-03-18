@@ -11,6 +11,8 @@ on:
 
 jobs:
   deploy:
+    # only proceed if the user checked the confirmation box
+    if: ${{ inputs.confirm }}
     uses: ./.github/workflows/deploy.yml
     with:
       source_tag: dev
