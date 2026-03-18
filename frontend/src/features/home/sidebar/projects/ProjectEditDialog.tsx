@@ -1,5 +1,6 @@
 import { EditDialog } from 'components/dialog/EditDialog';
 import { GetProjectResponse } from 'hooks/interfaces/useProjectApi.interface';
+import { getRandomHexBody, toHexBody } from 'utils/colour';
 import * as Yup from 'yup';
 import { ProjectEditForm, ProjectEditFormValues } from './ProjectEditForm';
 
@@ -16,8 +17,9 @@ const validationSchema = Yup.object({
   name: Yup.string().required('Name is required').max(100, 'Name must be 100 characters or less'),
   description: Yup.string().max(500, 'Description must be 500 characters or less'),
   colour: Yup.string()
-    .matches(/^#([0-9a-fA-F]{6})$/, { message: 'Colour must be a hex code like #1a5a96', excludeEmptyString: true })
-    .max(7, 'Colour must be 7 characters or less'),
+    .required('Colour is required')
+    .matches(/^([0-9a-fA-F]{6})$/, { message: 'Colour must be a hex code like 1A5A96', excludeEmptyString: true })
+    .max(6, 'Colour must be 6 characters or less'),
 });
 
 export const ProjectEditDialog = ({ open, project, onCancel, onSave, isSaving, error }: ProjectEditDialogProps) => {
@@ -28,7 +30,7 @@ export const ProjectEditDialog = ({ open, project, onCancel, onSave, isSaving, e
   const initialValues: ProjectEditFormValues = {
     name: project.name ?? '',
     description: project.description ?? '',
-    colour: project.colour ?? '',
+    colour: toHexBody(project.colour) || getRandomHexBody(),
   };
 
   return (

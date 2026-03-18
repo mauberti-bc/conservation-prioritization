@@ -1,12 +1,14 @@
 import { AxiosInstance } from 'axios';
 import { InviteProfilesRequest, InviteProfilesResponse } from 'hooks/interfaces/invite.interface';
 import {
-  CreateTaskRequest,
+  CreateDraftTaskRequest,
   GetTaskDashboardResponse,
   GetTaskResponse,
   GetTasksResponse,
   PublishDashboardRequest,
   PublishDashboardResponse,
+  SubmitTaskRequest,
+  UpdateTaskRequest,
   UpdateTaskStatusRequest,
 } from 'hooks/interfaces/useTaskApi.interface';
 import qs from 'qs';
@@ -20,12 +22,23 @@ import { ApiPaginationRequestOptions } from 'types/pagination';
  */
 export const useTaskApi = (axios: AxiosInstance) => {
   /**
-   * Create a new task.
+   * Create a new draft task.
    *
-   * @param {CreateTaskRequest} taskData - Data used to create the task.
-   * @return {Promise<GetTaskResponse>} The newly created task with optional layers and constraints.
+   * @param {CreateDraftTaskRequest} taskData
+   * @return {Promise<GetTaskResponse>}
    */
-  const createTask = async (taskData: CreateTaskRequest): Promise<GetTaskResponse> => {
+  const createTask = async (taskData: CreateDraftTaskRequest): Promise<GetTaskResponse> => {
+    const { data } = await axios.post<GetTaskResponse>('/api/task', taskData);
+    return data;
+  };
+
+  /**
+   * Create a new draft task.
+   *
+   * @param {CreateDraftTaskRequest} taskData
+   * @return {Promise<GetTaskResponse>}
+   */
+  const createDraftTask = async (taskData: CreateDraftTaskRequest): Promise<GetTaskResponse> => {
     const { data } = await axios.post<GetTaskResponse>('/api/task', taskData);
     return data;
   };
@@ -63,10 +76,10 @@ export const useTaskApi = (axios: AxiosInstance) => {
    * Update a task by its ID.
    *
    * @param {string} taskId - The UUID of the task to update.
-   * @param {Partial<CreateTaskRequest>} updates - Fields to update for the task.
+   * @param {UpdateTaskRequest} updates - Fields to update for the task.
    * @return {Promise<GetTaskResponse>} The updated task.
    */
-  const updateTask = async (taskId: string, updates: Partial<CreateTaskRequest>): Promise<GetTaskResponse> => {
+  const updateTask = async (taskId: string, updates: UpdateTaskRequest): Promise<GetTaskResponse> => {
     const { data } = await axios.put<GetTaskResponse>(`/api/task/${taskId}`, updates);
     return data;
   };
@@ -80,6 +93,18 @@ export const useTaskApi = (axios: AxiosInstance) => {
    */
   const updateTaskStatus = async (taskId: string, updates: UpdateTaskStatusRequest): Promise<GetTaskResponse> => {
     const { data } = await axios.put<GetTaskResponse>(`/api/task/${taskId}/status/`, updates);
+    return data;
+  };
+
+  /**
+   * Submit an existing draft task to Prefect with current layer configuration.
+   *
+   * @param {string} taskId
+   * @param {SubmitTaskRequest} payload
+   * @return {Promise<GetTaskResponse>}
+   */
+  const submitTask = async (taskId: string, payload: SubmitTaskRequest): Promise<GetTaskResponse> => {
+    const { data } = await axios.post<GetTaskResponse>(`/api/task/${taskId}/submit`, payload);
     return data;
   };
 
@@ -149,10 +174,12 @@ export const useTaskApi = (axios: AxiosInstance) => {
 
   return {
     createTask,
+    createDraftTask,
     getTaskById,
     getAllTasks,
     updateTask,
     updateTaskStatus,
+    submitTask,
     publishTaskDashboard,
     getTaskDashboard,
     addProjectsToTask,

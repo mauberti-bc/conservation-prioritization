@@ -6,14 +6,38 @@ import { SidebarUIContextProvider } from 'context/sidebarUIContext';
 import { TaskContextProvider } from 'context/taskContext';
 import { RequestAccessPage } from 'features/access/RequestAccessPage';
 import { DashboardPage } from 'features/dashboard/DashboardPage';
+import { CreateTaskPage } from 'features/home/CreateTaskPage';
 import { HomePage } from 'features/home/HomePage';
-import { CreateTaskDialog } from 'features/home/task/create/CreateTaskDialog';
+import { ViewTaskPage } from 'features/home/ViewTaskPage';
 import { PublicTaskDashboardPage } from 'features/public/PublicTaskDashboardPage';
 import { AuthRedirectGuard } from 'guards/Guards';
 import { useAuthContext } from 'hooks/useContext';
 import { BaseLayout } from 'layouts/BaseLayout';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthRouter } from './AuthRouter';
+
+const RootRoute = () => {
+  const authContext = useAuthContext();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const hasOidcCallbackParams = params.has('code') && params.has('state');
+  const isLoggedIn =
+    authContext.auth.isAuthenticated || Boolean(authContext.auth.user && !authContext.auth.user.expired);
+
+  if (hasOidcCallbackParams) {
+    if (authContext.auth.isLoading || authContext.auth.activeNavigator === 'signinRedirect') {
+      return null;
+    }
+
+    if (isLoggedIn) {
+      return <Navigate to="/t/" replace />;
+    }
+
+    return <Navigate to="/auth/login" replace />;
+  }
+
+  return <Navigate to="/t/" replace />;
+};
 
 export const AppRouter = () => {
   return (
@@ -27,7 +51,7 @@ export const AppRouter = () => {
         }
       />
       <Route
-        path="/t/dashboard/:dashboardId"
+        path="/t/:taskId/dashboard/:dashboardId"
         element={
           <DialogContextProvider>
             <MapContextProvider>
@@ -54,13 +78,11 @@ export const AppRouter = () => {
               <MapContextProvider>
                 <BaseLayout>
                   <SidebarUIContextProvider>
-                    <TaskContextProvider>
-                      <ProjectContextProvider>
-                        <LayerSelectionContextProvider>
-                          <CreateTaskDialog />
-                        </LayerSelectionContextProvider>
-                      </ProjectContextProvider>
-                    </TaskContextProvider>
+                    <ProjectContextProvider>
+                      <LayerSelectionContextProvider>
+                        <CreateTaskPage />
+                      </LayerSelectionContextProvider>
+                    </ProjectContextProvider>
                   </SidebarUIContextProvider>
                 </BaseLayout>
               </MapContextProvider>
@@ -69,7 +91,27 @@ export const AppRouter = () => {
         }
       />
       <Route
-        path="/t/*"
+        path="/t/"
+        element={
+          <AuthRedirectGuard redirectTo="/auth/login">
+            <DialogContextProvider>
+              <MapContextProvider>
+                <BaseLayout>
+                  <SidebarUIContextProvider>
+                    <ProjectContextProvider>
+                      <LayerSelectionContextProvider>
+                        <HomePage />
+                      </LayerSelectionContextProvider>
+                    </ProjectContextProvider>
+                  </SidebarUIContextProvider>
+                </BaseLayout>
+              </MapContextProvider>
+            </DialogContextProvider>
+          </AuthRedirectGuard>
+        }
+      />
+      <Route
+        path="/t/:taskId"
         element={
           <AuthRedirectGuard redirectTo="/auth/login">
             <DialogContextProvider>
@@ -79,7 +121,7 @@ export const AppRouter = () => {
                     <TaskContextProvider>
                       <ProjectContextProvider>
                         <LayerSelectionContextProvider>
-                          <HomePage />
+                          <ViewTaskPage />
                         </LayerSelectionContextProvider>
                       </ProjectContextProvider>
                     </TaskContextProvider>
@@ -111,18 +153,8 @@ export const AppRouter = () => {
           </MapContextProvider>
         }
       />
-      <Route path="/" element={<AuthEntryRedirect />} />
-      <Route path="*" element={<AuthEntryRedirect />} />
+      <Route path="/" element={<RootRoute />} />
+      <Route path="*" element={<Navigate to="/t/" replace />} />
     </Routes>
   );
-};
-
-const AuthEntryRedirect = () => {
-  const authContext = useAuthContext();
-
-  if (authContext.auth.isLoading) {
-    return null;
-  }
-
-  return authContext.auth.isAuthenticated ? <Navigate to="/t/" replace /> : <Navigate to="/auth/login" replace />;
 };

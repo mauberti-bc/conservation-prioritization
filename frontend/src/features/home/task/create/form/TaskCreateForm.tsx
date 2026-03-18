@@ -1,13 +1,13 @@
 import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import Stack from '@mui/system/Stack';
-import { LabelledSection } from 'components/layout/LabelledSection';
 import { TooltipStack } from 'components/tooltip/TooltipStack';
 import { useFormikContext } from 'formik';
 import { Feature } from 'geojson';
 import { OPTIMIZATION_VARIANT, RESAMPLING } from 'hooks/interfaces/useTaskApi.interface';
 import { TaskAdvancedSection } from './advanced/TaskAdvancedSection';
+import { TaskAdvancedForm } from './advanced/form/TaskAdvancedForm';
 import { TaskAreaSection } from './area/TaskAreaSection';
 import { TaskBudgetSection } from './budget/TaskBudgetSection';
 import { TaskLayerSection } from './layer/TaskLayerSection';
@@ -36,9 +36,22 @@ const COST_LAYER_OPTION: TaskLayerOption = {
 interface TaskCreateFormProps {
   isReadOnly?: boolean;
   autoSearchOnMount?: boolean;
+  showAreaSection?: boolean;
+  showAdvancedSection?: boolean;
+  showBudgetSection?: boolean;
+  showLayersSection?: boolean;
+  showLayersHeader?: boolean;
 }
 
-export const TaskCreateForm = ({ isReadOnly = false, autoSearchOnMount = false }: TaskCreateFormProps) => {
+export const TaskCreateForm = ({
+  isReadOnly = false,
+  autoSearchOnMount = false,
+  showAreaSection = true,
+  showAdvancedSection = true,
+  showBudgetSection = true,
+  showLayersSection = true,
+  showLayersHeader = true,
+}: TaskCreateFormProps) => {
   const costLayer = COST_LAYER_OPTION;
   const { values, handleChange, touched, errors } = useFormikContext<TaskCreateFormValues>();
 
@@ -46,72 +59,74 @@ export const TaskCreateForm = ({ isReadOnly = false, autoSearchOnMount = false }
     <>
       <Stack
         sx={{
-          px: 3,
-          display: 'flex',
           flexDirection: 'column',
-          gap: 3,
+          gap: 4,
         }}>
-        {!isReadOnly && (
-          <LabelledSection>
-            <Stack spacing={2}>
-              <TextField
-                fullWidth
-                label="Name"
-                name="name"
-                value={values.name}
-                onChange={handleChange}
-                error={touched.name && Boolean(errors.name)}
-                helperText={touched.name && errors.name ? String(errors.name) : ''}
-              />
-              <TextField
-                fullWidth
-                label="Description"
-                name="description"
-                value={values.description ?? ''}
-                onChange={handleChange}
-                multiline
-                minRows={2}
-                error={touched.description && Boolean(errors.description)}
-                helperText={touched.description && errors.description ? String(errors.description) : ''}
-              />
-            </Stack>
-          </LabelledSection>
+        <Stack spacing={2} pt={1}>
+          <TextField
+            fullWidth
+            label="Name"
+            name="name"
+            value={values.name}
+            onChange={handleChange}
+            disabled={isReadOnly}
+            error={touched.name && Boolean(errors.name)}
+            helperText={touched.name && errors.name ? String(errors.name) : ''}
+          />
+          <TextField
+            fullWidth
+            label="Description"
+            name="description"
+            value={values.description ?? ''}
+            onChange={handleChange}
+            multiline
+            minRows={2}
+            disabled={isReadOnly}
+            error={touched.description && Boolean(errors.description)}
+            helperText={touched.description && errors.description ? String(errors.description) : ''}
+          />
+        </Stack>
+        {showAreaSection && (
+          <Box>
+            <TaskAreaSection isReadOnly={isReadOnly} />
+          </Box>
         )}
-        <Box>
-          <TaskAreaSection isReadOnly={isReadOnly} />
-        </Box>
 
-        <Box flex={0}>
-          <TooltipStack tooltip="Enter the amount of money you have to spend" mb={1}>
-            <Typography
-              color="textSecondary"
-              fontWeight={700}
-              textTransform="uppercase"
-              letterSpacing={0.5}
-              variant="body2">
-              Budget
-            </Typography>
-          </TooltipStack>
-          <TaskBudgetSection costLayer={costLayer} />
-        </Box>
+        {showBudgetSection && (
+          <Box flex={0}>
+            <TooltipStack tooltip="Enter the amount of money you have to spend" mb={1}>
+              <Typography
+                color="textSecondary"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing={0.5}
+                variant="body2">
+                Budget
+              </Typography>
+            </TooltipStack>
+            <TaskBudgetSection costLayer={costLayer} isReadOnly={isReadOnly} />
+          </Box>
+        )}
 
-        <Box>
-          <TooltipStack tooltip="Select layers to conserve or avoid" mb={1}>
-            <Typography
-              color="textSecondary"
-              fontWeight={700}
-              textTransform="uppercase"
-              letterSpacing={0.5}
-              variant="body2">
-              Layers
-            </Typography>
-          </TooltipStack>
-          <TaskLayerSection isReadOnly={isReadOnly} autoSearchOnMount={autoSearchOnMount} />
-        </Box>
+        {showLayersSection && (
+          <Box>
+            {showLayersHeader && (
+              <TooltipStack tooltip="Select layers to conserve or avoid" mb={1}>
+                <Typography
+                  color="textSecondary"
+                  fontWeight={700}
+                  textTransform="uppercase"
+                  letterSpacing={0.5}
+                  variant="body2">
+                  Layers
+                </Typography>
+              </TooltipStack>
+            )}
+            <TaskLayerSection isReadOnly={isReadOnly} autoSearchOnMount={autoSearchOnMount} />
+          </Box>
+        )}
 
-        <Box>
-          <TaskAdvancedSection isReadOnly={isReadOnly} />
-        </Box>
+        {showAdvancedSection && <Box>{isReadOnly ? <TaskAdvancedForm isReadOnly /> : <TaskAdvancedSection />}</Box>}
       </Stack>
     </>
   );

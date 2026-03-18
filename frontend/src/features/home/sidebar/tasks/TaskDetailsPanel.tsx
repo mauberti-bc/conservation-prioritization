@@ -10,6 +10,7 @@ import { useConservationApi } from 'hooks/useConservationApi';
 import { useTaskContext } from 'hooks/useContext';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getTaskStatusLabel } from 'utils/task-status';
 import * as Yup from 'yup';
 import { PublishDashboardForm, PublishDashboardFormValues } from './publish/PublishDashboardForm';
 
@@ -143,7 +144,7 @@ export const TaskDetailsPanel = () => {
                 Summary
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap">
-                {task?.status && <Chip size="small" label={task.status} color="primary" />}
+                {task?.status && <Chip size="small" label={getTaskStatusLabel(task.status)} color="primary" />}
                 {task?.variant && <Chip size="small" label={`Variant: ${task.variant}`} />}
                 {task?.resampling && <Chip size="small" label={`Resampling: ${task.resampling}`} />}
                 {typeof task?.resolution === 'number' && <Chip size="small" label={`Resolution: ${task.resolution}`} />}
@@ -224,7 +225,7 @@ export const TaskDetailsPanel = () => {
         key={task?.task_id ?? 'publish-dashboard'}
         open={publishOpen}
         size="sm"
-        dialogTitle="Publish dashboard"
+        dialogTitle="Publish Dashboard"
         dialogSaveButtonLabel="Publish"
         dialogError={publishError ?? undefined}
         dialogLoading={isPublishing}

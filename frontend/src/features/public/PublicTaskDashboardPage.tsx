@@ -7,6 +7,7 @@ import { useConservationApi } from 'hooks/useConservationApi';
 import useDataLoader from 'hooks/useDataLoader';
 import { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import { getTaskStatusLabel } from 'utils/task-status';
 import { MapContainer } from 'features/home/map/MapContainer';
 import { useTaskStatusWebSocket } from 'features/home/task/status/useTaskStatusWebSocket';
 
@@ -60,10 +61,10 @@ export const PublicTaskDashboardPage = () => {
     }
 
     if (activeStatus === TASK_STATUS.COMPLETED && tileStatus && tileStatus !== TILE_STATUS.COMPLETED) {
-      return `${activeStatus} (tiling: ${tileStatus})`;
+      return `${getTaskStatusLabel(activeStatus)} (tiling: ${tileStatus})`;
     }
 
-    return activeStatus;
+    return getTaskStatusLabel(activeStatus);
   }, [taskStatus, taskDataLoader.data]);
 
   return (

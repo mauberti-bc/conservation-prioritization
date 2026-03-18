@@ -105,4 +105,22 @@ export class TaskGeometryRepository extends BaseRepository {
 
     return response.rows;
   }
+
+  /**
+   * Soft deletes all task geometry join records for a task.
+   *
+   * @param {string} taskId
+   * @return {*}  {Promise<void>}
+   * @memberof TaskGeometryRepository
+   */
+  async deleteTaskGeometriesByTaskId(taskId: string): Promise<void> {
+    const sqlStatement = SQL`
+      UPDATE task_geometry
+      SET record_end_date = now()
+      WHERE task_id = ${taskId}
+      AND record_end_date IS NULL
+    `;
+
+    await this.connection.sql(sqlStatement);
+  }
 }

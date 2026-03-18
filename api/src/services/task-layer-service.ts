@@ -67,4 +67,15 @@ export class TaskLayerService extends DBService {
   async deleteTaskLayer(data: DeleteTaskLayer): Promise<void> {
     return this.taskLayerRepository.deleteTaskLayer(data);
   }
+
+  /**
+   * Delete all task layers for a given task ID.
+   *
+   * @param {string} taskId
+   * @return {*}  {Promise<void>}
+   * @memberof TaskLayerService
+   */
+  async deleteTaskLayersByTaskId(taskId: string): Promise<void> {
+    return this.taskLayerRepository.deleteTaskLayersByTaskId(taskId);
+  }
 }

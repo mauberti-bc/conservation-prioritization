@@ -6,12 +6,22 @@ import { useAuthContext } from 'hooks/useContext';
 export const HeaderUnauthenticated = () => {
   const authContext = useAuthContext();
 
+  const handleLogin = async () => {
+    try {
+      await authContext.auth.signinRedirect();
+    } catch (error) {
+      console.error('signinRedirect failed from header', error);
+    }
+  };
+
   return (
     <Button
       component="a"
       color="inherit"
       variant="text"
-      onClick={() => authContext.auth.signinRedirect()}
+      onClick={() => {
+        void handleLogin();
+      }}
       disableElevation
       startIcon={<Icon path={mdiLoginVariant} size={1} />}
       data-testid="menu_log_in"

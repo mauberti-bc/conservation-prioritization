@@ -33,6 +33,10 @@ export type ApiPaginationRequestOptions = {
    * @type {('asc' | 'desc')}
    */
   order?: 'asc' | 'desc';
+  /**
+   * Optional server-side search term.
+   */
+  search?: string;
 };
 
 /**

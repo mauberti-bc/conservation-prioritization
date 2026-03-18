@@ -136,4 +136,22 @@ export class TaskLayerConstraintRepository extends BaseRepository {
       ]);
     }
   }
+
+  /**
+   * Deletes all task layer constraints for a given task.
+   *
+   * @param {string} taskId
+   * @return {*}  {Promise<void>}
+   * @memberof TaskLayerConstraintRepository
+   */
+  async deleteTaskLayerConstraintsByTaskId(taskId: string): Promise<void> {
+    const sqlStatement = SQL`
+      DELETE FROM task_layer_constraint tlc
+      USING task_layer tl
+      WHERE tlc.task_layer_id = tl.task_layer_id
+      AND tl.task_id = ${taskId}
+    `;
+
+    await this.connection.sql(sqlStatement);
+  }
 }

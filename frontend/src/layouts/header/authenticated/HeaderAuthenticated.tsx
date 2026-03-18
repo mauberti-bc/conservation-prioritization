@@ -1,18 +1,39 @@
-import { mdiAccountCircle } from '@mdi/js';
+import { mdiAccountCircle, mdiMenu } from '@mdi/js';
 import Icon from '@mdi/react';
-import { Button, Divider, MenuItem, Typography } from '@mui/material';
+import { Button, Divider, IconButton, Menu, MenuItem, Typography } from '@mui/material';
 import { Box } from '@mui/system';
 import { useAuthContext } from 'hooks/useContext';
+import { MouseEvent, useState } from 'react';
 
 export const HeaderAuthenticated = () => {
   const authContext = useAuthContext();
   const displayName =
     authContext.auth.user?.profile?.name || authContext.auth.user?.profile?.preferred_username || 'User';
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const isMobileMenuOpen = Boolean(anchorEl);
+
+  const handleOpenMobileMenu = (event: MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMobileMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    handleCloseMobileMenu();
+
+    try {
+      await authContext.auth.signoutRedirect();
+    } catch (error) {
+      console.error('signoutRedirect failed from header', error);
+    }
+  };
 
   return (
     <>
       <Box
-        display={{ display: 'flex' }}
+        display={{ xs: 'none', md: 'flex' }}
         alignItems="center"
         sx={{
           fontSize: '16px',
@@ -41,7 +62,9 @@ export const HeaderAuthenticated = () => {
         <Button
           component="a"
           variant="text"
-          onClick={() => authContext.auth.signoutRedirect()}
+          onClick={() => {
+            void handleLogout();
+          }}
           data-testid="menu_log_out"
           sx={{
             color: 'inherit',
@@ -52,16 +75,40 @@ export const HeaderAuthenticated = () => {
           Log Out
         </Button>
       </Box>
-      <MenuItem
-        component="a"
-        color="#1a5a96"
-        onClick={() => authContext.auth.signoutRedirect()}
-        data-testid="collapsed_menu_log_out"
-        sx={{
-          display: { xs: 'block', lg: 'none' },
-        }}>
-        Log out
-      </MenuItem>
+
+      <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center' }}>
+        <IconButton
+          color="inherit"
+          aria-label="Open account menu"
+          onClick={handleOpenMobileMenu}
+          size="large"
+          data-testid="mobile_header_menu_button">
+          <Icon path={mdiMenu} size={1} />
+        </IconButton>
+      </Box>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={isMobileMenuOpen}
+        onClose={handleCloseMobileMenu}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{ sx: { minWidth: 240, mt: 1 } }}>
+        <Box px={2} py={1.5} display="flex" alignItems="center">
+          <Icon path={mdiAccountCircle} size={1} />
+          <Typography ml={1} fontWeight={700} noWrap>
+            {displayName}
+          </Typography>
+        </Box>
+        <Divider />
+        <MenuItem
+          onClick={() => {
+            void handleLogout();
+          }}
+          data-testid="collapsed_menu_log_out">
+          Log out
+        </MenuItem>
+      </Menu>
     </>
   );
 };
