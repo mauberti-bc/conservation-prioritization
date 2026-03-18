@@ -1,12 +1,15 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getDBConnection } from '../../../database/db';
-import { DeleteTask } from '../../../models/task';
+import { DeleteTask, UpdateTask } from '../../../models/task';
+import { SubmitTaskRequest } from '../../../models/task-orchestrator';
 import { defaultErrorResponses } from '../../../openapi/schemas/http-responses';
-import { GetTaskSchema } from '../../../openapi/schemas/task';
+import { GetTaskSchema, UpdateTaskSchema } from '../../../openapi/schemas/task';
 import { authorizeRequestHandler } from '../../../request-handlers/security/authorization';
+import { TaskOrchestratorService } from '../../../services/task-orchestrator-service';
 import { TaskService } from '../../../services/task-service';
 import { getLogger } from '../../../utils/logger';
+import { UpdateTaskBody } from './task-update.interface';
 
 const defaultLog = getLogger(__filename);
 
@@ -90,6 +93,141 @@ export function getTaskById(): RequestHandler {
       return res.status(200).json(task);
     } catch (error) {
       defaultLog.error({ label: 'getTaskById', message: 'error', error });
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  };
+}
+
+/**
+ * PUT /task/{taskId}
+ *
+ * Updates a task by its ID.
+ */
+export const PUT: Operation = [
+  authorizeRequestHandler((req) => {
+    return {
+      and: [
+        {
+          discriminator: 'Task',
+          taskId: req.params.taskId
+        }
+      ]
+    };
+  }),
+  updateTask()
+];
+
+PUT.apiDoc = {
+  description: 'Update a task by its ID.',
+  tags: ['tasks'],
+  security: [
+    {
+      Bearer: []
+    }
+  ],
+  requestBody: {
+    required: true,
+    content: {
+      'application/json': {
+        schema: UpdateTaskSchema
+      }
+    }
+  },
+  parameters: [
+    {
+      in: 'path',
+      name: 'taskId',
+      required: true,
+      schema: {
+        type: 'string',
+        format: 'uuid'
+      },
+      description: 'UUID of the task to update.'
+    }
+  ],
+  responses: {
+    200: {
+      description: 'Task updated successfully.',
+      content: {
+        'application/json': {
+          schema: GetTaskSchema
+        }
+      }
+    },
+    ...defaultErrorResponses
+  }
+};
+
+/**
+ * Express request handler to update a task by its ID.
+ *
+ * @returns {RequestHandler}
+ */
+export function updateTask(): RequestHandler {
+  return async (req, res) => {
+    const taskId = req.params.taskId as string;
+    const body = req.body as UpdateTaskBody;
+
+    defaultLog.debug({ label: 'updateTask', message: `Updating task ${taskId}` });
+
+    const connection = getDBConnection(req.keycloak_token);
+
+    try {
+      await connection.open();
+
+      const taskService = new TaskService(connection);
+      const taskOrchestratorService = new TaskOrchestratorService(connection);
+      const updates: UpdateTask = {};
+
+      if (body.name !== undefined) {
+        updates.name = body.name;
+      }
+
+      if (body.description !== undefined) {
+        updates.description = body.description;
+      }
+
+      if (body.resolution !== undefined) {
+        updates.resolution = body.resolution ?? undefined;
+      }
+
+      if (body.resampling !== undefined) {
+        updates.resampling = body.resampling ?? undefined;
+      }
+
+      if (body.variant !== undefined) {
+        updates.variant = body.variant ?? undefined;
+      }
+
+      if (body.layers !== undefined || body.budget !== undefined) {
+        const layerConfigRequest: SubmitTaskRequest = {
+          layers: body.layers ?? [],
+          budget: body.budget
+        };
+
+        await taskOrchestratorService.configureTaskLayers(taskId, layerConfigRequest);
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await taskService.updateTask(taskId, updates);
+      }
+
+      if (body.status !== undefined) {
+        await taskService.updateTaskExecution(taskId, {
+          status: body.status
+        });
+      }
+
+      const task = await taskService.getTaskById(taskId);
+
+      await connection.commit();
+
+      return res.status(200).json(task);
+    } catch (error) {
+      defaultLog.error({ label: 'updateTask', message: 'error', error });
       await connection.rollback();
       throw error;
     } finally {

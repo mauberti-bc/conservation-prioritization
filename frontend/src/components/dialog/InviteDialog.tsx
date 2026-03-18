@@ -1,6 +1,6 @@
 import { mdiPlus } from '@mdi/js';
 import Icon from '@mdi/react';
-import { Box, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
+import { Box, Dialog, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
 import Button from '@mui/material/Button';
 import { FieldArray, Form, Formik } from 'formik';
 import { useEffect, useState } from 'react';
@@ -57,7 +57,7 @@ export const InviteDialog = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{title}</DialogTitle>
-      <DialogContent dividers>
+      <DialogContent sx={{ pt: 0 }}>
         {description && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             {description}
@@ -77,7 +77,7 @@ export const InviteDialog = ({
                     {values.emails.map((email, index) => (
                       <TextField
                         key={`email-${index}`}
-                        label={`Email ${index + 1}`}
+                        label={`Email`}
                         name={`emails.${index}`}
                         value={email}
                         onChange={handleChange}
@@ -91,21 +91,22 @@ export const InviteDialog = ({
                       </Typography>
                     )}
                     <Button
-                      variant="text"
+                      fullWidth={false}
                       startIcon={<Icon path={mdiPlus} size={0.8} />}
+                      sx={{ alignSelf: 'flex-start' }}
                       onClick={() => {
                         arrayHelpers.push('');
                       }}>
                       Add Another
                     </Button>
-                    <DialogActions sx={{ px: 0 }}>
-                      <Button variant="contained" type="submit" loading={isSubmitting}>
-                        {submitLabel}
-                      </Button>
+                    <Box display="flex" justifyContent="flex-end" gap={1}>
                       <Button variant="outlined" onClick={onClose} disabled={isSubmitting}>
                         Cancel
                       </Button>
-                    </DialogActions>
+                      <Button variant="contained" type="submit" loading={isSubmitting}>
+                        {submitLabel}
+                      </Button>
+                    </Box>
                   </Box>
                 )}
               />

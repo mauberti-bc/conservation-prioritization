@@ -71,4 +71,15 @@ export class TaskLayerConstraintService extends DBService {
   async deleteTaskLayerConstraint(data: DeleteTaskLayerConstraint): Promise<void> {
     return this.taskLayerConstraintRepository.deleteTaskLayerConstraint(data);
   }
+
+  /**
+   * Delete all task layer constraints for a given task ID.
+   *
+   * @param {string} taskId
+   * @return {*}  {Promise<void>}
+   * @memberof TaskLayerConstraintService
+   */
+  async deleteTaskLayerConstraintsByTaskId(taskId: string): Promise<void> {
+    return this.taskLayerConstraintRepository.deleteTaskLayerConstraintsByTaskId(taskId);
+  }
 }

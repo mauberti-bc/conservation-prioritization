@@ -7,9 +7,10 @@ import React from 'react';
 interface SidebarNavigationProps {
   activeView: SidebarView | null;
   onViewChange: (newView: SidebarView | null) => void;
+  showOnlyTasks?: boolean;
 }
 
-export const SidebarNavigation = ({ activeView, onViewChange }: SidebarNavigationProps) => {
+export const SidebarNavigation = ({ activeView, onViewChange, showOnlyTasks = false }: SidebarNavigationProps) => {
   const handleTabClick = (newValue: SidebarView) => {
     if (activeView === newValue) {
       onViewChange(null);
@@ -45,24 +46,28 @@ export const SidebarNavigation = ({ activeView, onViewChange }: SidebarNavigatio
             handleTabClick('tasks');
           }}
         />
-        <Tab
-          value="projects"
-          icon={<Icon path={mdiFolderOutline} size={1} />}
-          iconPosition="start"
-          label="Projects"
-          onClick={() => {
-            handleTabClick('projects');
-          }}
-        />
-        <Tab
-          value="layers"
-          icon={<Icon path={mdiLayersTripleOutline} size={1} />}
-          iconPosition="start"
-          label="Layers"
-          onClick={() => {
-            handleTabClick('layers');
-          }}
-        />
+        {!showOnlyTasks && (
+          <Tab
+            value="projects"
+            icon={<Icon path={mdiFolderOutline} size={1} />}
+            iconPosition="start"
+            label="Projects"
+            onClick={() => {
+              handleTabClick('projects');
+            }}
+          />
+        )}
+        {!showOnlyTasks && (
+          <Tab
+            value="layers"
+            icon={<Icon path={mdiLayersTripleOutline} size={1} />}
+            iconPosition="start"
+            label="Layers"
+            onClick={() => {
+              handleTabClick('layers');
+            }}
+          />
+        )}
       </Tabs>
     </Box>
   );

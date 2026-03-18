@@ -77,4 +77,15 @@ export class TaskGeometryService extends DBService {
 
     return geometriesByTaskId;
   }
+
+  /**
+   * Soft deletes all task geometry associations for a task.
+   *
+   * @param {string} taskId
+   * @return {*}  {Promise<void>}
+   * @memberof TaskGeometryService
+   */
+  async deleteTaskGeometriesByTaskId(taskId: string): Promise<void> {
+    await this.taskGeometryRepository.deleteTaskGeometriesByTaskId(taskId);
+  }
 }

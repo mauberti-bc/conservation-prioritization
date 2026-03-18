@@ -1,6 +1,6 @@
 import { mdiCurrencyUsd } from '@mdi/js';
 import Icon from '@mdi/react';
-import { Box, TextField } from '@mui/material';
+import { Box, InputAdornment, TextField } from '@mui/material';
 import { grey } from '@mui/material/colors';
 import { useFormikContext } from 'formik';
 import { formatBudget } from 'utils/currency';
@@ -11,9 +11,10 @@ const MAX_DIGITS = 15;
 
 interface TaskBudgetSectionProps {
   costLayer?: TaskLayerOption;
+  isReadOnly?: boolean;
 }
 
-export const TaskBudgetSection = ({ costLayer }: TaskBudgetSectionProps) => {
+export const TaskBudgetSection = ({ costLayer, isReadOnly = false }: TaskBudgetSectionProps) => {
   const { values, setFieldValue } = useFormikContext<TaskCreateFormValues>();
 
   const targetLayer = values.budget?.path === costLayer?.path ? values.budget : null;
@@ -85,10 +86,14 @@ export const TaskBudgetSection = ({ costLayer }: TaskBudgetSectionProps) => {
         value={existingMax !== null ? formatBudget(existingMax.toString()) : ''}
         onChange={handleChange}
         fullWidth
-        disabled={!costLayer}
+        disabled={!costLayer || isReadOnly}
         slotProps={{
           input: {
-            startAdornment: <Icon path={mdiCurrencyUsd} size={1} style={{ color: grey[500] }} />,
+            startAdornment: (
+              <InputAdornment position="start">
+                <Icon path={mdiCurrencyUsd} size={1} style={{ color: grey[500] }} />
+              </InputAdornment>
+            ),
           },
         }}
       />

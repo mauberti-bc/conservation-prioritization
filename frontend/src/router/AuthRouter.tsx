@@ -8,15 +8,17 @@ import { Navigate, Route, Routes } from 'react-router-dom';
  */
 export const AuthRouter = () => {
   const authContext = useAuthContext();
+  const isLoggedIn =
+    authContext.auth.isAuthenticated || Boolean(authContext.auth.user && !authContext.auth.user.expired);
 
-  if (authContext.auth.isAuthenticated) {
-    return <Navigate to="/t/" replace />;
+  if (isLoggedIn) {
+    return <Navigate to="/" replace />;
   }
 
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/logout" element={<LogoutPage />} />
+      <Route path="login" element={<LoginPage />} />
+      <Route path="logout" element={<LogoutPage />} />
       <Route path="*" element={<Navigate to="/auth/login" replace />} />
     </Routes>
   );

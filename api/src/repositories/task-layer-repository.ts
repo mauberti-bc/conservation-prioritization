@@ -134,4 +134,20 @@ export class TaskLayerRepository extends BaseRepository {
       ]);
     }
   }
+
+  /**
+   * Deletes all task layers for a given task.
+   *
+   * @param {string} taskId
+   * @return {*}  {Promise<void>}
+   * @memberof TaskLayerRepository
+   */
+  async deleteTaskLayersByTaskId(taskId: string): Promise<void> {
+    const sqlStatement = SQL`
+      DELETE FROM task_layer
+      WHERE task_id = ${taskId}
+    `;
+
+    await this.connection.sql(sqlStatement);
+  }
 }

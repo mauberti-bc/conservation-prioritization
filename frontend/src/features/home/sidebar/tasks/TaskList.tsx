@@ -41,7 +41,7 @@ export const TaskList = ({
   const handleDeleteTask = (task: GetTaskResponse) => {
     dialogContext.setYesNoDialog({
       open: true,
-      dialogTitle: 'Delete task?',
+      dialogTitle: 'Delete Task?',
       dialogText: `Are you sure you want to delete "${task.name}"?`,
       onYes: async () => {
         dialogContext.setYesNoDialog({ open: false });
@@ -115,7 +115,7 @@ export const TaskList = ({
   };
 
   return (
-    <Box sx={{ overflowY: 'auto', maxHeight: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <LoadingGuard
         isLoading={isLoading}
         isLoadingFallback={<SkeletonList numberOfLines={3} />}
@@ -127,7 +127,7 @@ export const TaskList = ({
             </Typography>
           </Box>
         }>
-        <List dense sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <List dense sx={{ display: 'flex', flexDirection: 'column', gap: 1, overflowY: 'auto', flex: 1, minHeight: 0 }}>
           {tasks.map((task) => (
             <TaskListItem
               key={task.task_id}

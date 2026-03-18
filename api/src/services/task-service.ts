@@ -192,9 +192,10 @@ export class TaskService extends DBService {
    */
   async getTasksForProfilePaginated(
     profileId: string,
-    pagination: ApiPaginationOptions
+    pagination: ApiPaginationOptions,
+    search?: string
   ): Promise<{ tasks: TaskWithLayers[]; pagination: ApiPaginationResults }> {
-    const { tasks, total } = await this.taskRepository.getTasksByProfileIdPaginated(profileId, pagination);
+    const { tasks, total } = await this.taskRepository.getTasksByProfileIdPaginated(profileId, pagination, search);
     const taskIds = tasks.map((task) => task.task_id);
 
     if (!taskIds.length) {
