@@ -94,12 +94,6 @@ prefect-server:
   serviceAccount:
     create: false
     name: "prefect-server"
-  extraVolumes:
-    - name: prefect-tmp
-      emptyDir: {}
-  extraVolumeMounts:
-    - name: prefect-tmp
-      mountPath: /tmp/prefect
 
   ui:
     enabled: true
@@ -124,6 +118,12 @@ prefect-server:
     env:
       - name: PREFECT_HOME
         value: /tmp/prefect
+    extraVolumes:
+      - name: prefect-tmp
+        emptyDir: {}
+    extraVolumeMounts:
+      - name: prefect-tmp
+        mountPath: /tmp/prefect
 
   server:
     podSecurityContext:
@@ -147,12 +147,39 @@ prefect-server:
     env:
       - name: PREFECT_HOME
         value: /tmp/prefect
+    extraVolumes:
+      - name: prefect-tmp
+        emptyDir: {}
+    extraVolumeMounts:
+      - name: prefect-tmp
+        mountPath: /tmp/prefect
 
   migrations:
     enabled: true
-    backoffLimit: 3
+    backoffLimit: 6
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
     securityContext:
       runAsUser: 1003600000
+    env:
+      - name: PREFECT_HOME
+        value: /tmp/prefect
+      - name: PREFECT_API_DATABASE_CONNECTION_URL
+        valueFrom:
+          secretKeyRef:
+            name: conservation-tool-prefect-db
+            key: PREFECT_API_DATABASE_CONNECTION_URL
+    extraVolumes:
+    - name: prefect-tmp
+      emptyDir: {}
+    extraVolumeMounts:
+      - name: prefect-tmp
+        mountPath: /tmp/prefect
 
   ingress:
     enabled: false
@@ -165,10 +192,10 @@ prefect-worker:
   resources:
     requests:
       cpu: 50m
-      memory: 1028Mi
+      memory: 1024Mi
     limits:
       cpu: 100m
-      memory: 1028Mi
+      memory: 1024Mi
   replicas: 0
   pool: pool
   securityContext:
@@ -176,21 +203,34 @@ prefect-worker:
   env:
     - name: PREFECT_HOME
       value: /tmp/prefect
+  extraVolumes:
+    - name: prefect-tmp
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: prefect-tmp
+      mountPath: /tmp/prefect
 
 prefect-deploy:
   resources:
     requests:
       cpu: 50m
-      memory: 1028Mi
+      memory: 1024Mi
     limits:
       cpu: 100m
-      memory: 1028Mi
+      memory: 1024Mi
   replicas: 0
   securityContext:
     runAsUser: 1003600000
   env:
     - name: PREFECT_HOME
       value: /tmp/prefect  
+  extraVolumes:
+    - name: prefect-tmp
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: prefect-tmp
+      mountPath: /tmp/prefect
+
 
 # ========================
 # Services Configuration
@@ -242,10 +282,10 @@ services:
       resources:
         limits:
           cpu: 100m
-          memory: 1028Mi
+          memory: 1024Mi
         requests:
           cpu: 50m
-          memory: 1028Mi
+          memory: 1024Mi
       service:
         type: ClusterIP
         port: 80
@@ -264,10 +304,10 @@ services:
       resources:
         requests:
           cpu: 50m
-          memory: 1028Mi
+          memory: 1024Mi
         limits:
           cpu: 100m
-          memory: 1028Mi
+          memory: 1024Mi
       # TODO: split into podSecurityContext and containerSecurityContext
       securityContext:
         runAsUser: 1003600000
