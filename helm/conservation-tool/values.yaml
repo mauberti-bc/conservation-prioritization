@@ -92,6 +92,7 @@ keycloak:
 # ========================
 prefect-server:
   serviceAccount:
+    # why not create a service account? if we're not creating one, why name it? 
     create: false
     name: "prefect-server"
 
@@ -112,9 +113,13 @@ prefect-server:
       requests:
         cpu: 50m
         memory: 128Mi
+        # cpu: 100m
+        # memory: 256Mi
       limits:
         cpu: 50m
         memory: 128Mi
+        # cpu: 200m
+        # memory: 512Mi
     env:
       - name: PREFECT_HOME
         value: /tmp/prefect
@@ -126,6 +131,9 @@ prefect-server:
         mountPath: /tmp/prefect
 
   server:
+    # for dev 
+    debug: true
+    loggingLevel: DEBUG
     podSecurityContext:
       runAsUser: 1003600000
       fsGroup: null
@@ -156,24 +164,27 @@ prefect-server:
 
   migrations:
     enabled: true
-    backoffLimit: 6
+    backoffLimit: 2 # set to 2 during testing
     resources:
       requests:
-        cpu: 250m
-        memory: 512Mi
+        cpu: 100m
+        memory: 128Mi
       limits:
         cpu: 500m
-        memory: 512Mi
+        memory: 256Mi
+    # resources: 
+    #   requests:
+    #     cpu: 200m
+    #     memory: 512Mi
+    #   limits:
+    #     cpu: "1"
+    #     memory: 1Gi
     securityContext:
       runAsUser: 1003600000
-    env:
-      - name: PREFECT_HOME
-        value: /tmp/prefect
-      - name: PREFECT_API_DATABASE_CONNECTION_URL
-        valueFrom:
-          secretKeyRef:
-            name: conservation-tool-prefect-db
-            key: PREFECT_API_DATABASE_CONNECTION_URL
+      runAsNonRoot: true
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities: {}
     extraVolumes:
     - name: prefect-tmp
       emptyDir: {}
@@ -196,6 +207,7 @@ prefect-worker:
     limits:
       cpu: 100m
       memory: 1024Mi
+  # why no replicas?
   replicas: 0
   pool: pool
   securityContext:

@@ -1,15 +1,12 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "conservation-tool.fullname.db" . }}-{{ .Release.Revision }}
+  name: {{ include "conservation-tool.fullname.db-setup" . }}-{{ .Release.Revision }}
   namespace: {{ include "conservation-tool.namespace" . }}
   labels:
     {{- include "conservation-tool.labels" . | nindent 4 }}
     role: setup
   annotations:
-    # "helm.sh/hook": post-install,post-upgrade
-    # "helm.sh/hook-weight": "-10"
-    # "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
     {{- include "conservation-tool.annotations" . | nindent 4 }}
 spec:
   backoffLimit: 3
@@ -34,119 +31,76 @@ spec:
               echo "Database is ready!"
           env:
             - name: DB_HOST
-              value: "{{ .Values.database.host }}"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: DB_HOST
             - name: DB_PORT
-              value: "{{ .Values.database.port | default 5432 }}"
+              value: '{{ .Values.database.port | default "5432" }}'
             - name: DB_ADMIN
               valueFrom:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-admin
+                  key: DB_ADMIN
             - name: DB_ADMIN_PASS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-admin-password
+                  key: DB_ADMIN_PASS
+            # What is this?? 
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-admin-password
+                  # key: database-admin-password
+                  key: DB_ADMIN_PASS
       containers:
         - name: db-setup
           image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
           imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "IfNotPresent" }}
-          # command: ["sh", "-c"]
-          # args:
-          #   - |
-          #     set -euo pipefail
-          #     export PGPASSWORD="$DB_ADMIN_PASS"
-          #     psql \
-          #       -h "$DB_HOST" \
-          #       -p "$DB_PORT" \
-          #       -U "$DB_ADMIN" \
-          #       -d "$DB_DATABASE" << EOF
-
-          #     -- === API ROLE ===
-          #     DO $$
-          #     BEGIN
-          #       IF NOT EXISTS (
-          #         SELECT FROM pg_roles WHERE rolname = '${DB_USER_API}'
-          #       ) THEN
-          #         CREATE ROLE ${DB_USER_API} LOGIN PASSWORD '${DB_USER_API_PASS}';
-          #       ELSE
-          #         ALTER ROLE ${DB_USER_API} LOGIN PASSWORD '${DB_USER_API_PASS}';
-          #       END IF;
-          #     END
-          #     $$;
-
-          #     -- === PREFECT ROLE ===
-          #     DO $$
-          #     BEGIN
-          #       IF NOT EXISTS (
-          #         SELECT FROM pg_roles WHERE rolname = '${DB_USER_PREFECT}'
-          #       ) THEN
-          #         CREATE ROLE ${DB_USER_PREFECT} LOGIN PASSWORD '${DB_USER_PREFECT_PASS}';
-          #       ELSE
-          #         ALTER ROLE ${DB_USER_PREFECT} LOGIN PASSWORD '${DB_USER_PREFECT_PASS}';
-          #       END IF;
-          #     END
-          #     $$;
-
-          #     -- === GRANTS ===
-          #     GRANT CONNECT ON DATABASE ${DB_DATABASE} TO ${DB_USER_API}, ${DB_USER_PREFECT};
-          #     GRANT USAGE ON SCHEMA public TO ${DB_USER_API}, ${DB_USER_PREFECT};
-
-          #     GRANT SELECT, INSERT, UPDATE, DELETE
-          #     ON ALL TABLES IN SCHEMA public
-          #     TO ${DB_USER_API}, ${DB_USER_PREFECT};
-
-          #     ALTER DEFAULT PRIVILEGES IN SCHEMA public
-          #     GRANT SELECT, INSERT, UPDATE, DELETE
-          #     ON TABLES
-          #     TO ${DB_USER_API}, ${DB_USER_PREFECT};
-
-          #     EOF
           env:
             - name: DB_HOST
-              value: "{{ .Values.database.host }}"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: DB_HOST
             - name: DB_PORT
-              value: "{{ .Values.database.port | default 5432 }}"
+              value: '{{ .Values.database.port | default "5432" }}'
             - name: DB_ADMIN
               valueFrom:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-admin
+                  key: DB_ADMIN
             - name: DB_ADMIN_PASS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-admin-password
+                  key: DB_ADMIN_PASS
             - name: DB_USER_API
               valueFrom:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-user-api
+                  key: DB_USER_API
             - name: DB_USER_API_PASS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-user-api-password
+                  key: DB_USER_API_PASS
             - name: DB_USER_PREFECT
               valueFrom:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-user-prefect
+                  key: DB_USER_PREFECT
             - name: DB_USER_PREFECT_PASS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-user-prefect-password
+                  key: DB_USER_PREFECT_PASS
             - name: DB_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-name
+                  key: DB_DATABASE
             - name: DB_SCHEMA
               value: "{{ .Values.database.schema | default "" }}"
             - name: CHANGE_VERSION
