@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "conservation-tool.fullname.db-setup" . }}-{{ .Release.Revision }}
+  name: {{ include "conservation-tool.fullname.dbSetup" . }}-{{ .Release.Revision }}
   namespace: {{ include "conservation-tool.namespace" . }}
   labels:
     {{- include "conservation-tool.labels" . | nindent 4 }}
@@ -56,8 +56,8 @@ spec:
                   key: DB_ADMIN_PASS
       containers:
         - name: db-setup
-          image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
-          imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "IfNotPresent" }}
+          image: "{{ .Values.registry }}/{{ .Values.services.dbSetup.image.stream }}:{{ .Values.services.dbSetup.image.tag }}"
+          imagePullPolicy: {{ .Values.services.dbSetup.image.pullPolicy | default "IfNotPresent" }}
           env:
             - name: DB_HOST
               valueFrom:
@@ -102,7 +102,10 @@ spec:
                   name: {{ include "conservation-tool.fullname.db" . }}
                   key: DB_DATABASE
             - name: DB_SCHEMA
-              value: "{{ .Values.database.schema | default "" }}"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "conservation-tool.fullname.db" . }}
+                  key: DB_SCHEMA
             - name: CHANGE_VERSION
               value: "{{ .Values.environment.changeId | default "" }}"
             - name: NODE_ENV
@@ -110,6 +113,6 @@ spec:
             - name: VERSION
               value: "{{ printf "%s-%s-%s" .Values.environment.name .Chart.AppVersion .Values.environment.changeId }}"
           resources:
-            {{- toYaml .Values.services.db.resources | nindent 12 }}
+            {{- toYaml .Values.services.dbSetup.resources | nindent 12 }}
       restartPolicy: Never
       dnsPolicy: ClusterFirst

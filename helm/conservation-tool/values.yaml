@@ -373,6 +373,19 @@ services:
       size: 0.5Gi
       accessMode: ReadWriteOnce
 
+  dbSetup:
+    image:
+      stream: "db-setup"
+      tag: "dev"
+      pullPolicy: "IfNotPresent"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+
 # ========================
 # Background Services
 # ========================
