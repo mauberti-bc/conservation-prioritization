@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "conservation-tool.fullname.db-setup" . }}-{{ .Release.Revision }}
+  name: {{ include "conservation-tool.fullname.dbSetup" . }}-{{ .Release.Revision }}
   namespace: {{ include "conservation-tool.namespace" . }}
   labels:
     {{- include "conservation-tool.labels" . | nindent 4 }}
@@ -47,16 +47,14 @@ spec:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname.db" . }}
                   key: DB_ADMIN_PASS
-            # What is this?? 
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "conservation-tool.fullname.db" . }}
-                  # key: database-admin-password
                   key: DB_ADMIN_PASS
       containers:
         - name: db-setup
-          image: "{{ .Values.registry }}/{{ .Values.services.db-setup.image.stream }}:{{ .Values.services.db-setup.image.tag }}"
+          image: "{{ .Values.registry }}/{{ .Values.services.dbSetup.image.stream }}:{{ .Values.services.dbSetup.image.tag }}"
           imagePullPolicy: {{ .Values.services.dbSetup.image.pullPolicy | default "IfNotPresent" }}
           env:
             - name: DB_HOST
