@@ -39,23 +39,22 @@ spec:
             runAsUser: {{ .Values.services.db.securityContext.runAsUser }}
             {{- end }}
           env:
+              # TODO: this doesn't exist in values.yaml
             - name: POSTGRES_DB
               value: "{{ .Values.database.name }}"
+              # TODO: confirm this is the correct mapping
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-db
                   key: DB_ADMIN
-              # value: "{{ .Values.database.admin }}"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-db
                   key: DB_ADMIN_PASS
-              # value: "{{ .Values.database.adminPassword }}"
             - name: PGDATA
               value: '{{ .Values.database.pgData | default "/var/lib/postgresql/data" }}'
-              # value: '{{ .Values.database.pgData | default "/var/lib/postgresql/data" }}'
             - name: PGOPTIONS
               value: "-c maintenance_work_mem=128MB"
             - name: PGTZ
