@@ -373,7 +373,7 @@ services:
       size: 0.5Gi
       accessMode: ReadWriteOnce
 
-  db-setup:
+  dbSetup:
     image:
       stream: "db-setup"
       tag: "dev"
