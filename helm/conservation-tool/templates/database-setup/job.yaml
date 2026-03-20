@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "conservation-tool.fullname.dbSetup" . }}-{{ .Release.Revision }}
+  name: {{ include "conservation-tool.fullname.db-setup" . }}-{{ .Release.Revision }}
   namespace: {{ include "conservation-tool.namespace" . }}
   labels:
     {{- include "conservation-tool.labels" . | nindent 4 }}
@@ -56,7 +56,7 @@ spec:
                   key: DB_ADMIN_PASS
       containers:
         - name: db-setup
-          image: "{{ .Values.registry }}/{{ .Values.services.dbSetup.image.stream }}:{{ .Values.services.dbSetup.image.tag }}"
+          image: "{{ .Values.registry }}/{{ .Values.services.db-setup.image.stream }}:{{ .Values.services.db-setup.image.tag }}"
           imagePullPolicy: {{ .Values.services.dbSetup.image.pullPolicy | default "IfNotPresent" }}
           env:
             - name: DB_HOST

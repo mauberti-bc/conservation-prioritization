@@ -73,6 +73,10 @@ DB fullname
 {{ include "conservation-tool.fullname" . }}-db
 {{- end }}
 
+{{- define "conservation-tool.fullname.dbSetup" -}}
+{{- printf "%s-db-setup" (include "conservation-tool.fullname" .) -}}
+{{- end -}}
+
 {{- /*
 Labels
 */ -}}
