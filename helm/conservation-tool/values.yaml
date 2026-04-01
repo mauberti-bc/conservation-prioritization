@@ -164,7 +164,7 @@ prefect-server:
 
   migrations:
     enabled: true
-    backoffLimit: 2 # set to 2 during testing
+    backoffLimit: 4
     resources:
       requests:
         cpu: 100m
@@ -172,13 +172,6 @@ prefect-server:
       limits:
         cpu: 500m
         memory: 256Mi
-    # resources: 
-    #   requests:
-    #     cpu: 200m
-    #     memory: 512Mi
-    #   limits:
-    #     cpu: "1"
-    #     memory: 1Gi
     securityContext:
       runAsUser: 1003600000
       runAsNonRoot: true
