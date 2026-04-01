@@ -42,7 +42,6 @@ spec:
               # TODO: this doesn't exist in values.yaml
             - name: POSTGRES_DB
               value: "{{ .Values.database.name }}"
-              # TODO: confirm this is the correct mapping
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
