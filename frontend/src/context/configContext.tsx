@@ -50,7 +50,7 @@ const parseFeatureFlagsString = (featureFlagsString: string): string[] => {
  *
  * This is used when running the app locally in docker.
  *
- * Note: All changes to env vars here must also be reflected in the `app/server/index.js` file, so that the app has
+ * Note: All changes to env vars here must also be reflected in the `frontend/server/index.mjs` file, so that the app has
  * access to the same env vars when running in both local development (via compose.yml) and in OpenShift.
  *
  * @return {*}  {IConfig}
@@ -98,7 +98,7 @@ const getLocalConfig = (): IConfig => {
 };
 
 /**
- * Return the app config based on a deployed app, running via `app/server/index.js`
+ * Return the app config based on a deployed app, running via `frontend/server/index.mjs`
  *
  * @return {*}  {Promise<IConfig>}
  */
@@ -125,7 +125,7 @@ const isDevelopment = (): boolean => {
  * Provides environment variables.
  *
  * This will fetch env vars from either `import.meta.env` if running with MODE=development, or from
- * `app/server/index.js` if running as a deployed MODE=production build.
+ * `frontend/server/index.mjs` if running as a deployed MODE=production build.
  *
  * @param {*} props
  * @return {*}

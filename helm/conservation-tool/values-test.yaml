@@ -191,6 +191,20 @@ services:
       stream: "frontend"
       tag: "test"
       pullPolicy: "Always"
+    config:
+      port: 7100
+      image:
+        stream: "frontend-config"
+        tag: "test"
+        pullPolicy: "Always"
+      resources:
+        requests:
+          cpu: 25m
+          memory: 64Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+      env: []
     service:
       type: ClusterIP
       port: 7070
