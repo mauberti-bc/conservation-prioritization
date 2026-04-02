@@ -218,41 +218,58 @@ jobs:
         id: backend-secrets
         run: |
           echo "Extracting backend secrets from OpenShift..."
-          echo "db_host=$(oc get secret conservation-tool-db -o jsonpath='{.data.host}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "db_user_api=$(oc get secret conservation-tool-db -o jsonpath='{.data.api-username}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "db_user_api_pass=$(oc get secret conservation-tool-db -o jsonpath='{.data.api-password}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "db_user_prefect=$(oc get secret conservation-tool-db -o jsonpath='{.data.prefect-username}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "db_user_prefect_pass=$(oc get secret conservation-tool-db -o jsonpath='{.data.prefect-password}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "db_admin=$(oc get secret conservation-tool-db -o jsonpath='{.data.admin-username}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "db_admin_pass=$(oc get secret conservation-tool-db -o jsonpath='{.data.admin-password}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "db_port=$(oc get secret conservation-tool-db -o jsonpath='{.data.port}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "db_database=$(oc get secret conservation-tool-db -o jsonpath='{.data.database}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "db_schema=$(oc get secret conservation-tool-db -o jsonpath='{.data.schema}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "object_store_url=$(oc get secret conservation-tool-storage -o jsonpath='{.data.url}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "object_store_access_key=$(oc get secret conservation-tool-storage -o jsonpath='{.data.access-key}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "object_store_secret_key=$(oc get secret conservation-tool-storage -o jsonpath='{.data.secret-key}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "object_store_bucket=$(oc get secret conservation-tool-storage -o jsonpath='{.data.bucket-name}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "s3_key_prefix=$(oc get secret conservation-tool-storage -o jsonpath='{.data.key-prefix}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "keycloak_host=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.host}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "keycloak_realm=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.realm}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "keycloak_admin_username=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.admin-username}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "keycloak_admin_password=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.admin-password}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "keycloak_api_token_url=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.api-token-url}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "keycloak_api_client_id=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.api-client-id}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "keycloak_api_client_secret=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.api-client-secret}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "keycloak_api_host=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.api-host}' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "keycloak_api_environment=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.api-environment}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_host=$(oc get secret conservation-tool-db -o jsonpath='{.data.DB_HOST}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_user_api=$(oc get secret conservation-tool-db -o jsonpath='{.data.DB_USER_API}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_user_api_pass=$(oc get secret conservation-tool-db -o jsonpath='{.data.DB_USER_API_PASS}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_user_prefect=$(oc get secret conservation-tool-db -o jsonpath='{.data.DB_USER_PREFECT}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_user_prefect_pass=$(oc get secret conservation-tool-db -o jsonpath='{.data.DB_USER_PREFECT_PASS}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_admin=$(oc get secret conservation-tool-db -o jsonpath='{.data.DB_ADMIN}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_admin_pass=$(oc get secret conservation-tool-db -o jsonpath='{.data.DB_ADMIN_PASS}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_port=$(oc get secret conservation-tool-db -o jsonpath='{.data.DB_PORT}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_database=$(oc get secret conservation-tool-db -o jsonpath='{.data.DB_DATABASE}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "db_schema=$(oc get secret conservation-tool-db -o jsonpath='{.data.DB_SCHEMA}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "object_store_url=$(oc get secret conservation-tool-object-storage -o jsonpath='{.data.OBJECT_STORE_URL}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "object_store_access_key=$(oc get secret conservation-tool-object-storage -o jsonpath='{.data.OBJECT_STORE_ACCESS_KEY_ID}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "object_store_secret_key=$(oc get secret conservation-tool-object-storage -o jsonpath='{.data.OBJECT_STORE_SECRET_KEY_ID}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "object_store_bucket=$(oc get secret conservation-tool-object-storage -o jsonpath='{.data.OBJECT_STORE_BUCKET_NAME}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "s3_key_prefix=$(oc get secret conservation-tool-object-storage -o jsonpath='{.data.S3_KEY_PREFIX}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_host=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.KEYCLOAK_HOST}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_realm=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.KEYCLOAK_REALM}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_admin_username=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.KEYCLOAK_ADMIN_USERNAME}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_admin_password=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.KEYCLOAK_ADMIN_PASSWORD}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_api_token_url=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.KEYCLOAK_API_TOKEN_URL}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_api_client_id=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.KEYCLOAK_API_CLIENT_ID}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_api_client_secret=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.KEYCLOAK_API_CLIENT_SECRET}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_api_host=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.KEYCLOAK_API_HOST}' | base64 -d)" >> $GITHUB_OUTPUT
+          echo "keycloak_api_environment=$(oc get secret conservation-tool-keycloak -o jsonpath='{.data.KEYCLOAK_API_ENVIRONMENT}' | base64 -d)" >> $GITHUB_OUTPUT
 
-      - name: Build Prefect database connection string
+      - name: Extract Prefect DB connection URL
         id: prefect-db-url
         run: |
-          DB_USER_PREFECT="${{ steps.backend-secrets.outputs.db_user_prefect }}"
-          DB_USER_PREFECT_PASS="${{ steps.backend-secrets.outputs.db_user_prefect_pass }}"
-          DB_HOST="${{ steps.backend-secrets.outputs.db_host }}"
-          DB_PORT="${{ steps.backend-secrets.outputs.db_port }}"
-          DB_DATABASE="${{ steps.backend-secrets.outputs.db_database }}"
-          PREFECT_API_DATABASE_CONNECTION_URL="postgresql+asyncpg://${DB_USER_PREFECT}:${DB_USER_PREFECT_PASS}@${DB_HOST}:${DB_PORT}/${DB_DATABASE}"
+          PREFECT_API_DATABASE_CONNECTION_URL=$(oc get secret conservation-tool-prefect-db -o jsonpath='{.data.PREFECT_API_DATABASE_CONNECTION_URL}' | base64 -d)
           echo "prefect_api_db_url=${PREFECT_API_DATABASE_CONNECTION_URL}" >> $GITHUB_OUTPUT
+
+      - name: Validate required backend values
+        run: |
+          required_values=(
+            "${{ steps.backend-secrets.outputs.db_host }}"
+            "${{ steps.backend-secrets.outputs.db_port }}"
+            "${{ steps.backend-secrets.outputs.db_database }}"
+            "${{ steps.backend-secrets.outputs.db_user_api }}"
+            "${{ steps.backend-secrets.outputs.db_user_api_pass }}"
+            "${{ steps.backend-secrets.outputs.db_user_prefect }}"
+            "${{ steps.backend-secrets.outputs.db_user_prefect_pass }}"
+            "${{ steps.backend-secrets.outputs.db_admin }}"
+            "${{ steps.backend-secrets.outputs.db_admin_pass }}"
+            "${{ steps.prefect-db-url.outputs.prefect_api_db_url }}"
+          )
+
+          for value in "${required_values[@]}"; do
+            if [ -z "${value}" ]; then
+              echo "Required secret/config value is empty. Aborting deploy."
+              exit 1
+            fi
+          done
 
       - name: Build Helm dependencies
         working-directory: helm/conservation-tool
@@ -294,8 +311,9 @@ jobs:
             --set env.KEYCLOAK_API_CLIENT_SECRET="${{ steps.backend-secrets.outputs.keycloak_api_client_secret }}" \
             --set env.KEYCLOAK_API_HOST="${{ steps.backend-secrets.outputs.keycloak_api_host }}" \
             --set env.KEYCLOAK_API_ENVIRONMENT="${{ steps.backend-secrets.outputs.keycloak_api_environment }}" \
-            --set env.PREFECT_API_DATABASE_CONNECTION_URL="${{ steps.prefect-db-url.outputs.prefect_api_db_url }}" \
-            --set 'prefect-server.config.PREFECT_API_DATABASE_CONNECTION_URL'="${{ steps.prefect-db-url.outputs.prefect_api_db_url }}" \
+            --set-string env.PREFECT_API_DATABASE_CONNECTION_URL="${{ steps.prefect-db-url.outputs.prefect_api_db_url }}" \
+            --set-string 'prefect-server.config.PREFECT_API_DATABASE_CONNECTION_URL'="${{ steps.prefect-db-url.outputs.prefect_api_db_url }}" \
+            --set-string 'prefect-server.config.PREFECT_SQLALCHEMY_DATABASE_CONNECTION_URL'="${{ steps.prefect-db-url.outputs.prefect_api_db_url }}" \
             --namespace ${OPENSHIFT_NAMESPACE} \
             --wait \
             --timeout=10m \
