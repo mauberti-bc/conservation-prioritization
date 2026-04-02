@@ -5,6 +5,9 @@ metadata:
   labels:
     app: {{ include "conservation-tool.fullname.frontend" . }}
 spec:
+  {{- if .Values.services.frontend.route.host }}
+  host: {{ .Values.services.frontend.route.host | quote }}
+  {{- end }}
   to:
     kind: Service
     name: {{ include "conservation-tool.fullname.frontend" . }}

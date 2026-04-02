@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "conservation-tool.fullname.frontend" . }}-ingress-from-router
-  namespace: {{ .Values.namespace | default (include "conservation-tool.namespace" .) }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "conservation-tool.labels" . | nindent 4 }}
 spec:
