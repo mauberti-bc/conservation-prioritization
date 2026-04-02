@@ -13,6 +13,7 @@ jobs:
   deploy:
     if: ${{ inputs.confirm }}
     uses: ./.github/workflows/deploy.yml
+    secrets: inherit
     with:
       source_tag: dev
       target_tag: test
