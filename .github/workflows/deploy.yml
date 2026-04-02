@@ -1,10 +1,10 @@
 name: Build and Push Images to OpenShift Registry
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-  workflow_dispatch:
   workflow_call:
     inputs:
       source_tag:
@@ -12,6 +12,9 @@ on:
         type: string
       target_tag:
         required: true
+        type: string
+      environment:
+        required: false
         type: string
 
 env:
@@ -163,6 +166,26 @@ jobs:
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-deploy"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.deploy .
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
+          docker push ${BASE_IMAGE}:${GIT_SHA}
+
+      - name: Build and push Database image
+        working-directory: database
+        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.database == 'true' }}
+        run: |
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/database"
+          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
+          docker push ${BASE_IMAGE}:${GIT_SHA}
+
+      - name: Build and push db-setup image
+        working-directory: database
+        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.db-setup == 'true' }}
+        run: |
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/db-setup"
+          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f .docker/db/Dockerfile.setup .
           docker push ${BASE_IMAGE}:${IMAGE_TAG}
           docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
           docker push ${BASE_IMAGE}:${GIT_SHA}

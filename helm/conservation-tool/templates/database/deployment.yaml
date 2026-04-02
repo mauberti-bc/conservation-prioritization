@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "conservation-tool.fullname.db" . }}
-  namespace: {{ .Values.namespace | default "default" }}
   labels:
     {{- include "conservation-tool.labels" . | nindent 4 }}
   annotations:
@@ -21,23 +20,44 @@ spec:
         app: {{ include "conservation-tool.fullname.db" . | quote }}
         role: db
     spec:
+      # pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        {{- if .Values.services.db.securityContext.runAsUser }}
+        runAsUser: {{ .Values.services.db.securityContext.runAsUser }}
+        {{- end }}
+        {{- if .Values.services.db.securityContext.fsGroup }}
+        fsGroup: {{ .Values.services.db.securityContext.fsGroup }}
+        {{- end }}
       containers:
         - name: postgresql
           image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
           imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "IfNotPresent" }}
+          securityContext:
+            runAsNonRoot: true
+            {{- if .Values.services.db.securityContext.runAsUser }}
+            runAsUser: {{ .Values.services.db.securityContext.runAsUser }}
+            {{- end }}
           env:
+              # TODO: this doesn't exist in values.yaml
             - name: POSTGRES_DB
               value: "{{ .Values.database.name }}"
             - name: POSTGRES_USER
-              value: "{{ .Values.database.admin }}"
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_ADMIN
             - name: POSTGRES_PASSWORD
-              value: "{{ .Values.database.adminPassword }}"
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_ADMIN_PASS
             - name: PGDATA
-              value: "{{ .Values.database.pgData | default "/var/lib/postgresql/data" }}"
+              value: '{{ .Values.database.pgData | default "/var/lib/postgresql/data" }}'
             - name: PGOPTIONS
               value: "-c maintenance_work_mem=128MB"
             - name: PGTZ
-              value: "{{ .Values.database.timezone | default "UTC" }}"
+              value: '{{ .Values.database.timezone | default "UTC" }}'
           ports:
             - containerPort: {{ .Values.services.db.service.port | default 5432 }}
               protocol: TCP
@@ -73,10 +93,6 @@ spec:
             failureThreshold: 3
           resources:
             {{- toYaml .Values.services.db.resources | nindent 12 }}
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: {{ .Values.services.db.securityContext.runAsUser | default 1003600000 }}
-            fsGroup: {{ .Values.services.db.securityContext.fsGroup | default 1003600000 }}
           volumeMounts:
             - name: {{ include "conservation-tool.fullname.db" . }}-data
               mountPath: /var/lib/postgresql/data
@@ -85,4 +101,4 @@ spec:
       volumes:
         - name: {{ include "conservation-tool.fullname.db" . }}-data
           persistentVolumeClaim:
-            claimName: {{ .Values.services.db.persistence.existingClaim | default (include "conservation-tool.fullname.db" .) }}
+            claimName: {{ .Values.database.persistence.existingClaim | default (include "conservation-tool.fullname.db" .) }}

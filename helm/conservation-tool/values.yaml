@@ -39,10 +39,10 @@ database:
   userApiPassword: ""  # Set via --set by workflow
   userPrefect: ""  # Set via --set by workflow
   userPrefectPassword: ""  # Set via --set by workflow
-  admin: ""  # Set via --set by workflow
-  adminPassword: ""  # Set via --set by workflow
+  admin: ""  # Set via --set by workflow - - do we need to pull this from openshift secrets?
+  adminPassword: ""  # Set via --set by workflow - do we need to pull this from openshift secrets? 
   schema: "public"
-  pgData: "/var/lib/postgresql/data"
+  pgData: "/var/lib/postgresql/data/pgdata"
   timezone: "UTC"
   postgresql:
     primary:
@@ -92,6 +92,7 @@ keycloak:
 # ========================
 prefect-server:
   serviceAccount:
+    # why not create a service account? if we're not creating one, why name it? 
     create: false
     name: "prefect-server"
 
@@ -112,11 +113,27 @@ prefect-server:
       requests:
         cpu: 50m
         memory: 128Mi
+        # cpu: 100m
+        # memory: 256Mi
       limits:
         cpu: 50m
         memory: 128Mi
+        # cpu: 200m
+        # memory: 512Mi
+    env:
+      - name: PREFECT_HOME
+        value: /tmp/prefect
+    extraVolumes:
+      - name: prefect-tmp
+        emptyDir: {}
+    extraVolumeMounts:
+      - name: prefect-tmp
+        mountPath: /tmp/prefect
 
   server:
+    # for dev 
+    debug: true
+    loggingLevel: DEBUG
     podSecurityContext:
       runAsUser: 1003600000
       fsGroup: null
@@ -135,12 +152,38 @@ prefect-server:
       limits:
         cpu: 100m
         memory: 256Mi
+    env:
+      - name: PREFECT_HOME
+        value: /tmp/prefect
+    extraVolumes:
+      - name: prefect-tmp
+        emptyDir: {}
+    extraVolumeMounts:
+      - name: prefect-tmp
+        mountPath: /tmp/prefect
 
   migrations:
     enabled: true
-    backoffLimit: 3
+    backoffLimit: 4
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
     securityContext:
       runAsUser: 1003600000
+      runAsNonRoot: true
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities: {}
+    extraVolumes:
+    - name: prefect-tmp
+      emptyDir: {}
+    extraVolumeMounts:
+      - name: prefect-tmp
+        mountPath: /tmp/prefect
 
   ingress:
     enabled: false
@@ -153,28 +196,46 @@ prefect-worker:
   resources:
     requests:
       cpu: 50m
-      memory: 1028Mi
+      memory: 1024Mi
     limits:
       cpu: 100m
-      memory: 1028Mi
+      memory: 1024Mi
+  # why no replicas?
   replicas: 0
   pool: pool
   securityContext:
     runAsUser: 1003600000
-    fsGroup: 1003600000
+  env:
+    - name: PREFECT_HOME
+      value: /tmp/prefect
+  extraVolumes:
+    - name: prefect-tmp
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: prefect-tmp
+      mountPath: /tmp/prefect
 
 prefect-deploy:
   resources:
     requests:
       cpu: 50m
-      memory: 1028Mi
+      memory: 1024Mi
     limits:
       cpu: 100m
-      memory: 1028Mi
+      memory: 1024Mi
   replicas: 0
   securityContext:
     runAsUser: 1003600000
-    fsGroup: 1003600000
+  env:
+    - name: PREFECT_HOME
+      value: /tmp/prefect  
+  extraVolumes:
+    - name: prefect-tmp
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: prefect-tmp
+      mountPath: /tmp/prefect
+
 
 # ========================
 # Services Configuration
@@ -226,17 +287,18 @@ services:
       resources:
         limits:
           cpu: 100m
-          memory: 1028Mi
+          memory: 1024Mi
         requests:
           cpu: 50m
-          memory: 1028Mi
+          memory: 1024Mi
       service:
         type: ClusterIP
         port: 80
         targetPort: 8081
+      # TODO: split into podSecurityContext and containerSecurityContext
       securityContext:
         runAsUser: 1003600000
-        fsGroup: 1003600000
+        # fsGroup: 1003600000
 
     deploy:
       replicas: 0
@@ -247,13 +309,14 @@ services:
       resources:
         requests:
           cpu: 50m
-          memory: 1028Mi
+          memory: 1024Mi
         limits:
           cpu: 100m
-          memory: 1028Mi
+          memory: 1024Mi
+      # TODO: split into podSecurityContext and containerSecurityContext
       securityContext:
         runAsUser: 1003600000
-        fsGroup: 1003600000
+        # fsGroup: 1003600000
 
   api:
     replicas: 0
@@ -265,6 +328,7 @@ services:
       type: ClusterIP
       port: 5200
       targetPort: 5200
+    # TODO: split into podSecurityContext and containerSecurityContext
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
@@ -278,8 +342,10 @@ services:
 
   db:
     image:
-      stream: "postgres"
-      tag: "17-alpine"
+      # stream: "postgres"
+      # tag: "17-alpine"
+      stream: "database"
+      tag: "dev"
       pullPolicy: "IfNotPresent"
     service:
       type: ClusterIP
@@ -300,6 +366,19 @@ services:
       size: 0.5Gi
       accessMode: ReadWriteOnce
 
+  dbSetup:
+    image:
+      stream: "db-setup"
+      tag: "dev"
+      pullPolicy: "IfNotPresent"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+
 # ========================
 # Background Services
 # ========================
@@ -319,6 +398,8 @@ backgroundServices:
 # ========================
 # Global Environment Variables (Flat structure for runtime injection)
 # ========================
+# TODO: move runAsUser and fsGroup to global variables
+
 env:
   # Node / General
   NODE_ENV: "development"

@@ -40,7 +40,7 @@ export class DashboardPermissionRepository extends BaseRepository {
 
     const response = await this.connection.sql(sqlStatement, DashboardPermission);
 
-    if (response.rowCount > 0) {
+    if (response.rows.length > 0) {
       return response.rows[0];
     }
 

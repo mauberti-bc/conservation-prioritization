@@ -61,7 +61,14 @@ export class TaskTileService extends DBService {
     const existingTile = await this.taskTileRepository.getLatestTaskTileByTaskId(taskId);
     const normalizedStatus = normalizeTileStatus(existingTile?.status ?? null);
 
-    if (existingTile && normalizedStatus && [TILE_STATUS.DRAFT, TILE_STATUS.STARTED].includes(normalizedStatus)) {
+    // if (existingTile && normalizedStatus && [TILE_STATUS.DRAFT, TILE_STATUS.STARTED].includes(normalizedStatus)) {
+    //   return existingTile;
+    // }
+    if (
+      existingTile &&
+      normalizedStatus &&
+      (normalizedStatus === TILE_STATUS.DRAFT || normalizedStatus === TILE_STATUS.STARTED)
+    ) {
       return existingTile;
     }
 
