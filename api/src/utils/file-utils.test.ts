@@ -188,7 +188,7 @@ describe('getS3KeyPrefix', () => {
     Object.assign(process.env, { S3_KEY_PREFIX: undefined });
 
     const result = getS3KeyPrefix();
-    expect(result).to.equal('biohub');
+    expect(result).to.equal('conservation');
   });
 });
 
