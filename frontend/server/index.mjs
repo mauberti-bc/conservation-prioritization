@@ -38,22 +38,6 @@ const writeJson = (response, statusCode, payload) => {
 };
 
 /**
- * Parses an integer-like environment variable with fallback.
- *
- * @param {string | undefined} value
- * @param {number} fallback
- * @returns {number}
- */
-const toNumber = (value, fallback) => {
-  const parsed = Number(value);
-  if (Number.isFinite(parsed) && parsed > 0) {
-    return parsed;
-  }
-
-  return fallback;
-};
-
-/**
  * Ensures URL includes a protocol.
  *
  * @param {string} value
@@ -78,18 +62,7 @@ const ensureProtocol = (value, fallbackProtocol) => {
  * @returns {Record<string, unknown>}
  */
 const getConfig = () => {
-  const apiHostFromValues = process.env.API_HOST || process.env.VITE_APP_API_HOST || '';
-  const apiPortFromValues = process.env.API_PORT || process.env.VITE_APP_API_PORT || '';
-  const conservationApiUrl = process.env.CONSERVATION_API_URL || '';
-
-  let apiHost = '';
-  if (conservationApiUrl) {
-    apiHost = conservationApiUrl;
-  } else if (apiHostFromValues && apiPortFromValues) {
-    apiHost = `${apiHostFromValues}:${apiPortFromValues}`;
-  } else {
-    apiHost = apiHostFromValues || 'localhost';
-  }
+  const apiHost = process.env.API_HOST;
 
   const objectStoreUrl = process.env.OBJECT_STORE_URL || '';
   const objectStoreBucketName = process.env.OBJECT_STORE_BUCKET_NAME || '';
@@ -99,23 +72,23 @@ const getConfig = () => {
 
   return {
     API_HOST: ensureProtocol(apiHost, 'http://'),
-    CHANGE_VERSION: process.env.CHANGE_VERSION || 'NA',
-    NODE_ENV: process.env.NODE_ENV || 'production',
-    VITE_APP_NODE_ENV: process.env.VITE_APP_NODE_ENV || process.env.VITE_NODE_ENV || process.env.NODE_ENV || 'production',
-    VERSION: `${process.env.VERSION || 'NA'}(build #${process.env.CHANGE_VERSION || 'NA'})`,
+    CHANGE_VERSION: process.env.CHANGE_VERSION,
+    NODE_ENV: process.env.NODE_ENV,
+    VITE_APP_NODE_ENV: process.env.APP_NODE_ENV,
+    VERSION: `${process.env.VERSION}(build #${process.env.CHANGE_VERSION})`,
     KEYCLOAK_CONFIG: {
-      authority: process.env.VITE_APP_KEYCLOAK_HOST || process.env.KEYCLOAK_HOST || '',
-      realm: process.env.VITE_APP_KEYCLOAK_REALM || process.env.KEYCLOAK_REALM || '',
-      clientId: process.env.VITE_APP_KEYCLOAK_CLIENT_ID || process.env.KEYCLOAK_API_CLIENT_ID || '',
+      authority: process.env.KEYCLOAK_HOST,
+      realm: process.env.KEYCLOAK_REALM,
+      clientId: process.env.KEYCLOAK_CLIENT_ID,
     },
-    SITEMINDER_LOGOUT_URL: process.env.VITE_APP_SITEMINDER_LOGOUT_URL || '',
-    MAX_UPLOAD_NUM_FILES: toNumber(process.env.VITE_APP_MAX_UPLOAD_NUM_FILES, 10),
-    MAX_UPLOAD_FILE_SIZE: toNumber(process.env.VITE_APP_MAX_UPLOAD_FILE_SIZE, 52428800),
+    SITEMINDER_LOGOUT_URL: process.env.SITEMINDER_LOGOUT_URL,
+    MAX_UPLOAD_NUM_FILES: Number(process.env.MAX_UPLOAD_NUM_FILES),
+    MAX_UPLOAD_FILE_SIZE: Number(process.env.MAX_UPLOAD_FILE_SIZE),
     S3_PUBLIC_HOST_URL: s3PublicHostUrl,
-    BACKBONE_PUBLIC_API_HOST: process.env.VITE_APP_BACKBONE_PUBLIC_API_HOST || '',
-    BIOHUB_TAXON_PATH: process.env.VITE_APP_BIOHUB_TAXON_PATH || '',
-    BIOHUB_TAXON_TSN_PATH: process.env.VITE_APP_BIOHUB_TAXON_TSN_PATH || '',
-    FEATURE_FLAGS: (process.env.VITE_APP_FEATURE_FLAGS || '')
+    BACKBONE_PUBLIC_API_HOST: process.env.BACKBONE_PUBLIC_API_HOST,
+    BIOHUB_TAXON_PATH: process.env.BIOHUB_TAXON_PATH,
+    BIOHUB_TAXON_TSN_PATH: process.env.BIOHUB_TAXON_TSN_PATH,
+    FEATURE_FLAGS: (process.env.FEATURE_FLAGS || '')
       .split(',')
       .map((featureFlag) => featureFlag.trim())
       .filter(Boolean),
