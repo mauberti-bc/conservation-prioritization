@@ -1,17 +1,27 @@
-name: Build and Push Images to OpenShift Registry
+name: Deploy Conservation Tool
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - test
+          - prod
   workflow_call:
     inputs:
       source_tag:
-        required: true
+        required: false
         type: string
       target_tag:
-        required: true
+        required: false
         type: string
       environment:
-        required: false
+        required: true
         type: string
 
 permissions:
@@ -19,190 +29,29 @@ permissions:
 
 env:
   OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
-  IMAGE_REPOSITORY: conservation-tool
-  IMAGE_REGISTRY: image-registry.apps.gold.devops.gov.bc.ca
 
 jobs:
-  changes:
+  deploy:
     runs-on: ubuntu-latest
-    outputs:
-      frontend: ${{ steps.changes.outputs.frontend }}
-      workflows: ${{ steps.changes.outputs.workflows }}
-      helm: ${{ steps.changes.outputs.helm }}
-      force_build: ${{ steps.force-build.outputs.force_build }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check for force build
-        id: force-build
-        run: |
-          if [ "${{ vars.FORCE_BUILD }}" = "true" ]; then
-            echo "force_build=true" >> $GITHUB_OUTPUT
-            echo "🚀 FORCE_BUILD is enabled - will build all components"
-          else
-            echo "force_build=false" >> $GITHUB_OUTPUT
-            echo "FORCE_BUILD is disabled - checking for changes"
-          fi
-
-      - name: Debug what changed
-        run: |
-          echo "Current commit: ${{ github.sha }}"
-          echo "Previous commit: ${{ github.event.before }}"
-          echo "Force build: ${{ steps.force-build.outputs.force_build }}"
-          echo "Frontend changed: ${{ steps.changes.outputs.frontend }}"
-          echo "Changed files:"
-          git diff --name-only ${{ github.event.before }} ${{ github.sha }}
-
-      - uses: dorny/paths-filter@v3
-        id: changes
-        with:
-          filters: |
-            frontend:
-              - 'frontend/**'
-            api:
-              - 'api/**'
-            workflows:
-              - 'workflows/**'
-            helm:
-              - 'helm/**'
-
-  build-push:
-    runs-on: ubuntu-latest
-    needs: [changes]
-    if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.api == 'true' || needs.changes.outputs.workflows == 'true' }}
-    environment: dev
-    env:
-      TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
-      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}                  
-      IMAGE_TAG: dev
-      IMAGE_TAG_LATEST: latest
-      GIT_SHA: ${{ github.sha }}
-      NODE_ENV: ${{ vars.NODE_ENV }}
-      NODE_OPTIONS: ${{ vars.NODE_OPTIONS }}
-      PREFECT_API_URL: ${{ vars.PREFECT_API_URL }}
-      ZARR_STORE_PATH: ${{ vars.ZARR_STORE_PATH }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install OpenShift CLI
-        uses: redhat-actions/openshift-tools-installer@v1
-        with:
-          oc: "4.16"
-
-      - name: Log in to OpenShift
-        run: |
-          for i in 1 2 3; do
-            echo "Attempt $i: Logging into OpenShift..."
-            if oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER --insecure-skip-tls-verify=true; then
-              echo "Login succeeded"
-              break
-            elif [ "$i" -lt 3 ]; then
-              echo "Login failed. Retrying in 15 seconds..."
-              sleep 15
-            else
-              echo "Login failed after 3 attempts."
-              exit 1
-            fi
-          done
-
-      - name: Log in to OpenShift internal registry
-        run: |
-          oc whoami -t | docker login $IMAGE_REGISTRY -u unused --password-stdin
-
-      - name: Build and push frontend image
-        working-directory: frontend
-        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.frontend == 'true' }}
-        run: |
-          # Check required env vars
-          required_vars=(NODE_ENV NODE_OPTIONS PREFECT_API_URL ZARR_STORE_PATH)
-          for var in "${required_vars[@]}"; do
-            if [ -z "${!var}" ]; then
-              echo "Error: Environment variable $var is not set."
-              exit 1
-            fi
-          done
-
-          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/frontend"
-          docker build \
-            --build-arg VITE_NODE_ENV="${NODE_ENV}" \
-            --build-arg VITE_NODE_OPTIONS="${NODE_OPTIONS}" \
-            --build-arg VITE_PREFECT_API_URL="${PREFECT_API_URL}" \
-            --build-arg VITE_ZARR_STORE_PATH="${ZARR_STORE_PATH}" \
-            -t ${BASE_IMAGE}:${IMAGE_TAG} \
-            -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} \
-            -t ${BASE_IMAGE}:${GIT_SHA} \
-            -f ./Dockerfile .
-
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-
-      - name: Build and push API image
-        working-directory: api
-        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.api == 'true' }}
-        run: |
-          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/api"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-
-      - name: Build and push Prefect worker image
-        working-directory: workflows
-        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.workflows == 'true' }}
-        run: |
-          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-worker"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.worker .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-
-      - name: Build and push Prefect deploy image
-        working-directory: workflows
-        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.workflows == 'true' }}
-        run: |
-          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-deploy"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.deploy .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-
-      - name: Build and push Database image
-        working-directory: database
-        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.database == 'true' }}
-        run: |
-          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/database"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-
-      - name: Build and push db-setup image
-        working-directory: database
-        if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.db-setup == 'true' }}
-        run: |
-          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/db-setup"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f .docker/db/Dockerfile.setup .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-
-  install-helm:
-    runs-on: ubuntu-latest
-    needs: [build-push]
-    if: ${{ needs.build-push.result == 'success' }}
-    environment: dev
+    environment: ${{ inputs.environment || github.event.inputs.environment || 'dev' }}
     env:
       OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
-      OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
       SA_TOKEN: ${{ secrets.SA_TOKEN }}
-      VALUES_FILE: values-dev.yaml
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Resolve values file
+        id: values-file
+        run: |
+          ENVIRONMENT="${{ inputs.environment || github.event.inputs.environment || 'dev' }}"
+          if [ "${ENVIRONMENT}" = "prod" ]; then
+            echo "values_file=values-prod.yaml" >> $GITHUB_OUTPUT
+          elif [ "${ENVIRONMENT}" = "test" ]; then
+            echo "values_file=values-test.yaml" >> $GITHUB_OUTPUT
+          else
+            echo "values_file=values-dev.yaml" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install OpenShift CLI
         uses: redhat-actions/openshift-tools-installer@v1
@@ -303,7 +152,7 @@ jobs:
         run: |
           helm upgrade --install conservation-tool . \
             --values values.yaml \
-            --values ${VALUES_FILE} \
+            --values ${{ steps.values-file.outputs.values_file }} \
             --namespace ${OPENSHIFT_NAMESPACE} \
             --wait \
             --timeout=10m \
