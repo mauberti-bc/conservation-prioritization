@@ -106,7 +106,7 @@ const getConfig = () => {
     KEYCLOAK_CONFIG: {
       authority: process.env.VITE_APP_KEYCLOAK_HOST || process.env.KEYCLOAK_HOST || '',
       realm: process.env.VITE_APP_KEYCLOAK_REALM || process.env.KEYCLOAK_REALM || '',
-      clientId: process.env.VITE_APP_KEYCLOAK_CLIENT_ID || '',
+      clientId: process.env.VITE_APP_KEYCLOAK_CLIENT_ID || process.env.KEYCLOAK_API_CLIENT_ID || '',
     },
     SITEMINDER_LOGOUT_URL: process.env.VITE_APP_SITEMINDER_LOGOUT_URL || '',
     MAX_UPLOAD_NUM_FILES: toNumber(process.env.VITE_APP_MAX_UPLOAD_NUM_FILES, 10),
