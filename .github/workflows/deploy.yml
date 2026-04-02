@@ -2,9 +2,6 @@ name: Build and Push Images to OpenShift Registry
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
   workflow_call:
     inputs:
       source_tag:
@@ -193,7 +190,7 @@ jobs:
   install-helm:
     runs-on: ubuntu-latest
     needs: [build-push]
-    if: ${{ always() }}
+    if: ${{ needs.build-push.result == 'success' }}
     environment: dev
     env:
       OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
