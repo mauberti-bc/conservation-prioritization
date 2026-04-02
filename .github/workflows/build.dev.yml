@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
   IMAGE_REPOSITORY: conservation-tool
@@ -96,7 +99,7 @@ jobs:
               exit 1
             fi
           done
-          oc project $OPENSHIFT_NAMESPACE
+          oc project $TOOLS_NAMESPACE
 
       - name: Log in to OpenShift internal registry
         run: |
@@ -171,14 +174,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Debug - Check required env variables
-        run: |
-          echo "Checking required environment variables..."
-          echo "OPENSHIFT_NAMESPACE is set to: ${OPENSHIFT_NAMESPACE}"
-          echo "VALUES file is: ${VALUES}"
-          echo "SA_TOKEN is ${SA_TOKEN:+[SET]}"
-          echo "OPENSHIFT_SERVER is ${OPENSHIFT_SERVER:+[SET]}"
 
       - name: Install Helm
         uses: azure/setup-helm@v3
