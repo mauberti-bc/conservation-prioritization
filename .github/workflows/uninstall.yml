@@ -1,0 +1,72 @@
+name: Uninstall Conservation Tool
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - test
+          - prod
+      confirm:
+        description: "Confirm uninstall"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
+
+jobs:
+  uninstall:
+    if: ${{ github.event.inputs.confirm == 'true' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    env:
+      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}
+      OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
+      RELEASE_NAME: conservation-tool
+    steps:
+      - name: Install OpenShift CLI
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: "4.16"
+
+      - name: Log in to OpenShift
+        run: |
+          for i in 1 2 3; do
+            echo "Attempt $i: Logging into OpenShift..."
+            if oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER; then
+              echo "Login succeeded"
+              break
+            elif [ "$i" -lt 3 ]; then
+              echo "Login failed. Retrying in 15 seconds..."
+              sleep 15
+            else
+              echo "Login failed after 3 attempts."
+              exit 1
+            fi
+          done
+          oc project $OPENSHIFT_NAMESPACE
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Uninstall Helm release
+        run: |
+          if helm status "$RELEASE_NAME" --namespace "$OPENSHIFT_NAMESPACE" > /dev/null 2>&1; then
+            helm uninstall "$RELEASE_NAME" \
+              --namespace "$OPENSHIFT_NAMESPACE" \
+              --wait \
+              --timeout 10m
+            echo "Uninstalled $RELEASE_NAME from namespace $OPENSHIFT_NAMESPACE"
+          else
+            echo "Release $RELEASE_NAME not found in namespace $OPENSHIFT_NAMESPACE. Nothing to uninstall."
+          fi
