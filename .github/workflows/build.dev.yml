@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       frontend: ${{ steps.changes.outputs.frontend }}
+      api: ${{ steps.changes.outputs.api }}
       workflows: ${{ steps.changes.outputs.workflows }}
       helm: ${{ steps.changes.outputs.helm }}
       force_build: ${{ steps.force-build.outputs.force_build }}
@@ -162,28 +163,9 @@ jobs:
           docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
           docker push ${BASE_IMAGE}:${GIT_SHA}
 
-  install-helm:
-    runs-on: ubuntu-latest
-    needs: [build-push]
-    if: ${{ needs.build-push.result == 'success' }}
-    environment: dev
-    env:
-      OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
-      SA_TOKEN: ${{ secrets.SA_TOKEN }}
-      VALUES: values-dev.yaml
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Helm
-        uses: azure/setup-helm@v3
-
-      - name: Build Helm dependencies
-        working-directory: helm/conservation-tool
-        run: |
-          echo "Adding required Helm repos..."
-          helm repo add prefecthq https://prefecthq.github.io/prefect-helm
-          helm repo update
-
-          echo "Building Helm dependencies..."
-          helm dependency build
+  deploy:
+    needs: [changes, build-push]
+    if: ${{ always() && needs.build-push.result != 'failure' && needs.build-push.result != 'cancelled' && (needs.changes.outputs.helm == 'true' || needs.build-push.result == 'success') }}
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: dev
