@@ -83,8 +83,7 @@ echo "=== Prefect Credentials ==="
 read -p "Prefect Database URL (e.g., postgresql+asyncpg://user:pass@host:5432/db): " PREFECT_DB_URL
 
 create_secret "conservation-tool-prefect-db" \
-  "PREFECT_API_DATABASE_CONNECTION_URL=$PREFECT_DB_URL" \
-  "connection-string=$PREFECT_DB_URL"
+  "PREFECT_API_DATABASE_CONNECTION_URL=$PREFECT_DB_URL"
 
 echo "=== Object Storage Credentials ==="
 read -p "Object Store URL (e.g., http://minio:9000): " OBJECT_STORE_URL
