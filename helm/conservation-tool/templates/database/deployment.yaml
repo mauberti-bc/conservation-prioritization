@@ -39,9 +39,11 @@ spec:
             runAsUser: {{ .Values.services.db.securityContext.runAsUser }}
             {{- end }}
           env:
-              # TODO: this doesn't exist in values.yaml
             - name: POSTGRES_DB
-              value: "{{ .Values.database.name }}"
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_DATABASE
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:

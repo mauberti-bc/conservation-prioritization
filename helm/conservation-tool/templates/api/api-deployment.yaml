@@ -58,67 +58,49 @@ spec:
             - name: ZARR_STORE_PATH
               value: {{ .Values.env.ZARR_STORE_PATH | quote }}
             - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: conservation-tool-db
-                  key: DB_HOST
-              # value: {{ .Values.env.DB_HOST | quote }}
+              value: {{ include "conservation-tool.fullname.db" . | quote }}
             - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: conservation-tool-db
-                  key: DB_PORT
-              # value: {{ .Values.env.DB_PORT | quote }}
+              value: {{ .Values.database.port | quote }}
             - name: DB_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-db
                   key: DB_DATABASE
-              # value: {{ .Values.env.DB_DATABASE | quote }}
             - name: DB_SCHEMA
-              value: {{ .Values.env.DB_SCHEMA | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_SCHEMA
             - name: DB_USER_API
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-db
-                  # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_USER_API
-              # value: {{ .Values.env.DB_USER_API | quote }}
             - name: DB_USER_API_PASS
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-db
-                  # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_USER_API_PASS
-              # value: {{ .Values.env.DB_USER_API_PASS | quote }}
             - name: DB_USER_PREFECT
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-db
-                  # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_USER_PREFECT
-              # TODO: update to correct syntax
             - name: DB_USER_PREFECT_PASS
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-db
-                  # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_USER_PREFECT_PASS
-              # value: {{ .Values.env.DB_USER_PREFECT_PASS | quote }}
             - name: DB_ADMIN
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-db
-                  # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_ADMIN
-              # value: {{ .Values.env.DB_ADMIN | quote }}
             - name: DB_ADMIN_PASS
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-db
-                  # name: {{ include "conservation-tool.fullname" . }}-db
                   key: DB_ADMIN_PASS
-              # value: {{ .Values.env.DB_ADMIN_PASS | quote }}
             - name: DB_POOL_SIZE
               value: {{ .Values.env.DB_POOL_SIZE | quote }}
             - name: DB_CONNECTION_MAX_USES
