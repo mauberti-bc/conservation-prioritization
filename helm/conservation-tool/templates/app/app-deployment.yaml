@@ -91,6 +91,26 @@ spec:
           env:
             - name: PORT
               value: {{ .Values.services.frontend.config.port | default 7100 | quote }}
+            - name: KEYCLOAK_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_HOST
+            - name: KEYCLOAK_REALM
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_REALM
+            - name: KEYCLOAK_API_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_API_CLIENT_ID
+            - name: OBJECT_STORE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: OBJECT_STORE_URL
             {{- if .Values.services.frontend.config.env }}
             {{- toYaml .Values.services.frontend.config.env | nindent 12 }}
             {{- end }}
