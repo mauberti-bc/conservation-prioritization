@@ -130,6 +130,8 @@ jobs:
 
           check_secret_key "conservation-tool-prefect-db" "PREFECT_API_DATABASE_CONNECTION_URL"
           check_secret_decoded_prefix "conservation-tool-prefect-db" "PREFECT_API_DATABASE_CONNECTION_URL" "postgresql+asyncpg://"
+          check_secret_key "conservation-tool-prefect-db" "connection-string"
+          check_secret_decoded_prefix "conservation-tool-prefect-db" "connection-string" "postgresql+asyncpg://"
 
           check_secret_key "conservation-tool-object-storage" "OBJECT_STORE_URL"
           check_secret_key "conservation-tool-object-storage" "OBJECT_STORE_ACCESS_KEY_ID"
