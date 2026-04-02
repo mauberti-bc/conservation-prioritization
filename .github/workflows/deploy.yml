@@ -167,6 +167,7 @@ jobs:
             --values ${{ steps.values-file.outputs.values_file }} \
             --namespace ${OPENSHIFT_NAMESPACE} \
             --wait \
+            --wait-for-jobs \
             --timeout=10m \
             --atomic
 
