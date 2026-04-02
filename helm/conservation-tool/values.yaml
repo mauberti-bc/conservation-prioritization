@@ -158,7 +158,6 @@ prefect-server:
     env:
       - name: PREFECT_HOME
         value: /tmp/prefect
-    extraEnv:
       - name: PREFECT_API_DATABASE_CONNECTION_URL
         valueFrom:
           secretKeyRef:
