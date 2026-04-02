@@ -105,11 +105,11 @@ spec:
                   name: {{ include "conservation-tool.fullname.db" . }}
                   key: DB_SCHEMA
             - name: CHANGE_VERSION
-              value: "{{ .Values.environment.changeId | default "" }}"
+              value: '{{ .Values.environment.changeId | default "" }}'
             - name: NODE_ENV
-              value: "{{ .Values.env.NODE_ENV | default "development" }}"
+              value: '{{ .Values.env.NODE_ENV | default "development" }}'
             - name: VERSION
-              value: "{{ printf "%s-%s-%s" .Values.environment.name .Chart.AppVersion .Values.environment.changeId }}"
+              value: '{{ printf "%s-%s-%s" .Values.environment.name .Chart.AppVersion .Values.environment.changeId }}'
           resources:
             {{- toYaml .Values.services.dbSetup.resources | nindent 12 }}
       restartPolicy: Never
