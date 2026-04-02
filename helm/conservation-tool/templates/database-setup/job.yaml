@@ -1,8 +1,8 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "conservation-tool.fullname.db" . }}-{{ .Release.Revision }}
-  namespace: {{ include "conservation-tool.namespace" . }}
+  name: {{ include "conservation-tool.fullname.dbSetup" . }}-{{ .Release.Revision }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "conservation-tool.labels" . | nindent 4 }}
     role: setup
@@ -31,77 +31,86 @@ spec:
               echo "Database is ready!"
           env:
             - name: DB_HOST
-              value: "{{ .Values.database.host }}"
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_HOST
             - name: DB_PORT
-              value: "{{ .Values.database.port | default 5432 }}"
+              value: '{{ .Values.database.port | default "5432" }}'
             - name: DB_ADMIN
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-admin
+                  name: conservation-tool-db
+                  key: DB_ADMIN
             - name: DB_ADMIN_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-admin-password
+                  name: conservation-tool-db
+                  key: DB_ADMIN_PASS
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-admin-password
+                  name: conservation-tool-db
+                  key: DB_ADMIN_PASS
       containers:
         - name: db-setup
-          image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
-          imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "IfNotPresent" }}
+          image: "{{ .Values.registry }}/{{ .Values.services.dbSetup.image.stream }}:{{ .Values.services.dbSetup.image.tag }}"
+          imagePullPolicy: {{ .Values.services.dbSetup.image.pullPolicy | default "IfNotPresent" }}
           env:
             - name: DB_HOST
-              value: "{{ .Values.database.host }}"
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_HOST
             - name: DB_PORT
-              value: "{{ .Values.database.port | default 5432 }}"
+              value: '{{ .Values.database.port | default "5432" }}'
             - name: DB_ADMIN
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-admin
+                  name: conservation-tool-db
+                  key: DB_ADMIN
             - name: DB_ADMIN_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-admin-password
+                  name: conservation-tool-db
+                  key: DB_ADMIN_PASS
             - name: DB_USER_API
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-user-api
+                  name: conservation-tool-db
+                  key: DB_USER_API
             - name: DB_USER_API_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-user-api-password
+                  name: conservation-tool-db
+                  key: DB_USER_API_PASS
             - name: DB_USER_PREFECT
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-user-prefect
+                  name: conservation-tool-db
+                  key: DB_USER_PREFECT
             - name: DB_USER_PREFECT_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-user-prefect-password
+                  name: conservation-tool-db
+                  key: DB_USER_PREFECT_PASS
             - name: DB_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
-                  key: database-name
+                  name: conservation-tool-db
+                  key: DB_DATABASE
             - name: DB_SCHEMA
-              value: "{{ .Values.database.schema | default "" }}"
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_SCHEMA
             - name: CHANGE_VERSION
-              value: "{{ .Values.environment.changeId | default "" }}"
+              value: '{{ .Values.environment.changeId | default "" }}'
             - name: NODE_ENV
-              value: "{{ .Values.env.NODE_ENV | default "development" }}"
+              value: '{{ .Values.env.NODE_ENV | default "development" }}'
             - name: VERSION
-              value: "{{ printf "%s-%s-%s" .Values.environment.name .Chart.AppVersion .Values.environment.changeId }}"
+              value: '{{ printf "%s-%s-%s" .Values.environment.name .Chart.AppVersion .Values.environment.changeId }}'
           resources:
-            {{- toYaml .Values.services.db.resources | nindent 12 }}
+            {{- toYaml .Values.services.dbSetup.resources | nindent 12 }}
       restartPolicy: Never
       dnsPolicy: ClusterFirst
