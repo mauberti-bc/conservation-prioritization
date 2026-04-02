@@ -29,7 +29,7 @@ export const getObjectStoreConfig = (): ObjectStoreConfig => {
   const accessKeyId = process.env.OBJECT_STORE_ACCESS_KEY_ID;
   const secretAccessKey = process.env.OBJECT_STORE_SECRET_KEY_ID;
   const bucket = process.env.OBJECT_STORE_BUCKET_NAME || '';
-  const prefix = (process.env.OBJECT_STORE_PREFIX || '').replace(/^\/+|\/+$/g, '');
+  const prefix = (process.env.S3_KEY_PREFIX || '').replace(/^\/+|\/+$/g, '');
   const forcePathStyle = String(process.env.OBJECT_STORE_FORCE_PATH_STYLE || '').toLowerCase() === 'true';
 
   if (!endpoint) {

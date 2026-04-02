@@ -38,7 +38,7 @@ def get_object_store_config() -> ObjectStoreConfig:
     access_key = os.getenv("OBJECT_STORE_ACCESS_KEY_ID")
     secret_key = os.getenv("OBJECT_STORE_SECRET_KEY_ID")
     bucket = os.getenv("OBJECT_STORE_BUCKET_NAME")
-    prefix = os.getenv("OBJECT_STORE_PREFIX", "").strip("/")
+    prefix = os.getenv("S3_KEY_PREFIX", "").strip("/")
     force_path_style = _parse_bool(os.getenv("OBJECT_STORE_FORCE_PATH_STYLE"))
 
     if not endpoint:
