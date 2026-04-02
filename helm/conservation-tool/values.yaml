@@ -269,7 +269,7 @@ services:
       port: 7070
       targetPort: 7070
     route:
-      host: "conservation123.nrs.gov.bc.ca"
+      host: ""
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
