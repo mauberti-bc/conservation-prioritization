@@ -12,7 +12,7 @@ data:
   VITE_PORT: '{{ .Values.env.FRONTEND_PORT | default 7070 }}'
   VITE_PREFECT_API_URL: '{{ .Values.env.PREFECT_API_URL }}'
   VITE_ZARR_STORE_PATH: '{{ .Values.env.ZARR_STORE_PATH | default "/data/output_1000.zarr" }}'
-  API_HOST: '{{ .Values.env.CONSERVATION_API_URL | default "" }}'
+  API_HOST: 'http://{{ include "conservation-tool.fullname.api" . }}:{{ .Values.services.api.service.port | default 5200 }}'
   APP_NODE_ENV: '{{ .Values.env.NODE_ENV | default "development" }}'
   SITEMINDER_LOGOUT_URL: '{{ .Values.env.VITE_APP_SITEMINDER_LOGOUT_URL | default "" }}'
   MAX_UPLOAD_NUM_FILES: '{{ .Values.env.VITE_APP_MAX_UPLOAD_NUM_FILES | default "10" }}'
