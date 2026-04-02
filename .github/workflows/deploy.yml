@@ -37,6 +37,7 @@ jobs:
     env:
       TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}
       OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
+      TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -159,6 +160,16 @@ jobs:
 
           echo "Building Helm dependencies..."
           helm dependency build
+
+      - name: Promote image tags for target environment
+        if: ${{ inputs.source_tag != '' && inputs.target_tag != '' }}
+        run: |
+          echo "Promoting image tags from '${{ inputs.source_tag }}' to '${{ inputs.target_tag }}' in namespace ${TOOLS_NAMESPACE}"
+          images=(frontend frontend-config api prefect-worker prefect-deploy)
+          for image in "${images[@]}"; do
+            echo "Tagging ${image}:${{ inputs.source_tag }} -> ${image}:${{ inputs.target_tag }}"
+            oc tag "${TOOLS_NAMESPACE}/${image}:${{ inputs.source_tag }}" "${TOOLS_NAMESPACE}/${image}:${{ inputs.target_tag }}"
+          done
 
       - name: Deploy via Helm
         working-directory: helm/conservation-tool
