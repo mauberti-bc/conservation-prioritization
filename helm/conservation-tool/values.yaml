@@ -350,7 +350,7 @@ services:
         # fsGroup: 1003600000
 
   api:
-    replicas: 0
+    replicas: 1
     image:
       stream: "api"
       tag: "dev"
