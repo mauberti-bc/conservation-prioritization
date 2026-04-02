@@ -101,7 +101,7 @@ spec:
                 secretKeyRef:
                   name: conservation-tool-keycloak
                   key: KEYCLOAK_REALM
-            - name: KEYCLOAK_API_CLIENT_ID
+            - name: KEYCLOAK_CLIENT_ID
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-keycloak
