@@ -93,6 +93,14 @@ keycloak:
 prefect-server:
   postgresql:
     enabled: false
+  secret:
+    create: false
+    name: conservation-tool-prefect-db
+    username: ""
+    password: ""
+    host: ""
+    port: ""
+    database: ""
 
   serviceAccount:
     # why not create a service account? if we're not creating one, why name it? 
