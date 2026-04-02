@@ -1,0 +1,18 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "conservation-tool.fullname.api" . }}
+  labels:
+    app: {{ include "conservation-tool.fullname.api" . }}
+spec:
+  {{- if .Values.services.api.route.host }}
+  host: {{ .Values.services.api.route.host | quote }}
+  {{- end }}
+  to:
+    kind: Service
+    name: {{ include "conservation-tool.fullname.api" . }}
+  port:
+    targetPort: {{ .Values.services.api.service.targetPort | default 5200 }}
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

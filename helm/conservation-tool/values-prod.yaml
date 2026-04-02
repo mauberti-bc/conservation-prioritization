@@ -284,6 +284,8 @@ services:
       type: ClusterIP
       port: 5200
       targetPort: 5200
+    route:
+      host: "conservation-tool-api-fa9440-prod.apps.gold.devops.gov.bc.ca"
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
@@ -342,6 +344,7 @@ env:
   NODE_ENV: "production"
   API_HOST: "0.0.0.0"
   API_PORT: "5200"
+  FRONTEND_API_HOST: "https://conservation-tool-api-fa9440-prod.apps.gold.devops.gov.bc.ca"
   PREFECT_API_URL: "http://prefect-server:4200/api"
   PREFECT_API_KEY: ""
   CONSERVATION_API_URL: "http://conservation-tool-api:5200/api"

@@ -359,6 +359,8 @@ services:
       type: ClusterIP
       port: 5200
       targetPort: 5200
+    route:
+      host: "conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"
     # TODO: split into podSecurityContext and containerSecurityContext
     securityContext:
       runAsUser: 1003600000
@@ -484,6 +486,7 @@ env:
   API_HOST: "0.0.0.0"
   API_PORT: "5200"
   APP_HOST: ""  # Set via --set env.APP_HOST by workflow (external hostname)
+  FRONTEND_API_HOST: "https://conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"
 
   # Frontend
   VITE_PREFECT_API_URL: ""  # For local dev only (baked into image in production)
