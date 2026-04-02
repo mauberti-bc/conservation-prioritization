@@ -60,19 +60,19 @@ spec:
             - name: DB_HOST
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname" . }}-db
+                  name: conservation-tool-db
                   key: DB_HOST
               # value: {{ .Values.env.DB_HOST | quote }}
             - name: DB_PORT
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname" . }}-db
+                  name: conservation-tool-db
                   key: DB_PORT
               # value: {{ .Values.env.DB_PORT | quote }}
             - name: DB_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname" . }}-db
+                  name: conservation-tool-db
                   key: DB_DATABASE
               # value: {{ .Values.env.DB_DATABASE | quote }}
             - name: DB_SCHEMA

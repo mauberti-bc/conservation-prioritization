@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ include "conservation-tool.fullname.dbSetup" . }}-{{ .Release.Revision }}
-  namespace: {{ include "conservation-tool.namespace" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "conservation-tool.labels" . | nindent 4 }}
     role: setup
@@ -33,24 +33,24 @@ spec:
             - name: DB_HOST
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_HOST
             - name: DB_PORT
               value: '{{ .Values.database.port | default "5432" }}'
             - name: DB_ADMIN
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_ADMIN
             - name: DB_ADMIN_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_ADMIN_PASS
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_ADMIN_PASS
       containers:
         - name: db-setup
@@ -60,49 +60,49 @@ spec:
             - name: DB_HOST
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_HOST
             - name: DB_PORT
               value: '{{ .Values.database.port | default "5432" }}'
             - name: DB_ADMIN
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_ADMIN
             - name: DB_ADMIN_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_ADMIN_PASS
             - name: DB_USER_API
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_USER_API
             - name: DB_USER_API_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_USER_API_PASS
             - name: DB_USER_PREFECT
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_USER_PREFECT
             - name: DB_USER_PREFECT_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_USER_PREFECT_PASS
             - name: DB_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_DATABASE
             - name: DB_SCHEMA
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "conservation-tool.fullname.db" . }}
+                  name: conservation-tool-db
                   key: DB_SCHEMA
             - name: CHANGE_VERSION
               value: '{{ .Values.environment.changeId | default "" }}'
