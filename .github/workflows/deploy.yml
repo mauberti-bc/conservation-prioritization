@@ -35,8 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment || github.event.inputs.environment || 'dev' }}
     env:
-      OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
-      SA_TOKEN: ${{ secrets.SA_TOKEN }}
+      TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
+      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -65,7 +65,7 @@ jobs:
         run: |
           for i in 1 2 3; do
             echo "Attempt $i: Logging into OpenShift..."
-            if oc login --token=$SA_TOKEN --server=$OPENSHIFT_SERVER; then
+            if oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER; then
               echo "Login succeeded"
               break
             elif [ "$i" -lt 3 ]; then
@@ -76,7 +76,7 @@ jobs:
               exit 1
             fi
           done
-          oc project $OPENSHIFT_NAMESPACE
+          oc project $TOOLS_NAMESPACE
 
       - name: Validate required OpenShift secrets
         run: |
@@ -85,7 +85,7 @@ jobs:
             local key_name="$2"
             local value
 
-            value="$(oc get secret "${secret_name}" -n "${OPENSHIFT_NAMESPACE}" -o "jsonpath={.data.${key_name}}" 2>/dev/null || true)"
+            value="$(oc get secret "${secret_name}" -n "${TOOLS_NAMESPACE}" -o "jsonpath={.data.${key_name}}" 2>/dev/null || true)"
             if [ -z "${value}" ]; then
               echo "Missing secret/key: ${secret_name}.${key_name}"
               exit 1
@@ -99,7 +99,7 @@ jobs:
             local encoded_value
             local decoded_value
 
-            encoded_value="$(oc get secret "${secret_name}" -n "${OPENSHIFT_NAMESPACE}" -o "jsonpath={.data.${key_name}}" 2>/dev/null || true)"
+            encoded_value="$(oc get secret "${secret_name}" -n "${TOOLS_NAMESPACE}" -o "jsonpath={.data.${key_name}}" 2>/dev/null || true)"
             if [ -z "${encoded_value}" ]; then
               echo "Missing secret/key: ${secret_name}.${key_name}"
               exit 1
@@ -165,7 +165,7 @@ jobs:
           helm upgrade --install conservation-tool . \
             --values values.yaml \
             --values ${{ steps.values-file.outputs.values_file }} \
-            --namespace ${OPENSHIFT_NAMESPACE} \
+            --namespace ${TOOLS_NAMESPACE} \
             --wait \
             --timeout=10m \
             --atomic
@@ -173,5 +173,5 @@ jobs:
       - name: Verify deployment
         run: |
           echo "Verifying deployment..."
-          oc get deployments -n ${OPENSHIFT_NAMESPACE}
-          oc get pods -n ${OPENSHIFT_NAMESPACE}
+          oc get deployments -n ${TOOLS_NAMESPACE}
+          oc get pods -n ${TOOLS_NAMESPACE}
