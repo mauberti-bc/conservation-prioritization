@@ -172,22 +172,20 @@ describe('_getObjectStoreEndpoint', () => {
 
 describe('getS3KeyPrefix', () => {
   const OLD_S3_KEY_PREFIX = process.env.S3_KEY_PREFIX;
-  const OBJECT_STORE_PREFIX = process.env.OBJECT_STORE_PREFIX;
 
   afterEach(() => {
     process.env.S3_KEY_PREFIX = OLD_S3_KEY_PREFIX;
-    process.env.OBJECT_STORE_PREFIX = OBJECT_STORE_PREFIX;
   });
 
   it('should return an s3 key prefix', () => {
-    process.env.OBJECT_STORE_PREFIX = 'test-biohub';
+    process.env.S3_KEY_PREFIX = 'test-biohub';
 
     const result = getS3KeyPrefix();
     expect(result).to.equal('test-biohub');
   });
 
   it('should return its default value', () => {
-    Object.assign(process.env, { OBJECT_STORE_PREFIX: undefined, S3_KEY_PREFIX: undefined });
+    Object.assign(process.env, { S3_KEY_PREFIX: undefined });
 
     const result = getS3KeyPrefix();
     expect(result).to.equal('biohub');
