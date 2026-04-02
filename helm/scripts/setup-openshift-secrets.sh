@@ -52,7 +52,6 @@ create_secret() {
 }
 
 echo "=== Database Credentials ==="
-read -p "DB Host: " DB_HOST
 read -p "DB User (API): " DB_USER_API
 read -s -p "DB Password (API): " DB_USER_API_PASS
 echo ""
@@ -63,13 +62,9 @@ read -p "DB Admin User: " DB_ADMIN
 read -s -p "DB Admin Password: " DB_ADMIN_PASS
 echo ""
 read -p "DB Name: " DB_DATABASE
-read -p "DB Port (default 5432): " DB_PORT
-DB_PORT=${DB_PORT:-5432}
 read -p "DB Schema: " DB_SCHEMA
 
 create_secret "conservation-tool-db" \
-  "DB_HOST=$DB_HOST" \
-  "DB_PORT=$DB_PORT" \
   "DB_DATABASE=$DB_DATABASE" \
   "DB_USER_API=$DB_USER_API" \
   "DB_USER_API_PASS=$DB_USER_API_PASS" \

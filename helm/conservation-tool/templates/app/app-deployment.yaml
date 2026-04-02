@@ -111,6 +111,11 @@ spec:
                 secretKeyRef:
                   name: conservation-tool-object-storage
                   key: OBJECT_STORE_URL
+            - name: OBJECT_STORE_BUCKET_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: OBJECT_STORE_BUCKET_NAME
             {{- if .Values.services.frontend.config.env }}
             {{- toYaml .Values.services.frontend.config.env | nindent 12 }}
             {{- end }}

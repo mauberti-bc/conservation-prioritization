@@ -4,14 +4,9 @@ metadata:
   name: {{ include "conservation-tool.fullname" . }}-config
   namespace: {{ .Release.Namespace }}
 data:
-  # ========================
-  # General Environment
-  # ========================
   NODE_ENV: '{{ .Values.env.NODE_ENV | default "development" }}'
-  NODE_OPTIONS: '{{ .Values.env.NODE_OPTIONS | default "--max-old-space-size=4096" }}'
-  VITE_PORT: '{{ .Values.env.FRONTEND_PORT | default 7070 }}'
-  VITE_PREFECT_API_URL: '{{ .Values.env.PREFECT_API_URL }}'
-  VITE_ZARR_STORE_PATH: '{{ .Values.env.ZARR_STORE_PATH | default "/data/output_1000.zarr" }}'
+  CHANGE_VERSION: '{{ .Values.environment.changeId | default "" }}'
+  VERSION: '{{ .Chart.AppVersion | default "" }}'
   API_HOST: '{{ .Values.env.FRONTEND_API_HOST | default "" }}'
   APP_NODE_ENV: '{{ .Values.env.NODE_ENV | default "development" }}'
   SITEMINDER_LOGOUT_URL: '{{ .Values.env.VITE_APP_SITEMINDER_LOGOUT_URL | default "" }}'
@@ -21,27 +16,3 @@ data:
   BIOHUB_TAXON_PATH: '{{ .Values.env.VITE_APP_BIOHUB_TAXON_PATH | default "" }}'
   BIOHUB_TAXON_TSN_PATH: '{{ .Values.env.VITE_APP_BIOHUB_TAXON_TSN_PATH | default "" }}'
   FEATURE_FLAGS: '{{ .Values.env.VITE_APP_FEATURE_FLAGS | default "" }}'
-  # ========================
-  # Prefect Server / Worker
-  # ========================
-  PREFECT_SERVER_API_HOST: "0.0.0.0"
-  PREFECT_UI_API_URL: '{{ .Values.env.PREFECT_API_URL | default "http://localhost:4200/api" }}'
-  PREFECT_API_URL: '{{ .Values.env.PREFECT_API_URL }}'
-  ZARR_STORE_PATH: '{{ .Values.env.ZARR_STORE_PATH }}'
-  CONSERVATION_API_URL: '{{ .Values.env.CONSERVATION_API_URL }}'
-  # ========================
-  # Database Host/Port (non-sensitive)
-  # ========================
-  DB_HOST: '{{ .Values.database.host }}'
-  DB_PORT: '{{ .Values.database.port }}'
-  DB_DATABASE: '{{ .Values.database.name }}'
-  DB_SCHEMA: '{{ .Values.database.schema }}'
-  # ========================
-  # Object Storage URLs (non-sensitive)
-  # ========================
-  OBJECT_STORE_BUCKET_NAME: '{{ .Values.objectStorage.bucketName }}'
-  # ========================
-  # Keycloak URLs (non-sensitive)
-  # ========================
-  KEYCLOAK_HOST: '{{ .Values.keycloak.host }}'
-  KEYCLOAK_REALM: '{{ .Values.keycloak.realm }}'

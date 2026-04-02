@@ -32,9 +32,7 @@ ports:
 # Database Configuration (Structured for Helm templates)
 # ========================
 database:
-  host: ""  # Set via --set by workflow
   port: 5432
-  name: "conservation"
   userApi: ""  # Set via --set by workflow
   userApiPassword: ""  # Set via --set by workflow
   userPrefect: ""  # Set via --set by workflow
@@ -205,7 +203,7 @@ prefect-server:
   ingress:
     enabled: false
     host:
-      hostname: "conservation-tool-prefect-server-fa9440-dev.apps.gold.devops.gov.bc.ca"
+      hostname: ""
       path: "/"
     className: "openshift-default"
 
@@ -259,7 +257,7 @@ prefect-deploy:
 # ========================
 services:
   frontend:
-    replicas: 0
+    replicas: 1
     image:
       stream: "frontend"
       tag: "dev"
@@ -360,7 +358,7 @@ services:
       port: 5200
       targetPort: 5200
     route:
-      host: "conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"
+      host: ""
     # TODO: split into podSecurityContext and containerSecurityContext
     securityContext:
       runAsUser: 1003600000
@@ -440,16 +438,6 @@ env:
   ZARR_STORE_PATH: "/data/output_1000.zarr"
 
   # Database
-  DB_HOST: ""  # Set via --set env.DB_HOST by workflow
-  DB_PORT: "5432"
-  DB_DATABASE: ""  # Set via --set env.DB_DATABASE by workflow
-  DB_USER_API: ""  # Set via --set env.DB_USER_API by workflow
-  DB_USER_API_PASS: ""  # Set via --set env.DB_USER_API_PASS by workflow
-  DB_USER_PREFECT: ""  # Set via --set env.DB_USER_PREFECT by workflow
-  DB_USER_PREFECT_PASS: ""  # Set via --set env.DB_USER_PREFECT_PASS by workflow
-  DB_ADMIN: ""  # Set via --set env.DB_ADMIN by workflow
-  DB_ADMIN_PASS: ""  # Set via --set env.DB_ADMIN_PASS by workflow
-  DB_SCHEMA: "public"
   DB_POOL_SIZE: "10"
   DB_CONNECTION_MAX_USES: "7200"
   DB_CONNECTION_TIMEOUT: "30000"
@@ -486,7 +474,7 @@ env:
   API_HOST: "0.0.0.0"
   API_PORT: "5200"
   APP_HOST: ""  # Set via --set env.APP_HOST by workflow (external hostname)
-  FRONTEND_API_HOST: "https://conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"
+  FRONTEND_API_HOST: ""
 
   # Frontend
   VITE_PREFECT_API_URL: ""  # For local dev only (baked into image in production)

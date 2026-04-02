@@ -118,8 +118,6 @@ jobs:
             fi
           }
 
-          check_secret_key "conservation-tool-db" "DB_HOST"
-          check_secret_key "conservation-tool-db" "DB_PORT"
           check_secret_key "conservation-tool-db" "DB_DATABASE"
           check_secret_key "conservation-tool-db" "DB_SCHEMA"
           check_secret_key "conservation-tool-db" "DB_USER_API"

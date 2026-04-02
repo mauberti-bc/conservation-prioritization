@@ -1,8 +1,12 @@
-namespace: "fa9440-dev"
+prefect-server:
+  ingress:
+    host:
+      hostname: "conservation-tool-prefect-server-fa9440-dev.apps.gold.devops.gov.bc.ca"
 
-environment:
-  id: "dev"
-  name: "dev"
-  ts: "20260112-01"
-  licensePlate: "fa9440"
-  changeId: "001"
+services:
+  api:
+    route:
+      host: "conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"
+
+env:
+  FRONTEND_API_HOST: "https://conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"
