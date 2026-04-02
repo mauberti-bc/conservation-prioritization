@@ -10,7 +10,7 @@ metadata:
     {{- include "conservation-tool.annotations" . | nindent 4 }}
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "-10"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   backoffLimit: 3
   activeDeadlineSeconds: 900
@@ -20,9 +20,23 @@ spec:
         {{- include "conservation-tool.labels" . | nindent 8 }}
         role: setup
     spec:
+      securityContext:
+        runAsNonRoot: true
+        {{- if .Values.services.db.securityContext.runAsUser }}
+        runAsUser: {{ .Values.services.db.securityContext.runAsUser }}
+        {{- end }}
+        {{- if .Values.services.db.securityContext.fsGroup }}
+        fsGroup: {{ .Values.services.db.securityContext.fsGroup }}
+        {{- end }}
       initContainers:
         - name: wait-for-database
-          image: "postgres:17-alpine"
+          image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
+          imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "IfNotPresent" }}
+          securityContext:
+            runAsNonRoot: true
+            {{- if .Values.services.db.securityContext.runAsUser }}
+            runAsUser: {{ .Values.services.db.securityContext.runAsUser }}
+            {{- end }}
           command: ['sh', '-c']
           args:
             - |
@@ -59,6 +73,11 @@ spec:
         - name: db-setup
           image: "{{ .Values.registry }}/{{ .Values.services.dbSetup.image.stream }}:{{ .Values.services.dbSetup.image.tag }}"
           imagePullPolicy: {{ .Values.services.dbSetup.image.pullPolicy | default "IfNotPresent" }}
+          securityContext:
+            runAsNonRoot: true
+            {{- if .Values.services.db.securityContext.runAsUser }}
+            runAsUser: {{ .Values.services.db.securityContext.runAsUser }}
+            {{- end }}
           env:
             - name: DB_HOST
               valueFrom:
