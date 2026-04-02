@@ -167,5 +167,6 @@ jobs:
     needs: [changes, build-push]
     if: ${{ always() && needs.build-push.result != 'failure' && needs.build-push.result != 'cancelled' && (needs.changes.outputs.helm == 'true' || needs.build-push.result == 'success') }}
     uses: ./.github/workflows/deploy.yml
+    secrets: inherit
     with:
       environment: dev
