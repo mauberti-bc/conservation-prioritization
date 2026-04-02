@@ -38,7 +38,7 @@ export const TaskListItem = ({
 }: TaskListItemProps) => {
   const dialogContext = useDialogContext();
   const conservationApi = useConservationApi();
-  const { taskId, refreshTasks, setHoveredTilesetUri } = useTaskContext();
+  const { taskId, refreshTasks } = useTaskContext();
   const [isHovered, setIsHovered] = useState(false);
   void onDeleteTask;
   void onAddToProject;
