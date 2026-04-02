@@ -43,16 +43,6 @@ spec:
                 - ALL
             seccompProfile:
               type: RuntimeDefault
-          env:
-            - name: NODE_ENV
-              value: {{ .Values.env.NODE_ENV | quote }}
-            - name: PREFECT_API_URL
-              value: {{ .Values.env.PREFECT_API_URL | quote }}
-            - name: ZARR_STORE_PATH
-              value: {{ .Values.env.ZARR_STORE_PATH | quote }}
-            {{- if .Values.services.frontend.env }}
-            {{- toYaml .Values.services.frontend.env | nindent 12 }}
-            {{- end }}
           volumeMounts:
             - name: caddy-data
               mountPath: /data/caddy
@@ -81,6 +71,37 @@ spec:
             initialDelaySeconds: {{ .Values.services.frontend.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.services.frontend.readinessProbe.periodSeconds }}
           {{- end }}
+        - name: frontend-config
+          image: "{{ .Values.registry }}/{{ .Values.services.frontend.config.image.stream }}:{{ .Values.services.frontend.config.image.tag }}"
+          imagePullPolicy: {{ .Values.services.frontend.config.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - containerPort: {{ .Values.services.frontend.config.port | default 7100 }}
+          securityContext:
+            runAsNonRoot: true
+            {{- if .Values.services.frontend.securityContext.runAsUser }}
+            runAsUser: {{ .Values.services.frontend.securityContext.runAsUser }}
+            {{- end }}
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: PORT
+              value: {{ .Values.services.frontend.config.port | default 7100 | quote }}
+            {{- if .Values.services.frontend.config.env }}
+            {{- toYaml .Values.services.frontend.config.env | nindent 12 }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "conservation-tool.fullname" . }}-config
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            {{- toYaml .Values.services.frontend.config.resources | nindent 12 }}
       volumes:
         - name: caddy-data
           emptyDir: {}

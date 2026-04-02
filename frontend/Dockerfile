@@ -38,6 +38,22 @@ COPY . .
 # Build the application
 RUN yarn build
 
+# ---------- Config Server Stage ----------
+FROM node:22-alpine AS config-server
+
+# Set working directory
+WORKDIR /app
+
+COPY server ./server
+
+# Create writable directories for OpenShift random UID
+RUN mkdir -p /tmp && chmod -R 777 /tmp
+
+# Make sure the app directory is readable
+RUN chmod -R 755 /app
+
+CMD ["node", "/app/server/index.mjs"]
+
 # ---------- Production Stage ----------
 FROM caddy:2-alpine
 
