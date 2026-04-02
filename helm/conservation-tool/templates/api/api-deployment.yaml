@@ -214,7 +214,11 @@ spec:
             - name: PREFECT_API_URL
               value: {{ .Values.env.PREFECT_API_URL | quote }}
             - name: PREFECT_API_KEY
-              value: {{ .Values.env.PREFECT_API_KEY | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-api
+                  key: PREFECT_API_KEY
+                  optional: true
             - name: CONSERVATION_API_URL
               value: {{ .Values.env.CONSERVATION_API_URL | quote }} # optional
             - name: INTERNAL_API_KEY
