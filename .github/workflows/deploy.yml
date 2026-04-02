@@ -144,6 +144,7 @@ jobs:
           check_secret_key "conservation-tool-keycloak" "KEYCLOAK_ADMIN_USERNAME"
           check_secret_key "conservation-tool-keycloak" "KEYCLOAK_ADMIN_PASSWORD"
           check_secret_key "conservation-tool-keycloak" "KEYCLOAK_API_TOKEN_URL"
+          check_secret_key "conservation-tool-keycloak" "KEYCLOAK_CLIENT_ID"
           check_secret_key "conservation-tool-keycloak" "KEYCLOAK_API_CLIENT_ID"
           check_secret_key "conservation-tool-keycloak" "KEYCLOAK_API_CLIENT_SECRET"
           check_secret_key "conservation-tool-keycloak" "KEYCLOAK_API_HOST"
