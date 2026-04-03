@@ -71,7 +71,7 @@ const getConfig = () => {
     : '';
 
   return {
-    API_HOST: ensureProtocol(apiHost, 'http://'),
+    API_HOST: ensureProtocol(apiHost, 'https://'),
     CHANGE_VERSION: process.env.CHANGE_VERSION,
     NODE_ENV: process.env.NODE_ENV,
     VITE_APP_NODE_ENV: process.env.APP_NODE_ENV,
