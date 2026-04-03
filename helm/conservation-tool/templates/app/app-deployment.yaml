@@ -13,6 +13,8 @@ spec:
     metadata:
       labels:
         app: {{ include "conservation-tool.fullname.frontend" . }}
+      annotations:
+        conservation-tool/release-revision: {{ .Release.Revision | quote }}
     spec:
       serviceAccountName: {{ .Values.services.frontend.serviceAccountName | default "deployer" }}
       securityContext:

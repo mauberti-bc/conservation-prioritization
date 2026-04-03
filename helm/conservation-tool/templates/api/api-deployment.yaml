@@ -14,6 +14,8 @@ spec:
     metadata:
       labels:
         app: {{ include "conservation-tool.fullname.api" . }}
+      annotations:
+        conservation-tool/release-revision: {{ .Release.Revision | quote }}
     spec:
       serviceAccountName: {{ .Values.services.api.serviceAccountName | default "deployer" }}
       securityContext:
