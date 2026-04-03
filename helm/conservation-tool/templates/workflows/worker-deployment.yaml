@@ -14,6 +14,8 @@ spec:
     metadata:
       labels:
         app: {{ include "conservation-tool.fullname.prefect-worker" . }}
+      annotations:
+        conservation-tool/release-revision: {{ .Release.Revision | quote }}
     spec:
       serviceAccountName: deployer
       containers:

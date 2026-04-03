@@ -19,6 +19,8 @@ spec:
       labels:
         app: {{ include "conservation-tool.fullname.db" . | quote }}
         role: db
+      annotations:
+        conservation-tool/release-revision: {{ .Release.Revision | quote }}
     spec:
       # pod-level security context
       securityContext:
