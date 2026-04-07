@@ -108,7 +108,7 @@ jobs:
 
       - name: Build and push frontend image
         working-directory: frontend
-        if: needs.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.force_build == 'true' || needs.changes.outputs.frontend == 'true'
         run: |
           # Check required env vars
           required_vars=(NODE_ENV NODE_OPTIONS PREFECT_API_URL ZARR_STORE_PATH)
@@ -136,7 +136,7 @@ jobs:
 
       - name: Build and push API image
         working-directory: api
-        if: needs.changes.outputs.api == 'true'
+        if: needs.changes.outputs.force_build == 'true' || needs.changes.outputs.api == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/api"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
@@ -146,7 +146,7 @@ jobs:
 
       - name: Build and push Prefect worker image
         working-directory: workflows
-        if: needs.changes.outputs.workflows == 'true'
+        if: needs.changes.outputs.force_build == 'true' || needs.changes.outputs.workflows == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-worker"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.worker .
@@ -156,7 +156,7 @@ jobs:
 
       - name: Build and push Prefect deploy image
         working-directory: workflows
-        if: needs.changes.outputs.workflows == 'true'
+        if: needs.changes.outputs.force_build == 'true' || needs.changes.outputs.workflows == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-deploy"
           docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.deploy .
