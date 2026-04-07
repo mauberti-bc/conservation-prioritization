@@ -1,5 +1,5 @@
-import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -85,9 +85,6 @@ const getConfig = () => {
     MAX_UPLOAD_NUM_FILES: Number(process.env.MAX_UPLOAD_NUM_FILES),
     MAX_UPLOAD_FILE_SIZE: Number(process.env.MAX_UPLOAD_FILE_SIZE),
     S3_PUBLIC_HOST_URL: s3PublicHostUrl,
-    BACKBONE_PUBLIC_API_HOST: process.env.BACKBONE_PUBLIC_API_HOST,
-    BIOHUB_TAXON_PATH: process.env.BIOHUB_TAXON_PATH,
-    BIOHUB_TAXON_TSN_PATH: process.env.BIOHUB_TAXON_TSN_PATH,
     FEATURE_FLAGS: (process.env.FEATURE_FLAGS || '')
       .split(',')
       .map((featureFlag) => featureFlag.trim())
