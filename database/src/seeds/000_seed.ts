@@ -2,6 +2,24 @@ import { Knex } from 'knex';
 import { IDENTITY_SOURCE } from '../constants/profile';
 import { SEED_CONSTANTS } from '../constants/seeds';
 
+export const TABLES_TO_CLEAR = [
+  // leaf
+  'task_layer_constraint',
+  'task_layer',
+  'task_tile',
+
+  // relationships
+  'project_task',
+  'task_profile',
+  'project_profile',
+  'task_permission',
+  'project_permission',
+
+  // core
+  'task',
+  'project'
+];
+
 /* ============================================================================
  * Environment
  * ========================================================================== */
@@ -23,6 +41,10 @@ export async function seed(knex: Knex): Promise<void> {
     SET SCHEMA '${DB_SCHEMA}';
     SET SEARCH_PATH=${DB_SCHEMA},public;
   `);
+
+  for (const table of TABLES_TO_CLEAR) {
+    await knex(table).del();
+  }
 
   const apiProfile = await knex('profile')
     .select('profile_id')
