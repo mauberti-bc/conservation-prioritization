@@ -134,22 +134,6 @@ jobs:
           docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
           docker push ${BASE_IMAGE}:${GIT_SHA}
 
-      - name: Build and push frontend config server image
-        working-directory: frontend
-        if: needs.changes.outputs.frontend == 'true'
-        run: |
-          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/frontend-config"
-          docker build \
-            --target config-server \
-            -t ${BASE_IMAGE}:${IMAGE_TAG} \
-            -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} \
-            -t ${BASE_IMAGE}:${GIT_SHA} \
-            -f ./Dockerfile .
-
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-
       - name: Build and push API image
         working-directory: api
         if: needs.changes.outputs.api == 'true'
