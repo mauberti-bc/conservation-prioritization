@@ -45,54 +45,9 @@ spec:
                 - ALL
             seccompProfile:
               type: RuntimeDefault
-          volumeMounts:
-            - name: caddy-data
-              mountPath: /data/caddy
-            - name: caddy-config
-              mountPath: /config/caddy
-            - name: tmp
-              mountPath: /tmp
-            {{- if .Values.services.frontend.extraVolumeMounts }}
-            {{- toYaml .Values.services.frontend.extraVolumeMounts | nindent 12 }}
-            {{- end }}
-          resources:
-            {{- toYaml .Values.services.frontend.resources | nindent 12 }}
-          {{- if .Values.services.frontend.livenessProbe.enabled }}
-          livenessProbe:
-            httpGet:
-              path: {{ .Values.services.frontend.livenessProbe.path }}
-              port: {{ .Values.ports.frontend }}
-            initialDelaySeconds: {{ .Values.services.frontend.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.services.frontend.livenessProbe.periodSeconds }}
-          {{- end }}
-          {{- if .Values.services.frontend.readinessProbe.enabled }}
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.services.frontend.readinessProbe.path }}
-              port: {{ .Values.ports.frontend }}
-            initialDelaySeconds: {{ .Values.services.frontend.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.services.frontend.readinessProbe.periodSeconds }}
-          {{- end }}
-        - name: frontend-config
-          image: "{{ .Values.registry }}/{{ .Values.services.frontend.config.image.stream }}:{{ .Values.services.frontend.config.image.tag }}"
-          imagePullPolicy: {{ .Values.services.frontend.config.image.pullPolicy | default "IfNotPresent" }}
-          ports:
-            - containerPort: {{ .Values.services.frontend.config.port | default 7100 }}
-          securityContext:
-            runAsNonRoot: true
-            {{- if .Values.services.frontend.securityContext.runAsUser }}
-            runAsUser: {{ .Values.services.frontend.securityContext.runAsUser }}
-            {{- end }}
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
           env:
             - name: PORT
-              value: {{ .Values.services.frontend.config.port | default 7100 | quote }}
+              value: {{ .Values.ports.frontend | quote }}
             - name: KEYCLOAK_HOST
               valueFrom:
                 secretKeyRef:
@@ -127,13 +82,28 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            {{- if .Values.services.frontend.extraVolumeMounts }}
+            {{- toYaml .Values.services.frontend.extraVolumeMounts | nindent 12 }}
+            {{- end }}
           resources:
-            {{- toYaml .Values.services.frontend.config.resources | nindent 12 }}
+            {{- toYaml .Values.services.frontend.resources | nindent 12 }}
+          {{- if .Values.services.frontend.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.services.frontend.livenessProbe.path }}
+              port: {{ .Values.ports.frontend }}
+            initialDelaySeconds: {{ .Values.services.frontend.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.frontend.livenessProbe.periodSeconds }}
+          {{- end }}
+          {{- if .Values.services.frontend.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.services.frontend.readinessProbe.path }}
+              port: {{ .Values.ports.frontend }}
+            initialDelaySeconds: {{ .Values.services.frontend.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.frontend.readinessProbe.periodSeconds }}
+          {{- end }}
       volumes:
-        - name: caddy-data
-          emptyDir: {}
-        - name: caddy-config
-          emptyDir: {}
         - name: tmp
           emptyDir: {}
         {{- if .Values.services.frontend.extraVolumes }}

@@ -1,9 +1,0 @@
-:{$PORT:7070} {
-    root * ./public
-    file_server
-    reverse_proxy /config 127.0.0.1:7100
-    reverse_proxy /healthcheck 127.0.0.1:7100
-
-    # Add health check endpoint
-    respond /health 200
-}
