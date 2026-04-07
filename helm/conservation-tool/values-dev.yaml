@@ -9,4 +9,5 @@ services:
       host: "conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"
 
 env:
+  NODE_ENV: "development"
   FRONTEND_API_HOST: "https://conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"

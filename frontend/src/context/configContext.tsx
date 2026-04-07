@@ -17,9 +17,6 @@ export interface IConfig {
   MAX_UPLOAD_NUM_FILES: number;
   MAX_UPLOAD_FILE_SIZE: number;
   S3_PUBLIC_HOST_URL: string;
-  BACKBONE_PUBLIC_API_HOST: string;
-  BIOHUB_TAXON_PATH: string;
-  BIOHUB_TAXON_TSN_PATH: string;
   /**
    * Used in conjunction with the feature flag guard (FeatureFlagGuard) to disable components.
    *
@@ -81,12 +78,6 @@ const getLocalConfig = (): IConfig => {
     MAX_UPLOAD_NUM_FILES: Number(import.meta.env.VITE_APP_MAX_UPLOAD_NUM_FILES) || 10,
     MAX_UPLOAD_FILE_SIZE: Number(import.meta.env.VITE_APP_MAX_UPLOAD_FILE_SIZE) || 52428800,
     S3_PUBLIC_HOST_URL: ensureProtocol(`${OBJECT_STORE_URL}/${OBJECT_STORE_BUCKET_NAME}`, 'https://'),
-    /**
-     * BioHub settings
-     */
-    BACKBONE_PUBLIC_API_HOST: import.meta.env.VITE_APP_BACKBONE_PUBLIC_API_HOST || '',
-    BIOHUB_TAXON_PATH: import.meta.env.VITE_APP_BIOHUB_TAXON_PATH || '',
-    BIOHUB_TAXON_TSN_PATH: import.meta.env.VITE_APP_BIOHUB_TAXON_TSN_PATH || '',
     /**
      * Feature flags
      *

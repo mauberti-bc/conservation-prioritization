@@ -58,8 +58,6 @@ export const authorizeRequest = async (req: Request): Promise<boolean> => {
 
     await connection.open();
 
-    console.log('HERE@@@', req.profile);
-
     const authorizationService = new AuthorizationService(connection, {
       profile: req.profile,
       keycloakToken: req.keycloak_token
@@ -67,13 +65,9 @@ export const authorizeRequest = async (req: Request): Promise<boolean> => {
 
     const isSystemAdmin = await authorizationService.authorizeSystemAdministrator();
 
-    console.log(isSystemAdmin, 'admin?');
-
     const isAuthorized = isSystemAdmin
       ? true
       : await authorizationService.executeAuthorizationScheme(authorizationScheme);
-
-    console.log(isAuthorized);
 
     req.profile = authorizationService.getProfile();
 

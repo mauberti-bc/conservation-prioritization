@@ -12,7 +12,4 @@ data:
   SITEMINDER_LOGOUT_URL: '{{ .Values.env.VITE_APP_SITEMINDER_LOGOUT_URL | default "" }}'
   MAX_UPLOAD_NUM_FILES: '{{ .Values.env.VITE_APP_MAX_UPLOAD_NUM_FILES | default "10" }}'
   MAX_UPLOAD_FILE_SIZE: '{{ .Values.env.VITE_APP_MAX_UPLOAD_FILE_SIZE | default "52428800" }}'
-  BACKBONE_PUBLIC_API_HOST: '{{ .Values.env.VITE_APP_BACKBONE_PUBLIC_API_HOST | default "" }}'
-  BIOHUB_TAXON_PATH: '{{ .Values.env.VITE_APP_BIOHUB_TAXON_PATH | default "" }}'
-  BIOHUB_TAXON_TSN_PATH: '{{ .Values.env.VITE_APP_BIOHUB_TAXON_TSN_PATH | default "" }}'
   FEATURE_FLAGS: '{{ .Values.env.VITE_APP_FEATURE_FLAGS | default "" }}'

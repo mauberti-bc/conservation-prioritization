@@ -178,7 +178,8 @@ jobs:
             --namespace ${OPENSHIFT_NAMESPACE} \
             --wait \
             --wait-for-jobs \
-            --timeout=10m
+            --timeout=10m \
+            --atomic
 
       - name: Verify deployment
         run: |
