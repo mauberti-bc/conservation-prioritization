@@ -6,8 +6,6 @@ import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination
 import { makePaginationResponse } from '../utils/pagination';
 import { parseArraysFromConsolidatedMetadata } from '../utils/zarr';
 
-type ZarrModule = typeof import('zarrita');
-
 /**
  * Cache entry for parsed Zarr layers.
  */
@@ -20,12 +18,12 @@ interface LayerCache {
  * Service for interacting with the Zarr data store.
  * Provides methods to list, search, and retrieve layers with pagination.
  *
+ * This implementation reads consolidated metadata directly from `.zmetadata`
+ * and does not depend on `zarrita`.
+ *
  * @class LayerService
  */
 export class LayerService {
-  /** Lazy-loaded Zarrita module */
-  private zarrModulePromise: Promise<ZarrModule> | null = null;
-
   /** Raw Zarr store path */
   private readonly zarrPath: string;
 
@@ -53,27 +51,12 @@ export class LayerService {
   }
 
   /**
-   * Lazily loads the Zarrita module.
-   *
-   * @returns {Promise<ZarrModule>}
-   * @private
-   */
-  private async getZarrModule(): Promise<ZarrModule> {
-    if (!this.zarrModulePromise) {
-      this.zarrModulePromise = import('zarrita');
-    }
-
-    return this.zarrModulePromise;
-  }
-
-  /**
    * Create a simple store object that reads from the local filesystem.
-   * Compatible with zarrita's store interface.
    *
-   * @returns {any} Store object with get() method
+   * @returns {{ get: (key: string) => Promise<ArrayBuffer | null> }} Store object with get() method
    * @private
    */
-  private createLocalStore(): any {
+  private createLocalStore(): { get: (key: string) => Promise<ArrayBuffer | null> } {
     const basePath = this.zarrPath;
 
     return {
@@ -81,12 +64,15 @@ export class LayerService {
         try {
           const filePath = path.join(basePath, key);
           const data = await fs.readFile(filePath);
-          return data.buffer;
+
+          return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
         } catch (error) {
           const err = error as NodeJS.ErrnoException;
+
           if (err.code === 'ENOENT') {
             return null;
           }
+
           throw error;
         }
       }
@@ -108,12 +94,8 @@ export class LayerService {
       return LayerService.cache.layers;
     }
 
-    const zarr = await this.getZarrModule();
     const store = this.createLocalStore();
-    const location = zarr.root(store);
-
-    // Resolve consolidated metadata path
-    const metadataPath = location.resolve('.zmetadata').path;
+    const metadataPath = '.zmetadata';
 
     let consolidatedMetadata: unknown;
 
@@ -175,7 +157,7 @@ export class LayerService {
 
   /**
    * Search for layers by keyword with pagination.
-   * Matches against name, path, and description (case-insensitive).
+   * Matches against name, path, and description.
    *
    * @param {string} searchTerm Optional search term
    * @param {ApiPaginationOptions} pagination Pagination options
@@ -190,14 +172,14 @@ export class LayerService {
     pagination: ApiPaginationResults | null;
   }> {
     const allLayers = await this.loadAllLayers();
+    const normalizedSearch = searchTerm.trim().toLowerCase();
 
-    const filteredLayers = searchTerm
+    const filteredLayers = normalizedSearch
       ? allLayers.filter((layer) => {
-          const search = searchTerm.toLowerCase();
           return (
-            layer.name.toLowerCase().includes(search) ||
-            layer.path.toLowerCase().includes(search) ||
-            layer.description?.toLowerCase().includes(search)
+            layer.name.toLowerCase().includes(normalizedSearch) ||
+            layer.path.toLowerCase().includes(normalizedSearch) ||
+            layer.description?.toLowerCase().includes(normalizedSearch)
           );
         })
       : allLayers;
@@ -206,6 +188,7 @@ export class LayerService {
 
     if (pagination) {
       const paginatedLayers = this.paginate(filteredLayers, pagination);
+
       return {
         layers: paginatedLayers,
         pagination: makePaginationResponse(total, pagination)
@@ -221,13 +204,13 @@ export class LayerService {
   /**
    * Fetch metadata for a specific layer by its path.
    *
-   * @param {string} path Layer path (e.g. "landcover/disturbance/mining")
+   * @param {string} layerPath Layer path (e.g. "landcover/disturbance/mining")
    * @returns {Promise<LayerMeta | null>}
    * @memberof LayerService
    */
-  async getLayerByPath(path: string): Promise<LayerMeta | null> {
+  async getLayerByPath(layerPath: string): Promise<LayerMeta | null> {
     const layers = await this.loadAllLayers();
-    return layers.find((layer) => layer.path === path) ?? null;
+    return layers.find((layer) => layer.path === layerPath) ?? null;
   }
 
   /**
@@ -242,6 +225,7 @@ export class LayerService {
   private paginate<T>(items: T[], pagination: ApiPaginationOptions): T[] {
     const { page, limit } = pagination;
     const offset = (page - 1) * limit;
+
     return items.slice(offset, offset + limit);
   }
 }

@@ -1,4 +1,4 @@
-# Declare build args globally so they can be passed into all stages
+# Declare build args globally so they can be passed into build stage
 ARG VITE_NODE_ENV
 ARG VITE_NODE_OPTIONS
 ARG VITE_PREFECT_API_URL
@@ -7,73 +7,48 @@ ARG VITE_ZARR_STORE_PATH
 # ---------- Build Stage ----------
 FROM node:22-alpine AS build
 
-# Enable Corepack and install Yarn 4.11.0
 RUN corepack enable && \
     corepack prepare yarn@4.11.0 --activate
 
 WORKDIR /app
 
-# Re-declare args in this stage to receive values
 ARG VITE_NODE_ENV
 ARG VITE_NODE_OPTIONS
 ARG VITE_PREFECT_API_URL
 ARG VITE_ZARR_STORE_PATH
 
-# Set as environment variables for the build process
 ENV VITE_NODE_ENV=$VITE_NODE_ENV
 ENV VITE_NODE_OPTIONS=$VITE_NODE_OPTIONS
 ENV VITE_PREFECT_API_URL=$VITE_PREFECT_API_URL
 ENV VITE_ZARR_STORE_PATH=$VITE_ZARR_STORE_PATH
 
-# Copy Yarn configuration files
 COPY package.json yarn.lock .yarnrc.yml ./
 # COPY .yarn/ .yarn/
 
-# Install dependencies with Yarn 4.11.0
 RUN yarn install --immutable
 
-# Copy application files
 COPY . .
 
-# Build the application
 RUN yarn build
 
-# ---------- Config Server Stage ----------
-FROM node:22-alpine AS config-server
+# ---------- Production Stage ----------
+FROM node:22-alpine AS production
 
-# Set working directory
 WORKDIR /app
 
+ENV NODE_ENV=production
+ENV PORT=7070
+
+# Copy the runtime server
 COPY server ./server
 
-# Create writable directories for OpenShift random UID
-RUN mkdir -p /tmp && chmod -R 777 /tmp
+# Copy built frontend assets
+COPY --from=build /app/build ./build
 
-# Make sure the app directory is readable
-RUN chmod -R 755 /app
+# OpenShift-friendly permissions
+RUN mkdir -p /tmp && chmod -R 777 /tmp && \
+    chmod -R 755 /app
+
+EXPOSE 7070
 
 CMD ["node", "/app/server/index.mjs"]
-
-# ---------- Production Stage ----------
-FROM caddy:2-alpine
-
-# Remove capabilities that cause permission issues on OpenShift
-RUN setcap -r /usr/bin/caddy
-
-# Create directories that Caddy needs with wide permissions
-RUN mkdir -p /data/caddy/locks /config/caddy /tmp && \
-    chmod -R 777 /data/caddy /config/caddy /tmp
-
-# Set working directory
-WORKDIR /app
-
-# Copy built static files
-COPY --from=build /app/build ./public
-
-# Copy the Caddyfile
-COPY Caddyfile ./Caddyfile
-
-# Make sure the app directory is readable
-RUN chmod -R 755 /app
-
-CMD ["caddy", "run", "--config", "/app/Caddyfile"]
