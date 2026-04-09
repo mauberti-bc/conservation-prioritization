@@ -18,6 +18,22 @@ spec:
         conservation-tool/release-revision: {{ .Release.Revision | quote }}
     spec:
       serviceAccountName: deployer
+      initContainer:
+        - name: wait-for-db-migrations
+          image: "{{ .Values.registry }}/{{ .Values.services.workflows.worker.image.stream }}:{{ .Values.services.workflows.worker.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "Waiting for DB migrations to complete..."
+              until psql "host=$DB_HOST port=$DB_PORT dbname=$DB_DATABASE user=$DB_USER_PREFECT" \
+                -c "select 1 where exists (select 1 from information_schema.tables where table_schema='public' and table_name='migration_lock') and exists (select 1 from migration_lock where is_locked=0);" \
+                | grep -q 1; do
+                echo "Migrations still running, waiting..."
+                sleep 5
+              done
+              echo "Migrations complete, starting worker."
+
       containers:
         - name: prefect-worker
           image: "{{ .Values.registry }}/{{ .Values.services.workflows.worker.image.stream }}:{{ .Values.services.workflows.worker.image.tag }}"
