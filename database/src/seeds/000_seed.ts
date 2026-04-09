@@ -59,6 +59,7 @@ export async function seed(knex: Knex): Promise<void> {
         WHERE NOT EXISTS (
           SELECT 1 FROM role WHERE name = ? AND scope = ? AND record_end_date IS NULL
         )
+        ON CONFLICT DO NOTHING;
       `,
       [role.name, role.description, role.scope, role.name, role.scope]
     );
@@ -72,6 +73,7 @@ export async function seed(knex: Knex): Promise<void> {
         WHERE NOT EXISTS (
           SELECT 1 FROM role WHERE name = ? AND scope = ? AND record_end_date IS NULL
         )
+        ON CONFLICT DO NOTHING;
       `,
       [role.name, role.description, role.scope, role.name, role.scope]
     );
@@ -85,6 +87,7 @@ export async function seed(knex: Knex): Promise<void> {
         WHERE NOT EXISTS (
           SELECT 1 FROM role WHERE name = ? AND scope = ? AND record_end_date IS NULL
         )
+        ON CONFLICT DO NOTHING;
       `,
       [role.name, role.description, role.scope, role.name, role.scope]
     );
@@ -98,6 +101,7 @@ export async function seed(knex: Knex): Promise<void> {
         WHERE NOT EXISTS (
           SELECT 1 FROM role WHERE name = ? AND scope = ? AND record_end_date IS NULL
         )
+        ON CONFLICT DO NOTHING;
       `,
       [role.name, role.description, role.scope, role.name, role.scope]
     );
