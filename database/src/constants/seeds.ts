@@ -3,7 +3,6 @@ import { SYSTEM_ROLE } from './profile';
 export const SEED_CONSTANTS = {
   TABLES_TO_CLEAR: [
     'audit_log',
-    'role',
     'task_layer_constraint',
     'task_layer',
     'task_tile',
