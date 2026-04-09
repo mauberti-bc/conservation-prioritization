@@ -215,8 +215,7 @@ prefect-worker:
     limits:
       cpu: 100m
       memory: 1024Mi
-  # why no replicas?
-  replicas: 0
+  replicas: 1
   pool: pool
   securityContext:
     runAsUser: 1003600000
