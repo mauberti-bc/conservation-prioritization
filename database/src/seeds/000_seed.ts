@@ -140,7 +140,7 @@ export async function seed(knex: Knex): Promise<void> {
         agency: profile.agency,
         notes: profile.notes
       })
-      .onConflict()
+      .onConflict('profile_guid')
       .merge({
         role_id: resolvedRole?.role_id || null,
         display_name: profile.display_name,
