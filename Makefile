@@ -21,6 +21,7 @@ all: | build-all run-all
 web: | build-web run-web
 backend: | build-backend run-backend
 frontend: | build-frontend run-frontend
+postgres: | build-postgres run-postgres
 
 # Prefect
 prefect: | build-prefect run-prefect
@@ -142,6 +143,22 @@ run-backend: ## Run containers for backend
 	@echo "Make: run-backend - running backend images"
 	@echo "==============================================="
 	@docker compose up -d api db db_setup
+
+## ------------------------------------------------------------------------------
+## Build and Run Postgres
+## ------------------------------------------------------------------------------
+
+build-postgres: ## Build containers for postgres
+	@echo "==============================================="
+	@echo "Make: build-postgres - building postgres images"
+	@echo "==============================================="
+	@docker compose build db db_setup
+
+run-postgres: ## Run containers for postgres
+	@echo "==============================================="
+	@echo "Make: run-postgres - running postgres images"
+	@echo "==============================================="
+	@docker compose up -d db db_setup
 
 
 
