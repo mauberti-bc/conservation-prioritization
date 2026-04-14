@@ -20,7 +20,7 @@ spec:
       serviceAccountName: deployer
       initContainers:
         - name: wait-for-db-migrations
-          image: "{{ .Values.registry }}/{{ .Values.services.workflows.worker.image.stream }}:{{ .Values.services.workflows.worker.image.tag }}"
+          image: postgres:17
           imagePullPolicy: IfNotPresent
           command: ["sh", "-c"]
           args:
