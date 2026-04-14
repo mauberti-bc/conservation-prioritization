@@ -29,6 +29,8 @@ permissions:
 
 env:
   OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
+  ACTIONS_RUNNER_DEBUG: true
+  ACTIONS_STEP_DEBUG: true
 
 jobs:
   deploy:
@@ -177,9 +179,9 @@ jobs:
             --values ${{ steps.values-file.outputs.values_file }} \
             --namespace ${OPENSHIFT_NAMESPACE} \
             --wait \
-            --wait-for-jobs \
             --timeout=10m \
-            --atomic
+            --atomic \
+            --debug
 
       - name: Verify deployment
         run: |
