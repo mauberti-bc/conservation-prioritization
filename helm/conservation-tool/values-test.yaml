@@ -16,11 +16,9 @@ services:
         tag: "test"
   workflows:
     worker:
-      replicas: 1
       image:
         tag: "test"
     deploy:
-      replicas: 1
       image:
         tag: "test"
   api:
