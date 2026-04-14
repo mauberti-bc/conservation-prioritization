@@ -16,11 +16,9 @@ services:
         tag: "prod"
   workflows:
     worker:
-      replicas: 1
       image:
         tag: "prod"
     deploy:
-      replicas: 1
       image:
         tag: "prod"
   api:

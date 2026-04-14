@@ -1,32 +1,68 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # File: scripts/setup-openshift-secrets.sh
-# Usage: ./scripts/setup-openshift-secrets.sh <namespace>
-# Example: ./scripts/setup-openshift-secrets.sh dev-tools
+# Usage:
+#   ./scripts/setup-openshift-secrets.sh <namespace> [env_file]
+#
+# Examples:
+#   ./scripts/setup-openshift-secrets.sh dev-tools
+#   ./scripts/setup-openshift-secrets.sh dev-tools .env
+#   ./scripts/setup-openshift-secrets.sh dev-tools .env.test
+#   ./scripts/setup-openshift-secrets.sh prod-tools .env.prod
 
-set -e
+set -euo pipefail
 
 NAMESPACE="${1:?Namespace required (e.g., dev-tools)}"
+ENV_FILE="${2:-.env}"
 
 echo "Setting up OpenShift secrets in namespace: $NAMESPACE"
+echo "Using env file: $ENV_FILE"
 echo "This script uses oc CLI. Install with: https://docs.openshift.com/cli"
 
 # Check if oc is installed
-if ! command -v oc &> /dev/null; then
+if ! command -v oc >/dev/null 2>&1; then
   echo "Error: OpenShift CLI (oc) is not installed."
   exit 1
 fi
 
-# Log in (assumes OC_TOKEN or prompt)
-if [ -z "$OC_TOKEN" ]; then
-  read -s -p "Enter OpenShift token: " OC_TOKEN
-  echo ""
+# Load env file if it exists
+if [[ -f "$ENV_FILE" ]]; then
+  echo "Loading environment variables from $ENV_FILE"
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+else
+  echo "Warning: Env file '$ENV_FILE' not found. Falling back to interactive prompts."
 fi
+
+prompt_if_missing() {
+  local var_name="$1"
+  local prompt_text="$2"
+  local is_secret="${3:-false}"
+  local current_value="${!var_name:-}"
+
+  if [[ -n "$current_value" ]]; then
+    return
+  fi
+
+  if [[ "$is_secret" == "true" ]]; then
+    read -r -s -p "$prompt_text: " current_value
+    echo ""
+  else
+    read -r -p "$prompt_text: " current_value
+  fi
+
+  export "$var_name=$current_value"
+}
+
+# Login config
+prompt_if_missing "OPENSHIFT_SERVER" "OpenShift server URL"
+prompt_if_missing "OC_TOKEN" "OpenShift token" true
 
 oc login --token="$OC_TOKEN" --server="$OPENSHIFT_SERVER" --insecure-skip-tls-verify=true
 oc project "$NAMESPACE"
 
-# Helper function to create/update secret
 create_secret() {
   local secret_name="$1"
   shift
@@ -34,16 +70,14 @@ create_secret() {
 
   echo "Creating/updating secret: $secret_name"
 
-  # Prepare --from-literal args
   local args=()
   for kv in "${kv_pairs[@]}"; do
     args+=(--from-literal="$kv")
   done
 
-  # Check if secret exists
-  if oc get secret "$secret_name" &> /dev/null; then
+  if oc get secret "$secret_name" --namespace="$NAMESPACE" >/dev/null 2>&1; then
     echo "Secret $secret_name exists — updating..."
-    oc delete secret "$secret_name"
+    oc delete secret "$secret_name" --namespace="$NAMESPACE"
   fi
 
   oc create secret generic "$secret_name" "${args[@]}" --namespace="$NAMESPACE"
@@ -51,18 +85,21 @@ create_secret() {
   echo ""
 }
 
+echo "=== API Credentials ==="
+prompt_if_missing "INTERNAL_API_KEY" "Internal API Key" true
+
+create_secret "conservation-tool-api" \
+  "INTERNAL_API_KEY=$INTERNAL_API_KEY"
+
 echo "=== Database Credentials ==="
-read -p "DB User (API): " DB_USER_API
-read -s -p "DB Password (API): " DB_USER_API_PASS
-echo ""
-read -p "DB User (Prefect): " DB_USER_PREFECT
-read -s -p "DB Password (Prefect): " DB_USER_PREFECT_PASS
-echo ""
-read -p "DB Admin User: " DB_ADMIN
-read -s -p "DB Admin Password: " DB_ADMIN_PASS
-echo ""
-read -p "DB Name: " DB_DATABASE
-read -p "DB Schema: " DB_SCHEMA
+prompt_if_missing "DB_USER_API" "DB User (API)"
+prompt_if_missing "DB_USER_API_PASS" "DB Password (API)" true
+prompt_if_missing "DB_USER_PREFECT" "DB User (Prefect)"
+prompt_if_missing "DB_USER_PREFECT_PASS" "DB Password (Prefect)" true
+prompt_if_missing "DB_ADMIN" "DB Admin User"
+prompt_if_missing "DB_ADMIN_PASS" "DB Admin Password" true
+prompt_if_missing "DB_DATABASE" "DB Name"
+prompt_if_missing "DB_SCHEMA" "DB Schema"
 
 create_secret "conservation-tool-db" \
   "DB_DATABASE=$DB_DATABASE" \
@@ -75,19 +112,18 @@ create_secret "conservation-tool-db" \
   "DB_SCHEMA=$DB_SCHEMA"
 
 echo "=== Prefect Credentials ==="
-read -p "Prefect Database URL (e.g., postgresql+asyncpg://user:pass@host:5432/db): " PREFECT_DB_URL
+prompt_if_missing "PREFECT_API_DATABASE_CONNECTION_URL" "Prefect Database URL (e.g., postgresql+asyncpg://user:pass@host:5432/db)"
 
 create_secret "conservation-tool-prefect-db" \
-  "PREFECT_API_DATABASE_CONNECTION_URL=$PREFECT_DB_URL" \
-  "connection-string=$PREFECT_DB_URL"
+  "PREFECT_API_DATABASE_CONNECTION_URL=$PREFECT_API_DATABASE_CONNECTION_URL" \
+  "connection-string=$PREFECT_API_DATABASE_CONNECTION_URL"
 
 echo "=== Object Storage Credentials ==="
-read -p "Object Store URL (e.g., http://minio:9000): " OBJECT_STORE_URL
-read -p "Access Key ID: " OBJECT_STORE_ACCESS_KEY_ID
-read -s -p "Secret Key ID: " OBJECT_STORE_SECRET_KEY_ID
-echo ""
-read -p "Bucket Name: " OBJECT_STORE_BUCKET_NAME
-read -p "S3 Key Prefix: " S3_KEY_PREFIX
+prompt_if_missing "OBJECT_STORE_URL" "Object Store URL (e.g., http://minio:9000)"
+prompt_if_missing "OBJECT_STORE_ACCESS_KEY_ID" "Access Key ID"
+prompt_if_missing "OBJECT_STORE_SECRET_KEY_ID" "Secret Key ID" true
+prompt_if_missing "OBJECT_STORE_BUCKET_NAME" "Bucket Name"
+prompt_if_missing "S3_KEY_PREFIX" "S3 Key Prefix"
 
 create_secret "conservation-tool-object-storage" \
   "OBJECT_STORE_URL=$OBJECT_STORE_URL" \
@@ -97,18 +133,16 @@ create_secret "conservation-tool-object-storage" \
   "S3_KEY_PREFIX=$S3_KEY_PREFIX"
 
 echo "=== Keycloak Credentials ==="
-read -p "Keycloak Host: " KEYCLOAK_HOST
-read -p "Realm: " KEYCLOAK_REALM
-read -p "Admin Username: " KEYCLOAK_ADMIN_USERNAME
-read -s -p "Admin Password: " KEYCLOAK_ADMIN_PASSWORD
-echo ""
-read -p "API Token URL: " KEYCLOAK_API_TOKEN_URL
-read -p "App Client ID: " KEYCLOAK_CLIENT_ID
-read -p "API Client ID: " KEYCLOAK_API_CLIENT_ID
-read -s -p "API Client Secret: " KEYCLOAK_API_CLIENT_SECRET
-echo ""
-read -p "API Host: " KEYCLOAK_API_HOST
-read -p "API Environment: " KEYCLOAK_API_ENVIRONMENT
+prompt_if_missing "KEYCLOAK_HOST" "Keycloak Host"
+prompt_if_missing "KEYCLOAK_REALM" "Realm"
+prompt_if_missing "KEYCLOAK_ADMIN_USERNAME" "Admin Username"
+prompt_if_missing "KEYCLOAK_ADMIN_PASSWORD" "Admin Password" true
+prompt_if_missing "KEYCLOAK_API_TOKEN_URL" "API Token URL"
+prompt_if_missing "KEYCLOAK_CLIENT_ID" "App Client ID"
+prompt_if_missing "KEYCLOAK_API_CLIENT_ID" "API Client ID"
+prompt_if_missing "KEYCLOAK_API_CLIENT_SECRET" "API Client Secret" true
+prompt_if_missing "KEYCLOAK_API_HOST" "API Host"
+prompt_if_missing "KEYCLOAK_API_ENVIRONMENT" "API Environment"
 
 create_secret "conservation-tool-keycloak" \
   "KEYCLOAK_HOST=$KEYCLOAK_HOST" \
@@ -123,9 +157,8 @@ create_secret "conservation-tool-keycloak" \
   "KEYCLOAK_API_ENVIRONMENT=$KEYCLOAK_API_ENVIRONMENT"
 
 echo "=== OpenShift Configuration ==="
-read -p "Tools Namespace: " TOOLS_NAMESPACE
-read -s -p "Tools Service Account Token: " TOOLS_SA_TOKEN
-echo ""
+prompt_if_missing "TOOLS_NAMESPACE" "Tools Namespace"
+prompt_if_missing "TOOLS_SA_TOKEN" "Tools Service Account Token" true
 
 create_secret "conservation-tool-openshift" \
   "TOOLS_NAMESPACE=$TOOLS_NAMESPACE" \
