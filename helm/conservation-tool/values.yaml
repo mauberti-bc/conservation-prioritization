@@ -117,13 +117,9 @@ prefect-server:
       requests:
         cpu: 50m
         memory: 128Mi
-        # cpu: 100m
-        # memory: 256Mi
       limits:
         cpu: 50m
         memory: 128Mi
-        # cpu: 200m
-        # memory: 512Mi
     env:
       - name: PREFECT_HOME
         value: /tmp/prefect
@@ -211,12 +207,11 @@ prefect-worker:
   resources:
     requests:
       cpu: 50m
-      memory: 1024Mi
+      memory: 256Mi
     limits:
       cpu: 100m
       memory: 1024Mi
-  # why no replicas?
-  replicas: 0
+  replicas: 1
   pool: pool
   securityContext:
     runAsUser: 1003600000
@@ -234,10 +229,10 @@ prefect-deploy:
   resources:
     requests:
       cpu: 50m
-      memory: 1024Mi
+      memory: 256Mi
     limits:
       cpu: 100m
-      memory: 1024Mi
+      memory: 256Mi
   replicas: 0
   securityContext:
     runAsUser: 1003600000
@@ -316,10 +311,10 @@ services:
       resources:
         limits:
           cpu: 100m
-          memory: 1024Mi
+          memory: 256Mi
         requests:
           cpu: 50m
-          memory: 1024Mi
+          memory: 256Mi
       service:
         type: ClusterIP
         port: 80
@@ -338,7 +333,7 @@ services:
       resources:
         requests:
           cpu: 50m
-          memory: 1024Mi
+          memory: 512Mi
         limits:
           cpu: 100m
           memory: 1024Mi
@@ -366,10 +361,10 @@ services:
     resources:
       requests:
         cpu: 50m
-        memory: 256Mi
+        memory: 128Mi
       limits:
         cpu: 100m
-        memory: 512Mi
+        memory: 256Mi
 
   db:
     image:
@@ -405,10 +400,10 @@ services:
     resources:
       requests:
         cpu: 50m
-        memory: 256Mi
+        memory: 128Mi
       limits:
         cpu: 200m
-        memory: 512Mi
+        memory: 256Mi
 
 # ========================
 # Background Services
