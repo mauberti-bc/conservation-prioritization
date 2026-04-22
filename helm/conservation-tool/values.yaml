@@ -307,7 +307,7 @@ services:
       image:
         stream: "prefect-worker"
         tag: "dev"
-        pullPolicy: IfNotPresent
+        pullPolicy: "Always"
       resources:
         limits:
           cpu: 100m
@@ -329,7 +329,7 @@ services:
       image:
         stream: "prefect-deploy"
         tag: "dev"
-        pullPolicy: IfNotPresent
+        pullPolicy: "Always"
       resources:
         requests:
           cpu: 50m
@@ -338,24 +338,21 @@ services:
           cpu: 100m
           # memory: 1024Mi
           memory: 512Mi
-      # TODO: split into podSecurityContext and containerSecurityContext
       securityContext:
         runAsUser: 1003600000
-        # fsGroup: 1003600000
 
   api:
     replicas: 1
     image:
       stream: "api"
       tag: "dev"
-      pullPolicy: IfNotPresent
+      pullPolicy: "Always"
     service:
       type: ClusterIP
       port: 5200
       targetPort: 5200
     route:
       host: ""
-    # TODO: split into podSecurityContext and containerSecurityContext
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
@@ -373,7 +370,7 @@ services:
       # tag: "17-alpine"
       stream: "database"
       tag: "dev"
-      pullPolicy: "IfNotPresent"
+      # pulPolicy: "IfNotPresent"
     service:
       type: ClusterIP
       port: 5432
@@ -397,7 +394,7 @@ services:
     image:
       stream: "db-setup"
       tag: "dev"
-      pullPolicy: "IfNotPresent"
+      # pulPolicy: "IfNotPresent"
     resources:
       requests:
         cpu: 50m
