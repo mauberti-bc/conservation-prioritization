@@ -18,6 +18,41 @@ spec:
         conservation-tool/release-revision: {{ .Release.Revision | quote }}
     spec:
       serviceAccountName: deployer
+      initContainers:
+        - name: wait-for-db-migrations
+          image: postgres:17
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "Waiting for DB migrations to complete..."
+              until psql "host=$DB_HOST port=$DB_PORT dbname=$DB_DATABASE user=$DB_USER_PREFECT" \
+                -c "select 1 from alembic_version;" \
+                | grep -q 1; do
+                echo "Migrations still running, waiting..."
+                sleep 5
+              done
+              echo "Migrations complete, starting worker."
+          env:
+            - name: DB_HOST
+              value: {{ include "conservation-tool.fullname.db" . | quote }}
+            - name: DB_PORT
+              value: {{ .Values.database.port | quote }}  
+            - name: DB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_DATABASE   
+            - name: DB_USER_PREFECT
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_USER_PREFECT        
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_USER_PREFECT_PASS
       containers:
         - name: prefect-worker
           image: "{{ .Values.registry }}/{{ .Values.services.workflows.worker.image.stream }}:{{ .Values.services.workflows.worker.image.tag }}"
