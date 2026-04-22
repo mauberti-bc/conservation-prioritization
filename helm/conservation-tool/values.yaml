@@ -269,7 +269,7 @@ services:
           memory: 64Mi
         limits:
           cpu: 100m
-          memory: 128Mi
+          memory: 64Mi
       env: []
     service:
       type: ClusterIP
@@ -336,7 +336,8 @@ services:
           memory: 512Mi
         limits:
           cpu: 100m
-          memory: 1024Mi
+          # memory: 1024Mi
+          memory: 512Mi
       # TODO: split into podSecurityContext and containerSecurityContext
       securityContext:
         runAsUser: 1003600000
@@ -364,7 +365,7 @@ services:
         memory: 128Mi
       limits:
         cpu: 100m
-        memory: 256Mi
+        memory: 128Mi
 
   db:
     image:
