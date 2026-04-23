@@ -111,7 +111,7 @@ export const _getObjectStoreEndpoint = (): string => {
  * @returns {*} {string} The object store region
  */
 export const _getObjectStoreRegion = (): string => {
-  return process.env.OBJECT_STORE_REGION || 'us-east-1';
+  return process.env.OBJECT_STORE_REGION || 'ca-central-1';
 };
 
 /**
