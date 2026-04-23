@@ -21,6 +21,7 @@ jobs:
       frontend: ${{ steps.changes.outputs.frontend }}
       api: ${{ steps.changes.outputs.api }}
       workflows: ${{ steps.changes.outputs.workflows }}
+      database: ${{ steps.changes.outputs.database }}
       helm: ${{ steps.changes.outputs.helm }}
       force_build: ${{ steps.force-build.outputs.force_build }}
     steps:
@@ -39,15 +40,6 @@ jobs:
             echo "FORCE_BUILD is disabled - checking for changes"
           fi
 
-      - name: Debug what changed
-        run: |
-          echo "Current commit: ${{ github.sha }}"
-          echo "Previous commit: ${{ github.event.before }}"
-          echo "Force build: ${{ steps.force-build.outputs.force_build }}"
-          echo "Frontend changed: ${{ steps.changes.outputs.frontend }}"
-          echo "Changed files:"
-          git diff --name-only ${{ github.event.before }} ${{ github.sha }}
-
       - uses: dorny/paths-filter@v3
         id: changes
         with:
@@ -63,16 +55,28 @@ jobs:
             helm:
               - 'helm/**'
 
+      - name: Debug what changed
+        run: |
+          echo "Current commit: ${{ github.sha }}"
+          echo "Previous commit: ${{ github.event.before }}"
+          echo "Force build: ${{ steps.force-build.outputs.force_build }}"
+          echo "Frontend changed: ${{ steps.changes.outputs.frontend }}"
+          echo "API changed: ${{ steps.changes.outputs.api }}"
+          echo "Workflows changed: ${{ steps.changes.outputs.workflows }}"
+          echo "Database changed: ${{ steps.changes.outputs.database }}"
+          echo "Helm changed: ${{ steps.changes.outputs.helm }}"
+          echo "Changed files:"
+          git diff --name-only ${{ github.event.before }} ${{ github.sha }}
+
   build-push:
     runs-on: ubuntu-latest
     needs: [changes]
-    if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.api == 'true' || needs.changes.outputs.workflows == 'true' }}
+    if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.api == 'true' || needs.changes.outputs.workflows == 'true' || needs.changes.outputs.database == 'true' }}
     environment: dev
     env:
       TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
-      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}                  
+      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}
       IMAGE_TAG: dev
-      IMAGE_TAG_LATEST: latest
       GIT_SHA: ${{ github.sha }}
       NODE_ENV: ${{ vars.NODE_ENV }}
       NODE_OPTIONS: ${{ vars.NODE_OPTIONS }}
@@ -112,7 +116,6 @@ jobs:
         working-directory: frontend
         if: needs.changes.outputs.force_build == 'true' || needs.changes.outputs.frontend == 'true'
         run: |
-          # Check required env vars
           required_vars=(NODE_ENV NODE_OPTIONS PREFECT_API_URL ZARR_STORE_PATH)
           for var in "${required_vars[@]}"; do
             if [ -z "${!var}" ]; then
@@ -122,69 +125,88 @@ jobs:
           done
 
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/frontend"
+
           docker build \
             --build-arg VITE_NODE_ENV="${NODE_ENV}" \
             --build-arg VITE_NODE_OPTIONS="${NODE_OPTIONS}" \
             --build-arg VITE_PREFECT_API_URL="${PREFECT_API_URL}" \
             --build-arg VITE_ZARR_STORE_PATH="${ZARR_STORE_PATH}" \
-            -t ${BASE_IMAGE}:${IMAGE_TAG} \
-            -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} \
             -t ${BASE_IMAGE}:${GIT_SHA} \
+            -t ${BASE_IMAGE}:${IMAGE_TAG} \
             -f ./Dockerfile .
 
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
           docker push ${BASE_IMAGE}:${GIT_SHA}
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
 
       - name: Build and push API image
         working-directory: api
         if: needs.changes.outputs.force_build == 'true' || needs.changes.outputs.api == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/api"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
+
+          docker build \
+            -t ${BASE_IMAGE}:${GIT_SHA} \
+            -t ${BASE_IMAGE}:${IMAGE_TAG} \
+            -f ./Dockerfile .
+
           docker push ${BASE_IMAGE}:${GIT_SHA}
-        
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+
       - name: Build and push Database image
         working-directory: database
         if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.database == 'true' }}
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/database"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
+
+          docker build \
+            -t ${BASE_IMAGE}:${GIT_SHA} \
+            -t ${BASE_IMAGE}:${IMAGE_TAG} \
+            -f ./Dockerfile .
+
           docker push ${BASE_IMAGE}:${GIT_SHA}
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
 
       - name: Build and push db-setup image
         working-directory: database
         if: ${{ needs.changes.outputs.force_build == 'true' || needs.changes.outputs.database == 'true' }}
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/db-setup"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f .docker/db/Dockerfile.setup .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
+
+          docker build \
+            -t ${BASE_IMAGE}:${GIT_SHA} \
+            -t ${BASE_IMAGE}:${IMAGE_TAG} \
+            -f .docker/db/Dockerfile.setup .
+
           docker push ${BASE_IMAGE}:${GIT_SHA}
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
 
       - name: Build and push Prefect worker image
         working-directory: workflows
         if: needs.changes.outputs.force_build == 'true' || needs.changes.outputs.workflows == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-worker"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.worker .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
+
+          docker build \
+            -t ${BASE_IMAGE}:${GIT_SHA} \
+            -t ${BASE_IMAGE}:${IMAGE_TAG} \
+            -f ./Dockerfile.worker .
+
           docker push ${BASE_IMAGE}:${GIT_SHA}
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
 
       - name: Build and push Prefect deploy image
         working-directory: workflows
         if: needs.changes.outputs.force_build == 'true' || needs.changes.outputs.workflows == 'true'
         run: |
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-deploy"
-          docker build -t ${BASE_IMAGE}:${IMAGE_TAG} -t ${BASE_IMAGE}:${IMAGE_TAG_LATEST} -t ${BASE_IMAGE}:${GIT_SHA} -f ./Dockerfile.deploy .
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG_LATEST}
+
+          docker build \
+            -t ${BASE_IMAGE}:${GIT_SHA} \
+            -t ${BASE_IMAGE}:${IMAGE_TAG} \
+            -f ./Dockerfile.deploy .
+
           docker push ${BASE_IMAGE}:${GIT_SHA}
+          docker push ${BASE_IMAGE}:${IMAGE_TAG}
 
   deploy:
     needs: [changes, build-push]
@@ -193,3 +215,4 @@ jobs:
     secrets: inherit
     with:
       environment: dev
+      image_tag: ${{ github.sha }}
