@@ -124,7 +124,7 @@ export class LayerService {
             $metadata?: { httpStatusCode?: number; requestId?: string; extendedRequestId?: string };
           };
 
-          console.error('[LayerService] Failed reading Zarr object', {
+          console.error('[LayerService] Failed reading Zarr object ', {
             zarrPath: this.zarrPath,
             key,
             fullKey,
