@@ -93,21 +93,49 @@ export class LayerService {
         const fullKey = this.joinObjectKey(prefix, key);
 
         try {
+          console.log('[LayerService] Reading Zarr object', {
+            zarrPath: this.zarrPath,
+            key,
+            fullKey
+          });
+
           const response = await getFileFromS3(fullKey);
 
           if (!response.Body) {
-            return null;
+            throw new Error(`S3 response body was empty for key: ${fullKey}`);
           }
 
           const bytes = await response.Body.transformToByteArray();
+
+          if (!bytes.byteLength) {
+            throw new Error(`S3 response body had zero bytes for key: ${fullKey}`);
+          }
+
           const copy = new Uint8Array(bytes.byteLength);
           copy.set(bytes);
 
           return copy.buffer;
         } catch (error) {
-          const awsError = error as { name?: string; $metadata?: { httpStatusCode?: number } };
+          const awsError = error as {
+            name?: string;
+            Code?: string;
+            code?: string;
+            message?: string;
+            $metadata?: { httpStatusCode?: number; requestId?: string; extendedRequestId?: string };
+          };
 
-          if (awsError.name === 'NoSuchKey' || awsError.$metadata?.httpStatusCode === 404) {
+          console.error('[LayerService] Failed reading Zarr object', {
+            zarrPath: this.zarrPath,
+            key,
+            fullKey,
+            errorName: awsError.name,
+            errorCode: awsError.Code ?? awsError.code,
+            statusCode: awsError.$metadata?.httpStatusCode,
+            requestId: awsError.$metadata?.requestId,
+            message: awsError.message
+          });
+
+          if (key !== '.zmetadata' && (awsError.name === 'NoSuchKey' || awsError.$metadata?.httpStatusCode === 404)) {
             return null;
           }
 
@@ -140,10 +168,12 @@ export class LayerService {
     try {
       const metadataBytes = await store.get(metadataPath);
 
-      console.log('metadata:', metadataBytes);
+      console.log('metadata:', metadataBytes, 'store: ', store);
 
       if (!metadataBytes) {
-        throw new Error('No metadata bytes returned from Zarr store');
+        throw new Error(
+          `No metadata bytes returned from Zarr store at key: ${this.joinObjectKey(this.zarrPath, metadataPath)}`
+        );
       }
 
       consolidatedMetadata = JSON.parse(new TextDecoder().decode(metadataBytes));
