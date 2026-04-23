@@ -140,6 +140,8 @@ export class LayerService {
     try {
       const metadataBytes = await store.get(metadataPath);
 
+      console.log('metadata:', metadataBytes);
+
       if (!metadataBytes) {
         throw new Error('No metadata bytes returned from Zarr store');
       }
