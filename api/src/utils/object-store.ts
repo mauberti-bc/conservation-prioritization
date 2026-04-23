@@ -193,10 +193,7 @@ export const putObject = async (options: {
 /**
  * Retrieve an object from the configured object store.
  */
-export const getObject = async (options: {
-  bucket: string;
-  key: string;
-}): Promise<GetObjectCommandOutput> => {
+export const getObject = async (options: { bucket: string; key: string }): Promise<GetObjectCommandOutput> => {
   const client = getObjectStoreClient();
   return client.send(
     new GetObjectCommand({
@@ -209,10 +206,7 @@ export const getObject = async (options: {
 /**
  * Retrieve object metadata from the configured object store.
  */
-export const headObject = async (options: {
-  bucket: string;
-  key: string;
-}): Promise<HeadObjectCommandOutput> => {
+export const headObject = async (options: { bucket: string; key: string }): Promise<HeadObjectCommandOutput> => {
   const client = getObjectStoreClient();
   return client.send(
     new HeadObjectCommand({

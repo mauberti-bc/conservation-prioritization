@@ -1,8 +1,7 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
 import { ApiGeneralError } from '../errors/api-error';
 import { LayerMeta } from '../models/layer.interface';
 import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination';
+import { getFileFromS3 } from '../utils/file-utils';
 import { makePaginationResponse } from '../utils/pagination';
 import { parseArraysFromConsolidatedMetadata } from '../utils/zarr';
 
@@ -38,6 +37,14 @@ export class LayerService {
    *
    * Reads and validates the ZARR_STORE_PATH environment variable.
    *
+   * Expected format:
+   * `path/to/store.zarr`
+   *
+   * Example:
+   * `data/output_1000.zarr`
+   *
+   * Bucket and object-store connection details are resolved by `file-utils`.
+   *
    * @memberof LayerService
    */
   constructor() {
@@ -47,29 +54,60 @@ export class LayerService {
       throw new ApiGeneralError('ZARR_STORE_PATH not defined', []);
     }
 
-    this.zarrPath = raw.trim().replace(/^"(.*)"$/, '$1');
+    this.zarrPath = raw
+      .trim()
+      .replace(/^"(.*)"$/, '$1')
+      .replace(/^\/+|\/+$/g, '');
+
+    if (!this.zarrPath) {
+      throw new ApiGeneralError('ZARR_STORE_PATH must not be empty', []);
+    }
   }
 
   /**
-   * Create a simple store object that reads from the local filesystem.
+   * Join a base Zarr path and relative key into a normalized object-store key.
+   *
+   * @param {string} prefix Base Zarr path
+   * @param {string} key Relative key
+   * @returns {string}
+   * @private
+   */
+  private joinObjectKey(prefix: string, key: string): string {
+    const normalizedPrefix = prefix.replace(/\/+$/g, '');
+    const normalizedKey = key.replace(/^\/+/g, '');
+
+    return normalizedPrefix ? `${normalizedPrefix}/${normalizedKey}` : normalizedKey;
+  }
+
+  /**
+   * Create a simple store object that reads from the remote object store.
    *
    * @returns {{ get: (key: string) => Promise<ArrayBuffer | null> }} Store object with get() method
    * @private
    */
-  private createLocalStore(): { get: (key: string) => Promise<ArrayBuffer | null> } {
-    const basePath = this.zarrPath;
+  private createRemoteStore(): { get: (key: string) => Promise<ArrayBuffer | null> } {
+    const prefix = this.zarrPath;
 
     return {
       get: async (key: string): Promise<ArrayBuffer | null> => {
+        const fullKey = this.joinObjectKey(prefix, key);
+
         try {
-          const filePath = path.join(basePath, key);
-          const data = await fs.readFile(filePath);
+          const response = await getFileFromS3(fullKey);
 
-          return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+          if (!response.Body) {
+            return null;
+          }
+
+          const bytes = await response.Body.transformToByteArray();
+          const copy = new Uint8Array(bytes.byteLength);
+          copy.set(bytes);
+
+          return copy.buffer;
         } catch (error) {
-          const err = error as NodeJS.ErrnoException;
+          const awsError = error as { name?: string; $metadata?: { httpStatusCode?: number } };
 
-          if (err.code === 'ENOENT') {
+          if (awsError.name === 'NoSuchKey' || awsError.$metadata?.httpStatusCode === 404) {
             return null;
           }
 
@@ -94,7 +132,7 @@ export class LayerService {
       return LayerService.cache.layers;
     }
 
-    const store = this.createLocalStore();
+    const store = this.createRemoteStore();
     const metadataPath = '.zmetadata';
 
     let consolidatedMetadata: unknown;
@@ -210,6 +248,7 @@ export class LayerService {
    */
   async getLayerByPath(layerPath: string): Promise<LayerMeta | null> {
     const layers = await this.loadAllLayers();
+
     return layers.find((layer) => layer.path === layerPath) ?? null;
   }
 
