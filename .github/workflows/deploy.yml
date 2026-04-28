@@ -206,19 +206,3 @@ jobs:
           echo "Verifying deployment..."
           oc get deployments -n ${OPENSHIFT_NAMESPACE}
           oc get pods -n ${OPENSHIFT_NAMESPACE}
-
-      - name: Scale Prefect worker to 1
-        run: |
-          echo "Scaling Prefect worker to 1 replica..."
-
-          WORKER_DEPLOYMENT="conservation-tool-prefect-worker"
-
-          oc scale deployment/$WORKER_DEPLOYMENT \
-            --replicas=1 \
-            -n ${OPENSHIFT_NAMESPACE}
-
-          echo "Waiting for worker rollout..."
-
-          oc rollout status deployment/$WORKER_DEPLOYMENT \
-            -n ${OPENSHIFT_NAMESPACE} \
-            --timeout=5m
