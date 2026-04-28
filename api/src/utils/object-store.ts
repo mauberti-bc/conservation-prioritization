@@ -69,6 +69,7 @@ export const getObjectStorePublicEndpoint = (): string | null => {
 /**
  * Build an S3 client for the configured object store.
  */
+// TODO: initialize object store client using fsSpec, possibly update package.json 
 export const getObjectStoreClient = (): S3Client => {
   const config = getObjectStoreConfig();
   return new S3Client({
