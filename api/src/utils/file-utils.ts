@@ -96,8 +96,7 @@ export const _getQuarantineS3Client = (): S3Client => {
  * @returns {*} {string} The object store endpoint
  */
 export const _getObjectStoreEndpoint = (): string => {
-  // const url = process.env.OBJECT_STORE_ENDPOINT || process.env.OBJECT_STORE_URL || 'https://nrs.objectstore.gov.bc.ca';
-  const url = process.env.OBJECT_STORE_URL || process.env.OBJECT_STORE_ENDPOINT || 'https://nrs.objectstore.gov.bc.ca';
+  const url = process.env.OBJECT_STORE_URL || 'https://nrs.objectstore.gov.bc.ca';
 
   if (!['https://', 'http://'].some((protocol) => url.toLowerCase().startsWith(protocol))) {
     return `https://${url}`;
