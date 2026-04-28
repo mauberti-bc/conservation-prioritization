@@ -63,9 +63,6 @@ export const getObjectStorePublicEndpoint = (): string | null => {
     return null;
   }
 
-  console.log('OBJECT_STORE_URL =', process.env.OBJECT_STORE_URL);
-  console.log('OBJECT_STORE_PUBLIC_ENDPOINT =', process.env.OBJECT_STORE_PUBLIC_ENDPOINT);
-
   return normalizeEndpoint(endpoint);
 };
 
@@ -75,6 +72,14 @@ export const getObjectStorePublicEndpoint = (): string | null => {
 // TODO: initialize object store client using fsSpec, possibly update package.json 
 export const getObjectStoreClient = (): S3Client => {
   const config = getObjectStoreConfig();
+
+  log.info({
+    label: 'ObjectStoreConfig',
+    endpoint: config.endpoint,
+    forcePathStyle: config.forcePathStyle,
+    bucket: config.bucket
+  });
+
   return new S3Client({
     endpoint: config.endpoint,
     credentials: {
