@@ -1,18 +1,33 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
 import { ApiGeneralError } from '../errors/api-error';
 import { LayerMeta } from '../models/layer.interface';
 import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination';
+import { getFileFromS3 } from '../utils/file-utils';
+import { getLogger } from '../utils/logger';
 import { makePaginationResponse } from '../utils/pagination';
 import { parseArraysFromConsolidatedMetadata } from '../utils/zarr';
 
-/**
- * Cache entry for parsed Zarr layers.
- */
+const log = getLogger('LayerService');
+
 interface LayerCache {
   layers: LayerMeta[];
   loadedAt: number;
 }
+
+type RemoteStore = {
+  get: (key: string) => Promise<ArrayBuffer | null>;
+};
+
+type AwsLikeError = {
+  name?: string;
+  Code?: string;
+  code?: string;
+  message?: string;
+  $metadata?: {
+    httpStatusCode?: number;
+    requestId?: string;
+    extendedRequestId?: string;
+  };
+};
 
 /**
  * Service for interacting with the Zarr data store.
@@ -38,6 +53,14 @@ export class LayerService {
    *
    * Reads and validates the ZARR_STORE_PATH environment variable.
    *
+   * Supported formats:
+   * - `data/output_1000.zarr`
+   * - `/data/output_1000.zarr`
+   * - `s3://bucket/data/output_1000.zarr`
+   * - `https://host/bucket/data/output_1000.zarr`
+   *
+   * Bucket and object-store connection details are resolved by `file-utils`.
+   *
    * @memberof LayerService
    */
   constructor() {
@@ -47,30 +70,163 @@ export class LayerService {
       throw new ApiGeneralError('ZARR_STORE_PATH not defined', []);
     }
 
-    this.zarrPath = raw.trim().replace(/^"(.*)"$/, '$1');
+    this.zarrPath = this.normalizeZarrPath(raw);
+
+    if (!this.zarrPath) {
+      throw new ApiGeneralError('ZARR_STORE_PATH must not be empty', []);
+    }
+
+    log.info({
+      label: 'constructor',
+      message: 'Initialized Zarr layer service',
+      rawZarrStorePath: raw,
+      normalizedZarrPath: this.zarrPath
+    });
   }
 
   /**
-   * Create a simple store object that reads from the local filesystem.
+   * Normalize ZARR_STORE_PATH into an object-store key prefix.
+   *
+   * @param {string} raw Raw ZARR_STORE_PATH value
+   * @returns {string} Normalized object key prefix
+   * @private
+   */
+  private normalizeZarrPath(raw: string): string {
+    const trimmed = raw
+      .trim()
+      .replace(/^"(.*)"$/, '$1')
+      .replace(/^'(.*)'$/, '$1');
+
+    if (!trimmed) {
+      return '';
+    }
+
+    if (trimmed.startsWith('s3://')) {
+      const withoutScheme = trimmed.replace(/^s3:\/\//, '');
+      const [, ...keyParts] = withoutScheme.split('/');
+
+      return keyParts.join('/').replace(/^\/+|\/+$/g, '');
+    }
+
+    if (/^https?:\/\//i.test(trimmed)) {
+      const url = new URL(trimmed);
+      const pathParts = url.pathname.split('/').filter(Boolean);
+      const bucketName = process.env.OBJECT_STORE_BUCKET_NAME;
+
+      if (bucketName && pathParts[0] === bucketName) {
+        pathParts.shift();
+      }
+
+      return pathParts.join('/').replace(/^\/+|\/+$/g, '');
+    }
+
+    return trimmed.replace(/^\/+|\/+$/g, '');
+  }
+
+  /**
+   * Join a base Zarr path and relative key into a normalized object-store key.
+   *
+   * @param {string} prefix Base Zarr path
+   * @param {string} key Relative key
+   * @returns {string}
+   * @private
+   */
+  private joinObjectKey(prefix: string, key: string): string {
+    const normalizedPrefix = prefix.replace(/\/+$/g, '');
+    const normalizedKey = key.replace(/^\/+/g, '');
+
+    return normalizedPrefix ? `${normalizedPrefix}/${normalizedKey}` : normalizedKey;
+  }
+
+  /**
+   * Determine if an object-store error represents a missing object.
+   *
+   * @param {AwsLikeError} error Error from S3-compatible client
+   * @returns {boolean}
+   * @private
+   */
+  private isMissingObjectError(error: AwsLikeError): boolean {
+    const errorCode = error.Code ?? error.code;
+
+    return (
+      error.name === 'NoSuchKey' ||
+      error.name === 'NotFound' ||
+      errorCode === 'NoSuchKey' ||
+      errorCode === 'NotFound' ||
+      error.$metadata?.httpStatusCode === 404
+    );
+  }
+
+  /**
+   * Create a simple store object that reads from the remote object store.
    *
    * @returns {{ get: (key: string) => Promise<ArrayBuffer | null> }} Store object with get() method
    * @private
    */
-  // ** TODO: read from object store and remove createLocalStore() 
-  private createLocalStore(): { get: (key: string) => Promise<ArrayBuffer | null> } {
-    const basePath = this.zarrPath;
+  private createRemoteStore(): RemoteStore {
+    const prefix = this.zarrPath;
 
     return {
       get: async (key: string): Promise<ArrayBuffer | null> => {
+        const normalizedKey = key.replace(/^\/+/g, '');
+        const fullKey = this.joinObjectKey(prefix, normalizedKey);
+        const isConsolidatedMetadata = normalizedKey === '.zmetadata';
+
         try {
-          const filePath = path.join(basePath, key);
-          const data = await fs.readFile(filePath);
+          log.info({
+            label: 'createRemoteStore.get',
+            message: 'Reading Zarr object',
+            zarrPath: this.zarrPath,
+            key,
+            normalizedKey,
+            fullKey,
+            isConsolidatedMetadata
+          });
 
-          return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+          const response = await getFileFromS3(fullKey);
+
+          if (!response.Body) {
+            throw new Error(`S3 response body was empty for key: ${fullKey}`);
+          }
+
+          const bytes = await response.Body.transformToByteArray();
+
+          if (!bytes.byteLength) {
+            throw new Error(`S3 response body had zero bytes for key: ${fullKey}`);
+          }
+
+          const copy = new Uint8Array(bytes.byteLength);
+          copy.set(bytes);
+
+          log.info({
+            label: 'createRemoteStore.get',
+            message: 'Successfully read Zarr object',
+            fullKey,
+            byteLength: bytes.byteLength
+          });
+
+          return copy.buffer as ArrayBuffer;
         } catch (error) {
-          const err = error as NodeJS.ErrnoException;
+          const awsError = error as AwsLikeError;
 
-          if (err.code === 'ENOENT') {
+          log.error({
+            label: 'createRemoteStore.get',
+            message: 'Failed reading Zarr object',
+            zarrPath: this.zarrPath,
+            key,
+            normalizedKey,
+            fullKey,
+            isConsolidatedMetadata,
+            errorName: awsError.name,
+            errorCode: awsError.Code ?? awsError.code,
+            statusCode: awsError.$metadata?.httpStatusCode,
+            requestId: awsError.$metadata?.requestId,
+            extendedRequestId: awsError.$metadata?.extendedRequestId,
+            errorMessage: awsError.message,
+            error
+          });
+
+          if (!isConsolidatedMetadata && this.isMissingObjectError(awsError)) {
             return null;
           }
 
@@ -92,23 +248,61 @@ export class LayerService {
     const now = Date.now();
 
     if (LayerService.cache && now - LayerService.cache.loadedAt < LayerService.CACHE_TTL) {
+      log.debug({
+        label: 'loadAllLayers',
+        message: 'Returning cached Zarr layers',
+        layerCount: LayerService.cache.layers.length,
+        loadedAt: LayerService.cache.loadedAt
+      });
+
       return LayerService.cache.layers;
     }
 
-    const store = this.createLocalStore();
+    const store = this.createRemoteStore();
     const metadataPath = '.zmetadata';
+    const metadataFullKey = this.joinObjectKey(this.zarrPath, metadataPath);
 
     let consolidatedMetadata: unknown;
 
     try {
+      log.info({
+        label: 'loadAllLayers',
+        message: 'Reading consolidated Zarr metadata',
+        metadataPath,
+        metadataFullKey,
+        zarrPath: this.zarrPath
+      });
+
       const metadataBytes = await store.get(metadataPath);
 
       if (!metadataBytes) {
-        throw new Error('No metadata bytes returned from Zarr store');
+        throw new Error(`No metadata bytes returned from Zarr store at key: ${metadataFullKey}`);
       }
 
-      consolidatedMetadata = JSON.parse(new TextDecoder().decode(metadataBytes));
+      log.info({
+        label: 'loadAllLayers',
+        message: 'Read consolidated Zarr metadata bytes',
+        metadataFullKey,
+        byteLength: metadataBytes.byteLength
+      });
+
+      const metadataText = new TextDecoder().decode(metadataBytes);
+
+      if (!metadataText.trim()) {
+        throw new Error(`Consolidated Zarr metadata was empty at key: ${metadataFullKey}`);
+      }
+
+      consolidatedMetadata = JSON.parse(metadataText);
     } catch (error) {
+      log.error({
+        label: 'loadAllLayers',
+        message: 'Failed to read consolidated Zarr metadata',
+        metadataPath,
+        metadataFullKey,
+        zarrPath: this.zarrPath,
+        error
+      });
+
       throw new ApiGeneralError('Failed to read consolidated Zarr metadata', [
         { label: 'LayerService.loadAllLayers', error }
       ]);
@@ -116,7 +310,15 @@ export class LayerService {
 
     const metadataRecord = (consolidatedMetadata as { metadata?: unknown }).metadata;
 
-    if (!metadataRecord || typeof metadataRecord !== 'object') {
+    if (!metadataRecord || typeof metadataRecord !== 'object' || Array.isArray(metadataRecord)) {
+      log.error({
+        label: 'loadAllLayers',
+        message: 'Invalid consolidated Zarr metadata payload',
+        metadataFullKey,
+        metadataType: typeof metadataRecord,
+        isArray: Array.isArray(metadataRecord)
+      });
+
       throw new ApiGeneralError('Invalid consolidated Zarr metadata payload', [
         { label: 'LayerService.loadAllLayers' }
       ]);
@@ -130,6 +332,13 @@ export class LayerService {
       layers,
       loadedAt: now
     };
+
+    log.info({
+      label: 'loadAllLayers',
+      message: 'Loaded Zarr layers from consolidated metadata',
+      metadataFullKey,
+      layerCount: layers.length
+    });
 
     return layers;
   }
@@ -211,6 +420,7 @@ export class LayerService {
    */
   async getLayerByPath(layerPath: string): Promise<LayerMeta | null> {
     const layers = await this.loadAllLayers();
+
     return layers.find((layer) => layer.path === layerPath) ?? null;
   }
 
