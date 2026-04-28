@@ -422,8 +422,6 @@ backgroundServices:
 # ========================
 # Global Environment Variables (Flat structure for runtime injection)
 # ========================
-# TODO: move runAsUser and fsGroup to global variables
-
 env:
   # Node / General
   NODE_ENV: "development"
