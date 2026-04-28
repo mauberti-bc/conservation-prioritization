@@ -63,6 +63,9 @@ export const getObjectStorePublicEndpoint = (): string | null => {
     return null;
   }
 
+  console.log('OBJECT_STORE_URL =', process.env.OBJECT_STORE_URL);
+  console.log('OBJECT_STORE_PUBLIC_ENDPOINT =', process.env.OBJECT_STORE_PUBLIC_ENDPOINT);
+
   return normalizeEndpoint(endpoint);
 };
 
