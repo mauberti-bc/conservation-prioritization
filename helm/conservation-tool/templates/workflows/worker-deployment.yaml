@@ -56,7 +56,7 @@ spec:
       containers:
         - name: prefect-worker
           image: "{{ .Values.registry }}/{{ .Values.services.workflows.worker.image.stream }}:{{ .Values.services.workflows.worker.image.tag }}"
-          imagePullPolicy: {{ .Values.services.workflows.worker.image.pullPolicy | default "IfNotPresent" }}
+          imagePullPolicy: {{ .Values.services.workflows.worker.image.pullPolicy | default "Always" }}
           args:
             - prefect
             - worker

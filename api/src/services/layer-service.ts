@@ -56,6 +56,7 @@ export class LayerService {
    * @returns {{ get: (key: string) => Promise<ArrayBuffer | null> }} Store object with get() method
    * @private
    */
+  // ** TODO: read from object store and remove createLocalStore() 
   private createLocalStore(): { get: (key: string) => Promise<ArrayBuffer | null> } {
     const basePath = this.zarrPath;
 

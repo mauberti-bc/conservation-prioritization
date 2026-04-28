@@ -31,7 +31,7 @@ spec:
       containers:
         - name: api
           image: "{{ .Values.registry }}/{{ .Values.services.api.image.stream }}:{{ .Values.services.api.image.tag }}"
-          imagePullPolicy: {{ .Values.services.api.image.pullPolicy | default "IfNotPresent" }}
+          imagePullPolicy: {{ .Values.services.api.image.pullPolicy | default "Always"}}
           ports:
             - containerPort: {{ .Values.ports.api }}
           securityContext:
