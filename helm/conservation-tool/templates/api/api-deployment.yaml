@@ -116,45 +116,37 @@ spec:
                 secretKeyRef:
                   name: conservation-tool-keycloak
                   key: KEYCLOAK_HOST
-              # value: {{ .Values.env.KEYCLOAK_HOST | quote }}
             - name: KEYCLOAK_REALM
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-keycloak
                   key: KEYCLOAK_REALM
-              # value: {{ .Values.env.KEYCLOAK_REALM | quote }}
             - name: KEYCLOAK_ADMIN_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-keycloak
                   key: KEYCLOAK_ADMIN_USERNAME
-              # value: {{ .Values.env.KEYCLOAK_ADMIN_USERNAME | quote }}
             - name: KEYCLOAK_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-keycloak
                   key: KEYCLOAK_ADMIN_PASSWORD
-              # value: {{ .Values.env.KEYCLOAK_ADMIN_PASSWORD | quote }}
             - name: KEYCLOAK_API_TOKEN_URL
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-keycloak
                   key: KEYCLOAK_API_TOKEN_URL
-              # value: {{ .Values.env.KEYCLOAK_API_TOKEN_URL | quote }}
             - name: KEYCLOAK_API_CLIENT_ID
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-keycloak
                   key: KEYCLOAK_API_CLIENT_ID
-              # value: {{ .Values.env.KEYCLOAK_API_CLIENT_ID | quote }}
             - name: KEYCLOAK_API_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-keycloak
                   key: KEYCLOAK_API_CLIENT_SECRET
-              # value: {{ .Values.env.KEYCLOAK_API_CLIENT_SECRET | quote }}
             - name: KEYCLOAK_API_HOST
-              # value: {{ .Values.env.KEYCLOAK_API_HOST | quote }}
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-keycloak
@@ -164,37 +156,36 @@ spec:
                 secretKeyRef:
                   name: conservation-tool-keycloak
                   key: KEYCLOAK_API_ENVIRONMENT
-              # value: {{ .Values.env.KEYCLOAK_API_ENVIRONMENT | quote }}
             - name: OBJECT_STORE_URL
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-object-storage
                   key: OBJECT_STORE_URL
-              # value: {{ .Values.env.OBJECT_STORE_URL | quote }}
             - name: OBJECT_STORE_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-object-storage
                   key: OBJECT_STORE_ACCESS_KEY_ID
-              # value: {{ .Values.env.OBJECT_STORE_ACCESS_KEY_ID | quote }}
             - name: OBJECT_STORE_SECRET_KEY_ID
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-object-storage
                   key: OBJECT_STORE_SECRET_KEY_ID
-              # value: {{ .Values.env.OBJECT_STORE_SECRET_KEY_ID | quote }}
             - name: OBJECT_STORE_BUCKET_NAME
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-object-storage
                   key: OBJECT_STORE_BUCKET_NAME
-              # value: {{ .Values.env.OBJECT_STORE_BUCKET_NAME | quote }}
             - name: S3_KEY_PREFIX
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-object-storage
                   key: S3_KEY_PREFIX
-              # value: {{ .Values.env.S3_KEY_PREFIX | quote }}
+            - name: OBJECT_STORE_FORCE_PATH_STYLE
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: OBJECT_STORE_FORCE_PATH_STYLE
             - name: PREFECT_API_URL
               value: {{ .Values.env.PREFECT_API_URL | quote }}
             - name: PREFECT_API_KEY
@@ -210,7 +201,6 @@ spec:
                 secretKeyRef:
                   name: conservation-tool-api
                   key: INTERNAL_API_KEY
-              # value: {{ .Values.env.INTERNAL_API_KEY | quote }}
             {{- if .Values.services.api.env }}
             {{- toYaml .Values.services.api.env | nindent 12 }}
             {{- end }}
