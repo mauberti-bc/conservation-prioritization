@@ -24,7 +24,7 @@ export interface ObjectStoreConfig {
  * Returns the configured object store settings.
  */
 export const getObjectStoreConfig = (): ObjectStoreConfig => {
-  const endpoint = process.env.OBJECT_STORE_ENDPOINT;
+  const endpoint = process.env.OBJECT_STORE_URL;
   const region = process.env.OBJECT_STORE_REGION || 'us-east-1';
   const accessKeyId = process.env.OBJECT_STORE_ACCESS_KEY_ID;
   const secretAccessKey = process.env.OBJECT_STORE_SECRET_KEY_ID;
@@ -33,7 +33,7 @@ export const getObjectStoreConfig = (): ObjectStoreConfig => {
   const forcePathStyle = String(process.env.OBJECT_STORE_FORCE_PATH_STYLE || '').toLowerCase() === 'true';
 
   if (!endpoint) {
-    throw new Error('OBJECT_STORE_ENDPOINT is not configured.');
+    throw new Error('OBJECT_STORE_URL is not configured.');
   }
   if (!accessKeyId || !secretAccessKey) {
     throw new Error('Object store credentials are not configured.');
@@ -72,6 +72,14 @@ export const getObjectStorePublicEndpoint = (): string | null => {
 // TODO: initialize object store client using fsSpec, possibly update package.json 
 export const getObjectStoreClient = (): S3Client => {
   const config = getObjectStoreConfig();
+
+  log.info({
+    label: 'ObjectStoreConfig',
+    endpoint: config.endpoint,
+    forcePathStyle: config.forcePathStyle,
+    bucket: config.bucket
+  });
+
   return new S3Client({
     endpoint: config.endpoint,
     credentials: {

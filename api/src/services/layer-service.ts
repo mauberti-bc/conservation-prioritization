@@ -293,20 +293,44 @@ export class LayerService {
       }
 
       consolidatedMetadata = JSON.parse(metadataText);
-    } catch (error) {
-      log.error({
-        label: 'loadAllLayers',
-        message: 'Failed to read consolidated Zarr metadata',
-        metadataPath,
-        metadataFullKey,
-        zarrPath: this.zarrPath,
-        error
-      });
+    // } catch (error) {
+    //   log.error({
+    //     label: 'loadAllLayers',
+    //     message: 'Failed to read consolidated Zarr metadata',
+    //     metadataPath,
+    //     metadataFullKey,
+    //     zarrPath: this.zarrPath,
+    //     error
+    //   });
 
-      throw new ApiGeneralError('Failed to read consolidated Zarr metadata', [
-        { label: 'LayerService.loadAllLayers', error }
-      ]);
+    //   throw new ApiGeneralError('Failed to read consolidated Zarr metadata', [
+    //     { label: 'LayerService.loadAllLayers', error }
+    //   ]);
+    // }
+    } catch (error: any) {
+      const isDnsError = 
+        error?.code === 'ENOTFOUND' ||
+        error?.cause?.code === 'ENOTFOUND';
+      
+        log.error({
+          label: 'loadAllLayers',
+          message: isDnsError
+           ? 'DNS lookup failed for Zarr object store'
+           : 'Failed to read consolidated Zarr metadata',
+          metadataFullKey,
+          zarrPath: this.zarrPath,
+          hostname: error?.hostname,
+          error
+        });
+
+        throw new ApiGeneralError(
+          isDnsError
+            ? 'Zarr object store hostname could not be resolved'
+            : 'Failed to read consolidated Zarr metadata',
+          [{ label: 'LayerService.loadAllLayers', error}]
+        );
     }
+
 
     const metadataRecord = (consolidatedMetadata as { metadata?: unknown }).metadata;
 
