@@ -123,6 +123,7 @@ export class AuthorizationService extends DBService {
     }
 
     // Fetch the role for this task profile using the profile GUID from the authenticated token
+    // TODO: fix this, it might break with the new logic of passing profile_id instead of profile_guid
     const userRole = await this.getRoleForTaskProfile(authorizeByTask.taskId);
 
     if (!userRole) {
