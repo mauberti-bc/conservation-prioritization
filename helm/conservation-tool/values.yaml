@@ -151,7 +151,7 @@ prefect-server:
         memory: 256Mi
       limits:
         cpu: 100m
-        memory: 256Mi
+        memory: 512Mi
     env:
       - name: PREFECT_HOME
         value: /tmp/prefect
@@ -311,18 +311,16 @@ services:
       resources:
         limits:
           cpu: 100m
-          memory: 256Mi
+          memory: 512Mi
         requests:
           cpu: 50m
-          memory: 256Mi
+          memory: 512Mi
       service:
         type: ClusterIP
         port: 80
         targetPort: 8081
-      # TODO: split into podSecurityContext and containerSecurityContext
       securityContext:
         runAsUser: 1003600000
-        # fsGroup: 1003600000
 
     deploy:
       replicas: 0
@@ -366,11 +364,8 @@ services:
 
   db:
     image:
-      # stream: "postgres"
-      # tag: "17-alpine"
       stream: "database"
       tag: "dev"
-      # pulPolicy: "IfNotPresent"
     service:
       type: ClusterIP
       port: 5432
@@ -394,7 +389,6 @@ services:
     image:
       stream: "db-setup"
       tag: "dev"
-      # pulPolicy: "IfNotPresent"
     resources:
       requests:
         cpu: 50m
