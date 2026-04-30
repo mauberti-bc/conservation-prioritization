@@ -96,7 +96,6 @@ prefect-server:
     name: conservation-tool-prefect-db
 
   serviceAccount:
-    # why not create a service account? if we're not creating one, why name it? 
     create: false
     name: "prefect-server"
 
@@ -166,6 +165,9 @@ prefect-server:
     extraVolumeMounts:
       - name: prefect-tmp
         mountPath: /tmp/prefect
+    route:
+      enabled: true
+      host: ""
 
   migrations:
     enabled: true
@@ -212,7 +214,7 @@ prefect-worker:
       cpu: 100m
       memory: 1024Mi
   replicas: 1
-  pool: pool
+  pool: openshift
   securityContext:
     runAsUser: 1003600000
   env:

@@ -1,0 +1,20 @@
+{{- if .Values.prefect-server.server.route.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "conservation-tool.fullname.prefect-server" . }}
+  labels:
+    app: {{ include "conservation-tool.fullname.prefect-server" . }}
+spec:
+  {{- if .Values.prefect-server.server.route.host }}
+  host: {{ .Values.prefect-server.server.route.host | quote }}
+  {{- end }}
+  to:
+    kind: Service
+    name: {{ include "conservation-tool.fullname.prefect-server" . }}
+  port:
+    targetPort: {{ .Values.ports.prefect_server_api | default 4200 }}
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}
