@@ -99,6 +99,10 @@ prefect-server:
     create: false
     name: "prefect-server"
 
+  route:
+    enabled: true
+    host: ""
+
   ui:
     enabled: true
     podSecurityContext:
@@ -165,9 +169,6 @@ prefect-server:
     extraVolumeMounts:
       - name: prefect-tmp
         mountPath: /tmp/prefect
-    route:
-      enabled: true
-      host: ""
 
   migrations:
     enabled: true
