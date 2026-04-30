@@ -1,4 +1,6 @@
-{{- if .Values.prefect-server.route.enabled }}
+{{- $ps := index .Values "prefect-server" }}
+
+{{- if $ps.route.enabled }}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -6,8 +8,8 @@ metadata:
   labels:
     app: {{ include "conservation-tool.fullname.prefect-server" . }}
 spec:
-  {{- if .Values.prefect-server.route.host }}
-  host: {{ .Values.prefect-server.route.host | quote }}
+  {{- if $ps.route.host }}
+  host: {{ $ps.route.host | quote }}
   {{- end }}
   to:
     kind: Service

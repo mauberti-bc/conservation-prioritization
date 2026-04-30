@@ -11,7 +11,7 @@ deployments:
   description: "Strict optimization where solutions respect constraints"
   entrypoint: "src.flows.strict_optimization:strict_optimization"
   work_pool:
-    name: "local"
+    name: "openshift"
     work_queue_name: null
 - name: "task-tile"
   version: "1.0"
@@ -19,5 +19,5 @@ deployments:
   description: "Generate PMTiles artifacts for a task"
   entrypoint: "src.flows.tile:tile_task"
   work_pool:
-    name: "local"
+    name: "openshift"
     work_queue_name: null
