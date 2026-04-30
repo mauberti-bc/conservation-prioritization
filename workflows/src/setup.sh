@@ -8,7 +8,7 @@ WORK_POOL_NAME="openshift"
 if ! prefect work-pool ls | grep -qw "$WORK_POOL_NAME"; then
   echo "Creating process work pool '$WORK_POOL_NAME'..."
   # prefect work-pool create "$WORK_POOL_NAME" --type process
-  prefect work-pool create "$WORK_POOL_NAME" --type kubernetes
+  prefect work-pool create "$WORK_POOL_NAME" --type kubernetes --overwrite
 else
   echo "Work pool '$WORK_POOL_NAME' already exists."
 fi
