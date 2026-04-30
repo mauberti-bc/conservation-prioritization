@@ -303,7 +303,7 @@ services:
   workflows:
     worker:
       replicas: 0
-      pool: pool
+      pool: openshift
       image:
         stream: "prefect-worker"
         tag: "dev"

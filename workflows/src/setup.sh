@@ -1,12 +1,14 @@
 #!/bin/bash
 set -e
 
-WORK_POOL_NAME="local"
+# WORK_POOL_NAME="local"
+WORK_POOL_NAME="openshift"
 
 # Check if work pool "local" exists, create if not
 if ! prefect work-pool ls | grep -qw "$WORK_POOL_NAME"; then
   echo "Creating process work pool '$WORK_POOL_NAME'..."
-  prefect work-pool create "$WORK_POOL_NAME" --type process
+  # prefect work-pool create "$WORK_POOL_NAME" --type process
+  prefect work-pool create "$WORK_POOL_NAME" --type kubernetes
 else
   echo "Work pool '$WORK_POOL_NAME' already exists."
 fi
