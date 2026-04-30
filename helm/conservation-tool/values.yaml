@@ -302,7 +302,7 @@ services:
 
   workflows:
     worker:
-      replicas: 1
+      replicas: 0
       pool: pool
       image:
         stream: "prefect-worker"
