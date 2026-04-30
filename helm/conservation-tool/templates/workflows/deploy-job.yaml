@@ -20,7 +20,7 @@ spec:
       containers:
         - name: prefect-deploy
           image: "{{ .Values.registry }}/{{ .Values.services.workflows.deploy.image.stream }}:{{ .Values.services.workflows.deploy.image.tag }}"
-          imagePullPolicy: {{ .Values.services.workflows.deploy.image.pullPolicy | default "IfNotPresent" }}
+          imagePullPolicy: {{ .Values.services.workflows.deploy.image.pullPolicy | default "Always" }}
           command:
             - bash
             - src/setup.sh

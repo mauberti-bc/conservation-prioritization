@@ -32,7 +32,7 @@ spec:
       initContainers:
         - name: wait-for-database
           image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
-          imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "IfNotPresent" }}
+          imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "Always" }}
           securityContext:
             runAsNonRoot: true
             {{- if .Values.services.db.securityContext.runAsUser }}
@@ -70,7 +70,7 @@ spec:
       containers:
         - name: db-setup
           image: "{{ .Values.registry }}/{{ .Values.services.dbSetup.image.stream }}:{{ .Values.services.dbSetup.image.tag }}"
-          imagePullPolicy: {{ .Values.services.dbSetup.image.pullPolicy | default "IfNotPresent" }}
+          imagePullPolicy: {{ .Values.services.dbSetup.image.pullPolicy | default "Always" }}
           securityContext:
             runAsNonRoot: true
             {{- if .Values.services.db.securityContext.runAsUser }}
