@@ -30,7 +30,7 @@ spec:
       containers:
         - name: frontend
           image: "{{ .Values.registry }}/{{ .Values.services.frontend.image.stream }}:{{ .Values.services.frontend.image.tag }}"
-          imagePullPolicy: {{ .Values.services.frontend.image.pullPolicy | default "IfNotPresent" }}
+          imagePullPolicy: {{ .Values.services.frontend.image.pullPolicy | default "Always" }}
           ports:
             - containerPort: {{ .Values.ports.frontend }}
           securityContext:

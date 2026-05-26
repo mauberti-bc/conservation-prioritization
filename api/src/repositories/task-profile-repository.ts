@@ -183,6 +183,7 @@ export class TaskProfileRepository extends BaseRepository {
    * @return {Promise<string | null>} - Returns the role name if found, otherwise null.
    * @memberof TaskProfileRepository
    */
+  // TODO: ensure profileID is being passed correctly. Current passing profile_guid which is incorrect. 
   async getRoleForTaskProfile(taskId: string, profileId: string): Promise<string | null> {
     const sqlStatement = SQL`
       SELECT r.name as role_name

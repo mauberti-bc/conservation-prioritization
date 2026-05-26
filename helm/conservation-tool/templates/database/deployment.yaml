@@ -34,7 +34,7 @@ spec:
       containers:
         - name: postgresql
           image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
-          imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "IfNotPresent" }}
+          imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "Always" }}
           securityContext:
             runAsNonRoot: true
             {{- if .Values.services.db.securityContext.runAsUser }}

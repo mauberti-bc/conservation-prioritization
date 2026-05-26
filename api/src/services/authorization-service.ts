@@ -123,6 +123,7 @@ export class AuthorizationService extends DBService {
     }
 
     // Fetch the role for this task profile using the profile GUID from the authenticated token
+    // TODO: fix this, it might break with the new logic of passing profile_id instead of profile_guid
     const userRole = await this.getRoleForTaskProfile(authorizeByTask.taskId);
 
     if (!userRole) {
@@ -202,6 +203,7 @@ export class AuthorizationService extends DBService {
    * @param {string} taskId - The ID of the task for which role is being checked.
    * @return {Promise<string | null>} - The role name if the user has a valid role, otherwise null.
    */
+  // TODO: change to profileID 
   private async getRoleForTaskProfile(taskId: string): Promise<string | null> {
     const profileGuid = this.getProfileGuidFromRequest();
 
@@ -209,8 +211,14 @@ export class AuthorizationService extends DBService {
       return null; // No GUID found in the token, return null
     }
 
+    const profile = await this.profileService.findProfileByGuid(profileGuid);
+
+    if (!profile) {
+      return null;
+    }
+
     // Fetch the role for the user's profile and task combination
-    return this.taskProfileService.getRoleForTaskProfile(taskId, profileGuid);
+    return this.taskProfileService.getRoleForTaskProfile(taskId, profile.profile_id);
   }
 
   /**
@@ -225,6 +233,12 @@ export class AuthorizationService extends DBService {
     if (!profileGuid) {
       return null; // No GUID found in the token, return null
     }
+
+    // const profile = await this.profileService.findProfileByGuid(profileGuid);
+
+    // if (!profile) {
+    //   return null;
+    // }
 
     // Fetch the role for the user's profile and project combination
     return this.projectProfileService.getRoleForProjectProfile(projectId, profileGuid);
