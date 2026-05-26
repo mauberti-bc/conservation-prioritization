@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
     env:
-      SA_TOKEN: ${{ secrets.SA_TOKEN }}
+      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}
       OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
       RELEASE_NAME: conservation-tool
     steps:
@@ -43,7 +43,7 @@ jobs:
         run: |
           for i in 1 2 3; do
             echo "Attempt $i: Logging into OpenShift..."
-            if oc login --token=$SA_TOKEN --server=$OPENSHIFT_SERVER; then
+            if oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER; then
               echo "Login succeeded"
               break
             elif [ "$i" -lt 3 ]; then
