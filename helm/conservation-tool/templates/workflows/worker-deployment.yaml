@@ -53,10 +53,17 @@ spec:
                 secretKeyRef:
                   name: conservation-tool-db
                   key: DB_USER_PREFECT_PASS
+          resources:
+            limits:
+              cpu: 100m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 256Mi
       containers:
         - name: prefect-worker
           image: "{{ .Values.registry }}/{{ .Values.services.workflows.worker.image.stream }}:{{ .Values.services.workflows.worker.image.tag }}"
-          imagePullPolicy: {{ .Values.services.workflows.worker.image.pullPolicy | default "IfNotPresent" }}
+          imagePullPolicy: {{ .Values.services.workflows.worker.image.pullPolicy | default "Always" }}
           args:
             - prefect
             - worker

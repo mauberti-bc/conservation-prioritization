@@ -40,16 +40,16 @@ describe('getS3SignedURL', () => {
 });
 
 describe('getS3HostUrl', () => {
-  const OBJECT_STORE_ENDPOINT = process.env.OBJECT_STORE_ENDPOINT;
+  const OBJECT_STORE_URL = process.env.OBJECT_STORE_URL;
   const OBJECT_STORE_BUCKET_NAME = process.env.OBJECT_STORE_BUCKET_NAME;
 
   afterEach(() => {
-    process.env.OBJECT_STORE_ENDPOINT = OBJECT_STORE_ENDPOINT;
+    process.env.OBJECT_STORE_URL = OBJECT_STORE_URL;
     process.env.OBJECT_STORE_BUCKET_NAME = OBJECT_STORE_BUCKET_NAME;
   });
 
   it('should yield a default S3 host url', () => {
-    Object.assign(process.env, { OBJECT_STORE_ENDPOINT: undefined, OBJECT_STORE_BUCKET_NAME: undefined });
+    Object.assign(process.env, { OBJECT_STORE_URL: undefined, OBJECT_STORE_BUCKET_NAME: undefined });
 
     const result = getS3HostUrl();
 
@@ -57,7 +57,7 @@ describe('getS3HostUrl', () => {
   });
 
   it('should successfully produce an S3 host url', () => {
-    process.env.OBJECT_STORE_ENDPOINT = 'http://s3.host.example.com';
+    process.env.OBJECT_STORE_URL = 'http://s3.host.example.com';
     process.env.OBJECT_STORE_BUCKET_NAME = 'test-bucket-name';
 
     const result = getS3HostUrl();
@@ -66,7 +66,7 @@ describe('getS3HostUrl', () => {
   });
 
   it('should successfully append a key to an S3 host url', () => {
-    process.env.OBJECT_STORE_ENDPOINT = 's3.host.example.com';
+    process.env.OBJECT_STORE_URL = 's3.host.example.com';
     process.env.OBJECT_STORE_BUCKET_NAME = 'test-bucket-name';
 
     const result = getS3HostUrl('my-test-file.txt');
@@ -135,28 +135,28 @@ describe('_getObjectStoreBucketName', () => {
 });
 
 describe('_getObjectStoreEndpoint', () => {
-  const OBJECT_STORE_ENDPOINT = process.env.OBJECT_STORE_ENDPOINT;
+  const OBJECT_STORE_URL = process.env.OBJECT_STORE_URL;
 
   afterEach(() => {
-    process.env.OBJECT_STORE_ENDPOINT = OBJECT_STORE_ENDPOINT;
+    process.env.OBJECT_STORE_URL = OBJECT_STORE_URL;
   });
 
   it('should return an object store bucket name that http protocol', () => {
-    process.env.OBJECT_STORE_ENDPOINT = 'http://s3.host.example.com';
+    process.env.OBJECT_STORE_URL = 'http://s3.host.example.com';
 
     const result = _getObjectStoreEndpoint();
     expect(result).to.equal('http://s3.host.example.com');
   });
 
   it('should return an object store bucket name that https protocol', () => {
-    process.env.OBJECT_STORE_ENDPOINT = 'https://s3.host.example.com';
+    process.env.OBJECT_STORE_URL = 'https://s3.host.example.com';
 
     const result = _getObjectStoreEndpoint();
     expect(result).to.equal('https://s3.host.example.com');
   });
 
   it('should return an object store bucket name that had no protocol', () => {
-    process.env.OBJECT_STORE_ENDPOINT = 's3.host.example.com';
+    process.env.OBJECT_STORE_URL = 's3.host.example.com';
 
     const result = _getObjectStoreEndpoint();
     expect(result).to.equal('https://s3.host.example.com');
