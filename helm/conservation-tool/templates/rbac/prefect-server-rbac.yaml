@@ -44,14 +44,6 @@ rules:
       - patch
       - delete
 
-  - apiGroups: ["batch"]
-    resources:
-      - jobs/status
-    verbs:
-      - get
-      - patch
-      - update
-
   - apiGroups: [""]
     resources:
       - secrets
