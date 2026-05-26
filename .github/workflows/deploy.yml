@@ -22,7 +22,7 @@ on:
       image_tag:
         required: false
         type: string
-        default: dev
+        default: ""
       source_tag:
         required: false
         type: string

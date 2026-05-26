@@ -9,6 +9,10 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: promote-to-test
+  cancel-in-progress: false
+
 jobs:
   deploy:
     if: ${{ inputs.confirm }}
@@ -17,4 +21,5 @@ jobs:
     with:
       source_tag: dev
       target_tag: test
+      image_tag: test
       environment: test
