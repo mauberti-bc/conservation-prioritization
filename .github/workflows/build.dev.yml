@@ -75,7 +75,7 @@ jobs:
     environment: dev
     env:
       TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
-      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}
+      SA_TOKEN: ${{ secrets.SA_TOKEN }}
       IMAGE_TAG: dev
       GIT_SHA: ${{ github.sha }}
       NODE_ENV: ${{ vars.NODE_ENV }}
@@ -95,7 +95,7 @@ jobs:
         run: |
           for i in 1 2 3; do
             echo "Attempt $i: Logging into OpenShift..."
-            if oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER; then
+            if oc login --token=$SA_TOKEN --server=$OPENSHIFT_SERVER; then
               echo "Login succeeded"
               break
             elif [ "$i" -lt 3 ]; then
