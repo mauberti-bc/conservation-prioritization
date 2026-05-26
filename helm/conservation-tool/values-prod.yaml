@@ -99,8 +99,7 @@ services:
 
   db:
     image:
-      stream: "postgres"
-      tag: "17-alpine"
+      tag: "prod"
     securityContext:
       runAsUser: 1003640000
       fsGroup: 1003640000
