@@ -49,7 +49,7 @@ jobs:
       TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}
       OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
       TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
-      IMAGE_TAG: ${{ inputs.image_tag || github.event.inputs.image_tag || 'dev' }}
+      IMAGE_TAG: ${{ inputs.image_tag || inputs.target_tag || github.event.inputs.image_tag || 'dev' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

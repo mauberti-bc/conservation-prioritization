@@ -7,6 +7,63 @@ prefect-server:
     host:
       hostname: "conservation-tool-prefect-server-fa9440-test.apps.gold.devops.gov.bc.ca"
 
+  ui:
+    podSecurityContext:
+      runAsUser: 1003620000
+      fsGroup: null
+    containerSecurityContext:
+      runAsUser: 1003620000
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+
+  server:
+    podSecurityContext:
+      runAsUser: 1003620000
+      fsGroup: null
+    containerSecurityContext:
+      runAsUser: 1003620000
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+
+  migrations:
+    securityContext:
+      runAsUser: 1003620000
+      runAsNonRoot: true
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities: {}
+
+prefect-worker:
+  securityContext:
+    runAsUser: 1003620000
+
+prefect-deploy:
+  securityContext:
+    runAsUser: 1003620000
+
+database:
+  postgresql:
+    primary:
+      podSecurityContext:
+        runAsUser: 1003620000
+        fsGroup: 1003620000
+      containerSecurityContext:
+        runAsUser: 1003620000
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: false
+        capabilities:
+          drop:
+            - ALL
+
 services:
   frontend:
     image:
@@ -14,25 +71,56 @@ services:
     config:
       image:
         tag: "test"
+    securityContext:
+      runAsUser: 1003620000
+      fsGroup: 1003620000
+
   workflows:
     worker:
       image:
         tag: "test"
+      securityContext:
+        runAsUser: 1003620000
+
     deploy:
       image:
         tag: "test"
+      securityContext:
+        runAsUser: 1003620000
+
   api:
     image:
       tag: "test"
     route:
       host: "conservation-tool-api-fa9440-test.apps.gold.devops.gov.bc.ca"
+    securityContext:
+      runAsUser: 1003620000
+      fsGroup: 1003620000
+
   db:
     image:
       stream: "postgres"
       tag: "17-alpine"
+    securityContext:
+      runAsUser: 1003620000
+      fsGroup: 1003620000
+
   dbSetup:
     image:
       tag: "test"
+
+backgroundServices:
+  podSecurityContext:
+    runAsUser: 1003620000
+    fsGroup: 1003620000
+  containerSecurityContext:
+    runAsUser: 1003620000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
 
 env:
   NODE_ENV: "test"
