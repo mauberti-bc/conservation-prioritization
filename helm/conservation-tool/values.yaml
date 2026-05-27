@@ -443,6 +443,7 @@ env:
   OBJECT_STORE_SECRET_KEY_ID: ""  # Set via --set env.OBJECT_STORE_SECRET_KEY_ID by workflow
   OBJECT_STORE_BUCKET_NAME: ""  # Set via --set env.OBJECT_STORE_BUCKET_NAME by workflow
   S3_KEY_PREFIX: ""  # Set via --set env.S3_KEY_PREFIX by workflow
+  OBJECT_STORE_FORCE_PATH_STYLE: "true"
 
   # Keycloak
   KEYCLOAK_HOST: ""  # Set via --set env.KEYCLOAK_HOST by workflow

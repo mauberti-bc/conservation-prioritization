@@ -182,10 +182,7 @@ spec:
                   name: conservation-tool-object-storage
                   key: S3_KEY_PREFIX
             - name: OBJECT_STORE_FORCE_PATH_STYLE
-              valueFrom:
-                secretKeyRef:
-                  name: conservation-tool-object-storage
-                  key: OBJECT_STORE_FORCE_PATH_STYLE
+              value: {{ .Values.env.OBJECT_STORE_FORCE_PATH_STYLE | default "true" | quote }}
             - name: PREFECT_API_URL
               value: {{ .Values.env.PREFECT_API_URL | quote }}
             - name: PREFECT_API_KEY
