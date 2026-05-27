@@ -5,27 +5,23 @@
 #   ./scripts/setup-openshift-secrets.sh <namespace> [env_file]
 #
 # Examples:
-#   ./scripts/setup-openshift-secrets.sh dev-tools
-#   ./scripts/setup-openshift-secrets.sh dev-tools .env
-#   ./scripts/setup-openshift-secrets.sh dev-tools .env.test
-#   ./scripts/setup-openshift-secrets.sh prod-tools .env.prod
+#   ./scripts/setup-openshift-secrets.sh fa9440-dev
+#   ./scripts/setup-openshift-secrets.sh fa9440-test .env.test
+#   ./scripts/setup-openshift-secrets.sh fa9440-prod .env.prod
 
 set -euo pipefail
 
-NAMESPACE="${1:?Namespace required (e.g., dev-tools)}"
+NAMESPACE="${1:?Namespace required, e.g. fa9440-dev}"
 ENV_FILE="${2:-.env}"
 
 echo "Setting up OpenShift secrets in namespace: $NAMESPACE"
 echo "Using env file: $ENV_FILE"
-echo "This script uses oc CLI. Install with: https://docs.openshift.com/cli"
 
-# Check if oc is installed
 if ! command -v oc >/dev/null 2>&1; then
   echo "Error: OpenShift CLI (oc) is not installed."
   exit 1
 fi
 
-# Load env file if it exists
 if [[ -f "$ENV_FILE" ]]; then
   echo "Loading environment variables from $ENV_FILE"
   set -a
@@ -56,13 +52,6 @@ prompt_if_missing() {
   export "$var_name=$current_value"
 }
 
-# Login config
-prompt_if_missing "OPENSHIFT_SERVER" "OpenShift server URL"
-prompt_if_missing "OC_TOKEN" "OpenShift token" true
-
-oc login --token="$OC_TOKEN" --server="$OPENSHIFT_SERVER" --insecure-skip-tls-verify=true
-oc project "$NAMESPACE"
-
 create_secret() {
   local secret_name="$1"
   shift
@@ -75,23 +64,32 @@ create_secret() {
     args+=(--from-literal="$kv")
   done
 
-  if oc get secret "$secret_name" --namespace="$NAMESPACE" >/dev/null 2>&1; then
-    echo "Secret $secret_name exists — updating..."
-    oc delete secret "$secret_name" --namespace="$NAMESPACE"
-  fi
+  oc create secret generic "$secret_name" \
+    "${args[@]}" \
+    --namespace="$NAMESPACE" \
+    --dry-run=client \
+    -o yaml | oc apply -f -
 
-  oc create secret generic "$secret_name" "${args[@]}" --namespace="$NAMESPACE"
-  echo "Secret $secret_name created!"
+  echo "Secret $secret_name applied."
   echo ""
 }
 
-echo "=== API Credentials ==="
+# Login config. These are local/operator inputs only, not app secrets.
+prompt_if_missing "OPENSHIFT_SERVER" "OpenShift server URL"
+prompt_if_missing "OC_TOKEN" "OpenShift token" true
+
+oc login --token="$OC_TOKEN" --server="$OPENSHIFT_SERVER"
+oc project "$NAMESPACE"
+
+echo "=== API Secrets ==="
 prompt_if_missing "INTERNAL_API_KEY" "Internal API Key" true
+prompt_if_missing "PREFECT_API_KEY" "Prefect API Key, optional" true
 
 create_secret "conservation-tool-api" \
-  "INTERNAL_API_KEY=$INTERNAL_API_KEY"
+  "INTERNAL_API_KEY=$INTERNAL_API_KEY" \
+  "PREFECT_API_KEY=${PREFECT_API_KEY:-}"
 
-echo "=== Database Credentials ==="
+echo "=== Database Secrets ==="
 prompt_if_missing "DB_USER_API" "DB User (API)"
 prompt_if_missing "DB_USER_API_PASS" "DB Password (API)" true
 prompt_if_missing "DB_USER_PREFECT" "DB User (Prefect)"
@@ -103,66 +101,53 @@ prompt_if_missing "DB_SCHEMA" "DB Schema"
 
 create_secret "conservation-tool-db" \
   "DB_DATABASE=$DB_DATABASE" \
+  "DB_SCHEMA=$DB_SCHEMA" \
   "DB_USER_API=$DB_USER_API" \
   "DB_USER_API_PASS=$DB_USER_API_PASS" \
   "DB_USER_PREFECT=$DB_USER_PREFECT" \
   "DB_USER_PREFECT_PASS=$DB_USER_PREFECT_PASS" \
   "DB_ADMIN=$DB_ADMIN" \
-  "DB_ADMIN_PASS=$DB_ADMIN_PASS" \
-  "DB_SCHEMA=$DB_SCHEMA"
+  "DB_ADMIN_PASS=$DB_ADMIN_PASS"
 
-echo "=== Prefect Credentials ==="
-prompt_if_missing "PREFECT_API_DATABASE_CONNECTION_URL" "Prefect Database URL (e.g., postgresql+asyncpg://user:pass@host:5432/db)"
+echo "=== Prefect Database Secret ==="
+prompt_if_missing "PREFECT_API_DATABASE_CONNECTION_URL" "Prefect Database URL, e.g. postgresql+asyncpg://user:pass@host:5432/db" true
 
 create_secret "conservation-tool-prefect-db" \
   "PREFECT_API_DATABASE_CONNECTION_URL=$PREFECT_API_DATABASE_CONNECTION_URL" \
   "connection-string=$PREFECT_API_DATABASE_CONNECTION_URL"
 
-echo "=== Object Storage Credentials ==="
-prompt_if_missing "OBJECT_STORE_URL" "Object Store URL (e.g., http://minio:9000)"
-prompt_if_missing "OBJECT_STORE_ACCESS_KEY_ID" "Access Key ID"
-prompt_if_missing "OBJECT_STORE_SECRET_KEY_ID" "Secret Key ID" true
-prompt_if_missing "OBJECT_STORE_BUCKET_NAME" "Bucket Name"
-prompt_if_missing "S3_KEY_PREFIX" "S3 Key Prefix"
+echo "=== Object Storage Secrets ==="
+prompt_if_missing "OBJECT_STORE_ACCESS_KEY_ID" "Object Store Access Key ID"
+prompt_if_missing "OBJECT_STORE_SECRET_KEY_ID" "Object Store Secret Key ID" true
 
 create_secret "conservation-tool-object-storage" \
-  "OBJECT_STORE_URL=$OBJECT_STORE_URL" \
   "OBJECT_STORE_ACCESS_KEY_ID=$OBJECT_STORE_ACCESS_KEY_ID" \
-  "OBJECT_STORE_SECRET_KEY_ID=$OBJECT_STORE_SECRET_KEY_ID" \
-  "OBJECT_STORE_BUCKET_NAME=$OBJECT_STORE_BUCKET_NAME" \
-  "S3_KEY_PREFIX=$S3_KEY_PREFIX"
+  "OBJECT_STORE_SECRET_KEY_ID=$OBJECT_STORE_SECRET_KEY_ID"
 
-echo "=== Keycloak Credentials ==="
-prompt_if_missing "KEYCLOAK_HOST" "Keycloak Host"
-prompt_if_missing "KEYCLOAK_REALM" "Realm"
-prompt_if_missing "KEYCLOAK_ADMIN_USERNAME" "Admin Username"
-prompt_if_missing "KEYCLOAK_ADMIN_PASSWORD" "Admin Password" true
-prompt_if_missing "KEYCLOAK_API_TOKEN_URL" "API Token URL"
-prompt_if_missing "KEYCLOAK_CLIENT_ID" "App Client ID"
-prompt_if_missing "KEYCLOAK_API_CLIENT_ID" "API Client ID"
-prompt_if_missing "KEYCLOAK_API_CLIENT_SECRET" "API Client Secret" true
-prompt_if_missing "KEYCLOAK_API_HOST" "API Host"
-prompt_if_missing "KEYCLOAK_API_ENVIRONMENT" "API Environment"
+echo "=== Keycloak Secrets ==="
+prompt_if_missing "KEYCLOAK_ADMIN_USERNAME" "Keycloak Admin Username"
+prompt_if_missing "KEYCLOAK_ADMIN_PASSWORD" "Keycloak Admin Password" true
+prompt_if_missing "KEYCLOAK_API_CLIENT_SECRET" "Keycloak API Client Secret" true
 
 create_secret "conservation-tool-keycloak" \
-  "KEYCLOAK_HOST=$KEYCLOAK_HOST" \
-  "KEYCLOAK_REALM=$KEYCLOAK_REALM" \
   "KEYCLOAK_ADMIN_USERNAME=$KEYCLOAK_ADMIN_USERNAME" \
   "KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD" \
-  "KEYCLOAK_API_TOKEN_URL=$KEYCLOAK_API_TOKEN_URL" \
-  "KEYCLOAK_CLIENT_ID=$KEYCLOAK_CLIENT_ID" \
-  "KEYCLOAK_API_CLIENT_ID=$KEYCLOAK_API_CLIENT_ID" \
-  "KEYCLOAK_API_CLIENT_SECRET=$KEYCLOAK_API_CLIENT_SECRET" \
-  "KEYCLOAK_API_HOST=$KEYCLOAK_API_HOST" \
-  "KEYCLOAK_API_ENVIRONMENT=$KEYCLOAK_API_ENVIRONMENT"
-
-echo "=== OpenShift Configuration ==="
-prompt_if_missing "TOOLS_NAMESPACE" "Tools Namespace"
-prompt_if_missing "TOOLS_SA_TOKEN" "Tools Service Account Token" true
-
-create_secret "conservation-tool-openshift" \
-  "TOOLS_NAMESPACE=$TOOLS_NAMESPACE" \
-  "TOOLS_SA_TOKEN=$TOOLS_SA_TOKEN"
+  "KEYCLOAK_API_CLIENT_SECRET=$KEYCLOAK_API_CLIENT_SECRET"
 
 echo ""
-echo "✅ All OpenShift secrets created successfully in namespace $NAMESPACE!"
+echo "✅ OpenShift secrets created successfully in namespace $NAMESPACE."
+echo ""
+echo "Non-secret config should be set through Helm values, not OpenShift Secrets:"
+echo "  OBJECT_STORE_URL"
+echo "  OBJECT_STORE_BUCKET_NAME"
+echo "  S3_KEY_PREFIX"
+echo "  OBJECT_STORE_FORCE_PATH_STYLE"
+echo "  KEYCLOAK_HOST"
+echo "  KEYCLOAK_REALM"
+echo "  KEYCLOAK_API_TOKEN_URL"
+echo "  KEYCLOAK_CLIENT_ID"
+echo "  KEYCLOAK_API_CLIENT_ID"
+echo "  KEYCLOAK_API_HOST"
+echo "  KEYCLOAK_API_ENVIRONMENT"
+echo "  TOOLS_NAMESPACE"
+echo "  TOOLS_SA_TOKEN should stay in GitHub Actions secrets, not app OpenShift secrets."

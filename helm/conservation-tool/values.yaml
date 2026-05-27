@@ -420,9 +420,12 @@ env:
   # Node / General
   NODE_ENV: "development"
   NODE_OPTIONS: "--max-old-space-size=4096"
+  TZ: "UTC"
   ZARR_STORE_PATH: "/data/output_1000.zarr"
+  CORS_ALLOWED_ORIGINS: "*"
 
   # Database
+  DB_HOST: "" # Usually resolved in Helm templates to the in-cluster DB service name.
   DB_POOL_SIZE: "10"
   DB_CONNECTION_MAX_USES: "7200"
   DB_CONNECTION_TIMEOUT: "30000"
@@ -432,40 +435,39 @@ env:
   PREFECT_API_URL: "http://prefect-server:4200/api"
   PREFECT_SERVER_API_HOST: "0.0.0.0"
   PREFECT_UI_API_URL: "http://localhost:4200/api"
-  PREFECT_API_DATABASE_CONNECTION_URL: ""  # Set via --set env.PREFECT_API_DATABASE_CONNECTION_URL by workflow
-  PREFECT_API_KEY: ""  # Optional Prefect API key
-  CONSERVATION_API_URL: "http://conservation-tool-api:5200/api"  # Base URL for internal workflow callbacks
-  INTERNAL_API_KEY: ""  # Internal API token for workflow callbacks
+  CONSERVATION_API_URL: "http://conservation-tool-api:5200/api"
 
-  # Object Storage
-  OBJECT_STORE_URL: ""  # Set via --set env.OBJECT_STORE_URL by workflow
-  OBJECT_STORE_ACCESS_KEY_ID: ""  # Set via --set env.OBJECT_STORE_ACCESS_KEY_ID by workflow
-  OBJECT_STORE_SECRET_KEY_ID: ""  # Set via --set env.OBJECT_STORE_SECRET_KEY_ID by workflow
-  OBJECT_STORE_BUCKET_NAME: ""  # Set via --set env.OBJECT_STORE_BUCKET_NAME by workflow
-  S3_KEY_PREFIX: ""  # Set via --set env.S3_KEY_PREFIX by workflow
+  # Object Storage - non-secret config
+  OBJECT_STORE_URL: "https://nrs.objectstore.gov.bc.ca:443/"
+  OBJECT_STORE_ENDPOINT: "https://nrs.objectstore.gov.bc.ca:443/"
+  OBJECT_STORE_PUBLIC_ENDPOINT: "https://nrs.objectstore.gov.bc.ca:443/"
+  OBJECT_STORE_REGION: "us-east-1"
+  OBJECT_STORE_BUCKET_NAME: ""
+  S3_KEY_PREFIX: ""
   OBJECT_STORE_FORCE_PATH_STYLE: "true"
 
-  # Keycloak
-  KEYCLOAK_HOST: ""  # Set via --set env.KEYCLOAK_HOST by workflow
-  KEYCLOAK_REALM: ""  # Set via --set env.KEYCLOAK_REALM by workflow
-  KEYCLOAK_ADMIN_USERNAME: ""  # Set via --set env.KEYCLOAK_ADMIN_USERNAME by workflow
-  KEYCLOAK_ADMIN_PASSWORD: ""  # Set via --set env.KEYCLOAK_ADMIN_PASSWORD by workflow
-  KEYCLOAK_API_TOKEN_URL: ""  # Set via --set env.KEYCLOAK_API_TOKEN_URL by workflow
-  KEYCLOAK_API_CLIENT_ID: ""  # Set via --set env.KEYCLOAK_API_CLIENT_ID by workflow
-  KEYCLOAK_API_CLIENT_SECRET: ""  # Set via --set env.KEYCLOAK_API_CLIENT_SECRET by workflow
-  KEYCLOAK_API_HOST: ""  # Set via --set env.KEYCLOAK_API_HOST by workflow
-  KEYCLOAK_API_ENVIRONMENT: ""  # Set via --set env.KEYCLOAK_API_ENVIRONMENT by workflow
+  # Keycloak - non-secret config
+  KEYCLOAK_HOST: ""
+  KEYCLOAK_REALM: ""
+  KEYCLOAK_API_TOKEN_URL: ""
+  KEYCLOAK_CLIENT_ID: ""
+  KEYCLOAK_API_CLIENT_ID: ""
+  KEYCLOAK_API_HOST: ""
+  KEYCLOAK_API_ENVIRONMENT: ""
 
   # API
   API_HOST: "0.0.0.0"
   API_PORT: "5200"
-  APP_HOST: ""  # Set via --set env.APP_HOST by workflow (external hostname)
+  APP_HOST: ""
   FRONTEND_API_HOST: ""
 
-  # Frontend
-  VITE_PREFECT_API_URL: ""  # For local dev only (baked into image in production)
+  # Frontend / Vite
+  VITE_PORT: "7070"
+  VITE_PREFECT_API_URL: ""
   VITE_ZARR_STORE_PATH: "/data/output_1000.zarr"
-  VITE_APP_SITEMINDER_LOGOUT_URL: ""  # Set via --set env.VITE_APP_SITEMINDER_LOGOUT_URL by workflow (optional)
-  VITE_APP_KEYCLOAK_HOST: ""  # Set via --set env.VITE_APP_KEYCLOAK_HOST by workflow (baked into image for prod)
-  VITE_APP_KEYCLOAK_REALM: ""  # Set via --set env.VITE_APP_KEYCLOAK_REALM by workflow (baked into image for prod)
-  VITE_APP_KEYCLOAK_CLIENT_ID: ""  # Set via --set env.VITE_APP_KEYCLOAK_CLIENT_ID by workflow (baked into image for prod)
+  VITE_APP_API_HOST: ""
+  VITE_APP_API_PORT: "5200"
+  VITE_APP_SITEMINDER_LOGOUT_URL: ""
+  VITE_APP_KEYCLOAK_HOST: ""
+  VITE_APP_KEYCLOAK_REALM: ""
+  VITE_APP_KEYCLOAK_CLIENT_ID: ""

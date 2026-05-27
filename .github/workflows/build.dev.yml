@@ -215,4 +215,4 @@ jobs:
     secrets: inherit
     with:
       environment: dev
-      image_tag: ${{ github.sha }}
+      image_tag: ${{ needs.build-push.result == 'success' && github.sha || 'dev' }}
