@@ -9,10 +9,10 @@ prefect-server:
 
   ui:
     podSecurityContext:
-      runAsUser: 1003640000
+      runAsUser: 1003590000
       fsGroup: null
     containerSecurityContext:
-      runAsUser: 1003640000
+      runAsUser: 1003590000
       runAsNonRoot: true
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: true
@@ -22,10 +22,10 @@ prefect-server:
 
   server:
     podSecurityContext:
-      runAsUser: 1003640000
+      runAsUser: 1003590000
       fsGroup: null
     containerSecurityContext:
-      runAsUser: 1003640000
+      runAsUser: 1003590000
       runAsNonRoot: true
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: true
@@ -35,7 +35,7 @@ prefect-server:
 
   migrations:
     securityContext:
-      runAsUser: 1003640000
+      runAsUser: 1003590000
       runAsNonRoot: true
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
@@ -43,20 +43,20 @@ prefect-server:
 
 prefect-worker:
   securityContext:
-    runAsUser: 1003640000
+    runAsUser: 1003590000
 
 prefect-deploy:
   securityContext:
-    runAsUser: 1003640000
+    runAsUser: 1003590000
 
 database:
   postgresql:
     primary:
       podSecurityContext:
-        runAsUser: 1003640000
-        fsGroup: 1003640000
+        runAsUser: 1003590000
+        fsGroup: 1003590000
       containerSecurityContext:
-        runAsUser: 1003640000
+        runAsUser: 1003590000
         runAsNonRoot: true
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: false
@@ -72,21 +72,21 @@ services:
       image:
         tag: "prod"
     securityContext:
-      runAsUser: 1003640000
-      fsGroup: 1003640000
+      runAsUser: 1003590000
+      fsGroup: 1003590000
 
   workflows:
     worker:
       image:
         tag: "prod"
       securityContext:
-        runAsUser: 1003640000
+        runAsUser: 1003590000
 
     deploy:
       image:
         tag: "prod"
       securityContext:
-        runAsUser: 1003640000
+        runAsUser: 1003590000
 
   api:
     image:
@@ -94,15 +94,15 @@ services:
     route:
       host: "conservation-tool-api-fa9440-prod.apps.gold.devops.gov.bc.ca"
     securityContext:
-      runAsUser: 1003640000
-      fsGroup: 1003640000
+      runAsUser: 1003590000
+      fsGroup: 1003590000
 
   db:
     image:
       tag: "prod"
     securityContext:
-      runAsUser: 1003640000
-      fsGroup: 1003640000
+      runAsUser: 1003590000
+      fsGroup: 1003590000
 
   dbSetup:
     image:
@@ -110,10 +110,10 @@ services:
 
 backgroundServices:
   podSecurityContext:
-    runAsUser: 1003640000
-    fsGroup: 1003640000
+    runAsUser: 1003590000
+    fsGroup: 1003590000
   containerSecurityContext:
-    runAsUser: 1003640000
+    runAsUser: 1003590000
     runAsNonRoot: true
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
