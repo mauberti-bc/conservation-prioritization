@@ -2,7 +2,7 @@ import { IncomingMessage } from 'http';
 import { WebSocket } from 'ws';
 import { getAPIUserDBConnection } from '../../../database/db';
 import { TaskService } from '../../../services/task-service';
-import { TASK_STATUS } from '../../../types/status';
+import { TASK_STATUS, TILE_STATUS } from '../../../types/status';
 import { TaskStatusMessage } from '../../../types/task-status';
 import { getLogger } from '../../../utils/logger';
 import { startPollingWebsocketChannel } from '../polling-websocket-channel';
@@ -12,11 +12,29 @@ export interface TaskStatusChannelParams {
   taskId: string;
 }
 
-const TERMINAL_STATUSES = new Set<TaskStatusMessage['status']>([
-  TASK_STATUS.COMPLETED,
-  TASK_STATUS.FAILED,
-  TASK_STATUS.FAILED_TO_SUBMIT
-]);
+const TERMINAL_STATUSES = new Set<TaskStatusMessage['status']>([TASK_STATUS.FAILED, TASK_STATUS.FAILED_TO_SUBMIT]);
+
+/**
+ * Determines whether the task status websocket has delivered all state needed by the map.
+ *
+ * @param {TaskStatusMessage} payload
+ * @return {*}  {boolean}
+ */
+const isTaskStatusTerminalForMap = (payload: TaskStatusMessage): boolean => {
+  if (TERMINAL_STATUSES.has(payload.status)) {
+    return true;
+  }
+
+  if (payload.tile?.status === TILE_STATUS.FAILED) {
+    return true;
+  }
+
+  return (
+    payload.status === TASK_STATUS.COMPLETED &&
+    payload.tile?.status === TILE_STATUS.COMPLETED &&
+    Boolean(payload.tile.pmtiles_uri)
+  );
+};
 
 /**
  * Matches websocket upgrade requests for task status updates.
@@ -68,8 +86,6 @@ export const handleTaskStatusChannel = async (
         connection.release();
       }
     },
-    shouldClose: (payload) => {
-      return TERMINAL_STATUSES.has(payload.status);
-    }
+    shouldClose: isTaskStatusTerminalForMap
   });
 };

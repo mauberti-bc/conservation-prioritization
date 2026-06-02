@@ -1,7 +1,7 @@
 import { useConfigContext } from 'hooks/useContext';
 import useWebsocket from 'hooks/useWebsocket';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TASK_STATUS } from 'constants/status';
+import { TASK_STATUS, TILE_STATUS } from 'constants/status';
 import { TaskStatusMessage } from './task-status.interface';
 
 export interface UseTaskStatusWebSocketReturn {
@@ -64,8 +64,10 @@ export const useTaskStatusWebSocket = (taskId: string | null): UseTaskStatusWebS
           const hasPmtilesUri = Boolean(parsed.tile?.pmtiles_uri ?? parsed.tileset_uri);
           const isFailedTerminal =
             parsed.status === TASK_STATUS.FAILED || parsed.status === TASK_STATUS.FAILED_TO_SUBMIT;
-          const isCompletedWithTileset = parsed.status === TASK_STATUS.COMPLETED && hasPmtilesUri;
-          if (isFailedTerminal || isCompletedWithTileset) {
+          const isTileFailed = parsed.tile?.status === TILE_STATUS.FAILED;
+          const isCompletedWithTileset =
+            parsed.status === TASK_STATUS.COMPLETED && parsed.tile?.status === TILE_STATUS.COMPLETED && hasPmtilesUri;
+          if (isFailedTerminal || isTileFailed || isCompletedWithTileset) {
             isTerminalRef.current = true;
           }
         } catch (parseError) {
