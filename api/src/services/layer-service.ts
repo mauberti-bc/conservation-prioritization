@@ -1,7 +1,7 @@
 import { ApiGeneralError } from '../errors/api-error';
 import { LayerMeta } from '../models/layer.interface';
 import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination';
-import { getFileFromS3 } from '../utils/file-utils';
+import { _getSourceObjectStoreBucketName, getFileFromSourceS3 } from '../utils/file-utils';
 import { getLogger } from '../utils/logger';
 import { makePaginationResponse } from '../utils/pagination';
 import { parseArraysFromConsolidatedMetadata } from '../utils/zarr';
@@ -59,7 +59,7 @@ export class LayerService {
    * - `s3://bucket/data/output_1000.zarr`
    * - `https://host/bucket/data/output_1000.zarr`
    *
-   * Bucket and object-store connection details are resolved by `file-utils`.
+   * Bucket and source object-store connection details are resolved by `file-utils`.
    *
    * @memberof LayerService
    */
@@ -111,7 +111,7 @@ export class LayerService {
     if (/^https?:\/\//i.test(trimmed)) {
       const url = new URL(trimmed);
       const pathParts = url.pathname.split('/').filter(Boolean);
-      const bucketName = process.env.OBJECT_STORE_BUCKET_NAME;
+      const bucketName = _getSourceObjectStoreBucketName();
 
       if (bucketName && pathParts[0] === bucketName) {
         pathParts.shift();
@@ -183,7 +183,7 @@ export class LayerService {
             isConsolidatedMetadata
           });
 
-          const response = await getFileFromS3(fullKey);
+          const response = await getFileFromSourceS3(fullKey);
 
           if (!response.Body) {
             throw new Error(`S3 response body was empty for key: ${fullKey}`);

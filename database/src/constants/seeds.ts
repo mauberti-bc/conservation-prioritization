@@ -14,54 +14,6 @@ export const SEED_CONSTANTS = {
     'project_permission',
     'project'
   ],
-  PROJECT_ROLES: [
-    {
-      name: 'admin',
-      description: 'Project administrator role',
-      scope: 'project'
-    },
-    {
-      name: 'member',
-      description: 'Project user role',
-      scope: 'project'
-    }
-  ],
-  PROFILE_ROLES: [
-    {
-      name: 'admin',
-      description: 'Profile administrator role',
-      scope: 'profile'
-    },
-    {
-      name: 'member',
-      description: 'Profile member role',
-      scope: 'profile'
-    }
-  ],
-  TASK_ROLES: [
-    {
-      name: 'admin',
-      description: 'Task administrator role',
-      scope: 'task'
-    },
-    {
-      name: 'member',
-      description: 'Task user role',
-      scope: 'task'
-    }
-  ],
-  DASHBOARD_ROLES: [
-    {
-      name: 'admin',
-      description: 'Dashboard administrator role',
-      scope: 'dashboard'
-    },
-    {
-      name: 'member',
-      description: 'Dashboard member role',
-      scope: 'dashboard'
-    }
-  ],
   PROFILES: [
     {
       profile_guid: '62ec624e50844486a046dc9709854f8d@azureidir',

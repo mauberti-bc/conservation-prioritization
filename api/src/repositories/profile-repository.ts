@@ -390,7 +390,6 @@ export class ProfileRepository extends BaseRepository {
    * @memberof ProfileRepository
    */
   async getRoleIdByNameAndScope(roleName: string, roleScope: string): Promise<string> {
-    console.log(roleName, roleScope);
     const sqlStatement = SQL`
       SELECT role_id
       FROM role
