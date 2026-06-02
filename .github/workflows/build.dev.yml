@@ -66,7 +66,7 @@ jobs:
           echo "Database changed: ${{ steps.changes.outputs.database }}"
           echo "Helm changed: ${{ steps.changes.outputs.helm }}"
           echo "Changed files:"
-          git diff --name-only ${{ github.event.before }} ${{ github.sha }}
+          git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" || true
 
   build-push:
     runs-on: ubuntu-latest
@@ -95,7 +95,7 @@ jobs:
         run: |
           for i in 1 2 3; do
             echo "Attempt $i: Logging into OpenShift..."
-            if oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER; then
+            if oc login --token="$TOOLS_SA_TOKEN" --server="$OPENSHIFT_SERVER"; then
               echo "Login succeeded"
               break
             elif [ "$i" -lt 3 ]; then
@@ -106,7 +106,7 @@ jobs:
               exit 1
             fi
           done
-          oc project $TOOLS_NAMESPACE
+          oc project "$TOOLS_NAMESPACE"
 
       - name: Log in to OpenShift internal registry
         run: |
@@ -131,12 +131,12 @@ jobs:
             --build-arg VITE_NODE_OPTIONS="${NODE_OPTIONS}" \
             --build-arg VITE_PREFECT_API_URL="${PREFECT_API_URL}" \
             --build-arg VITE_ZARR_STORE_PATH="${ZARR_STORE_PATH}" \
-            -t ${BASE_IMAGE}:${GIT_SHA} \
-            -t ${BASE_IMAGE}:${IMAGE_TAG} \
+            -t "${BASE_IMAGE}:${GIT_SHA}" \
+            -t "${BASE_IMAGE}:${IMAGE_TAG}" \
             -f ./Dockerfile .
 
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push "${BASE_IMAGE}:${GIT_SHA}"
+          docker push "${BASE_IMAGE}:${IMAGE_TAG}"
 
       - name: Build and push API image
         working-directory: api
@@ -145,12 +145,12 @@ jobs:
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/api"
 
           docker build \
-            -t ${BASE_IMAGE}:${GIT_SHA} \
-            -t ${BASE_IMAGE}:${IMAGE_TAG} \
+            -t "${BASE_IMAGE}:${GIT_SHA}" \
+            -t "${BASE_IMAGE}:${IMAGE_TAG}" \
             -f ./Dockerfile .
 
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push "${BASE_IMAGE}:${GIT_SHA}"
+          docker push "${BASE_IMAGE}:${IMAGE_TAG}"
 
       - name: Build and push Database image
         working-directory: database
@@ -159,12 +159,12 @@ jobs:
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/database"
 
           docker build \
-            -t ${BASE_IMAGE}:${GIT_SHA} \
-            -t ${BASE_IMAGE}:${IMAGE_TAG} \
+            -t "${BASE_IMAGE}:${GIT_SHA}" \
+            -t "${BASE_IMAGE}:${IMAGE_TAG}" \
             -f ./Dockerfile .
 
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push "${BASE_IMAGE}:${GIT_SHA}"
+          docker push "${BASE_IMAGE}:${IMAGE_TAG}"
 
       - name: Build and push db-setup image
         working-directory: database
@@ -173,12 +173,12 @@ jobs:
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/db-setup"
 
           docker build \
-            -t ${BASE_IMAGE}:${GIT_SHA} \
-            -t ${BASE_IMAGE}:${IMAGE_TAG} \
+            -t "${BASE_IMAGE}:${GIT_SHA}" \
+            -t "${BASE_IMAGE}:${IMAGE_TAG}" \
             -f .docker/db/Dockerfile.setup .
 
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push "${BASE_IMAGE}:${GIT_SHA}"
+          docker push "${BASE_IMAGE}:${IMAGE_TAG}"
 
       - name: Build and push Prefect worker image
         working-directory: workflows
@@ -187,12 +187,12 @@ jobs:
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-worker"
 
           docker build \
-            -t ${BASE_IMAGE}:${GIT_SHA} \
-            -t ${BASE_IMAGE}:${IMAGE_TAG} \
+            -t "${BASE_IMAGE}:${GIT_SHA}" \
+            -t "${BASE_IMAGE}:${IMAGE_TAG}" \
             -f ./Dockerfile.worker .
 
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push "${BASE_IMAGE}:${GIT_SHA}"
+          docker push "${BASE_IMAGE}:${IMAGE_TAG}"
 
       - name: Build and push Prefect deploy image
         working-directory: workflows
@@ -201,12 +201,12 @@ jobs:
           BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-deploy"
 
           docker build \
-            -t ${BASE_IMAGE}:${GIT_SHA} \
-            -t ${BASE_IMAGE}:${IMAGE_TAG} \
+            -t "${BASE_IMAGE}:${GIT_SHA}" \
+            -t "${BASE_IMAGE}:${IMAGE_TAG}" \
             -f ./Dockerfile.deploy .
 
-          docker push ${BASE_IMAGE}:${GIT_SHA}
-          docker push ${BASE_IMAGE}:${IMAGE_TAG}
+          docker push "${BASE_IMAGE}:${GIT_SHA}"
+          docker push "${BASE_IMAGE}:${IMAGE_TAG}"
 
   deploy:
     needs: [changes, build-push]

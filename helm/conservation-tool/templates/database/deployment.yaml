@@ -26,10 +26,10 @@ spec:
       securityContext:
         runAsNonRoot: true
         {{- if .Values.services.db.securityContext.runAsUser }}
-        runAsUser: {{ .Values.services.db.securityContext.runAsUser }}
+        runAsUser: {{ .Values.services.db.securityContext.runAsUser | int64 }}
         {{- end }}
         {{- if .Values.services.db.securityContext.fsGroup }}
-        fsGroup: {{ .Values.services.db.securityContext.fsGroup }}
+        fsGroup: {{ .Values.services.db.securityContext.fsGroup | int64 }}
         {{- end }}
       containers:
         - name: postgresql
@@ -38,7 +38,7 @@ spec:
           securityContext:
             runAsNonRoot: true
             {{- if .Values.services.db.securityContext.runAsUser }}
-            runAsUser: {{ .Values.services.db.securityContext.runAsUser }}
+            runAsUser: {{ .Values.services.db.securityContext.runAsUser | int64 }}
             {{- end }}
           env:
             - name: POSTGRES_DB

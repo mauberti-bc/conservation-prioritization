@@ -117,37 +117,47 @@ create_secret "conservation-tool-prefect-db" \
   "connection-string=$PREFECT_API_DATABASE_CONNECTION_URL"
 
 echo "=== Object Storage Secrets ==="
+prompt_if_missing "OBJECT_STORE_URL" "Object Store URL"
 prompt_if_missing "OBJECT_STORE_ACCESS_KEY_ID" "Object Store Access Key ID"
 prompt_if_missing "OBJECT_STORE_SECRET_KEY_ID" "Object Store Secret Key ID" true
+prompt_if_missing "OBJECT_STORE_BUCKET_NAME" "Object Store Bucket Name"
+prompt_if_missing "S3_KEY_PREFIX" "Object Store S3 Key Prefix"
 
 create_secret "conservation-tool-object-storage" \
+  "OBJECT_STORE_URL=$OBJECT_STORE_URL" \
   "OBJECT_STORE_ACCESS_KEY_ID=$OBJECT_STORE_ACCESS_KEY_ID" \
-  "OBJECT_STORE_SECRET_KEY_ID=$OBJECT_STORE_SECRET_KEY_ID"
+  "OBJECT_STORE_SECRET_KEY_ID=$OBJECT_STORE_SECRET_KEY_ID" \
+  "OBJECT_STORE_BUCKET_NAME=$OBJECT_STORE_BUCKET_NAME" \
+  "S3_KEY_PREFIX=$S3_KEY_PREFIX"
 
 echo "=== Keycloak Secrets ==="
+prompt_if_missing "KEYCLOAK_HOST" "Keycloak Host"
+prompt_if_missing "KEYCLOAK_REALM" "Keycloak Realm"
 prompt_if_missing "KEYCLOAK_ADMIN_USERNAME" "Keycloak Admin Username"
 prompt_if_missing "KEYCLOAK_ADMIN_PASSWORD" "Keycloak Admin Password" true
+prompt_if_missing "KEYCLOAK_API_TOKEN_URL" "Keycloak API Token URL"
+prompt_if_missing "KEYCLOAK_CLIENT_ID" "Keycloak Frontend Client ID"
+prompt_if_missing "KEYCLOAK_API_CLIENT_ID" "Keycloak API Client ID"
 prompt_if_missing "KEYCLOAK_API_CLIENT_SECRET" "Keycloak API Client Secret" true
+prompt_if_missing "KEYCLOAK_API_HOST" "Keycloak API Host"
+prompt_if_missing "KEYCLOAK_API_ENVIRONMENT" "Keycloak API Environment"
 
 create_secret "conservation-tool-keycloak" \
+  "KEYCLOAK_HOST=$KEYCLOAK_HOST" \
+  "KEYCLOAK_REALM=$KEYCLOAK_REALM" \
   "KEYCLOAK_ADMIN_USERNAME=$KEYCLOAK_ADMIN_USERNAME" \
   "KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD" \
-  "KEYCLOAK_API_CLIENT_SECRET=$KEYCLOAK_API_CLIENT_SECRET"
+  "KEYCLOAK_API_TOKEN_URL=$KEYCLOAK_API_TOKEN_URL" \
+  "KEYCLOAK_CLIENT_ID=$KEYCLOAK_CLIENT_ID" \
+  "KEYCLOAK_API_CLIENT_ID=$KEYCLOAK_API_CLIENT_ID" \
+  "KEYCLOAK_API_CLIENT_SECRET=$KEYCLOAK_API_CLIENT_SECRET" \
+  "KEYCLOAK_API_HOST=$KEYCLOAK_API_HOST" \
+  "KEYCLOAK_API_ENVIRONMENT=$KEYCLOAK_API_ENVIRONMENT"
 
 echo ""
 echo "✅ OpenShift secrets created successfully in namespace $NAMESPACE."
 echo ""
-echo "Non-secret config should be set through Helm values, not OpenShift Secrets:"
-echo "  OBJECT_STORE_URL"
-echo "  OBJECT_STORE_BUCKET_NAME"
-echo "  S3_KEY_PREFIX"
+echo "Runtime service config not covered by these secrets should be set through Helm values:"
 echo "  OBJECT_STORE_FORCE_PATH_STYLE"
-echo "  KEYCLOAK_HOST"
-echo "  KEYCLOAK_REALM"
-echo "  KEYCLOAK_API_TOKEN_URL"
-echo "  KEYCLOAK_CLIENT_ID"
-echo "  KEYCLOAK_API_CLIENT_ID"
-echo "  KEYCLOAK_API_HOST"
-echo "  KEYCLOAK_API_ENVIRONMENT"
 echo "  TOOLS_NAMESPACE"
 echo "  TOOLS_SA_TOKEN should stay in GitHub Actions secrets, not app OpenShift secrets."

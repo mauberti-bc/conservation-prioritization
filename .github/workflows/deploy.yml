@@ -39,13 +39,14 @@ permissions:
 
 env:
   OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
-  ACTIONS_RUNNER_DEBUG: true
-  ACTIONS_STEP_DEBUG: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment || github.event.inputs.environment || 'dev' }}
+    concurrency:
+      group: deploy-${{ inputs.environment || github.event.inputs.environment || 'dev' }}
+      cancel-in-progress: false
 
     env:
       # Environment-specific deploy token:
@@ -95,10 +96,12 @@ jobs:
         run: |
           required_vars=(
             SA_TOKEN
-            TOOLS_SA_TOKEN
             OPENSHIFT_NAMESPACE
-            TOOLS_NAMESPACE
           )
+
+          if [ "${{ inputs.source_tag }}" != "" ] || [ "${{ inputs.target_tag }}" != "" ]; then
+            required_vars+=(TOOLS_SA_TOKEN TOOLS_NAMESPACE)
+          fi
 
           for var in "${required_vars[@]}"; do
             if [ -z "${!var}" ]; then
@@ -178,8 +181,8 @@ jobs:
           check_secret_key "conservation-tool-db" "DB_ADMIN"
           check_secret_key "conservation-tool-db" "DB_ADMIN_PASS"
 
-          check_secret_key "conservation-tool-prefect-db" "PREFECT_API_DATABASE_CONNECTION_URL"
-          check_secret_decoded_prefix "conservation-tool-prefect-db" "PREFECT_API_DATABASE_CONNECTION_URL" "postgresql+asyncpg://"
+          check_secret_key "conservation-tool-prefect-db" "connection-string"
+          check_secret_decoded_prefix "conservation-tool-prefect-db" "connection-string" "postgresql+asyncpg://"
 
           check_secret_key "conservation-tool-object-storage" "OBJECT_STORE_URL"
           check_secret_key "conservation-tool-object-storage" "OBJECT_STORE_ACCESS_KEY_ID"
@@ -246,6 +249,7 @@ jobs:
           done
 
       - name: Re-login to target OpenShift environment
+        if: ${{ inputs.source_tag != '' && inputs.target_tag != '' }}
         run: |
           echo "Logging back into OpenShift with target environment token..."
 
@@ -297,19 +301,3 @@ jobs:
           echo "Verifying deployment..."
           oc get deployments -n "${OPENSHIFT_NAMESPACE}"
           oc get pods -n "${OPENSHIFT_NAMESPACE}"
-
-      - name: Scale Prefect worker to 1
-        run: |
-          echo "Scaling Prefect worker to 1 replica..."
-
-          WORKER_DEPLOYMENT="conservation-tool-prefect-worker"
-
-          oc scale deployment/"$WORKER_DEPLOYMENT" \
-            --replicas=1 \
-            -n "${OPENSHIFT_NAMESPACE}"
-
-          echo "Waiting for worker rollout..."
-
-          oc rollout status deployment/"$WORKER_DEPLOYMENT" \
-            -n "${OPENSHIFT_NAMESPACE}" \
-            --timeout=5m

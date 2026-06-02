@@ -160,11 +160,6 @@ prefect-server:
     env:
       - name: PREFECT_HOME
         value: /tmp/prefect
-      - name: PREFECT_API_DATABASE_CONNECTION_URL
-        valueFrom:
-          secretKeyRef:
-            name: conservation-tool-prefect-db
-            key: PREFECT_API_DATABASE_CONNECTION_URL
     extraVolumes:
       - name: prefect-tmp
         emptyDir: {}
@@ -175,12 +170,6 @@ prefect-server:
   migrations:
     enabled: true
     backoffLimit: 4
-    env:
-      - name: PREFECT_API_DATABASE_CONNECTION_URL
-        valueFrom:
-          secretKeyRef:
-            name: conservation-tool-prefect-db
-            key: PREFECT_API_DATABASE_CONNECTION_URL
     resources:
       requests:
         cpu: 100m
@@ -207,50 +196,6 @@ prefect-server:
       hostname: ""
       path: "/"
     className: "openshift-default"
-
-prefect-worker:
-  resources:
-    requests:
-      cpu: 50m
-      memory: 256Mi
-    limits:
-      cpu: 100m
-      memory: 1024Mi
-  replicas: 1
-  pool: pool
-  securityContext:
-    runAsUser: 1003600000
-  env:
-    - name: PREFECT_HOME
-      value: /tmp/prefect
-  extraVolumes:
-    - name: prefect-tmp
-      emptyDir: {}
-  extraVolumeMounts:
-    - name: prefect-tmp
-      mountPath: /tmp/prefect
-
-prefect-deploy:
-  resources:
-    requests:
-      cpu: 50m
-      memory: 256Mi
-    limits:
-      cpu: 100m
-      memory: 256Mi
-  replicas: 0
-  securityContext:
-    runAsUser: 1003600000
-  env:
-    - name: PREFECT_HOME
-      value: /tmp/prefect  
-  extraVolumes:
-    - name: prefect-tmp
-      emptyDir: {}
-  extraVolumeMounts:
-    - name: prefect-tmp
-      mountPath: /tmp/prefect
-
 
 # ========================
 # Services Configuration
@@ -307,7 +252,7 @@ services:
 
   workflows:
     worker:
-      replicas: 0
+      replicas: 1
       pool: pool
       image:
         stream: "prefect-worker"
