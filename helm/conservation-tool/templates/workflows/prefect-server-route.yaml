@@ -1,0 +1,22 @@
+{{- $prefectServer := index .Values "prefect-server" -}}
+{{- if dig "route" "enabled" true $prefectServer }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ dig "route" "name" "prefect-server" $prefectServer }}
+  labels:
+    app: {{ dig "route" "name" "prefect-server" $prefectServer }}
+spec:
+  {{- $host := dig "ingress" "host" "hostname" "" $prefectServer }}
+  {{- if $host }}
+  host: {{ $host | quote }}
+  {{- end }}
+  to:
+    kind: Service
+    name: {{ dig "route" "serviceName" "prefect-server" $prefectServer }}
+  port:
+    targetPort: {{ dig "route" "targetPort" "server-svc-port" $prefectServer | quote }}
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}

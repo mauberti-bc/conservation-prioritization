@@ -2,6 +2,9 @@ prefect-server:
   ingress:
     host:
       hostname: "conservation-tool-prefect-server-fa9440-dev.apps.gold.devops.gov.bc.ca"
+  server:
+    uiConfig:
+      prefectUiApiUrl: "https://conservation-tool-prefect-server-fa9440-dev.apps.gold.devops.gov.bc.ca/api"
 
 services:
   api:
