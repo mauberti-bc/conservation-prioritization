@@ -395,6 +395,14 @@ env:
   OBJECT_STORE_BUCKET_NAME: ""
   S3_KEY_PREFIX: ""
   OBJECT_STORE_FORCE_PATH_STYLE: "true"
+  # Source object storage is read-only runtime configuration for the Zarr layer library.
+  # Set SOURCE_OBJECT_STORE_BUCKET_NAME in dev/test to read reference layers from another bucket.
+  SOURCE_OBJECT_STORE_URL: "https://nrs.objectstore.gov.bc.ca:443/"
+  SOURCE_OBJECT_STORE_ENDPOINT: "https://nrs.objectstore.gov.bc.ca:443/"
+  SOURCE_OBJECT_STORE_REGION: "us-east-1"
+  SOURCE_OBJECT_STORE_BUCKET_NAME: ""
+  SOURCE_OBJECT_STORE_PREFIX: ""
+  SOURCE_OBJECT_STORE_FORCE_PATH_STYLE: "true"
 
   # Keycloak - non-secret config
   KEYCLOAK_HOST: ""

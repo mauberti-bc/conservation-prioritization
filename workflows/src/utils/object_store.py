@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
 import boto3
+import fsspec
 from botocore.config import Config
 
 
@@ -59,6 +60,52 @@ def get_object_store_config() -> ObjectStoreConfig:
     )
 
 
+def get_source_object_store_config() -> ObjectStoreConfig:
+    """
+    Load source object store configuration for reading the Zarr layer library.
+    """
+    endpoint = (
+        os.getenv("SOURCE_OBJECT_STORE_ENDPOINT")
+        or os.getenv("SOURCE_OBJECT_STORE_URL")
+        or os.getenv("OBJECT_STORE_ENDPOINT")
+        or os.getenv("OBJECT_STORE_URL")
+    )
+    region = os.getenv("SOURCE_OBJECT_STORE_REGION") or os.getenv(
+        "OBJECT_STORE_REGION", "us-east-1"
+    )
+    access_key = os.getenv("SOURCE_OBJECT_STORE_ACCESS_KEY_ID") or os.getenv(
+        "OBJECT_STORE_ACCESS_KEY_ID"
+    )
+    secret_key = os.getenv("SOURCE_OBJECT_STORE_SECRET_KEY_ID") or os.getenv(
+        "OBJECT_STORE_SECRET_KEY_ID"
+    )
+    bucket = os.getenv("SOURCE_OBJECT_STORE_BUCKET_NAME") or os.getenv(
+        "OBJECT_STORE_BUCKET_NAME"
+    )
+    prefix = os.getenv("SOURCE_OBJECT_STORE_PREFIX", "").strip("/")
+    force_path_style = _parse_bool(
+        os.getenv("SOURCE_OBJECT_STORE_FORCE_PATH_STYLE")
+        or os.getenv("OBJECT_STORE_FORCE_PATH_STYLE")
+    )
+
+    if not endpoint:
+        raise ValueError("SOURCE_OBJECT_STORE_ENDPOINT is not configured.")
+    if not access_key or not secret_key:
+        raise ValueError("Source object storage credentials are not configured.")
+    if not bucket:
+        raise ValueError("SOURCE_OBJECT_STORE_BUCKET_NAME is not configured.")
+
+    return ObjectStoreConfig(
+        endpoint=_normalize_endpoint(endpoint),
+        region=region,
+        access_key=access_key,
+        secret_key=secret_key,
+        force_path_style=force_path_style,
+        bucket=bucket,
+        prefix=prefix,
+    )
+
+
 def get_object_store_client(config: ObjectStoreConfig):
     """
     Build a configured boto3 S3 client for the object store.
@@ -78,6 +125,40 @@ def get_object_store_client(config: ObjectStoreConfig):
     )
 
 
+def get_source_zarr_store(zarr_path: Optional[str]):
+    """
+    Build an xarray-compatible Zarr store using SOURCE_OBJECT_STORE_* when the
+    configured path points at object storage.
+    """
+    if not zarr_path:
+        raise ValueError("ZARR_STORE_PATH is not configured.")
+
+    if not _is_remote_zarr_path(zarr_path) and not os.getenv(
+        "SOURCE_OBJECT_STORE_BUCKET_NAME"
+    ):
+        return zarr_path.strip().strip("\"'")
+
+    config = get_source_object_store_config()
+    key = build_object_key(
+        config.prefix, _normalize_zarr_path(zarr_path, config.bucket)
+    )
+    storage_options: Dict[str, Any] = {
+        "key": config.access_key,
+        "secret": config.secret_key,
+        "client_kwargs": {
+            "endpoint_url": config.endpoint,
+            "region_name": config.region,
+        },
+    }
+
+    if config.force_path_style:
+        storage_options["config_kwargs"] = {"s3": {"addressing_style": "path"}}
+
+    fs = fsspec.filesystem("s3", **storage_options)
+
+    return fs.get_mapper(f"{config.bucket}/{key}")
+
+
 def build_object_key(prefix: str, key: str) -> str:
     """
     Build an object key with an optional prefix.
@@ -85,6 +166,36 @@ def build_object_key(prefix: str, key: str) -> str:
     if prefix:
         return f"{prefix}/{key.lstrip('/')}"
     return key.lstrip("/")
+
+
+def _is_remote_zarr_path(zarr_path: str) -> bool:
+    normalized = zarr_path.strip().strip("\"'")
+
+    return (
+        normalized.startswith("s3://")
+        or normalized.startswith("http://")
+        or normalized.startswith("https://")
+    )
+
+
+def _normalize_zarr_path(zarr_path: str, bucket: Optional[str] = None) -> str:
+    normalized = zarr_path.strip().strip("\"'")
+
+    if normalized.startswith("s3://"):
+        without_scheme = normalized[len("s3://") :]
+        parts = without_scheme.split("/", 1)
+        if len(parts) == 1:
+            return ""
+        return parts[1].strip("/")
+
+    if normalized.startswith("http://") or normalized.startswith("https://"):
+        without_scheme = normalized.split("://", 1)[1]
+        path_parts = without_scheme.split("/")[1:]
+        if bucket and path_parts and path_parts[0] == bucket:
+            path_parts = path_parts[1:]
+        return "/".join(path_parts).strip("/")
+
+    return normalized.strip("/")
 
 
 def make_uri(bucket: str, key: str) -> str:

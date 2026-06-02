@@ -7,18 +7,15 @@ import { SEED_CONSTANTS } from '../constants/seeds';
  * ========================================================================== */
 
 const DB_SCHEMA = process.env.DB_SCHEMA!;
-const DB_USER_PREFECT = process.env.DB_USER_PREFECT || 'prefect';
 const DB_USER_API = process.env.DB_USER_API!;
 
 const C = SEED_CONSTANTS;
 
 /* ============================================================================
- * Global Reference Data Seed (roles, events, pricing, etc.)
+ * Demo data seed for non-production environments.
  * ========================================================================== */
 
 export async function seed(knex: Knex): Promise<void> {
-  void DB_USER_PREFECT;
-
   await knex.raw(`
     SET SCHEMA '${DB_SCHEMA}';
     SET SEARCH_PATH=${DB_SCHEMA},public;
@@ -46,66 +43,6 @@ export async function seed(knex: Knex): Promise<void> {
   }
 
   await knex.raw(`SET session_replication_role = 'origin';`);
-
-  /* ==========================================================================
-   * ROLES (from SEED_CONSTANTS)
-   * ========================================================================== */
-
-  for (const role of C.PROFILE_ROLES) {
-    await knex.raw(
-      `
-        INSERT INTO role (name, description, scope)
-        SELECT ?, ?, ?
-        WHERE NOT EXISTS (
-          SELECT 1 FROM role WHERE name = ? AND scope = ? AND record_end_date IS NULL
-        )
-        ON CONFLICT DO NOTHING;
-      `,
-      [role.name, role.description, role.scope, role.name, role.scope]
-    );
-  }
-
-  for (const role of C.PROJECT_ROLES) {
-    await knex.raw(
-      `
-        INSERT INTO role (name, description, scope)
-        SELECT ?, ?, ?
-        WHERE NOT EXISTS (
-          SELECT 1 FROM role WHERE name = ? AND scope = ? AND record_end_date IS NULL
-        )
-        ON CONFLICT DO NOTHING;
-      `,
-      [role.name, role.description, role.scope, role.name, role.scope]
-    );
-  }
-
-  for (const role of C.TASK_ROLES) {
-    await knex.raw(
-      `
-        INSERT INTO role (name, description, scope)
-        SELECT ?, ?, ?
-        WHERE NOT EXISTS (
-          SELECT 1 FROM role WHERE name = ? AND scope = ? AND record_end_date IS NULL
-        )
-        ON CONFLICT DO NOTHING;
-      `,
-      [role.name, role.description, role.scope, role.name, role.scope]
-    );
-  }
-
-  for (const role of C.DASHBOARD_ROLES) {
-    await knex.raw(
-      `
-        INSERT INTO role (name, description, scope)
-        SELECT ?, ?, ?
-        WHERE NOT EXISTS (
-          SELECT 1 FROM role WHERE name = ? AND scope = ? AND record_end_date IS NULL
-        )
-        ON CONFLICT DO NOTHING;
-      `,
-      [role.name, role.description, role.scope, role.name, role.scope]
-    );
-  }
 
   const projectAdminRole = await knex('role')
     .select('role_id')

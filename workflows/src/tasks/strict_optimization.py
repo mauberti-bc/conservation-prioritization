@@ -28,6 +28,8 @@ from shapely import GeometryCollection, MultiLineString, MultiPolygon, unary_uni
 from shapely.geometry import mapping, shape
 from shapely.geometry.base import BaseGeometry
 
+from ..utils.object_store import get_source_zarr_store
+
 
 class OptimizationConstraint(BaseModel):
     min: Optional[float] = None
@@ -124,7 +126,7 @@ def load_british_columbia_boundary(path: str) -> Sequence[BaseGeometry]:
 
 @task
 def load_input_data(
-    zarr_path: str,
+    zarr_path: Any,
     layer_paths: List[str],
     resolution: int = 1000,
     resampling: Literal["mode", "min", "max"] = "mode",
@@ -1214,7 +1216,7 @@ def execute_optimization(
     logger.info("Loading input data...")
     layer_paths = list(layers.keys())
     input_datasets: Dict[str, xr.Dataset] = load_input_data(
-        os.getenv("ZARR_STORE_PATH"),
+        get_source_zarr_store(os.getenv("ZARR_STORE_PATH")),
         layer_paths,
         resolution=conditions.resolution,
         resampling=conditions.resampling,

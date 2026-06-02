@@ -74,6 +74,23 @@ export const _getS3Client = (): S3Client => {
 };
 
 /**
+ * Local getter for retrieving the source S3 client used to read the Zarr layer library.
+ *
+ * @return {*}  {S3Client} The source S3 client
+ */
+export const _getSourceS3Client = (): S3Client => {
+  return new S3Client({
+    endpoint: _getSourceObjectStoreEndpoint(),
+    credentials: {
+      accessKeyId: process.env.SOURCE_OBJECT_STORE_ACCESS_KEY_ID || process.env.OBJECT_STORE_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.SOURCE_OBJECT_STORE_SECRET_KEY_ID || process.env.OBJECT_STORE_SECRET_KEY_ID!
+    },
+    forcePathStyle: _getSourceObjectStoreForcePathStyle(),
+    region: _getSourceObjectStoreRegion()
+  });
+};
+
+/**
  * Local getter for retrieving the S3 quarantine client.
  *
  * @return {*}  {S3Client} The S3 quarantine client
@@ -106,12 +123,41 @@ export const _getObjectStoreEndpoint = (): string => {
 };
 
 /**
+ * Local getter for retrieving the source S3 object store endpoint used for Zarr reads.
+ *
+ * @returns {*} {string} The source object store endpoint
+ */
+export const _getSourceObjectStoreEndpoint = (): string => {
+  const url =
+    process.env.SOURCE_OBJECT_STORE_URL ||
+    process.env.SOURCE_OBJECT_STORE_ENDPOINT ||
+    process.env.OBJECT_STORE_URL ||
+    process.env.OBJECT_STORE_ENDPOINT ||
+    'https://nrs.objectstore.gov.bc.ca';
+
+  if (!['https://', 'http://'].some((protocol) => url.toLowerCase().startsWith(protocol))) {
+    return `https://${url}`;
+  }
+
+  return url;
+};
+
+/**
  * Local getter for retrieving the object store region.
  *
  * @returns {*} {string} The object store region
  */
 export const _getObjectStoreRegion = (): string => {
   return process.env.OBJECT_STORE_REGION || 'ca-central-1';
+};
+
+/**
+ * Local getter for retrieving the source object store region.
+ *
+ * @returns {*} {string} The source object store region
+ */
+export const _getSourceObjectStoreRegion = (): string => {
+  return process.env.SOURCE_OBJECT_STORE_REGION || process.env.OBJECT_STORE_REGION || 'ca-central-1';
 };
 
 /**
@@ -124,12 +170,32 @@ export const _getObjectStoreForcePathStyle = (): boolean => {
 };
 
 /**
+ * Local getter for retrieving the source object store force path style flag.
+ *
+ * @returns {*} {boolean} Whether to force path style
+ */
+export const _getSourceObjectStoreForcePathStyle = (): boolean => {
+  const value = process.env.SOURCE_OBJECT_STORE_FORCE_PATH_STYLE ?? process.env.OBJECT_STORE_FORCE_PATH_STYLE;
+
+  return String(value || '').toLowerCase() === 'true';
+};
+
+/**
  * Local getter for retrieving the S3 object store bucket name.
  *
  * @returns {*} {string} The object store bucket name
  */
 export const _getObjectStoreBucketName = (): string => {
   return process.env.OBJECT_STORE_BUCKET_NAME || '';
+};
+
+/**
+ * Local getter for retrieving the source S3 object store bucket name used for Zarr reads.
+ *
+ * @returns {*} {string} The source object store bucket name
+ */
+export const _getSourceObjectStoreBucketName = (): string => {
+  return process.env.SOURCE_OBJECT_STORE_BUCKET_NAME || process.env.OBJECT_STORE_BUCKET_NAME || '';
 };
 
 /**
@@ -314,6 +380,26 @@ export async function getFileFromS3(key: string, versionId?: string): Promise<Ge
   return s3Client.send(
     new GetObjectCommand({
       Bucket: _getObjectStoreBucketName(),
+      Key: key,
+      VersionId: versionId
+    })
+  );
+}
+
+/**
+ * Fetch a file from the source S3 store used for Zarr reads.
+ *
+ * @export
+ * @param {string} key the S3 key of the source file to fetch
+ * @param {string} [versionId] the S3 version id of the source file to fetch (optional)
+ * @return {Promise<GetObjectCommandOutput>}
+ */
+export async function getFileFromSourceS3(key: string, versionId?: string): Promise<GetObjectCommandOutput> {
+  const s3Client = _getSourceS3Client();
+
+  return s3Client.send(
+    new GetObjectCommand({
+      Bucket: _getSourceObjectStoreBucketName(),
       Key: key,
       VersionId: versionId
     })
