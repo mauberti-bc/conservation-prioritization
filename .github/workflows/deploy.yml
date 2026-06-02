@@ -289,7 +289,6 @@ jobs:
             --namespace "${OPENSHIFT_NAMESPACE}" \
             --wait \
             --timeout=10m \
-            --atomic \
             --debug
 
       - name: Verify deployment
