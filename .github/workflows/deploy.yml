@@ -280,12 +280,13 @@ jobs:
           helm upgrade --install conservation-tool . \
             --values values.yaml \
             --values "${{ steps.values-file.outputs.values_file }}" \
-            --set frontend.image.tag="${IMAGE_TAG}" \
-            --set api.image.tag="${IMAGE_TAG}" \
-            --set database.image.tag="${IMAGE_TAG}" \
-            --set dbSetup.image.tag="${IMAGE_TAG}" \
-            --set prefectWorker.image.tag="${IMAGE_TAG}" \
-            --set prefectDeploy.image.tag="${IMAGE_TAG}" \
+            --set services.frontend.image.tag="${IMAGE_TAG}" \
+            --set services.frontend.config.image.tag="${IMAGE_TAG}" \
+            --set services.api.image.tag="${IMAGE_TAG}" \
+            --set services.db.image.tag="${IMAGE_TAG}" \
+            --set services.dbSetup.image.tag="${IMAGE_TAG}" \
+            --set services.workflows.worker.image.tag="${IMAGE_TAG}" \
+            --set services.workflows.deploy.image.tag="${IMAGE_TAG}" \
             --namespace "${OPENSHIFT_NAMESPACE}" \
             --wait \
             --timeout=10m \
