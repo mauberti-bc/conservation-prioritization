@@ -7,6 +7,10 @@ prefect-server:
     host:
       hostname: "conservation-tool-prefect-server-fa9440-prod.apps.gold.devops.gov.bc.ca"
 
+  server:
+    uiConfig:
+      prefectUiApiUrl: "https://conservation-tool-prefect-server-fa9440-prod.apps.gold.devops.gov.bc.ca/api"
+
   ui:
     podSecurityContext:
       runAsUser: 1003590000
