@@ -20,10 +20,10 @@ spec:
       securityContext:
         runAsNonRoot: true
         {{- if .Values.services.frontend.securityContext.runAsUser }}
-        runAsUser: {{ .Values.services.frontend.securityContext.runAsUser }}
+        runAsUser: {{ .Values.services.frontend.securityContext.runAsUser | int64 }}
         {{- end }}
         {{- if .Values.services.frontend.securityContext.fsGroup }}
-        fsGroup: {{ .Values.services.frontend.securityContext.fsGroup }}
+        fsGroup: {{ .Values.services.frontend.securityContext.fsGroup | int64 }}
         {{- end }}
         seccompProfile:
           type: RuntimeDefault
@@ -36,7 +36,7 @@ spec:
           securityContext:
             runAsNonRoot: true
             {{- if .Values.services.frontend.securityContext.runAsUser }}
-            runAsUser: {{ .Values.services.frontend.securityContext.runAsUser }}
+            runAsUser: {{ .Values.services.frontend.securityContext.runAsUser | int64 }}
             {{- end }}
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

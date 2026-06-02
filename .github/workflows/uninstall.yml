@@ -43,7 +43,7 @@ jobs:
         run: |
           for i in 1 2 3; do
             echo "Attempt $i: Logging into OpenShift..."
-            if oc login --token=$TOOLS_SA_TOKEN --server=$OPENSHIFT_SERVER; then
+            if oc login --token="$TOOLS_SA_TOKEN" --server="$OPENSHIFT_SERVER"; then
               echo "Login succeeded"
               break
             elif [ "$i" -lt 3 ]; then
@@ -54,7 +54,7 @@ jobs:
               exit 1
             fi
           done
-          oc project $OPENSHIFT_NAMESPACE
+          oc project "$OPENSHIFT_NAMESPACE"
 
       - name: Install Helm
         uses: azure/setup-helm@v3

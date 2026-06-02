@@ -103,13 +103,13 @@ build-all: ## Build containers for all
 	@echo "==============================================="
 	@echo "Make: build-all - building all images"
 	@echo "==============================================="
-	@docker compose build frontend db db_setup prefect_server prefect_deploy prefect_worker
+	@docker compose build frontend db db_setup api prefect_server prefect_deploy prefect_worker
 
 run-all: ## Run containers for all
 	@echo "==============================================="
 	@echo "Make: run-all - running all images"
 	@echo "==============================================="
-	@docker compose up -d frontend db db_setup prefect_server prefect_deploy prefect_worker
+	@docker compose up -d frontend db db_setup api prefect_server prefect_deploy prefect_worker
 
 ## ------------------------------------------------------------------------------
 ## Build and Run Backend + Web

@@ -7,10 +7,6 @@ prefect-server:
     host:
       hostname: "conservation-tool-prefect-server-fa9440-prod.apps.gold.devops.gov.bc.ca"
 
-  server:
-    uiConfig:
-      prefectUiApiUrl: "https://conservation-tool-prefect-server-fa9440-prod.apps.gold.devops.gov.bc.ca/api"
-
   ui:
     podSecurityContext:
       runAsUser: 1003590000
@@ -25,6 +21,8 @@ prefect-server:
           - ALL
 
   server:
+    uiConfig:
+      prefectUiApiUrl: "https://conservation-tool-prefect-server-fa9440-prod.apps.gold.devops.gov.bc.ca/api"
     podSecurityContext:
       runAsUser: 1003590000
       fsGroup: null
@@ -44,14 +42,6 @@ prefect-server:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
       capabilities: {}
-
-prefect-worker:
-  securityContext:
-    runAsUser: 1003590000
-
-prefect-deploy:
-  securityContext:
-    runAsUser: 1003590000
 
 database:
   postgresql:
