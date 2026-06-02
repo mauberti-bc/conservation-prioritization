@@ -43,6 +43,26 @@ const parseFeatureFlagsString = (featureFlagsString: string): string[] => {
 };
 
 /**
+ * Returns a browser-safe API host for frontend requests.
+ *
+ * @param {string | undefined} apiHost
+ * @return {*}  {string}
+ */
+const getBrowserApiHost = (apiHost: string | undefined): string => {
+  const normalizedHost = (apiHost || '').trim();
+
+  if (!normalizedHost) {
+    return 'localhost';
+  }
+
+  if (normalizedHost === '0.0.0.0' || normalizedHost === 'http://0.0.0.0' || normalizedHost === 'https://0.0.0.0') {
+    return 'localhost';
+  }
+
+  return normalizedHost;
+};
+
+/**
  * Return the app config based on locally set environment variables.
  *
  * This is used when running the app locally in docker.
@@ -53,7 +73,7 @@ const parseFeatureFlagsString = (featureFlagsString: string): string[] => {
  * @return {*}  {IConfig}
  */
 const getLocalConfig = (): IConfig => {
-  const API_HOST = import.meta.env.VITE_APP_API_HOST;
+  const API_HOST = getBrowserApiHost(import.meta.env.VITE_APP_API_HOST);
   const API_PORT = import.meta.env.VITE_APP_API_PORT;
 
   const API_URL = (API_PORT && `${API_HOST}:${API_PORT}`) || API_HOST || 'localhost';
