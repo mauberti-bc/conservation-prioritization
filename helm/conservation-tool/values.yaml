@@ -259,11 +259,11 @@ services:
         pullPolicy: "Always"
       resources:
         limits:
-          cpu: 100m
-          memory: 512Mi
+          cpu: 200m
+          memory: 1Gi
         requests:
-          cpu: 50m
-          memory: 512Mi
+          cpu: 100m
+          memory: 1Gi
       service:
         type: ClusterIP
         port: 80
