@@ -28,48 +28,6 @@ spec:
         {{- end }}
         seccompProfile:
           type: RuntimeDefault
-      initContainers:
-        - name: wait-for-db-setup
-          image: postgres:17
-          imagePullPolicy: IfNotPresent
-          command: ["sh", "-c"]
-          args:
-            - |
-              echo "Waiting for DB setup to complete..."
-              until psql "host=$DB_HOST port=$DB_PORT dbname=$DB_DATABASE user=$DB_USER_PREFECT" \
-                -c "select 1 from alembic_version;" \
-                | grep -q 1; do
-                echo "DB setup still running, waiting..."
-                sleep 5
-              done
-              echo "DB setup complete, starting API."
-          env:
-            - name: DB_HOST
-              value: {{ include "conservation-tool.fullname.db" . | quote }}
-            - name: DB_PORT
-              value: {{ .Values.database.port | quote }}
-            - name: DB_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: conservation-tool-db
-                  key: DB_DATABASE
-            - name: DB_USER_PREFECT
-              valueFrom:
-                secretKeyRef:
-                  name: conservation-tool-db
-                  key: DB_USER_PREFECT
-            - name: PGPASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: conservation-tool-db
-                  key: DB_USER_PREFECT_PASS
-          resources:
-            requests:
-              cpu: 10m
-              memory: 32Mi
-            limits:
-              cpu: 10m
-              memory: 32Mi
       containers:
         - name: api
           image: "{{ .Values.registry }}/{{ .Values.services.api.image.stream }}:{{ .Values.services.api.image.tag }}"
