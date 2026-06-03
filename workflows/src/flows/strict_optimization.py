@@ -25,7 +25,7 @@ from ..utils.object_store import build_object_key, get_object_store_config, put_
         cluster_kwargs={
             "n_workers": 1,
             "threads_per_worker": 1,
-            "memory_limit": "256MB",
+            "memory_limit": "512MB",
         },
     ),
 )
