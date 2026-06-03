@@ -119,11 +119,11 @@ prefect-server:
           - ALL
     resources:
       requests:
-        cpu: 50m
-        memory: 128Mi
+        cpu: 25m
+        memory: 64Mi
       limits:
-        cpu: 50m
-        memory: 128Mi
+        cpu: 25m
+        memory: 64Mi
     env:
       - name: PREFECT_HOME
         value: /tmp/prefect
@@ -152,10 +152,10 @@ prefect-server:
     resources:
       requests:
         cpu: 50m
-        memory: 256Mi
+        memory: 192Mi
       limits:
-        cpu: 100m
-        memory: 512Mi
+        cpu: 50m
+        memory: 256Mi
     env:
       - name: PREFECT_HOME
         value: /tmp/prefect
@@ -171,11 +171,11 @@ prefect-server:
     backoffLimit: 4
     resources:
       requests:
-        cpu: 100m
-        memory: 128Mi
+        cpu: 25m
+        memory: 64Mi
       limits:
-        cpu: 500m
-        memory: 256Mi
+        cpu: 25m
+        memory: 128Mi
     securityContext:
       runAsUser: 1003600000
       runAsNonRoot: true
@@ -217,7 +217,7 @@ services:
           cpu: 25m
           memory: 64Mi
         limits:
-          cpu: 100m
+          cpu: 25m
           memory: 64Mi
       env: []
     service:
@@ -231,11 +231,11 @@ services:
       fsGroup: 1003600000
     resources:
       requests:
-        cpu: 50m
-        memory: 256Mi
+        cpu: 25m
+        memory: 128Mi
       limits:
-        cpu: 100m
-        memory: 256Mi
+        cpu: 25m
+        memory: 128Mi
     livenessProbe:
       enabled: false
       path: "/health"
@@ -259,11 +259,11 @@ services:
         pullPolicy: "Always"
       resources:
         limits:
-          cpu: 200m
-          memory: 1Gi
+          cpu: 250m
+          memory: 768Mi
         requests:
-          cpu: 100m
-          memory: 1Gi
+          cpu: 200m
+          memory: 640Mi
       service:
         type: ClusterIP
         port: 80
@@ -279,12 +279,11 @@ services:
         pullPolicy: "Always"
       resources:
         requests:
-          cpu: 50m
-          memory: 512Mi
+          cpu: 25m
+          memory: 128Mi
         limits:
-          cpu: 100m
-          # memory: 1024Mi
-          memory: 512Mi
+          cpu: 25m
+          memory: 128Mi
       securityContext:
         runAsUser: 1003600000
 
@@ -305,10 +304,10 @@ services:
       fsGroup: 1003600000
     resources:
       requests:
-        cpu: 50m
-        memory: 128Mi
+        cpu: 25m
+        memory: 96Mi
       limits:
-        cpu: 100m
+        cpu: 25m
         memory: 128Mi
 
   db:
@@ -322,10 +321,10 @@ services:
     resources:
       requests:
         cpu: 50m
-        memory: 256Mi
+        memory: 192Mi
       limits:
-        cpu: 100m
-        memory: 512Mi
+        cpu: 50m
+        memory: 256Mi
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
@@ -340,11 +339,11 @@ services:
       tag: "dev"
     resources:
       requests:
-        cpu: 50m
-        memory: 128Mi
+        cpu: 25m
+        memory: 64Mi
       limits:
-        cpu: 200m
-        memory: 256Mi
+        cpu: 25m
+        memory: 64Mi
 
 # ========================
 # Background Services
