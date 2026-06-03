@@ -260,10 +260,10 @@ services:
       resources:
         limits:
           cpu: 250m
-          memory: 640Mi
-        requests:
-          cpu: 200m
           memory: 512Mi
+        requests:
+          cpu: 150m
+          memory: 384Mi
       service:
         type: ClusterIP
         port: 80
@@ -305,10 +305,10 @@ services:
     resources:
       requests:
         cpu: 25m
-        memory: 64Mi
+        memory: 128Mi
       limits:
         cpu: 25m
-        memory: 96Mi
+        memory: 256Mi
 
   db:
     image:
