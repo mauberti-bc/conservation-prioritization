@@ -339,11 +339,11 @@ services:
       tag: "dev"
     resources:
       requests:
-        cpu: 25m
-        memory: 64Mi
+        cpu: 50m
+        memory: 128Mi
       limits:
-        cpu: 25m
-        memory: 64Mi
+        cpu: 200m
+        memory: 256Mi
 
 # ========================
 # Background Services
