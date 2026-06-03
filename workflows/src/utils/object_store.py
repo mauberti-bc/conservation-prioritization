@@ -84,7 +84,7 @@ def get_source_object_store_config() -> ObjectStoreConfig:
     bucket = os.getenv("SOURCE_OBJECT_STORE_BUCKET_NAME") or os.getenv(
         "OBJECT_STORE_BUCKET_NAME"
     )
-    prefix = os.getenv("SOURCE_OBJECT_STORE_PREFIX", "").strip("/")
+    prefix = ""
     force_path_style = _parse_bool(
         os.getenv("SOURCE_OBJECT_STORE_FORCE_PATH_STYLE")
         or os.getenv("OBJECT_STORE_FORCE_PATH_STYLE")
@@ -173,7 +173,7 @@ def get_source_boundary_key() -> str:
     config = get_source_object_store_config()
     return build_object_key(
         config.prefix,
-        _normalize_zarr_path(boundary_path, config.bucket),
+        _normalize_source_path(boundary_path, config.bucket),
     )
 
 
@@ -257,7 +257,21 @@ def _normalize_zarr_path(zarr_path: str, bucket: Optional[str] = None) -> str:
             path_parts = path_parts[1:]
         return "/".join(path_parts).strip("/")
 
-    return normalized.strip("/")
+    return _strip_bucket_prefix(normalized, bucket)
+
+
+def _strip_bucket_prefix(path: str, bucket: Optional[str]) -> str:
+    """
+    Strip a plain <bucket>/ prefix from source paths when present.
+    """
+    normalized_bucket = bucket.strip("/") if bucket else ""
+    if normalized_bucket and path.startswith(f"{normalized_bucket}/"):
+        return path[len(normalized_bucket) + 1 :]
+    return path.strip("/")
+
+
+def _normalize_source_path(source_path: str, bucket: Optional[str] = None) -> str:
+    return _normalize_zarr_path(source_path, bucket)
 
 
 def make_uri(bucket: str, key: str) -> str:

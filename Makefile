@@ -109,7 +109,7 @@ run-all: ## Run containers for all
 	@echo "==============================================="
 	@echo "Make: run-all - running all images"
 	@echo "==============================================="
-	@docker compose up -d frontend db db_setup api prefect_server prefect_deploy prefect_worker
+	@docker compose up -d frontend db db_setup api prefect_server prefect_deploy prefect_worker minio minio_setup
 
 ## ------------------------------------------------------------------------------
 ## Build and Run Backend + Web

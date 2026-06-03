@@ -97,6 +97,9 @@ export const CreateTask = ({
       const draftTaskData: CreateDraftTaskRequest = {
         name: values.name,
         description: values.description ?? null,
+        resolution: values.resolution,
+        resampling: values.resampling,
+        variant: values.variant,
       };
 
       const submitData: SubmitTaskRequest = {

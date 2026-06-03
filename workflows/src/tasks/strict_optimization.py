@@ -2,7 +2,6 @@ import json
 import os
 from pathlib import Path
 from collections import defaultdict
-from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple
 
 import geopandas as gpd
@@ -948,17 +947,6 @@ def extract_solution(
 
 
 @task
-def visualize(solution: np.ndarray):
-    plt.figure(figsize=(12, 12))
-    plt.title("Selected Conservation Areas")
-    im = plt.imshow(solution, cmap="viridis")
-    plt.colorbar(im)
-    plt.tight_layout()
-    plt.savefig(f"/data/outputs/{datetime.now().strftime('%Y%m%dT%H%M%S')}.png")
-    plt.close()
-
-
-@task
 def save_solution_artifacts(
     task_id: str,
     solution: np.ndarray,
@@ -1316,11 +1304,6 @@ def execute_optimization(
         logger.warning("No solution found")
         return None
 
-    # Visualize
-    logger.info("Creating visualization...")
-    visualize(solution_array)
-
-    logger.info("Persisting solution artifacts for tiling...")
     artifact_path = save_solution_artifacts(
         task_id=task_id,
         solution=solution_array,

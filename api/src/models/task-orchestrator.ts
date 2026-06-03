@@ -53,6 +53,9 @@ export interface CreateTaskRequest {
 export interface CreateTaskDraftRequest {
   name: string;
   description?: string | null;
+  resolution?: number;
+  resampling?: 'mode' | 'min' | 'max';
+  variant?: 'strict' | 'approximate';
 }
 
 /**

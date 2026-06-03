@@ -135,7 +135,6 @@ prompt_if_missing "SOURCE_OBJECT_STORE_URL" "Source Object Store URL"
 prompt_if_missing "SOURCE_OBJECT_STORE_ENDPOINT" "Source Object Store Endpoint"
 prompt_if_missing "SOURCE_OBJECT_STORE_REGION" "Source Object Store Region"
 prompt_if_missing "SOURCE_OBJECT_STORE_BUCKET_NAME" "Source Object Store Bucket Name"
-prompt_if_missing "SOURCE_OBJECT_STORE_PREFIX" "Source Object Store S3 Key Prefix"
 prompt_if_missing "SOURCE_OBJECT_STORE_FORCE_PATH_STYLE" "Source Object Store Force Path Style"
 prompt_if_missing "SOURCE_OBJECT_STORE_ACCESS_KEY_ID" "Source Object Store Access Key ID"
 prompt_if_missing "SOURCE_OBJECT_STORE_SECRET_KEY_ID" "Source Object Store Secret Key ID" true
@@ -145,7 +144,6 @@ create_secret "conservation-tool-source-object-storage" \
   "SOURCE_OBJECT_STORE_ENDPOINT=$SOURCE_OBJECT_STORE_ENDPOINT" \
   "SOURCE_OBJECT_STORE_REGION=$SOURCE_OBJECT_STORE_REGION" \
   "SOURCE_OBJECT_STORE_BUCKET_NAME=$SOURCE_OBJECT_STORE_BUCKET_NAME" \
-  "SOURCE_OBJECT_STORE_PREFIX=$SOURCE_OBJECT_STORE_PREFIX" \
   "SOURCE_OBJECT_STORE_FORCE_PATH_STYLE=$SOURCE_OBJECT_STORE_FORCE_PATH_STYLE" \
   "SOURCE_OBJECT_STORE_ACCESS_KEY_ID=$SOURCE_OBJECT_STORE_ACCESS_KEY_ID" \
   "SOURCE_OBJECT_STORE_SECRET_KEY_ID=$SOURCE_OBJECT_STORE_SECRET_KEY_ID"

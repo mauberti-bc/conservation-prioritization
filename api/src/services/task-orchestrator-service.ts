@@ -150,9 +150,9 @@ export class TaskOrchestratorService extends DBService {
     const taskData: CreateTask = {
       name: request.name,
       description: request.description ?? null,
-      resolution: null,
-      resampling: null,
-      variant: null,
+      resolution: request.resolution ?? null,
+      resampling: request.resampling ?? null,
+      variant: request.variant ?? null,
       status: TASK_STATUS.DRAFT
     };
 
