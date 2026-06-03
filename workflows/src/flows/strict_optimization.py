@@ -42,6 +42,7 @@ def strict_optimization(
     logger = get_run_logger()
     logger.info("Starting strict optimization flow")
     logger.info("Dask dashboard available at http://localhost:8787")
+    run_id = str(flow_run.id)
 
     update_task_status(task_id, "running")
 
@@ -53,7 +54,6 @@ def strict_optimization(
             raise RuntimeError("Optimization produced no output artifact.")
 
         config = get_object_store_config()
-        run_id = str(flow_run.id)
         object_key = build_object_key(
             config.prefix,
             f"tasks/{task_id}/strict_optimization/{run_id}/output.npz",

@@ -201,6 +201,22 @@ export const CreateTaskDraftSchema: OpenAPIV3.SchemaObject = {
       description: 'A description of the draft task.',
       maxLength: 500,
       nullable: true
+    },
+    resolution: {
+      type: 'number',
+      description: 'Requested output resolution in meters for this draft task.'
+    },
+    resampling: {
+      type: 'string',
+      description: 'Resampling method for this draft task.',
+      enum: ['mode', 'min', 'max'],
+      nullable: true
+    },
+    variant: {
+      type: 'string',
+      description: 'Optimization variant for this draft task.',
+      enum: ['strict', 'approximate'],
+      nullable: true
     }
   }
 };

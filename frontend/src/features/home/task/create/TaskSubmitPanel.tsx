@@ -89,6 +89,9 @@ export const TaskSubmitPanel = () => {
       const draftTaskData: CreateDraftTaskRequest = {
         name: values.name,
         description: values.description ?? null,
+        resolution: values.resolution,
+        resampling: values.resampling,
+        variant: values.variant,
       };
 
       const createdDraftTask = await conservationApi.task.createTask(draftTaskData);

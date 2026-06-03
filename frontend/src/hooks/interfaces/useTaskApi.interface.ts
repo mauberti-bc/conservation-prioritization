@@ -45,6 +45,9 @@ export interface ITask {
 export interface CreateDraftTaskRequest {
   name: string;
   description: string | null;
+  resolution?: number;
+  resampling?: RESAMPLING;
+  variant?: OPTIMIZATION_VARIANT;
 }
 
 /**
