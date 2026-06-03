@@ -11,7 +11,9 @@ import {
   _getClamAvScanner,
   _getObjectStoreBucketName,
   _getObjectStoreEndpoint,
-  _getS3Client
+  _getS3Client,
+  _getSourceObjectStoreEndpoint,
+  _getSourceObjectStoreBucketName
 } from './file-utils';
 
 describe('deleteFileFromS3', () => {
@@ -133,6 +135,31 @@ describe('_getObjectStoreBucketName', () => {
   });
 });
 
+describe('_getSourceObjectStoreBucketName', () => {
+  const OBJECT_STORE_BUCKET_NAME = process.env.OBJECT_STORE_BUCKET_NAME;
+  const SOURCE_OBJECT_STORE_BUCKET_NAME = process.env.SOURCE_OBJECT_STORE_BUCKET_NAME;
+
+  afterEach(() => {
+    process.env.OBJECT_STORE_BUCKET_NAME = OBJECT_STORE_BUCKET_NAME;
+    process.env.SOURCE_OBJECT_STORE_BUCKET_NAME = SOURCE_OBJECT_STORE_BUCKET_NAME;
+  });
+
+  it('should return a source object store bucket name', () => {
+    process.env.SOURCE_OBJECT_STORE_BUCKET_NAME = 'source-bucket';
+    process.env.OBJECT_STORE_BUCKET_NAME = 'write-bucket';
+
+    const result = _getSourceObjectStoreBucketName();
+    expect(result).to.equal('source-bucket');
+  });
+
+  it('should not fall back to the writable object store bucket name', () => {
+    Object.assign(process.env, { SOURCE_OBJECT_STORE_BUCKET_NAME: undefined });
+    process.env.OBJECT_STORE_BUCKET_NAME = 'write-bucket';
+
+    expect(() => _getSourceObjectStoreBucketName()).to.throw('SOURCE_OBJECT_STORE_BUCKET_NAME is not configured.');
+  });
+});
+
 describe('_getObjectStoreEndpoint', () => {
   const OBJECT_STORE_URL = process.env.OBJECT_STORE_URL;
 
@@ -166,6 +193,37 @@ describe('_getObjectStoreEndpoint', () => {
 
     const result = _getObjectStoreEndpoint();
     expect(result).to.equal('https://nrs.objectstore.gov.bc.ca');
+  });
+});
+
+describe('_getSourceObjectStoreEndpoint', () => {
+  const OBJECT_STORE_ENDPOINT = process.env.OBJECT_STORE_ENDPOINT;
+  const OBJECT_STORE_URL = process.env.OBJECT_STORE_URL;
+  const SOURCE_OBJECT_STORE_ENDPOINT = process.env.SOURCE_OBJECT_STORE_ENDPOINT;
+  const SOURCE_OBJECT_STORE_URL = process.env.SOURCE_OBJECT_STORE_URL;
+
+  afterEach(() => {
+    process.env.OBJECT_STORE_ENDPOINT = OBJECT_STORE_ENDPOINT;
+    process.env.OBJECT_STORE_URL = OBJECT_STORE_URL;
+    process.env.SOURCE_OBJECT_STORE_ENDPOINT = SOURCE_OBJECT_STORE_ENDPOINT;
+    process.env.SOURCE_OBJECT_STORE_URL = SOURCE_OBJECT_STORE_URL;
+  });
+
+  it('should return a source object store endpoint', () => {
+    process.env.SOURCE_OBJECT_STORE_URL = 'source.s3.host.example.com';
+
+    const result = _getSourceObjectStoreEndpoint();
+    expect(result).to.equal('https://source.s3.host.example.com');
+  });
+
+  it('should not fall back to the writable object store endpoint', () => {
+    Object.assign(process.env, { SOURCE_OBJECT_STORE_ENDPOINT: undefined, SOURCE_OBJECT_STORE_URL: undefined });
+    process.env.OBJECT_STORE_ENDPOINT = 'write.s3.host.example.com';
+    process.env.OBJECT_STORE_URL = 'write.s3.host.example.com';
+
+    expect(() => _getSourceObjectStoreEndpoint()).to.throw(
+      'SOURCE_OBJECT_STORE_URL or SOURCE_OBJECT_STORE_ENDPOINT is not configured.'
+    );
   });
 });
 
