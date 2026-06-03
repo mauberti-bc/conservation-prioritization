@@ -1,0 +1,22 @@
+{{- $prefectServer := index .Values "prefect-server" -}}
+{{- if dig "route" "enabled" true $prefectServer }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ dig "route" "name" "prefect-server" $prefectServer }}-ingress-from-router
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prefect-server
+      app.kubernetes.io/component: server
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+{{- end }}
