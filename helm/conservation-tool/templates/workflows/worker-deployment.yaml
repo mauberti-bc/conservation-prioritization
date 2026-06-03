@@ -73,6 +73,10 @@ spec:
           ports:
             - containerPort: {{ .Values.ports.prefect_worker_api | default 4202 }}
           env:
+            - name: HOME
+              value: "/home/app"
+            - name: PREFECT_HOME
+              value: "/tmp/.prefect"
             - name: PREFECT_API_URL
               value: "{{ .Values.env.PREFECT_API_URL }}"
             - name: ZARR_STORE_PATH
