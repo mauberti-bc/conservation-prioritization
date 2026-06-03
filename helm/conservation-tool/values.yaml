@@ -172,10 +172,10 @@ prefect-server:
     resources:
       requests:
         cpu: 25m
-        memory: 64Mi
+        memory: 96Mi
       limits:
         cpu: 25m
-        memory: 128Mi
+        memory: 256Mi
     securityContext:
       runAsUser: 1003600000
       runAsNonRoot: true
