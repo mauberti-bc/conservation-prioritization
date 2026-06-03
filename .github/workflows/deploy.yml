@@ -189,6 +189,14 @@ jobs:
           check_secret_key "conservation-tool-object-storage" "OBJECT_STORE_SECRET_KEY_ID"
           check_secret_key "conservation-tool-object-storage" "OBJECT_STORE_BUCKET_NAME"
 
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_URL"
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_ENDPOINT"
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_REGION"
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_BUCKET_NAME"
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_FORCE_PATH_STYLE"
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_ACCESS_KEY_ID"
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_SECRET_KEY_ID"
+
           check_secret_key "conservation-tool-api" "INTERNAL_API_KEY"
 
           check_secret_key "conservation-tool-keycloak" "KEYCLOAK_HOST"

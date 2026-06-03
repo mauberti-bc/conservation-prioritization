@@ -104,13 +104,22 @@ spec:
                   name: conservation-tool-object-storage
                   key: OBJECT_STORE_BUCKET_NAME
             - name: SOURCE_OBJECT_STORE_ENDPOINT
-              value: {{ .Values.env.SOURCE_OBJECT_STORE_ENDPOINT | default .Values.env.OBJECT_STORE_ENDPOINT | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-source-object-storage
+                  key: SOURCE_OBJECT_STORE_ENDPOINT
             - name: SOURCE_OBJECT_STORE_URL
-              value: {{ .Values.env.SOURCE_OBJECT_STORE_URL | default .Values.env.OBJECT_STORE_URL | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-source-object-storage
+                  key: SOURCE_OBJECT_STORE_URL
             - name: SOURCE_OBJECT_STORE_REGION
               value: {{ .Values.env.SOURCE_OBJECT_STORE_REGION | default .Values.env.OBJECT_STORE_REGION | quote }}
             - name: SOURCE_OBJECT_STORE_BUCKET_NAME
-              value: {{ .Values.env.SOURCE_OBJECT_STORE_BUCKET_NAME | default "" | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-source-object-storage
+                  key: SOURCE_OBJECT_STORE_BUCKET_NAME
             - name: SOURCE_BC_BOUNDARY_PATH
               value: {{ .Values.env.SOURCE_BC_BOUNDARY_PATH | default "" | quote }}
             - name: SOURCE_OBJECT_STORE_FORCE_PATH_STYLE
@@ -120,12 +129,10 @@ spec:
                 secretKeyRef:
                   name: conservation-tool-source-object-storage
                   key: SOURCE_OBJECT_STORE_ACCESS_KEY_ID
-                  optional: true
             - name: SOURCE_OBJECT_STORE_SECRET_KEY_ID
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-source-object-storage
                   key: SOURCE_OBJECT_STORE_SECRET_KEY_ID
-                  optional: true
           resources:
             {{- toYaml .Values.services.workflows.worker.resources | nindent 12 }}

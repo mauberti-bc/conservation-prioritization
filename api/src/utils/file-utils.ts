@@ -82,8 +82,8 @@ export const _getSourceS3Client = (): S3Client => {
   return new S3Client({
     endpoint: _getSourceObjectStoreEndpoint(),
     credentials: {
-      accessKeyId: process.env.SOURCE_OBJECT_STORE_ACCESS_KEY_ID || process.env.OBJECT_STORE_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.SOURCE_OBJECT_STORE_SECRET_KEY_ID || process.env.OBJECT_STORE_SECRET_KEY_ID!
+      accessKeyId: process.env.SOURCE_OBJECT_STORE_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.SOURCE_OBJECT_STORE_SECRET_KEY_ID!
     },
     forcePathStyle: _getSourceObjectStoreForcePathStyle(),
     region: _getSourceObjectStoreRegion()
@@ -128,12 +128,11 @@ export const _getObjectStoreEndpoint = (): string => {
  * @returns {*} {string} The source object store endpoint
  */
 export const _getSourceObjectStoreEndpoint = (): string => {
-  const url =
-    process.env.SOURCE_OBJECT_STORE_URL ||
-    process.env.SOURCE_OBJECT_STORE_ENDPOINT ||
-    process.env.OBJECT_STORE_URL ||
-    process.env.OBJECT_STORE_ENDPOINT ||
-    'https://nrs.objectstore.gov.bc.ca';
+  const url = process.env.SOURCE_OBJECT_STORE_URL || process.env.SOURCE_OBJECT_STORE_ENDPOINT;
+
+  if (!url) {
+    throw new Error('SOURCE_OBJECT_STORE_URL or SOURCE_OBJECT_STORE_ENDPOINT is not configured.');
+  }
 
   if (!['https://', 'http://'].some((protocol) => url.toLowerCase().startsWith(protocol))) {
     return `https://${url}`;
@@ -195,7 +194,13 @@ export const _getObjectStoreBucketName = (): string => {
  * @returns {*} {string} The source object store bucket name
  */
 export const _getSourceObjectStoreBucketName = (): string => {
-  return process.env.SOURCE_OBJECT_STORE_BUCKET_NAME || process.env.OBJECT_STORE_BUCKET_NAME || '';
+  const bucket = process.env.SOURCE_OBJECT_STORE_BUCKET_NAME;
+
+  if (!bucket) {
+    throw new Error('SOURCE_OBJECT_STORE_BUCKET_NAME is not configured.');
+  }
+
+  return bucket;
 };
 
 /**

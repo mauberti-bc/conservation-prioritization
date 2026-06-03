@@ -66,21 +66,13 @@ def get_source_object_store_config() -> ObjectStoreConfig:
     endpoint = (
         os.getenv("SOURCE_OBJECT_STORE_ENDPOINT")
         or os.getenv("SOURCE_OBJECT_STORE_URL")
-        or os.getenv("OBJECT_STORE_ENDPOINT")
-        or os.getenv("OBJECT_STORE_URL")
     )
     region = os.getenv("SOURCE_OBJECT_STORE_REGION") or os.getenv(
         "OBJECT_STORE_REGION", "us-east-1"
     )
-    access_key = os.getenv("SOURCE_OBJECT_STORE_ACCESS_KEY_ID") or os.getenv(
-        "OBJECT_STORE_ACCESS_KEY_ID"
-    )
-    secret_key = os.getenv("SOURCE_OBJECT_STORE_SECRET_KEY_ID") or os.getenv(
-        "OBJECT_STORE_SECRET_KEY_ID"
-    )
-    bucket = os.getenv("SOURCE_OBJECT_STORE_BUCKET_NAME") or os.getenv(
-        "OBJECT_STORE_BUCKET_NAME"
-    )
+    access_key = os.getenv("SOURCE_OBJECT_STORE_ACCESS_KEY_ID")
+    secret_key = os.getenv("SOURCE_OBJECT_STORE_SECRET_KEY_ID")
+    bucket = os.getenv("SOURCE_OBJECT_STORE_BUCKET_NAME")
     force_path_style = _parse_bool(
         os.getenv("SOURCE_OBJECT_STORE_FORCE_PATH_STYLE")
         or os.getenv("OBJECT_STORE_FORCE_PATH_STYLE")
@@ -129,11 +121,6 @@ def get_source_zarr_store(zarr_path: Optional[str]):
     """
     if not zarr_path:
         raise ValueError("ZARR_STORE_PATH is not configured.")
-
-    if not _is_remote_zarr_path(zarr_path) and not os.getenv(
-        "SOURCE_OBJECT_STORE_BUCKET_NAME"
-    ):
-        return zarr_path.strip().strip("\"'")
 
     config = get_source_object_store_config()
     key = build_object_key(_normalize_zarr_path(zarr_path, config.bucket))
