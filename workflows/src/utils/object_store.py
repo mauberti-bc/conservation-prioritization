@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+import shutil
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
@@ -157,6 +159,66 @@ def get_source_zarr_store(zarr_path: Optional[str]):
     fs = fsspec.filesystem("s3", **storage_options)
 
     return fs.get_mapper(f"{config.bucket}/{key}")
+
+
+def get_source_boundary_key() -> str:
+    """
+    Build the source object key for the BC boundary asset.
+    """
+    boundary_path = os.getenv("SOURCE_BC_BOUNDARY_PATH")
+
+    if not boundary_path:
+        raise ValueError("SOURCE_BC_BOUNDARY_PATH is not configured.")
+
+    config = get_source_object_store_config()
+    return build_object_key(
+        config.prefix,
+        _normalize_zarr_path(boundary_path, config.bucket),
+    )
+
+
+def download_source_object(
+    *,
+    key: str,
+    local_path: str,
+) -> str:
+    """
+    Download a source object or object prefix from source object storage to local path.
+    """
+    if not key:
+        raise ValueError("Source object key is required.")
+    if not local_path:
+        raise ValueError("local_path is required.")
+
+    config = get_source_object_store_config()
+    local_target = Path(local_path)
+    if local_target.exists():
+        if local_target.is_file():
+            local_target.unlink()
+        else:
+            shutil.rmtree(local_target)
+
+    local_target.parent.mkdir(parents=True, exist_ok=True)
+
+    storage_options: Dict[str, Any] = {
+        "key": config.access_key,
+        "secret": config.secret_key,
+        "client_kwargs": {
+            "endpoint_url": config.endpoint,
+            "region_name": config.region,
+        },
+    }
+
+    if config.force_path_style:
+        storage_options["config_kwargs"] = {"s3": {"addressing_style": "path"}}
+
+    fs = fsspec.filesystem("s3", **storage_options)
+    fs.get(f"{config.bucket}/{key}", str(local_target), recursive=True)
+
+    if not local_target.exists():
+        raise FileNotFoundError(f"Failed to download source object to {local_target}")
+
+    return str(local_target)
 
 
 def build_object_key(prefix: str, key: str) -> str:
