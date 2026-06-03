@@ -121,14 +121,12 @@ prompt_if_missing "OBJECT_STORE_URL" "Object Store URL"
 prompt_if_missing "OBJECT_STORE_ACCESS_KEY_ID" "Object Store Access Key ID"
 prompt_if_missing "OBJECT_STORE_SECRET_KEY_ID" "Object Store Secret Key ID" true
 prompt_if_missing "OBJECT_STORE_BUCKET_NAME" "Object Store Bucket Name"
-prompt_if_missing "S3_KEY_PREFIX" "Object Store S3 Key Prefix"
 
 create_secret "conservation-tool-object-storage" \
   "OBJECT_STORE_URL=$OBJECT_STORE_URL" \
   "OBJECT_STORE_ACCESS_KEY_ID=$OBJECT_STORE_ACCESS_KEY_ID" \
   "OBJECT_STORE_SECRET_KEY_ID=$OBJECT_STORE_SECRET_KEY_ID" \
-  "OBJECT_STORE_BUCKET_NAME=$OBJECT_STORE_BUCKET_NAME" \
-  "S3_KEY_PREFIX=$S3_KEY_PREFIX"
+  "OBJECT_STORE_BUCKET_NAME=$OBJECT_STORE_BUCKET_NAME"
 
 echo "=== Source Object Storage Secrets ==="
 prompt_if_missing "SOURCE_OBJECT_STORE_URL" "Source Object Store URL"

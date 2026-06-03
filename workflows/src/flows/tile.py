@@ -139,7 +139,6 @@ def tile_task(task_id: str, task_tile_id: str):
         config = get_object_store_config()
         run_id = str(flow_run.id)
         object_key = build_object_key(
-            config.prefix,
             f"tasks/{task_id}/tile/{run_id}/tiles.pmtiles",
         )
         put_response = put_object(

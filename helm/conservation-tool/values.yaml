@@ -69,7 +69,6 @@ objectStorage:
   accessKeyId: ""  # Set via --set by workflow
   secretKeyId: ""  # Set via --set by workflow
   bucketName: ""  # Set via --set by workflow
-  keyPrefix: ""  # Set via --set by workflow
 
 # ========================
 # Keycloak Configuration (Structured for Helm templates)
@@ -393,7 +392,6 @@ env:
   OBJECT_STORE_PUBLIC_ENDPOINT: "https://nrs.objectstore.gov.bc.ca:443/"
   OBJECT_STORE_REGION: "us-east-1"
   OBJECT_STORE_BUCKET_NAME: ""
-  S3_KEY_PREFIX: ""
   OBJECT_STORE_FORCE_PATH_STYLE: "true"
   # Source object storage is read-only runtime configuration for the Zarr layer library.
   # Set SOURCE_OBJECT_STORE_BUCKET_NAME in dev/test to read reference layers from another bucket.

@@ -55,8 +55,7 @@ def strict_optimization(
 
         config = get_object_store_config()
         object_key = build_object_key(
-            config.prefix,
-            f"tasks/{task_id}/strict_optimization/{run_id}/output.npz",
+            f"tasks/{task_id}/strict_optimization/{run_id}/output.npz"
         )
 
         put_response = put_object(

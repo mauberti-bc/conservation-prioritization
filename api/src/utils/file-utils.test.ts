@@ -7,7 +7,6 @@ import {
   generateDatasetS3FileKey,
   generateQueueS3FileKey,
   getS3HostUrl,
-  getS3KeyPrefix,
   getS3SignedURL,
   _getClamAvScanner,
   _getObjectStoreBucketName,
@@ -170,47 +169,25 @@ describe('_getObjectStoreEndpoint', () => {
   });
 });
 
-describe('getS3KeyPrefix', () => {
-  const OLD_S3_KEY_PREFIX = process.env.S3_KEY_PREFIX;
-
-  afterEach(() => {
-    process.env.S3_KEY_PREFIX = OLD_S3_KEY_PREFIX;
-  });
-
-  it('should return an s3 key prefix', () => {
-    process.env.S3_KEY_PREFIX = 'test-biohub';
-
-    const result = getS3KeyPrefix();
-    expect(result).to.equal('test-biohub');
-  });
-
-  it('should return its default value', () => {
-    Object.assign(process.env, { S3_KEY_PREFIX: undefined });
-
-    const result = getS3KeyPrefix();
-    expect(result).to.equal('conservation');
-  });
-});
-
 describe('generateQueueS3FileKey', () => {
-  it('returns an s3 key with a prefix', async () => {
+  it('returns an s3 key', async () => {
     const result = generateQueueS3FileKey({
       queueId: 1,
       datasetUUID: '123-456-789',
       fileName: 'testFileName'
     });
 
-    expect(result).to.equal('biohub/queue/1/datasets/123-456-789/dwca/testFileName');
+    expect(result).to.equal('queue/1/datasets/123-456-789/dwca/testFileName');
   });
 });
 
 describe('generateDatasetS3FileKey', () => {
-  it('returns an s3 key with a prefix', async () => {
+  it('returns an s3 key', async () => {
     const result = generateDatasetS3FileKey({
       datasetUUID: '123-456-789',
       fileName: 'testFileName'
     });
 
-    expect(result).to.equal('biohub/datasets/123-456-789/dwca/testFileName');
+    expect(result).to.equal('datasets/123-456-789/dwca/testFileName');
   });
 });
