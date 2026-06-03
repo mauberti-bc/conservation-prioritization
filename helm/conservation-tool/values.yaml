@@ -252,7 +252,7 @@ services:
   workflows:
     worker:
       replicas: 1
-      pool: pool
+      pool: local
       image:
         stream: "prefect-worker"
         tag: "dev"
