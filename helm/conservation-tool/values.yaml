@@ -175,7 +175,7 @@ prefect-server:
         memory: 96Mi
       limits:
         cpu: 25m
-        memory: 256Mi
+        memory: 512Mi
     securityContext:
       runAsUser: 1003600000
       runAsNonRoot: true
@@ -232,10 +232,10 @@ services:
     resources:
       requests:
         cpu: 25m
-        memory: 128Mi
+        memory: 96Mi
       limits:
         cpu: 25m
-        memory: 128Mi
+        memory: 96Mi
     livenessProbe:
       enabled: false
       path: "/health"
@@ -260,10 +260,10 @@ services:
       resources:
         limits:
           cpu: 250m
-          memory: 768Mi
+          memory: 640Mi
         requests:
           cpu: 200m
-          memory: 640Mi
+          memory: 512Mi
       service:
         type: ClusterIP
         port: 80
@@ -305,10 +305,10 @@ services:
     resources:
       requests:
         cpu: 25m
-        memory: 96Mi
+        memory: 64Mi
       limits:
         cpu: 25m
-        memory: 128Mi
+        memory: 96Mi
 
   db:
     image:
@@ -321,10 +321,10 @@ services:
     resources:
       requests:
         cpu: 50m
-        memory: 192Mi
+        memory: 128Mi
       limits:
         cpu: 50m
-        memory: 256Mi
+        memory: 192Mi
     securityContext:
       runAsUser: 1003600000
       fsGroup: 1003600000
