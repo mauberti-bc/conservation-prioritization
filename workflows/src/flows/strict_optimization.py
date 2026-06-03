@@ -23,9 +23,9 @@ from ..utils.object_store import build_object_key, get_object_store_config, put_
     task_runner=DaskTaskRunner(  # type: ignore
         cluster_class=LocalCluster,
         cluster_kwargs={
-            "n_workers": 4,
+            "n_workers": 1,
             "threads_per_worker": 1,
-            "memory_limit": "2GB",
+            "memory_limit": "384MB",
         },
     ),
 )
