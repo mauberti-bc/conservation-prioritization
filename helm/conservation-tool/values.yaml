@@ -403,6 +403,7 @@ env:
   SOURCE_OBJECT_STORE_BUCKET_NAME: ""
   SOURCE_OBJECT_STORE_PREFIX: ""
   SOURCE_OBJECT_STORE_FORCE_PATH_STYLE: "true"
+  SOURCE_BC_BOUNDARY_PATH: "data/british_columbia.gdb"
 
   # Keycloak - non-secret config
   KEYCLOAK_HOST: ""

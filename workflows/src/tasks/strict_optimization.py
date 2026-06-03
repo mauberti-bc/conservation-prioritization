@@ -28,7 +28,24 @@ from shapely import GeometryCollection, MultiLineString, MultiPolygon, unary_uni
 from shapely.geometry import mapping, shape
 from shapely.geometry.base import BaseGeometry
 
-from ..utils.object_store import get_source_zarr_store
+from ..utils.object_store import (
+    download_source_object,
+    get_source_boundary_key,
+    get_source_zarr_store,
+)
+
+
+def get_boundary_asset_path() -> str:
+    """
+    Resolve and ensure the BC boundary dataset is available on local disk.
+    """
+    boundary_key = get_source_boundary_key()
+    local_boundary_path = "/data/british_columbia.gdb"
+
+    return download_source_object(
+        key=boundary_key,
+        local_path=local_boundary_path,
+    )
 
 
 class OptimizationConstraint(BaseModel):
@@ -1203,8 +1220,9 @@ def execute_optimization(
             logger.info("Using single unified geometry")
     else:
         logger.info("No custom geometry provided, loading BC boundary")
+        british_columbia_boundary_path = get_boundary_asset_path()
         british_columbia_geometry = load_british_columbia_boundary(
-            "/data/british_columbia.gdb"
+            british_columbia_boundary_path,
         )
         logger.info(f"Loaded {len(british_columbia_geometry)} BC boundary geometries")
 
