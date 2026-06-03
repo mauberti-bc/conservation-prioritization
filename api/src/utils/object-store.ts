@@ -16,7 +16,6 @@ export interface ObjectStoreConfig {
   accessKeyId: string;
   secretAccessKey: string;
   bucket: string;
-  prefix: string;
   forcePathStyle: boolean;
 }
 
@@ -29,7 +28,6 @@ export const getObjectStoreConfig = (): ObjectStoreConfig => {
   const accessKeyId = process.env.OBJECT_STORE_ACCESS_KEY_ID;
   const secretAccessKey = process.env.OBJECT_STORE_SECRET_KEY_ID;
   const bucket = process.env.OBJECT_STORE_BUCKET_NAME || '';
-  const prefix = (process.env.S3_KEY_PREFIX || '').replace(/^\/+|\/+$/g, '');
   const forcePathStyle = String(process.env.OBJECT_STORE_FORCE_PATH_STYLE || '').toLowerCase() === 'true';
 
   if (!endpoint) {
@@ -48,7 +46,6 @@ export const getObjectStoreConfig = (): ObjectStoreConfig => {
     accessKeyId,
     secretAccessKey,
     bucket,
-    prefix,
     forcePathStyle
   };
 };
@@ -84,14 +81,10 @@ export const getObjectStoreClient = (): S3Client => {
 };
 
 /**
- * Build an object key with an optional prefix.
+ * Build a normalized object key.
  */
 export const buildObjectKey = (key: string): string => {
-  const { prefix } = getObjectStoreConfig();
-  if (!prefix) {
-    return key.replace(/^\/+/, '');
-  }
-  return `${prefix}/${key.replace(/^\/+/, '')}`;
+  return key.replace(/^\/+/, '');
 };
 
 /**

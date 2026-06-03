@@ -94,7 +94,6 @@ objectStorage:
   accessKeyId: ""  # Will be filled at runtime
   secretKeyId: ""  # Will be filled at runtime
   bucketName: "conservation-tool-dev"
-  keyPrefix: "dev/"
 
 keycloak:
   host: ""  # Will be filled at runtime

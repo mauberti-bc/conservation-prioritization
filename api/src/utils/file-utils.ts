@@ -221,15 +221,6 @@ export const getS3HostUrl = (key?: string): string => {
 };
 
 /**
- * Local getter for retrieving the S3 key prefix.
- *
- * @returns {*} {string} The S3 key prefix
- */
-export const getS3KeyPrefix = (): string => {
-  return process.env.S3_KEY_PREFIX || 'conservation';
-};
-
-/**
  * Delete a file from S3, based on its key.
  *
  * For potential future reference, for deleting the delete marker of a file in S3:
@@ -478,23 +469,21 @@ export async function getS3SignedURLs(keys: string[]): Promise<(string | null)[]
  * Generate an S3 key for a dataset artifact file.
  *
  * @example
- * <s3_key_prefix>/datasets/<dataset_uuid>/artifacts/<artifact_id>/<file_name>
+ * submissions/<submission_id>/features/<submission_feature_id>
  *
  * @export
  * @param {IArtifactS3FileKey} options
  * @return {*}
  */
 export function generateSubmissionFeatureS3FileKey(options: IArtifactS3FileKey) {
-  return [getS3KeyPrefix(), 'submissions', options.submissionId, 'features', options.submissionFeatureId]
-    .filter(Boolean)
-    .join('/');
+  return ['submissions', options.submissionId, 'features', options.submissionFeatureId].filter(Boolean).join('/');
 }
 
 /**
  * Generate an S3 key for a submission job queue file.
  *
  * @example
- * <s3_key_prefix>/queue/<queue_id>/datasets/<dataset_uuid>/dwca/<file_name>
+ * queue/<queue_id>/datasets/<dataset_uuid>/dwca/<file_name>
  *
  * @export
  * @param {IQueueS3FileKey} options
@@ -503,7 +492,6 @@ export function generateSubmissionFeatureS3FileKey(options: IArtifactS3FileKey) 
 export function generateQueueS3FileKey(options: IQueueS3FileKey) {
   const keyParts: (string | number)[] = [];
 
-  keyParts.push(getS3KeyPrefix());
   keyParts.push('queue');
   keyParts.push(options.queueId);
   keyParts.push('datasets');
@@ -518,7 +506,7 @@ export function generateQueueS3FileKey(options: IQueueS3FileKey) {
  * Generate an S3 key for a dataset DwCA file.
  *
  * @example
- * <s3_key_prefix>/datasets/<dataset_uuid>/dwca/<file_name>
+ * datasets/<dataset_uuid>/dwca/<file_name>
  *
  * @export
  * @param {IDatasetS3FileKey} options
@@ -527,7 +515,6 @@ export function generateQueueS3FileKey(options: IQueueS3FileKey) {
 export function generateDatasetS3FileKey(options: IDatasetS3FileKey) {
   const keyParts: (string | number)[] = [];
 
-  keyParts.push(getS3KeyPrefix());
   keyParts.push('datasets');
   keyParts.push(options.datasetUUID);
   keyParts.push('dwca');

@@ -17,7 +17,6 @@ class ObjectStoreConfig:
     secret_key: str
     force_path_style: bool
     bucket: str
-    prefix: str
 
 
 def _normalize_endpoint(endpoint: str) -> str:
@@ -41,7 +40,6 @@ def get_object_store_config() -> ObjectStoreConfig:
     access_key = os.getenv("OBJECT_STORE_ACCESS_KEY_ID")
     secret_key = os.getenv("OBJECT_STORE_SECRET_KEY_ID")
     bucket = os.getenv("OBJECT_STORE_BUCKET_NAME")
-    prefix = os.getenv("S3_KEY_PREFIX", "").strip("/")
     force_path_style = _parse_bool(os.getenv("OBJECT_STORE_FORCE_PATH_STYLE"))
 
     if not endpoint:
@@ -58,7 +56,6 @@ def get_object_store_config() -> ObjectStoreConfig:
         secret_key=secret_key,
         force_path_style=force_path_style,
         bucket=bucket,
-        prefix=prefix,
     )
 
 
@@ -84,7 +81,6 @@ def get_source_object_store_config() -> ObjectStoreConfig:
     bucket = os.getenv("SOURCE_OBJECT_STORE_BUCKET_NAME") or os.getenv(
         "OBJECT_STORE_BUCKET_NAME"
     )
-    prefix = ""
     force_path_style = _parse_bool(
         os.getenv("SOURCE_OBJECT_STORE_FORCE_PATH_STYLE")
         or os.getenv("OBJECT_STORE_FORCE_PATH_STYLE")
@@ -104,7 +100,6 @@ def get_source_object_store_config() -> ObjectStoreConfig:
         secret_key=secret_key,
         force_path_style=force_path_style,
         bucket=bucket,
-        prefix=prefix,
     )
 
 
@@ -141,9 +136,7 @@ def get_source_zarr_store(zarr_path: Optional[str]):
         return zarr_path.strip().strip("\"'")
 
     config = get_source_object_store_config()
-    key = build_object_key(
-        config.prefix, _normalize_zarr_path(zarr_path, config.bucket)
-    )
+    key = build_object_key(_normalize_zarr_path(zarr_path, config.bucket))
     storage_options: Dict[str, Any] = {
         "key": config.access_key,
         "secret": config.secret_key,
@@ -171,10 +164,7 @@ def get_source_boundary_key() -> str:
         raise ValueError("SOURCE_BC_BOUNDARY_PATH is not configured.")
 
     config = get_source_object_store_config()
-    return build_object_key(
-        config.prefix,
-        _normalize_source_path(boundary_path, config.bucket),
-    )
+    return build_object_key(_normalize_source_path(boundary_path, config.bucket))
 
 
 def download_source_object(
@@ -221,12 +211,10 @@ def download_source_object(
     return str(local_target)
 
 
-def build_object_key(prefix: str, key: str) -> str:
+def build_object_key(key: str) -> str:
     """
-    Build an object key with an optional prefix.
+    Build a normalized object key.
     """
-    if prefix:
-        return f"{prefix}/{key.lstrip('/')}"
     return key.lstrip("/")
 
 

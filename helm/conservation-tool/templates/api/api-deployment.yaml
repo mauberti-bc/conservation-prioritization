@@ -176,11 +176,6 @@ spec:
                 secretKeyRef:
                   name: conservation-tool-object-storage
                   key: OBJECT_STORE_BUCKET_NAME
-            - name: S3_KEY_PREFIX
-              valueFrom:
-                secretKeyRef:
-                  name: conservation-tool-object-storage
-                  key: S3_KEY_PREFIX
             - name: OBJECT_STORE_FORCE_PATH_STYLE
               value: {{ .Values.env.OBJECT_STORE_FORCE_PATH_STYLE | default "true" | quote }}
             - name: SOURCE_OBJECT_STORE_URL
