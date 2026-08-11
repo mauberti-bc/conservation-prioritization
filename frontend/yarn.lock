@@ -3624,12 +3624,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-react-refresh@npm:^0.4.20":
-  version: 0.4.26
-  resolution: "eslint-plugin-react-refresh@npm:0.4.26"
+"eslint-plugin-react-refresh@npm:^0.5.0":
+  version: 0.5.4
+  resolution: "eslint-plugin-react-refresh@npm:0.5.4"
   peerDependencies:
-    eslint: ">=8.40"
-  checksum: 10/068da7edcd39d802dda4c03b7ea8923891145eb95f4dfd4cfce82a53a5eb55f5cbe66b33cf8e57b71f1525a684517bda4bfca1bc5c6b12c82ba03c9e8197764d
+    eslint: ^9 || ^10
+  checksum: 10/490b432b07d3658873a6c6569c313ee6e72aefa0229d50f41f08ca7e4f90e58a1aa12c5a1fc23147735ffbfb21ad506ae6d4893fd715cc4d5820a3c07b589e2b
   languageName: node
   linkType: hard
 
@@ -4022,7 +4022,7 @@ __metadata:
     eslint-plugin-prettier: "npm:^5.5.1"
     eslint-plugin-react: "npm:^7.37.5"
     eslint-plugin-react-hooks: "npm:^5.2.0"
-    eslint-plugin-react-refresh: "npm:^0.4.20"
+    eslint-plugin-react-refresh: "npm:^0.5.0"
     eslint-plugin-simple-import-sort: "npm:^12.1.1"
     formik: "npm:^2.4.6"
     geojson: "npm:^0.5.0"
