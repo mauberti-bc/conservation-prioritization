@@ -44,6 +44,7 @@ from ..utils.object_store import (
     parse_uri,
     put_object,
 )
+from ..utils.env import parse_int_setting
 from ..utils.internal_api import internal_api_request
 from ..utils.scratch import cleanup_scratch_directory, task_run_scratch_directory
 from ..utils.task_run_concurrency import acquire_task_run_slot
@@ -335,14 +336,16 @@ def _sparse_execution_profile() -> SparseExecutionProfile:
             "SPARSE_EXECUTION_PROFILE",
             "compiled-optimization",
         ),
-        max_peak_memory_bytes=int(
+        max_peak_memory_bytes=parse_int_setting(
             os.getenv(
                 "SPARSE_PROFILE_MAX_PEAK_MEMORY_BYTES",
                 str(default_peak),
-            )
+            ),
+            "SPARSE_PROFILE_MAX_PEAK_MEMORY_BYTES",
         ),
-        max_scratch_bytes=int(
-            os.getenv("SPARSE_PROFILE_MAX_SCRATCH_BYTES", str(default_scratch))
+        max_scratch_bytes=parse_int_setting(
+            os.getenv("SPARSE_PROFILE_MAX_SCRATCH_BYTES", str(default_scratch)),
+            "SPARSE_PROFILE_MAX_SCRATCH_BYTES",
         ),
         safety_factor=float(os.getenv("SPARSE_ADMISSION_SAFETY_FACTOR", "1.5")),
     )
