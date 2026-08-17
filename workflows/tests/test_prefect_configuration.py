@@ -60,11 +60,14 @@ class PrefectConfigurationTest(unittest.TestCase):
             {profile["pool"] for profile in helm_profiles.values()},
         )
         sparse_profile = helm_profiles["sparse-solver"]
-        self.assertEqual("sparse-32g", sparse_profile["executionProfile"])
+        self.assertEqual("sparse-16g", sparse_profile["executionProfile"])
         self.assertEqual(1, sparse_profile["daskWorkers"])
-        self.assertEqual("4GB", sparse_profile["daskWorkerMemory"])
-        self.assertEqual(24 * 1024**3, sparse_profile["maxPeakMemoryBytes"])
-        self.assertEqual("32Gi", sparse_profile["resources"]["limits"]["memory"])
+        self.assertEqual(
+            sparse_profile["resources"]["limits"]["memory"],
+            sparse_profile["daskWorkerMemory"],
+        )
+        self.assertEqual(12 * 1024**3, sparse_profile["maxPeakMemoryBytes"])
+        self.assertEqual("16Gi", sparse_profile["resources"]["limits"]["memory"])
 
     def test_solver_concurrency_is_scoped_to_the_solver_task(self) -> None:
         repository = Path(__file__).resolve().parents[2]
@@ -128,6 +131,14 @@ class PrefectConfigurationTest(unittest.TestCase):
         self.assertIn(
             "compile_run=compile_task_run_priority_ranking",
             priority_flow_source,
+        )
+
+        task_tile_source = (
+            repository / "workflows" / "src" / "flows" / "task_tile.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            'os.getenv("SPATIAL_DASK_WORKER_MEMORY", "4GB")',
+            task_tile_source,
         )
 
     def test_task_run_slot_uses_a_short_failure_recovery_lease(self) -> None:

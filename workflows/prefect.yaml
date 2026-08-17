@@ -35,5 +35,5 @@ deployments:
   description: "Generate PMTiles from a canonical task-run result"
   entrypoint: "src.flows.task_tile:task_tile"
   work_pool:
-    name: "bounded-spatial"
+    name: "sparse-solver"
     work_queue_name: "publication"

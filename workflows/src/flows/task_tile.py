@@ -155,9 +155,9 @@ def _upload_pmtiles(task_run_id: str, path: Path, surface: str) -> dict[str, Any
     task_runner=DaskTaskRunner(
         cluster_class=LocalCluster,
         cluster_kwargs={
-            "n_workers": int(os.getenv("SPATIAL_DASK_WORKERS", "2")),
+            "n_workers": int(os.getenv("SPATIAL_DASK_WORKERS", "1")),
             "threads_per_worker": 1,
-            "memory_limit": os.getenv("SPATIAL_DASK_WORKER_MEMORY", "1500MB"),
+            "memory_limit": os.getenv("SPATIAL_DASK_WORKER_MEMORY", "4GB"),
         },
     ),
 )
