@@ -2,7 +2,6 @@
 set -euo pipefail
 
 WORK_POOL_NAMES=(
-  "bounded-spatial"
   "sparse-solver"
 )
 TASK_RUN_CONCURRENCY_LIMIT="conservation-task-runs"

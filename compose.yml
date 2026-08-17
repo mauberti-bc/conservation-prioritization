@@ -59,7 +59,8 @@ services:
     stdin_open: true
     image: ${DOCKER_PROJECT_NAME}-prefect-worker-${DOCKER_NAMESPACE}-img
     container_name: ${DOCKER_PROJECT_NAME}-prefect-worker-${DOCKER_NAMESPACE}-container
-    command: ["prefect", "worker", "start", "-p", "bounded-spatial"]
+    command: ["prefect", "worker", "start", "-p", "sparse-solver"]
+    mem_limit: ${SPARSE_SOLVER_MEMORY_LIMIT:-9g}
     volumes:
       - zarr_data:/data
     depends_on:
@@ -89,7 +90,7 @@ services:
       SOURCE_OBJECT_STORE_BUCKET_NAME: ${SOURCE_OBJECT_STORE_BUCKET_NAME}
       SOURCE_BC_BOUNDARY_PATH: ${SOURCE_BC_BOUNDARY_PATH}
       SPATIAL_DASK_WORKERS: ${SPATIAL_DASK_WORKERS:-1}
-      SPATIAL_DASK_WORKER_MEMORY: ${SPATIAL_DASK_WORKER_MEMORY:-4GB}
+      SPATIAL_DASK_WORKER_MEMORY: ${SPATIAL_DASK_WORKER_MEMORY:-9GB}
       SPATIAL_TILE_SIZE: ${SPATIAL_TILE_SIZE:-1024}
       SPATIAL_TILE_SUBMISSION_WAVE: ${SPATIAL_TILE_SUBMISSION_WAVE:-32}
       SPARSE_EXECUTION_PROFILE: ${SPARSE_EXECUTION_PROFILE:-local-9g}
@@ -101,13 +102,6 @@ services:
       PMTILES_MERGE_FAN_IN: ${PMTILES_MERGE_FAN_IN:-64}
     networks:
       - conservation-network
-
-  prefect_worker_sparse_solver:
-    <<: *prefect_worker_common
-    container_name: ${DOCKER_PROJECT_NAME}-prefect-worker-sparse-solver-${DOCKER_NAMESPACE}-container
-    command: ["prefect", "worker", "start", "-p", "sparse-solver"]
-    mem_limit: ${SPARSE_SOLVER_MEMORY_LIMIT:-9g}
-    ports: []
 
   prefect_deploy:
     build:
