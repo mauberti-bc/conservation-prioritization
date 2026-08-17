@@ -22,6 +22,16 @@ spec:
         conservation-tool/release-revision: {{ $root.Release.Revision | quote }}
     spec:
       serviceAccountName: deployer
+      securityContext:
+        runAsNonRoot: true
+        {{- if $root.Values.services.workflows.worker.securityContext.runAsUser }}
+        runAsUser: {{ $root.Values.services.workflows.worker.securityContext.runAsUser | int64 }}
+        {{- end }}
+        {{- if $root.Values.services.workflows.worker.securityContext.fsGroup }}
+        fsGroup: {{ $root.Values.services.workflows.worker.securityContext.fsGroup | int64 }}
+        {{- end }}
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
         - name: sync-prefect-deployments
           image: "{{ $root.Values.registry }}/{{ $root.Values.services.workflows.worker.image.stream }}:{{ $root.Values.services.workflows.worker.image.tag }}"
@@ -39,10 +49,12 @@ spec:
             - name: ZARR_STORE_PATH
               value: "{{ $root.Values.env.ZARR_STORE_PATH }}"
             - name: WORKFLOW_SCRATCH_ROOT
-              value: {{ $profile.scratchRoot | default "/tmp/conservation-workflows" | quote }}
+              value: {{ $profile.scratchRoot | default "/workflow-scratch" | quote }}
+            - name: WORKFLOW_SCRATCH_LIMIT_BYTES
+              value: {{ $profile.maxScratchBytes | default 536870912 | quote }}
           volumeMounts:
-            - name: workflow-tmp
-              mountPath: /tmp
+            - name: workflow-scratch
+              mountPath: {{ $profile.scratchMountPath | default "/workflow-scratch" | quote }}
       containers:
         - name: prefect-worker
           image: "{{ $root.Values.registry }}/{{ $root.Values.services.workflows.worker.image.stream }}:{{ $root.Values.services.workflows.worker.image.tag }}"
@@ -65,7 +77,9 @@ spec:
             - name: ZARR_STORE_PATH
               value: "{{ $root.Values.env.ZARR_STORE_PATH }}"
             - name: WORKFLOW_SCRATCH_ROOT
-              value: {{ $profile.scratchRoot | default "/tmp/conservation-workflows" | quote }}
+              value: {{ $profile.scratchRoot | default "/workflow-scratch" | quote }}
+            - name: WORKFLOW_SCRATCH_LIMIT_BYTES
+              value: {{ $profile.maxScratchBytes | default 536870912 | quote }}
             - name: CONSERVATION_API_URL
               value: "{{ $root.Values.env.CONSERVATION_API_URL }}"
             - name: INTERNAL_API_KEY
@@ -148,10 +162,11 @@ spec:
           resources:
             {{- toYaml ($profile.resources | default $root.Values.services.workflows.worker.resources) | nindent 12 }}
           volumeMounts:
-            - name: workflow-tmp
-              mountPath: /tmp
+            - name: workflow-scratch
+              mountPath: {{ $profile.scratchMountPath | default "/workflow-scratch" | quote }}
       volumes:
-        - name: workflow-tmp
-          emptyDir: {}
+        - name: workflow-scratch
+          persistentVolumeClaim:
+            claimName: {{ $root.Values.services.workflows.worker.persistence.existingClaim | default (include "conservation-tool.fullname.workflow-scratch" $root) }}
 ---
 {{- end }}

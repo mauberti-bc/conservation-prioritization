@@ -215,17 +215,22 @@ class OptimizationProblemTest(unittest.TestCase):
                 atol=1e-7,
             )
             self.assertEqual(np.dtype("float32"), ranking.priority.dtype)
-            self.assertEqual(3, len(ranking.increment_paths))
+            self.assertEqual(1, len(ranking.increment_paths))
             for path in ranking.increment_paths:
                 self.assertEqual(
                     np.dtype("float32"),
                     np.load(path, mmap_mode="r", allow_pickle=False).dtype,
                 )
+            self.assertFalse((Path(directory) / "allocation-01.npy").exists())
+            self.assertFalse((Path(directory) / "allocation-02.npy").exists())
+            self.assertTrue((Path(directory) / "allocation-03.npy").exists())
+            self.assertTrue((Path(directory) / "priority-sum.npy").exists())
             manifest = json.loads(
                 (Path(directory) / "manifest.json").read_text(encoding="utf-8")
             )
             self.assertEqual("complete", manifest["status"])
             self.assertEqual("<f4", manifest["dtype"])
+            self.assertEqual(1, manifest["increment_count"])
             self.assertEqual(3, len(ranking.diagnostics))
             for diagnostic in ranking.diagnostics:
                 self.assertAlmostEqual(

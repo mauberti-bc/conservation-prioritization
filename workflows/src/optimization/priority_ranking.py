@@ -77,6 +77,15 @@ def solve_priority_ranking(
     increment_paths: list[Path] = []
     final_result: SolverResult | None = None
     total_runtime = 0.0
+    priority_sum_path = work_path / "priority-sum.npy"
+    priority_sum = np.lib.format.open_memmap(
+        priority_sum_path,
+        mode="w+",
+        dtype=PRIORITY_INTERMEDIATE_DTYPE,
+        shape=(primary_count,),
+    )
+    priority_sum[:] = 0.0
+    priority_sum.flush()
     _write_intermediate_manifest(
         work_path,
         primary_count=primary_count,
@@ -172,6 +181,7 @@ def solve_priority_ranking(
                 "allocation_path": str(allocation_path),
             }
         )
+        _accumulate_priority_sum(priority_sum, allocation)
         if progress_callback is not None:
             progress_callback(
                 {
@@ -183,6 +193,8 @@ def solve_priority_ranking(
                     "runtime_seconds": result.runtime_seconds,
                 }
             )
+        if increment_paths:
+            increment_paths[-1].unlink(missing_ok=True)
         increment_paths.append(allocation_path)
         _write_intermediate_manifest(
             work_path,
@@ -203,16 +215,21 @@ def solve_priority_ranking(
     if final_result is None:
         raise RuntimeError("Priority ranking did not execute any budget increments.")
     priority_path = work_path / "priority-mean.npy"
-    priority, allocation_total = synthesize_priority_from_increments(
-        increment_paths,
+    priority, allocation_total = synthesize_priority_from_sum(
+        priority_sum_path,
         priority_path,
         primary_count,
+        len(fractions),
     )
+    del priority_sum
+    retained_increment_paths = [
+        path for path in increment_paths if path.exists()
+    ]
     _write_intermediate_manifest(
         work_path,
         primary_count=primary_count,
         budget_fractions=fractions,
-        increment_paths=increment_paths,
+        increment_paths=retained_increment_paths,
         diagnostics=diagnostics,
         status="complete",
         priority_path=priority_path,
@@ -221,7 +238,7 @@ def solve_priority_ranking(
     return PriorityRankingResult(
         priority=priority,
         priority_path=str(priority_path),
-        increment_paths=tuple(str(path) for path in increment_paths),
+        increment_paths=tuple(str(path) for path in retained_increment_paths),
         final_result=final_result,
         diagnostics=tuple(diagnostics),
         budget_fractions=fractions,
@@ -229,6 +246,20 @@ def solve_priority_ranking(
         objective_value=final_result.objective_value,
         runtime_seconds=total_runtime,
     )
+
+
+def _accumulate_priority_sum(
+    priority_sum: np.memmap,
+    allocation: np.ndarray,
+) -> None:
+    """Add one allocation vector to the file-backed priority running sum."""
+    primary_count = int(priority_sum.shape[0])
+    for start in range(0, primary_count, PRIORITY_CHUNK_ELEMENTS):
+        stop = min(start + PRIORITY_CHUNK_ELEMENTS, primary_count)
+        chunk = np.asarray(priority_sum[start:stop], dtype=np.float32)
+        chunk += np.asarray(allocation[start:stop], dtype=np.float32)
+        priority_sum[start:stop] = chunk
+    priority_sum.flush()
 
 
 def synthesize_priority_from_increments(
@@ -269,6 +300,44 @@ def synthesize_priority_from_increments(
             copy=False,
         )
         allocation_total += float(np.sum(chunk))
+    priority_writer.flush()
+    del priority_writer
+    os.replace(temporary, destination)
+    priority = np.load(destination, mmap_mode="r", allow_pickle=False)
+    return priority, allocation_total
+
+
+def synthesize_priority_from_sum(
+    priority_sum_path: str | Path,
+    output_path: str | Path,
+    primary_count: int,
+    increment_count: int,
+    *,
+    chunk_size: int = PRIORITY_CHUNK_ELEMENTS,
+) -> tuple[np.ndarray, float]:
+    """Build the final priority mean from one persisted running-sum vector."""
+    if increment_count <= 0:
+        raise ValueError("Priority synthesis requires at least one increment.")
+    destination = Path(output_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = _temporary_path(destination)
+    source = np.load(Path(priority_sum_path), mmap_mode="r", allow_pickle=False)
+    if source.shape != (primary_count,):
+        raise ValueError("Priority sum shape does not match domain size.")
+    priority_writer = np.lib.format.open_memmap(
+        temporary,
+        mode="w+",
+        dtype=PRIORITY_INTERMEDIATE_DTYPE,
+        shape=(primary_count,),
+    )
+    allocation_total = 0.0
+    for start in range(0, primary_count, chunk_size):
+        stop = min(start + chunk_size, primary_count)
+        chunk = np.asarray(source[start:stop], dtype=np.float32) / float(
+            increment_count
+        )
+        priority_writer[start:stop] = chunk
+        allocation_total += float(np.sum(chunk, dtype=np.float64))
     priority_writer.flush()
     del priority_writer
     os.replace(temporary, destination)

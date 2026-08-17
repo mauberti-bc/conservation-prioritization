@@ -2,7 +2,6 @@ import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getAPIUserDBConnection } from '../../../../../database/db';
 import { defaultErrorResponses } from '../../../../../openapi/schemas/http-responses';
-import { TaskRunSchema } from '../../../../../openapi/schemas/task-run';
 import { requireServiceKey } from '../../../../../request-handlers/security/service-key';
 import { TaskRunService } from '../../../../../services/task-run-service';
 
@@ -53,7 +52,7 @@ POST.apiDoc = {
     }
   },
   responses: {
-    200: { description: 'Updated run.', content: { 'application/json': { schema: TaskRunSchema } } },
+    200: { description: 'Updated run.', content: { 'application/json': { schema: { type: 'object' } } } },
     ...defaultErrorResponses
   }
 };
@@ -64,9 +63,9 @@ export function updateInternalRun(): RequestHandler {
     const connection = getAPIUserDBConnection();
     try {
       await connection.open();
-      const run = await new TaskRunService(connection).updateRun(req.params.runId, req.body);
+      await new TaskRunService(connection).updateRun(req.params.runId, req.body);
       await connection.commit();
-      return res.status(200).json(run);
+      return res.status(200).json({ ok: true });
     } catch (error) {
       await connection.rollback();
       throw error;

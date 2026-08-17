@@ -55,10 +55,12 @@ class PrefectConfigurationTest(unittest.TestCase):
             )
         )
         helm_profiles = helm_values["services"]["workflows"]["worker"]["profiles"]
+        worker_values = helm_values["services"]["workflows"]["worker"]
         self.assertEqual(
             deployment_pools,
             {profile["pool"] for profile in helm_profiles.values()},
         )
+        self.assertEqual("512Mi", worker_values["persistence"]["size"])
         sparse_profile = helm_profiles["sparse-solver"]
         self.assertEqual("sparse-16g", sparse_profile["executionProfile"])
         self.assertEqual(1, sparse_profile["daskWorkers"])
@@ -67,7 +69,16 @@ class PrefectConfigurationTest(unittest.TestCase):
             sparse_profile["daskWorkerMemory"],
         )
         self.assertEqual(12 * 1024**3, sparse_profile["maxPeakMemoryBytes"])
+        self.assertEqual(512 * 1024**2, sparse_profile["maxScratchBytes"])
         self.assertEqual("16Gi", sparse_profile["resources"]["limits"]["memory"])
+        self.assertIn(
+            "536870912",
+            str(
+                compose["services"]["prefect_worker"]["environment"][
+                    "WORKFLOW_SCRATCH_LIMIT_BYTES"
+                ]
+            ),
+        )
 
     def test_solver_concurrency_is_scoped_to_the_solver_task(self) -> None:
         repository = Path(__file__).resolve().parents[2]
@@ -108,8 +119,12 @@ class PrefectConfigurationTest(unittest.TestCase):
         self.assertIn("- src/setup.sh", worker_deployment)
         self.assertNotIn("- src/ensure_work_pool.sh", worker_deployment)
         self.assertIn("WORKFLOW_SCRATCH_ROOT", worker_deployment)
-        self.assertIn("mountPath: /tmp", worker_deployment)
-        self.assertIn("emptyDir: {}", worker_deployment)
+        self.assertIn("WORKFLOW_SCRATCH_LIMIT_BYTES", worker_deployment)
+        self.assertIn("mountPath:", worker_deployment)
+        self.assertIn("/workflow-scratch", worker_deployment)
+        self.assertIn("persistentVolumeClaim:", worker_deployment)
+        self.assertIn("conservation-tool.fullname.workflow-scratch", worker_deployment)
+        self.assertIn("fsGroup:", worker_deployment)
 
     def test_dask_compilation_closes_before_highs_starts(self) -> None:
         repository = Path(__file__).resolve().parents[2]
@@ -159,7 +174,7 @@ class PrefectConfigurationTest(unittest.TestCase):
             task_tile_source,
         )
 
-    def test_workflows_use_ephemeral_scratch_for_outputs(self) -> None:
+    def test_workflows_use_durable_scratch_for_outputs(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         optimization_source = (
             repository / "workflows" / "src" / "flows" / "optimization_execution.py"
@@ -176,12 +191,74 @@ class PrefectConfigurationTest(unittest.TestCase):
         self.assertIn("cleanup_scratch_directory(output_dir)", optimization_source)
         self.assertIn("cleanup_scratch_directory(output)", task_tile_source)
         self.assertIn(
-            'DEFAULT_WORKFLOW_SCRATCH_ROOT = "/tmp/conservation-workflows"',
+            'DEFAULT_WORKFLOW_SCRATCH_ROOT = "/workflow-scratch"',
             scratch_source,
         )
         self.assertIn("WORKFLOW_KEEP_SCRATCH", scratch_source)
         self.assertNotIn('Path("/data/outputs")', optimization_source)
         self.assertNotIn('Path("/data/outputs")', task_tile_source)
+
+    def test_workflow_scratch_pvc_is_declared(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        pvc_template = (
+            repository
+            / "helm"
+            / "conservation-tool"
+            / "templates"
+            / "workflows"
+            / "scratch-pvc.yaml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("kind: PersistentVolumeClaim", pvc_template)
+        self.assertIn("services.workflows.worker.persistence.enabled", pvc_template)
+        self.assertIn("conservation-tool.fullname.workflow-scratch", pvc_template)
+
+    def test_internal_workflow_callbacks_do_not_return_full_runs(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        callback_paths = [
+            repository
+            / "api"
+            / "src"
+            / "paths"
+            / "internal"
+            / "run"
+            / "{runId}"
+            / "artifact"
+            / "{artifactType}"
+            / "index.ts",
+            repository
+            / "api"
+            / "src"
+            / "paths"
+            / "internal"
+            / "run"
+            / "{runId}"
+            / "status"
+            / "index.ts",
+            repository
+            / "api"
+            / "src"
+            / "paths"
+            / "internal"
+            / "run"
+            / "{runId}"
+            / "solution"
+            / "index.ts",
+            repository
+            / "api"
+            / "src"
+            / "paths"
+            / "internal"
+            / "run"
+            / "{runId}"
+            / "publish"
+            / "index.ts",
+        ]
+
+        for path in callback_paths:
+            source = path.read_text(encoding="utf-8")
+            self.assertIn("json({ ok: true })", source)
+            self.assertNotIn("TaskRunSchema", source)
 
     def test_task_run_slot_uses_a_short_failure_recovery_lease(self) -> None:
         with patch("src.utils.task_run_concurrency.concurrency") as concurrency:

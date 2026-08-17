@@ -386,7 +386,7 @@ export class TaskRunService extends DBService {
   }
 
   /** Creates or updates normalized solver metadata for one run-local solution. */
-  async upsertSolution(taskRunId: string, solution: UpsertTaskRunSolution): Promise<TaskRunWithArtifacts> {
+  async upsertSolution(taskRunId: string, solution: UpsertTaskRunSolution): Promise<void> {
     const run = await this.taskRunRepository.getTaskRunById(taskRunId);
     if (run.status === 'completed' || run.status === 'cancelled') {
       throw new ApiGeneralError('Solutions cannot be changed after a run reaches a terminal state.', []);
@@ -395,7 +395,6 @@ export class TaskRunService extends DBService {
       throw new ApiGeneralError('Optimization runs expose exactly one reference solution at index 0.', []);
     }
     await this.solutionRepository.upsertTaskRunSolution(taskRunId, solution);
-    return this.getTaskRunById(taskRunId);
   }
 
   /** Returns all runs for a task with artifacts. */
@@ -405,7 +404,7 @@ export class TaskRunService extends DBService {
   }
 
   /** Applies an internal workflow lifecycle update. */
-  async updateRun(taskRunId: string, updates: UpdateTaskRun): Promise<TaskRunWithArtifacts> {
+  async updateRun(taskRunId: string, updates: UpdateTaskRun): Promise<void> {
     const current = await this.taskRunRepository.getTaskRunById(taskRunId);
     const allowedStatuses: Record<TaskRun['status'], TaskRun['status'][]> = {
       queued: ['queued', 'running', 'failed', 'cancelled'],
@@ -447,11 +446,10 @@ export class TaskRunService extends DBService {
         status_message: updates.failure_message ?? 'Task run failed.'
       });
     }
-    return this.getTaskRunById(taskRunId);
   }
 
   /** Updates one authoritative run artifact by role. */
-  async updateArtifact(taskRunId: string, type: ArtifactType, updates: UpdateArtifact): Promise<TaskRunWithArtifacts> {
+  async updateArtifact(taskRunId: string, type: ArtifactType, updates: UpdateArtifact): Promise<void> {
     const run = await this.taskRunRepository.getTaskRunById(taskRunId);
     const artifact = await this.artifactRepository.getArtifactByRunAndType(taskRunId, type);
     const allowedStatuses: Record<typeof artifact.status, (typeof artifact.status)[]> = {
@@ -473,7 +471,6 @@ export class TaskRunService extends DBService {
     if (updates.status === 'ready' && updates.uri && type === 'pmtiles') {
       await this.taskService.updateTaskExecution(run.task_id, { tileset_uri: updates.uri });
     }
-    return this.getTaskRunById(taskRunId);
   }
 
   /** Returns the immutable engine configuration for the classified formulation. */

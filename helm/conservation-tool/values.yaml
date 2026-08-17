@@ -269,10 +269,17 @@ services:
         targetPort: 8081
       securityContext:
         runAsUser: 1003600000
+        fsGroup: 1003600000
+      persistence:
+        enabled: true
+        accessMode: ReadWriteOnce
+        size: 512Mi
+        existingClaim: ""
       profiles:
         sparse-solver:
           pool: sparse-solver
-          scratchRoot: /tmp/conservation-workflows
+          scratchMountPath: /workflow-scratch
+          scratchRoot: /workflow-scratch
           daskWorkers: 1
           daskWorkerMemory: 16Gi
           tileSize: 1024
@@ -283,7 +290,7 @@ services:
           pmtilesMergeFanIn: 64
           executionProfile: sparse-16g
           maxPeakMemoryBytes: 12884901888
-          maxScratchBytes: 68719476736
+          maxScratchBytes: 536870912
           replicas: 1
           resources:
             requests:
@@ -331,7 +338,7 @@ services:
         memory: 128Mi
       limits:
         cpu: 100m
-        memory: 128Mi
+        memory: 512Mi
 
   db:
     image:
