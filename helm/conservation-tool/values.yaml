@@ -272,6 +272,7 @@ services:
       profiles:
         sparse-solver:
           pool: sparse-solver
+          scratchRoot: /tmp/conservation-workflows
           daskWorkers: 1
           daskWorkerMemory: 16Gi
           tileSize: 1024

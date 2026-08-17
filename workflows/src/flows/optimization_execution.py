@@ -45,6 +45,7 @@ from ..utils.object_store import (
     put_object,
 )
 from ..utils.internal_api import internal_api_request
+from ..utils.scratch import cleanup_scratch_directory, task_run_scratch_directory
 from ..utils.task_run_concurrency import acquire_task_run_slot
 
 
@@ -907,7 +908,7 @@ def execute_optimization_run(
             f"This flow only accepts {expected_task_type} runs."
         )
     snapshot = run["input_snapshot"]
-    output_dir = Path("/data/outputs") / "runs" / task_run_id / str(flow_run.id)
+    output_dir = task_run_scratch_directory(task_run_id, str(flow_run.id))
     output_dir.mkdir(parents=True, exist_ok=True)
 
     execution_method = run["execution_method"]
@@ -989,6 +990,8 @@ def execute_optimization_run(
             failure_message=str(error),
         )
         raise
+    finally:
+        cleanup_scratch_directory(output_dir)
 
 
 @task(name="solve_priority_ranking_model")
@@ -1245,7 +1248,7 @@ def execute_priority_ranking_run(
         raise ValueError(
             f"Priority ranking cannot use method {run['execution_method']}."
         )
-    output_dir = Path("/data/outputs") / "runs" / task_run_id / str(flow_run.id)
+    output_dir = task_run_scratch_directory(task_run_id, str(flow_run.id))
     output_dir.mkdir(parents=True, exist_ok=True)
     update_run(task_run_id, status="running", stage="counting")
     active_artifacts: list[str] = []
@@ -1303,3 +1306,5 @@ def execute_priority_ranking_run(
             failure_message=str(error),
         )
         raise
+    finally:
+        cleanup_scratch_directory(output_dir)

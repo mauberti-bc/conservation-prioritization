@@ -93,6 +93,24 @@ class PrefectConfigurationTest(unittest.TestCase):
         self.assertIn('@task(name="solve_compiled_model")', optimization_flow_source)
         self.assertIn("with acquire_task_run_slot():", optimization_flow_source)
 
+    def test_worker_init_syncs_prefect_deployments(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        worker_deployment = (
+            repository
+            / "helm"
+            / "conservation-tool"
+            / "templates"
+            / "workflows"
+            / "worker-deployment.yaml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("sync-prefect-deployments", worker_deployment)
+        self.assertIn("- src/setup.sh", worker_deployment)
+        self.assertNotIn("- src/ensure_work_pool.sh", worker_deployment)
+        self.assertIn("WORKFLOW_SCRATCH_ROOT", worker_deployment)
+        self.assertIn("mountPath: /tmp", worker_deployment)
+        self.assertIn("emptyDir: {}", worker_deployment)
+
     def test_dask_compilation_closes_before_highs_starts(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         for domain in ("continuous", "discrete"):
@@ -140,6 +158,30 @@ class PrefectConfigurationTest(unittest.TestCase):
             'os.getenv("SPATIAL_DASK_WORKER_MEMORY", "4GB")',
             task_tile_source,
         )
+
+    def test_workflows_use_ephemeral_scratch_for_outputs(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        optimization_source = (
+            repository / "workflows" / "src" / "flows" / "optimization_execution.py"
+        ).read_text(encoding="utf-8")
+        task_tile_source = (
+            repository / "workflows" / "src" / "flows" / "task_tile.py"
+        ).read_text(encoding="utf-8")
+        scratch_source = (
+            repository / "workflows" / "src" / "utils" / "scratch.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("task_run_scratch_directory", optimization_source)
+        self.assertIn("task_run_scratch_directory", task_tile_source)
+        self.assertIn("cleanup_scratch_directory(output_dir)", optimization_source)
+        self.assertIn("cleanup_scratch_directory(output)", task_tile_source)
+        self.assertIn(
+            'DEFAULT_WORKFLOW_SCRATCH_ROOT = "/tmp/conservation-workflows"',
+            scratch_source,
+        )
+        self.assertIn("WORKFLOW_KEEP_SCRATCH", scratch_source)
+        self.assertNotIn('Path("/data/outputs")', optimization_source)
+        self.assertNotIn('Path("/data/outputs")', task_tile_source)
 
     def test_task_run_slot_uses_a_short_failure_recovery_lease(self) -> None:
         with patch("src.utils.task_run_concurrency.concurrency") as concurrency:

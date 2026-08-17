@@ -26,6 +26,7 @@ from ..utils.object_store import (
     put_object,
 )
 from ..utils.resolution import resolution_to_max_zoom
+from ..utils.scratch import cleanup_scratch_directory, task_run_scratch_directory
 
 
 def _sha256(path: Path) -> str:
@@ -175,7 +176,7 @@ def task_tile(task_run_id: str) -> None:
     )
     if not canonical or canonical["status"] != "ready" or not canonical["uri"]:
         raise ValueError("A ready canonical result is required before publication.")
-    output = Path("/data/outputs") / "runs" / task_run_id / str(flow_run.id)
+    output = task_run_scratch_directory(task_run_id, str(flow_run.id))
     output.mkdir(parents=True, exist_ok=True)
     try:
         canonical_path = _download_canonical_zarr(canonical, output)
@@ -221,3 +222,5 @@ def task_tile(task_run_id: str) -> None:
             },
         )
         raise
+    finally:
+        cleanup_scratch_directory(output)
