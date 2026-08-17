@@ -5,19 +5,35 @@ pull: null
 
 # prefect.yaml
 deployments:
-- name: "strict-optimization"
+- name: "task-run-discrete-optimization-compiled"
   version: "1.0"
   schedule: null
-  description: "Strict optimization where solutions respect constraints"
-  entrypoint: "src.flows.strict_optimization:strict_optimization"
+  description: "Compile and solve a binary conservation optimization with HiGHS"
+  entrypoint: "src.flows.task_run_discrete_optimization:task_run_discrete_optimization"
   work_pool:
-    name: "local"
-    work_queue_name: null
+    name: "sparse-solver"
+    work_queue_name: "compiled-optimization"
+- name: "task-run-continuous-optimization-compiled"
+  version: "1.0"
+  schedule: null
+  description: "Compile and solve a continuous conservation allocation with HiGHS"
+  entrypoint: "src.flows.task_run_continuous_optimization:task_run_continuous_optimization"
+  work_pool:
+    name: "sparse-solver"
+    work_queue_name: "compiled-optimization"
+- name: "task-run-priority-ranking-compiled"
+  version: "1.0"
+  schedule: null
+  description: "Compile and solve a nested conservation priority ranking with HiGHS"
+  entrypoint: "src.flows.task_run_priority_ranking:task_run_priority_ranking"
+  work_pool:
+    name: "sparse-solver"
+    work_queue_name: "compiled-optimization"
 - name: "task-tile"
   version: "1.0"
   schedule: null
-  description: "Generate PMTiles artifacts for a task"
-  entrypoint: "src.flows.tile:tile_task"
+  description: "Generate PMTiles from a canonical task-run result"
+  entrypoint: "src.flows.task_tile:task_tile"
   work_pool:
-    name: "local"
-    work_queue_name: null
+    name: "bounded-spatial"
+    work_queue_name: "publication"

@@ -3,8 +3,9 @@ import { SYSTEM_ROLE } from './profile';
 export const SEED_CONSTANTS = {
   TABLES_TO_CLEAR: [
     'audit_log',
-    'task_layer_constraint',
-    'task_layer',
+    'artifact',
+    'task_run_solution',
+    'task_run',
     'task_tile',
     'project_task',
     'task_profile',
@@ -95,22 +96,6 @@ export const SEED_CONSTANTS = {
       name: 'Floodplain Resilience',
       description: 'Seeded task: floodplain function restoration.',
       status: 'pending'
-    }
-  ],
-  TASK_LAYERS: [
-    {
-      layer_name: 'landcover/forest',
-      description: 'Seeded layer',
-      mode: 'flexible',
-      importance: 0.8,
-      threshold: null
-    }
-  ],
-  TASK_LAYER_CONSTRAINTS: [
-    {
-      type: 'percent',
-      min: 10,
-      max: 90
     }
   ],
   TASK_TILES: [

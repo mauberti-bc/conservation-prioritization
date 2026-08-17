@@ -6,12 +6,13 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { Formik } from 'formik';
-import { CreateDraftTaskRequest, CreateTaskLayer, SubmitTaskRequest } from 'hooks/interfaces/useTaskApi.interface';
+import { CreateDraftTaskRequest } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useMapContext } from 'hooks/useContext';
 import useDataLoader from 'hooks/useDataLoader';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
+import { buildTaskSubmission } from 'utils/task-submission';
 import { mapTaskResponseToCreateFormValues } from 'utils/task-mapping';
 import { taskValidationSchema } from './TaskCreateYup';
 import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
@@ -58,40 +59,15 @@ export const EditTask = ({ taskId: taskIdProp }: EditTaskProps) => {
     setIsSubmitting(true);
 
     try {
-      const mappedLayers: CreateTaskLayer[] = values.layers.map((layer) => ({
-        layer_name: layer.name,
-        description: null,
-        mode: layer.mode,
-        importance: layer.mode === 'flexible' ? layer.importance : undefined,
-        threshold: layer.mode === 'locked-in' || layer.mode === 'locked-out' ? layer.threshold : undefined,
-        constraints: layer.constraints.map((constraint) => ({
-          min: constraint.min ?? null,
-          max: constraint.max ?? null,
-          type: constraint.type,
-        })),
-      }));
-
       const draftTaskData: CreateDraftTaskRequest = {
+        type: values.type,
         name: values.name,
         description: values.description ?? null,
         resolution: values.resolution,
         resampling: values.resampling,
-        variant: values.variant,
       };
 
-      const submitData: SubmitTaskRequest = {
-        variant: values.variant,
-        resolution: values.resolution,
-        resampling: values.resampling,
-        layers: mappedLayers,
-        geometry: values.geometry.length
-          ? values.geometry.map((geometry) => ({
-              name: geometry.name,
-              description: geometry.description,
-              geojson: geometry.geojson,
-            }))
-          : undefined,
-      };
+      const submitData = buildTaskSubmission(values);
 
       const createdDraftTask = await conservationApi.task.createTask(draftTaskData);
       await conservationApi.task.submitTask(createdDraftTask.task_id, submitData);

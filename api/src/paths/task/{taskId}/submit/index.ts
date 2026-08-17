@@ -6,8 +6,10 @@ import { defaultErrorResponses } from '../../../../openapi/schemas/http-response
 import { GetTaskSchema, SubmitTaskSchema } from '../../../../openapi/schemas/task';
 import { authorizeRequestHandler } from '../../../../request-handlers/security/authorization';
 import { TaskOrchestratorService } from '../../../../services/task-orchestrator-service';
+import { TaskRunService } from '../../../../services/task-run-service';
+import { TaskService } from '../../../../services/task-service';
 import { getLogger } from '../../../../utils/logger';
-import { SubmitTaskBody } from './submit-task.interface';
+import { SubmitTaskBody, toSubmitTaskRequest } from './submit-task.interface';
 
 const defaultLog = getLogger(__filename);
 
@@ -27,7 +29,7 @@ export const POST: Operation = [
 
 POST.apiDoc = {
   description:
-    'Submits an existing draft task to Prefect with optional configuration updates. At least one non-budget layer must exist after merge.',
+    'Submits an explicit immutable optimization problem for an existing draft task.',
   tags: ['tasks'],
   security: [
     {
@@ -76,16 +78,7 @@ export function submitTask(): RequestHandler {
   return async (req, res) => {
     const taskId = req.params.taskId as string;
     const body = req.body as SubmitTaskBody;
-    const payload: SubmitTaskRequest = {
-      layers: body.layers,
-      budget: body.budget,
-      geometry: body.geometry,
-      resolution: body.resolution,
-      resampling: body.resampling,
-      variant: body.variant,
-      target_area: body.target_area,
-      is_percentage: body.is_percentage
-    };
+    const payload: SubmitTaskRequest = toSubmitTaskRequest(body);
 
     defaultLog.debug({ label: 'submitTask', message: `Submitting task ${taskId}` });
 
@@ -94,11 +87,19 @@ export function submitTask(): RequestHandler {
     try {
       await connection.open();
 
-      const taskOrchestratorService = new TaskOrchestratorService(connection);
-      const task = await taskOrchestratorService.submitExistingTask(taskId, payload);
-
+      await new TaskOrchestratorService(connection).configureTaskForRun(taskId, payload);
+      const runService = new TaskRunService(connection);
+      const run = await runService.createQueuedRun(taskId, payload);
       await connection.commit();
 
+      await connection.open();
+      try {
+        await runService.dispatchRun(run.task_run_id);
+      } catch (dispatchError) {
+        defaultLog.error({ label: 'submitTask', message: 'Run persisted but dispatch failed', dispatchError });
+      }
+      const task = await new TaskService(connection).getTaskById(taskId);
+      await connection.commit();
       return res.status(200).json(task);
     } catch (error) {
       defaultLog.error({ label: 'submitTask', message: 'error', error });

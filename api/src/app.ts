@@ -12,6 +12,7 @@ import { authenticateRequest, authenticateRequestOptional } from './request-hand
 import { initRequestStorage } from './utils/async-request-storage';
 import { scanFileForVirus } from './utils/file-utils';
 import { getLogger } from './utils/logger';
+import { initRealtimeEventService } from './websocket/realtime-event-service';
 import { handleWebSocketUpgrade } from './websocket/ws-server';
 
 const logger = getLogger('app');
@@ -84,9 +85,10 @@ app.use(
   try {
     initDBPool(defaultPoolConfig);
     await initDBConstants();
+    await initRealtimeEventService();
 
     server.on('upgrade', (req, socket, head) => {
-      handleWebSocketUpgrade(req, socket, head);
+      void handleWebSocketUpgrade(req, socket, head);
     });
 
     server.listen(PORT, () => {
@@ -123,31 +125,32 @@ async function handleMultipart(req: Request, res: Response, next: NextFunction) 
   }).array('media', MAX_UPLOAD_NUM_FILES);
 
   // Wrap in promise to allow async/await
-  multerHandler(req as any, res as any, (err?: any) => {
+  multerHandler(req as any, res as any, async (err?: any) => {
     if (err) {
-      return next(err);
+      next(err);
+      return;
     }
 
     const files = (req.files as Express.Multer.File[]) || [];
-
-    Promise.all(
-      files.map(async (file) => {
-        const isSafe = await scanFileForVirus(file);
-        if (!isSafe) {
-          throw new HTTP400('Malicious file content detected.', [{ file_name: file.originalname }]);
-        }
-      })
-    )
-      .then(() => {
-        req.files = files;
-        req.body = { ...req.body, media: files };
-        next();
-      })
-      .catch(next);
+    try {
+      await Promise.all(
+        files.map(async (file) => {
+          const isSafe = await scanFileForVirus(file);
+          if (!isSafe) {
+            throw new HTTP400('Malicious file content detected.', [{ file_name: file.originalname }]);
+          }
+        })
+      );
+      req.files = files;
+      req.body = { ...req.body, media: files };
+      next();
+    } catch (error) {
+      next(error);
+    }
   });
 }
 
-function handleErrorMiddleware(error: any, req: Request, res: Response, next: NextFunction) {
+function handleErrorMiddleware(error: any, req: Request, res: Response, _next: NextFunction) {
   logger.error({
     label: 'errorMiddleware',
     error,
@@ -170,7 +173,7 @@ function handleErrorMiddleware(error: any, req: Request, res: Response, next: Ne
 
 const isStrictValidationEnabled = process.env.API_RESPONSE_VALIDATION_ENABLED === 'true';
 
-function validateAllResponses(req: Request, res: Response, next: NextFunction) {
+function validateAllResponses(_req: Request, res: Response, next: NextFunction) {
   if (typeof res.validateResponse === 'function') {
     const originalJson = res.json.bind(res);
 

@@ -5,6 +5,7 @@ import {
   AuthorizationScheme,
   AuthorizeByProfile,
   AuthorizeByProject,
+  AuthorizeByTaskRun,
   AuthorizeByTask,
   AuthorizeRule
 } from './authorization-service.interface';
@@ -14,11 +15,13 @@ import { ProjectProfileService } from './project-profile-service';
 import { ProjectService } from './project-service';
 import { TaskProfileService } from './task-profile-service';
 import { TaskService } from './task-service';
+import { TaskRunRepository } from '../repositories/task-run-repository';
 
 export class AuthorizationService extends DBService {
   private profileService: ProfileService;
   private taskService: TaskService;
   private taskProfileService: TaskProfileService;
+  private taskRunRepository: TaskRunRepository;
   private projectService: ProjectService;
   private projectProfileService: ProjectProfileService;
   private keycloakToken: Record<string, any> | null;
@@ -29,6 +32,7 @@ export class AuthorizationService extends DBService {
     this.profileService = new ProfileService(connection);
     this.taskService = new TaskService(connection);
     this.taskProfileService = new TaskProfileService(connection);
+    this.taskRunRepository = new TaskRunRepository(connection);
     this.projectService = new ProjectService(connection);
     this.projectProfileService = new ProjectProfileService(connection);
     this.keycloakToken = context?.keycloakToken ?? null;
@@ -66,6 +70,8 @@ export class AuthorizationService extends DBService {
     switch (authorizeRule.discriminator) {
       case 'Task':
         return this.authorizeByTask(authorizeRule);
+      case 'TaskRun':
+        return this.authorizeByTaskRun(authorizeRule);
       case 'Project':
         return this.authorizeByProject(authorizeRule);
       case 'Profile':
@@ -73,6 +79,16 @@ export class AuthorizationService extends DBService {
       default:
         return false;
     }
+  }
+
+  /** Authorizes a run by resolving and applying its owning task permissions. */
+  private async authorizeByTaskRun(authorizeByTaskRun: AuthorizeByTaskRun): Promise<boolean> {
+    const run = await this.taskRunRepository.getTaskRunById(authorizeByTaskRun.taskRunId);
+    return this.authorizeByTask({
+      discriminator: 'Task',
+      taskId: run.task_id,
+      validTaskRoles: authorizeByTaskRun.validTaskRoles
+    });
   }
 
   /**

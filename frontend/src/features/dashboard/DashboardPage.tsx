@@ -1,14 +1,13 @@
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
-import { TASK_STATUS, TILE_STATUS } from 'constants/status';
+import { TASK_STATUS } from 'constants/status';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useAuthContext, useTaskContext } from 'hooks/useContext';
+import { useApplicationEventsContext, useAuthContext, useTaskContext } from 'hooks/useContext';
 import useDataLoader from 'hooks/useDataLoader';
 import { useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getTaskStatusLabel } from 'utils/task-status';
 import { MapContainer } from 'features/home/map/MapContainer';
-import { useTaskStatusWebSocket } from 'features/home/task/status/useTaskStatusWebSocket';
 import { Sidebar } from 'features/home/sidebar/Sidebar';
 
 /**
@@ -18,6 +17,7 @@ export const DashboardPage = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const conservationApi = useConservationApi();
   const authContext = useAuthContext();
+  const { taskRevisions, connectionEpoch, markTaskSeen } = useApplicationEventsContext();
   const { taskId, taskDataLoader, setFocusedTask, hoveredTilesetUri } = useTaskContext();
   const navigate = useNavigate();
   const location = useLocation();
@@ -55,6 +55,25 @@ export const DashboardPage = () => {
   }, [primaryTaskId, taskDataLoader]);
 
   useEffect(() => {
+    if (!primaryTaskId || !taskRevisions[primaryTaskId] || !taskDataLoader.hasLoaded) {
+      return;
+    }
+
+    void taskDataLoader.refresh(primaryTaskId);
+    markTaskSeen(primaryTaskId);
+    // Refresh only when the application event revision changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [markTaskSeen, primaryTaskId, taskRevisions[primaryTaskId ?? '']]);
+
+  useEffect(() => {
+    if (!connectionEpoch || !primaryTaskId || !taskDataLoader.hasLoaded) {
+      return;
+    }
+    void taskDataLoader.refresh(primaryTaskId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectionEpoch, primaryTaskId]);
+
+  useEffect(() => {
     if (!taskDataLoader.data) {
       return;
     }
@@ -64,15 +83,8 @@ export const DashboardPage = () => {
     }
   }, [primaryTaskId, setFocusedTask, taskDataLoader.data, taskId]);
 
-  const { data: taskStatus } = useTaskStatusWebSocket(primaryTaskId);
-
   const pmtilesUrls = useMemo(() => {
-    const statusUri =
-      taskStatus?.tile?.status === TILE_STATUS.COMPLETED && taskStatus.tile.pmtiles_uri
-        ? taskStatus.tile.pmtiles_uri
-        : null;
-    const fallbackUri = taskDataLoader.data?.tileset_uri ?? null;
-    const resolvedUri = statusUri ?? fallbackUri;
+    const resolvedUri = taskDataLoader.data?.tileset_uri ?? null;
     const baseUrls = resolvedUri ? [resolvedUri] : [];
 
     if (hoveredTilesetUri) {
@@ -83,22 +95,21 @@ export const DashboardPage = () => {
     }
 
     return baseUrls;
-  }, [hoveredTilesetUri, taskStatus, taskDataLoader.data]);
+  }, [hoveredTilesetUri, taskDataLoader.data]);
 
   const statusLabel = useMemo(() => {
-    const activeStatus = taskStatus?.status ?? taskDataLoader.data?.status;
-    const tileStatus = taskStatus?.tile?.status ?? null;
+    const activeStatus = taskDataLoader.data?.status;
 
     if (!activeStatus) {
       return null;
     }
 
-    if (activeStatus === TASK_STATUS.COMPLETED && tileStatus && tileStatus !== TILE_STATUS.COMPLETED) {
-      return `${getTaskStatusLabel(activeStatus)} (tiling: ${tileStatus})`;
+    if (activeStatus === TASK_STATUS.COMPLETED && !taskDataLoader.data?.tileset_uri) {
+      return `${getTaskStatusLabel(activeStatus)} (building map)`;
     }
 
     return getTaskStatusLabel(activeStatus);
-  }, [taskStatus, taskDataLoader.data]);
+  }, [taskDataLoader.data]);
 
   const sidebarWidth = '50vw';
   const sidebarMinWidth = 360;

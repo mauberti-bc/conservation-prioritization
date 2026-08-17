@@ -1,12 +1,15 @@
 import { IDBConnection } from '../database/db';
 import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination';
 import { CreateTask, DeleteTask, Task, TaskStatus, UpdateTask, UpdateTaskExecution } from '../models/task';
-import { TaskLayerConstraint } from '../models/task-layer-constraint';
-import { TaskLayerWithConstraints, TaskWithLayers } from '../models/task.interface';
+import { TaskRunWithArtifacts } from '../models/task-run.interface';
+import { TaskDetails } from '../models/task.interface';
+import { ArtifactRepository } from '../repositories/artifact-repository';
 import { DashboardTaskRepository } from '../repositories/dashboard-task-repository';
 import { ProfileRepository } from '../repositories/profile-repository';
 import { ProjectRepository } from '../repositories/project-repository';
 import { TaskRepository } from '../repositories/task-repository';
+import { TaskRunRepository } from '../repositories/task-run-repository';
+import { TaskRunSolutionRepository } from '../repositories/task-run-solution-repository';
 import { TaskTileRepository } from '../repositories/task-tile-repository';
 import { TASK_STATUS, TILE_STATUS } from '../types/status';
 import { TaskStatusMessage } from '../types/task-status';
@@ -17,9 +20,6 @@ import { normalizeTaskStatus, normalizeTileStatus } from '../utils/status';
 import { TASK_ROLE } from './authorization-service.interface';
 import { DBService } from './db-service';
 import { InviteProfilesResult } from './invite-profiles.interface';
-import { TaskGeometryService } from './task-geometry-service';
-import { TaskLayerConstraintService } from './task-layer-constraint-service';
-import { TaskLayerService } from './task-layer-service';
 import { TaskPermissionService } from './task-permission-service';
 import { TaskProfileService } from './task-profile-service';
 import { TaskTileService } from './task-tile-service';
@@ -33,16 +33,16 @@ import { TaskTileService } from './task-tile-service';
  */
 export class TaskService extends DBService {
   taskRepository: TaskRepository;
-  taskLayerService: TaskLayerService;
-  taskLayerConstraintService: TaskLayerConstraintService;
   taskTileRepository: TaskTileRepository;
   taskTileService: TaskTileService;
-  taskGeometryService: TaskGeometryService;
   taskProfileService: TaskProfileService;
   taskPermissionService: TaskPermissionService;
   profileRepository: ProfileRepository;
   projectRepository: ProjectRepository;
   dashboardTaskRepository: DashboardTaskRepository;
+  taskRunRepository: TaskRunRepository;
+  artifactRepository: ArtifactRepository;
+  taskRunSolutionRepository: TaskRunSolutionRepository;
 
   /**
    * Creates an instance of TaskService.
@@ -53,16 +53,16 @@ export class TaskService extends DBService {
   constructor(connection: IDBConnection) {
     super(connection);
     this.taskRepository = new TaskRepository(connection);
-    this.taskLayerService = new TaskLayerService(connection);
-    this.taskLayerConstraintService = new TaskLayerConstraintService(connection);
     this.taskTileRepository = new TaskTileRepository(connection);
     this.taskTileService = new TaskTileService(connection);
-    this.taskGeometryService = new TaskGeometryService(connection);
     this.taskProfileService = new TaskProfileService(connection);
     this.taskPermissionService = new TaskPermissionService(connection);
     this.profileRepository = new ProfileRepository(connection);
     this.projectRepository = new ProjectRepository(connection);
     this.dashboardTaskRepository = new DashboardTaskRepository(connection);
+    this.taskRunRepository = new TaskRunRepository(connection);
+    this.artifactRepository = new ArtifactRepository(connection);
+    this.taskRunSolutionRepository = new TaskRunSolutionRepository(connection);
   }
 
   /**
@@ -83,28 +83,26 @@ export class TaskService extends DBService {
    * @return {*} {Promise<Task>} The task with the provided ID.
    * @memberof TaskService
    */
-  async getTaskById(taskId: string): Promise<TaskWithLayers> {
+  async getTaskById(taskId: string): Promise<TaskDetails> {
     const task = await this.taskRepository.getTaskById(taskId);
-    const layers = await this.getTaskLayersWithConstraints(taskId);
-    const geometries = await this.taskGeometryService.getGeometriesByTaskId(taskId);
     const taskProjects = await this.projectRepository.getProjectsByTaskIds([taskId]);
     const dashboardId = await this.dashboardTaskRepository.getLatestDashboardIdForTask(taskId);
     const tilesetUri = await this.toPresignedTilesetUri(task.tileset_uri);
+    const latestRun = await this.getLatestTaskRunWithArtifacts(taskId);
 
     // Generate presigned URL
 
     return {
       ...task,
       tileset_uri: tilesetUri,
-      layers,
-      geometries,
       projects: taskProjects.map((project) => ({
         project_id: project.project_id,
         name: project.name,
         description: project.description,
         colour: project.colour
       })),
-      dashboard_id: dashboardId ?? null
+      dashboard_id: dashboardId ?? null,
+      latest_run: latestRun
     };
   }
 
@@ -114,7 +112,7 @@ export class TaskService extends DBService {
    * @return {*} {Promise<Task[]>} A list of all active tasks.
    * @memberof TaskService
    */
-  async getAllTasks(): Promise<TaskWithLayers[]> {
+  async getAllTasks(): Promise<TaskDetails[]> {
     const tasks = await this.taskRepository.getAllTasks();
     const taskIds = tasks.map((task) => task.task_id);
 
@@ -122,25 +120,14 @@ export class TaskService extends DBService {
       return [];
     }
 
-    const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
-    const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
-
-    for (const layer of layersWithConstraints) {
-      const existing = layersByTaskId.get(layer.task_id) ?? [];
-      existing.push(layer);
-      layersByTaskId.set(layer.task_id, existing);
-    }
-
-    const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
     const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
 
     return Promise.all(
       tasks.map(async (task) => ({
         ...task,
         tileset_uri: await this.toPresignedTilesetUri(task.tileset_uri),
-        layers: layersByTaskId.get(task.task_id) ?? [],
-        geometries: geometriesByTaskId.get(task.task_id) ?? [],
-        projects: projectsByTaskId.get(task.task_id) ?? []
+        projects: projectsByTaskId.get(task.task_id) ?? [],
+        latest_run: await this.getLatestTaskRunWithArtifacts(task.task_id)
       }))
     );
   }
@@ -152,7 +139,7 @@ export class TaskService extends DBService {
    * @return {*}  {Promise<TaskWithLayers[]>}
    * @memberof TaskService
    */
-  async getTasksForProfile(profileId: string): Promise<TaskWithLayers[]> {
+  async getTasksForProfile(profileId: string): Promise<TaskDetails[]> {
     const tasks = await this.taskRepository.getTasksByProfileId(profileId);
     const taskIds = tasks.map((task) => task.task_id);
 
@@ -160,24 +147,14 @@ export class TaskService extends DBService {
       return [];
     }
 
-    const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
-    const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
     const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
-
-    const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
-    for (const layer of layersWithConstraints) {
-      const existing = layersByTaskId.get(layer.task_id) ?? [];
-      existing.push(layer);
-      layersByTaskId.set(layer.task_id, existing);
-    }
 
     return Promise.all(
       tasks.map(async (task) => ({
         ...task,
         tileset_uri: await this.toPresignedTilesetUri(task.tileset_uri),
-        layers: layersByTaskId.get(task.task_id) ?? [],
-        geometries: geometriesByTaskId.get(task.task_id) ?? [],
-        projects: projectsByTaskId.get(task.task_id) ?? []
+        projects: projectsByTaskId.get(task.task_id) ?? [],
+        latest_run: await this.getLatestTaskRunWithArtifacts(task.task_id)
       }))
     );
   }
@@ -194,7 +171,7 @@ export class TaskService extends DBService {
     profileId: string,
     pagination: ApiPaginationOptions,
     search?: string
-  ): Promise<{ tasks: TaskWithLayers[]; pagination: ApiPaginationResults }> {
+  ): Promise<{ tasks: TaskDetails[]; pagination: ApiPaginationResults }> {
     const { tasks, total } = await this.taskRepository.getTasksByProfileIdPaginated(profileId, pagination, search);
     const taskIds = tasks.map((task) => task.task_id);
 
@@ -202,24 +179,14 @@ export class TaskService extends DBService {
       return { tasks: [], pagination: makePaginationResponse(total, pagination) };
     }
 
-    const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
-    const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
     const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
-
-    const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
-    for (const layer of layersWithConstraints) {
-      const existing = layersByTaskId.get(layer.task_id) ?? [];
-      existing.push(layer);
-      layersByTaskId.set(layer.task_id, existing);
-    }
 
     const populatedTasks = await Promise.all(
       tasks.map(async (task) => ({
         ...task,
         tileset_uri: await this.toPresignedTilesetUri(task.tileset_uri),
-        layers: layersByTaskId.get(task.task_id) ?? [],
-        geometries: geometriesByTaskId.get(task.task_id) ?? [],
-        projects: projectsByTaskId.get(task.task_id) ?? []
+        projects: projectsByTaskId.get(task.task_id) ?? [],
+        latest_run: await this.getLatestTaskRunWithArtifacts(task.task_id)
       }))
     );
 
@@ -236,7 +203,7 @@ export class TaskService extends DBService {
    * @return {*}  {Promise<TaskWithLayers[]>}
    * @memberof TaskService
    */
-  async getTasksForProject(projectId: string): Promise<TaskWithLayers[]> {
+  async getTasksForProject(projectId: string): Promise<TaskDetails[]> {
     const tasks = await this.taskRepository.getTasksByProjectId(projectId);
     const taskIds = tasks.map((task) => task.task_id);
 
@@ -244,24 +211,14 @@ export class TaskService extends DBService {
       return [];
     }
 
-    const layersWithConstraints = await this.getTaskLayersWithConstraintsForTasks(taskIds);
-    const layersByTaskId = new Map<string, TaskLayerWithConstraints[]>();
-    const geometriesByTaskId = await this.taskGeometryService.getGeometriesByTaskIds(taskIds);
     const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
-
-    for (const layer of layersWithConstraints) {
-      const existing = layersByTaskId.get(layer.task_id) ?? [];
-      existing.push(layer);
-      layersByTaskId.set(layer.task_id, existing);
-    }
 
     return Promise.all(
       tasks.map(async (task) => ({
         ...task,
         tileset_uri: await this.toPresignedTilesetUri(task.tileset_uri),
-        layers: layersByTaskId.get(task.task_id) ?? [],
-        geometries: geometriesByTaskId.get(task.task_id) ?? [],
-        projects: projectsByTaskId.get(task.task_id) ?? []
+        projects: projectsByTaskId.get(task.task_id) ?? [],
+        latest_run: await this.getLatestTaskRunWithArtifacts(task.task_id)
       }))
     );
   }
@@ -275,6 +232,26 @@ export class TaskService extends DBService {
    */
   private async toPresignedTilesetUri(uri: string | null | undefined): Promise<string | null> {
     return toPresignedPmtilesUrl(uri);
+  }
+
+  /** Returns the latest run with authoritative artifacts for task compatibility responses. */
+  private async getLatestTaskRunWithArtifacts(taskId: string): Promise<TaskRunWithArtifacts | null> {
+    const run = await this.taskRunRepository.getLatestTaskRunByTaskId(taskId);
+    if (!run) {
+      return null;
+    }
+    const artifacts = await this.artifactRepository.getArtifactsByRunId(run.task_run_id);
+    const solutions = await this.taskRunSolutionRepository.getTaskRunSolutions(run.task_run_id);
+    return {
+      ...run,
+      solutions,
+      artifacts: await Promise.all(
+        artifacts.map(async (artifact) => ({
+          ...artifact,
+          uri: artifact.type === 'pmtiles' ? await toPresignedPmtilesUrl(artifact.uri) : artifact.uri
+        }))
+      )
+    };
   }
 
   /**
@@ -444,7 +421,7 @@ export class TaskService extends DBService {
    * @return {*}  {Promise<TaskWithLayers>}
    * @memberof TaskService
    */
-  async updateTaskStatus(taskId: string, updates: UpdateTaskExecution): Promise<TaskWithLayers> {
+  async updateTaskStatus(taskId: string, updates: UpdateTaskExecution): Promise<TaskDetails> {
     await this.taskRepository.updateTaskExecution(taskId, updates);
     await this.submitTileJobIfCompleted(taskId, updates);
     return this.getTaskById(taskId);
@@ -503,10 +480,23 @@ export class TaskService extends DBService {
     }
 
     const tile = await this.taskTileRepository.getLatestTaskTileByTaskId(taskId);
-    const tileUri = await toPresignedPmtilesUrl(tile?.pmtiles_uri ?? null);
+    const latestRun = await this.taskRunRepository.getLatestTaskRunByTaskId(taskId);
+    const runArtifacts = latestRun ? await this.artifactRepository.getArtifactsByRunId(latestRun.task_run_id) : [];
+    const runPmtiles = runArtifacts.find((artifact) => artifact.type === 'pmtiles');
+    const tileUri = await toPresignedPmtilesUrl(tile?.pmtiles_uri ?? runPmtiles?.uri ?? null);
 
     const normalizedStatus = normalizeTaskStatus(task.status);
-    const normalizedTileStatus = normalizeTileStatus(tile?.status ?? null);
+    const runArtifactTileStatus =
+      runPmtiles?.status === 'pending'
+        ? TILE_STATUS.DRAFT
+        : runPmtiles?.status === 'building'
+        ? TILE_STATUS.STARTED
+        : runPmtiles?.status === 'ready'
+        ? TILE_STATUS.COMPLETED
+        : runPmtiles?.status === 'failed'
+        ? TILE_STATUS.FAILED
+        : null;
+    const normalizedTileStatus = normalizeTileStatus(tile?.status ?? runArtifactTileStatus);
 
     if (!normalizedStatus) {
       throw new Error('Unrecognized task status value.');
@@ -516,71 +506,14 @@ export class TaskService extends DBService {
       task_id: task.task_id,
       status: normalizedStatus,
       output_uri: task.output_uri ?? null,
-      tile: tile
-        ? {
-            status: normalizedTileStatus ?? TILE_STATUS.FAILED,
-            pmtiles_uri: tileUri
-          }
-        : null
+      tile:
+        tile || runPmtiles
+          ? {
+              status: normalizedTileStatus ?? TILE_STATUS.FAILED,
+              pmtiles_uri: tileUri
+            }
+          : null
     };
   }
 
-  /**
-   * Fetches configured task layers and their constraints.
-   *
-   * @param {string} taskId
-   * @return {*} {Promise<TaskLayerWithConstraints[]>}
-   * @memberof TaskService
-   */
-  private async getTaskLayersWithConstraints(taskId: string): Promise<TaskLayerWithConstraints[]> {
-    const layers = await this.taskLayerService.getTaskLayersByTaskId(taskId);
-
-    const layersWithConstraints = await Promise.all(
-      layers.map(async (layer) => {
-        const constraints = await this.taskLayerConstraintService.getTaskLayerConstraintsByTaskLayerId(
-          layer.task_layer_id
-        );
-
-        return {
-          ...layer,
-          constraints
-        };
-      })
-    );
-
-    return layersWithConstraints;
-  }
-
-  /**
-   * Fetches configured task layers and their constraints for multiple tasks.
-   *
-   * @param {string[]} taskIds
-   * @return {*} {Promise<TaskLayerWithConstraints[]>}
-   * @memberof TaskService
-   */
-  private async getTaskLayersWithConstraintsForTasks(taskIds: string[]): Promise<TaskLayerWithConstraints[]> {
-    const layers = await this.taskLayerService.taskLayerRepository.getTaskLayersByTaskIds(taskIds);
-    const layerIds = layers.map((layer) => layer.task_layer_id);
-
-    if (!layerIds.length) {
-      return [];
-    }
-
-    const constraints =
-      await this.taskLayerConstraintService.taskLayerConstraintRepository.getTaskLayerConstraintsByTaskLayerIds(
-        layerIds
-      );
-
-    const constraintsByLayerId = new Map<string, TaskLayerConstraint[]>();
-    for (const constraint of constraints) {
-      const existing = constraintsByLayerId.get(constraint.task_layer_id) ?? [];
-      existing.push(constraint);
-      constraintsByLayerId.set(constraint.task_layer_id, existing);
-    }
-
-    return layers.map((layer) => ({
-      ...layer,
-      constraints: constraintsByLayerId.get(layer.task_layer_id) ?? []
-    }));
-  }
 }

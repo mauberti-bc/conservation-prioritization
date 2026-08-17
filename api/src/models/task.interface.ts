@@ -1,21 +1,8 @@
 import { Task } from './task';
-import { Geometry } from './geometry';
-import { TaskLayer } from './task-layer';
-import { TaskLayerConstraint } from './task-layer-constraint';
+import { TaskRunWithArtifacts } from './task-run.interface';
 
-/**
- * Task layer including its configured constraints.
- */
-export interface TaskLayerWithConstraints extends TaskLayer {
-  constraints: TaskLayerConstraint[];
-}
-
-/**
- * Task including its configured layers and constraints.
- */
-export interface TaskWithLayers extends Task {
-  layers: TaskLayerWithConstraints[];
-  geometries: Geometry[];
+/** Task metadata with its latest immutable optimization problem and results. */
+export interface TaskDetails extends Task {
   projects?: {
     project_id: string;
     name: string;
@@ -23,4 +10,5 @@ export interface TaskWithLayers extends Task {
     colour: string;
   }[];
   dashboard_id?: string | null;
+  latest_run?: TaskRunWithArtifacts | null;
 }

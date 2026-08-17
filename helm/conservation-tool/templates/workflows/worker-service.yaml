@@ -1,15 +1,19 @@
+{{- $root := . -}}
+{{- range $profileName, $profile := .Values.services.workflows.worker.profiles }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "conservation-tool.fullname.prefect-worker" . }}
+  name: {{ include "conservation-tool.fullname.prefect-worker" $root }}-{{ $profileName }}
   labels:
-    {{- include "conservation-tool.labels" . | nindent 4 }}
+    {{- include "conservation-tool.labels" $root | nindent 4 }}
 spec:
-  type: {{ .Values.services.workflows.worker.service.type }}
+  type: {{ $root.Values.services.workflows.worker.service.type }}
   selector:
-    app: {{ include "conservation-tool.fullname.prefect-worker" . }}
+    app: {{ include "conservation-tool.fullname.prefect-worker" $root }}-{{ $profileName }}
   ports:
     - name: http
       protocol: TCP
-      port: {{ .Values.services.workflows.worker.service.port }}
-      targetPort: {{ .Values.services.workflows.worker.service.targetPort }}
+      port: {{ $root.Values.services.workflows.worker.service.port }}
+      targetPort: {{ $root.Values.services.workflows.worker.service.targetPort }}
+---
+{{- end }}

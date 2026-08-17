@@ -17,7 +17,7 @@ import {
 import { grey } from '@mui/material/colors';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { LayerCardItem } from 'features/home/layer-panel/card/LayerCardItem';
-import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/optimization-form.interface';
 import { useCallback, useMemo, useState } from 'react';
 import { createInputValueAndDetectFiltersHandler, doesLayerMatchFilters } from 'utils/filter-match';
 import { pluralize } from 'utils/util';

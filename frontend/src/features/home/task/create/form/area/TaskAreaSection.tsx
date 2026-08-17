@@ -42,28 +42,28 @@ export const TaskAreaSection = ({ isReadOnly = false }: TaskAreaSectionProps) =>
       const newFeature = features[0];
       const newGeometry = {
         id: v4(),
-        name: `Area ${values.geometry.length + 1}`,
+        name: `Area ${values.targetArea.length + 1}`,
         description: null,
         geojson: newFeature,
         mapboxFeatureId: newFeature.id,
       };
-      setFieldValue('geometry', [...values.geometry, newGeometry]);
+      setFieldValue('targetArea', [...values.targetArea, newGeometry]);
       setIsDrawing(false);
     });
-  }, [drawControlsRef, setFieldValue, values.geometry]);
+  }, [drawControlsRef, setFieldValue, values.targetArea]);
 
   const handleDelete = useCallback(
     (id: string) => {
-      const featureToDelete = values.geometry.find((g) => g.id === id);
+      const featureToDelete = values.targetArea.find((g) => g.id === id);
       if (featureToDelete && drawRef.current && featureToDelete.mapboxFeatureId) {
         drawRef.current.delete(featureToDelete.mapboxFeatureId);
       }
       setFieldValue(
-        'geometry',
-        values.geometry.filter((g) => g.id !== id)
+        'targetArea',
+        values.targetArea.filter((g) => g.id !== id)
       );
     },
-    [values.geometry, setFieldValue, drawRef]
+    [values.targetArea, setFieldValue, drawRef]
   );
 
   /** Handle Enter key to finish drawing */
@@ -149,9 +149,9 @@ export const TaskAreaSection = ({ isReadOnly = false }: TaskAreaSectionProps) =>
         </Box>
       )}
 
-      {values.geometry.length > 0 ? (
+      {values.targetArea.length > 0 ? (
         <Box mt={1}>
-          <TaskGeometryForm geometry={values.geometry} onDelete={handleDelete} isReadOnly={isReadOnly} />
+          <TaskGeometryForm geometry={values.targetArea} onDelete={handleDelete} isReadOnly={isReadOnly} />
         </Box>
       ) : null}
 

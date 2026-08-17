@@ -4,7 +4,7 @@ import Icon from '@mdi/react';
 import { grey } from '@mui/material/colors';
 import { useEffect, useState } from 'react';
 import { useLayerSearch } from 'hooks/useLayerSearch';
-import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/optimization-form.interface';
 import { LayerOptionAutocomplete } from './select/LayerOptionAutocomplete';
 
 export type LayerSearchVariant = 'select' | 'list';
@@ -31,6 +31,7 @@ interface LayerSearchProps {
   allowEmptySearch?: boolean;
   autoSearchOnMount?: boolean;
   initialSearchTerm?: string;
+  excludedLayerPaths?: string[];
 }
 
 /**
@@ -48,6 +49,7 @@ export const LayerSearch = ({
   allowEmptySearch = false,
   autoSearchOnMount = false,
   initialSearchTerm = '',
+  excludedLayerPaths = [],
 }: LayerSearchProps) => {
   const [inputValue, setInputValue] = useState('');
   const { layers, loading, error, search } = useLayerSearch({ debounceMs, allowEmptySearch });
@@ -95,7 +97,7 @@ export const LayerSearch = ({
 
   return (
     <LayerOptionAutocomplete
-      availableLayers={layers}
+      availableLayers={layers.filter((layer) => !excludedLayerPaths.includes(layer.path))}
       loading={loading}
       error={error}
       onSearch={search}

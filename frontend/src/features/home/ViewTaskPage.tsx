@@ -1,12 +1,12 @@
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
-import { TASK_STATUS, TILE_STATUS } from 'constants/status';
-import { useMapContext, useTaskContext } from 'hooks/useContext';
+import Typography from '@mui/material/Typography';
+import { TASK_STATUS } from 'constants/status';
+import { useApplicationEventsContext, useMapContext, useTaskContext } from 'hooks/useContext';
 import { useEffect, useMemo, useState } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
-import { useTaskStatusWebSocket } from './task/status/useTaskStatusWebSocket';
 import { getTaskViewSidebarWidth } from './task/view/sidebar/task-view-sidebar.constants';
 import { TaskViewSidebar } from './task/view/sidebar/TaskViewSidebar';
 
@@ -18,21 +18,13 @@ import { TaskViewSidebar } from './task/view/sidebar/TaskViewSidebar';
 export const ViewTaskPage = () => {
   const { drawControlsRef } = useMapContext();
   const { taskId, taskDataLoader, hoveredTilesetUri } = useTaskContext();
+  const { taskRevisions, connectionEpoch, markTaskSeen } = useApplicationEventsContext();
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
   const [isResettingPmtiles, setIsResettingPmtiles] = useState(false);
   const sidebarWidthPx = getTaskViewSidebarWidth(isPreviewOpen);
   const sidebarWidth = `${sidebarWidthPx}px`;
 
   const sidebarMinWidth = 320;
-  const shouldSubscribeToTaskStatus = useMemo(() => {
-    const activeTaskDataForSubscription = taskDataLoader.data?.task_id === taskId ? taskDataLoader.data : null;
-    if (!taskId || !taskDataLoader.hasLoaded) {
-      return false;
-    }
-
-    return !activeTaskDataForSubscription?.tileset_uri;
-  }, [taskDataLoader.data, taskDataLoader.hasLoaded, taskId]);
-
   const activeTaskData = useMemo(() => {
     if (!taskDataLoader.data || taskDataLoader.data.task_id !== taskId) {
       return null;
@@ -41,22 +33,34 @@ export const ViewTaskPage = () => {
     return taskDataLoader.data;
   }, [taskDataLoader.data, taskId]);
 
-  const { data: taskStatus } = useTaskStatusWebSocket(shouldSubscribeToTaskStatus ? taskId : null);
-  const activeTaskStatus = useMemo(() => {
-    if (!taskStatus || taskStatus.task_id !== taskId) {
-      return null;
+  useEffect(() => {
+    const revision = taskRevisions[taskId];
+    if (!revision || !taskDataLoader.hasLoaded) {
+      return;
     }
+    void taskDataLoader.refresh(taskId);
+    markTaskSeen(taskId);
+    // The loader is intentionally refreshed only when the authoritative revision changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [markTaskSeen, taskId, taskRevisions[taskId]]);
 
-    return taskStatus;
-  }, [taskId, taskStatus]);
-
-  const resolvedPmtilesUri = useMemo(() => {
-    if (activeTaskStatus?.tile?.status === TILE_STATUS.COMPLETED && activeTaskStatus.tile.pmtiles_uri) {
-      return activeTaskStatus.tile.pmtiles_uri;
+  useEffect(() => {
+    if (!connectionEpoch || !taskDataLoader.hasLoaded) {
+      return;
     }
+    void taskDataLoader.refresh(taskId);
+    // Reconnect recovery is authoritative REST refetch, not event replay.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectionEpoch, taskId]);
 
-    return activeTaskData?.tileset_uri ?? null;
-  }, [activeTaskData, activeTaskStatus]);
+  const referenceDecisionUri = useMemo(() => {
+    const decision = activeTaskData?.latest_run?.artifacts?.find(
+      (artifact) => artifact.type === 'pmtiles' && artifact.status === 'ready'
+    );
+    return decision?.uri ?? null;
+  }, [activeTaskData]);
+
+  const resolvedPmtilesUri = referenceDecisionUri ?? activeTaskData?.tileset_uri ?? null;
 
   const pmtilesUrls = useMemo(() => {
     const baseUrls = resolvedPmtilesUri ? [resolvedPmtilesUri] : [];
@@ -80,11 +84,11 @@ export const ViewTaskPage = () => {
     return () => {
       window.clearTimeout(resetTimer);
     };
-  }, [taskId]);
+  }, [resolvedPmtilesUri, taskId]);
 
   const showStatusChip = useMemo(() => {
-    const activeStatus = activeTaskStatus?.status ?? activeTaskData?.status;
-    const hasPmtilesUri = Boolean(activeTaskStatus?.tile?.pmtiles_uri ?? activeTaskData?.tileset_uri);
+    const activeStatus = activeTaskData?.status;
+    const hasPmtilesUri = Boolean(activeTaskData?.tileset_uri);
     if (!activeStatus) {
       return false;
     }
@@ -98,18 +102,44 @@ export const ViewTaskPage = () => {
     }
 
     return true;
-  }, [activeTaskData, activeTaskStatus]);
+  }, [activeTaskData]);
 
   const statusChipLabel = useMemo(() => {
-    const activeStatus = activeTaskStatus?.status ?? activeTaskData?.status;
-    const hasPmtilesUri = Boolean(activeTaskStatus?.tile?.pmtiles_uri ?? activeTaskData?.tileset_uri);
+    const activeStatus = activeTaskData?.status;
+    const hasPmtilesUri = Boolean(activeTaskData?.tileset_uri);
 
     if (activeStatus === TASK_STATUS.COMPLETED && !hasPmtilesUri) {
       return 'Building map';
     }
 
+    const stage = activeTaskData?.latest_run?.stage;
+    if (stage === 'counting') {
+      return 'Counting planning units';
+    }
+    if (stage === 'preparing') {
+      return 'Preparing data';
+    }
+    if (stage === 'compiling') {
+      return 'Compiling model';
+    }
+    if (stage === 'admitting') {
+      return 'Checking capacity';
+    }
+    if (stage === 'solving') {
+      return 'Optimizing';
+    }
+    if (stage === 'materializing') {
+      return 'Saving result';
+    }
+    if (stage === 'exporting') {
+      return 'Building export';
+    }
+    if (stage === 'publishing') {
+      return 'Building map';
+    }
+
     return 'Processing';
-  }, [activeTaskData, activeTaskStatus]);
+  }, [activeTaskData]);
 
   return (
     <Box position="relative" height="100%" overflow="hidden">
@@ -143,6 +173,22 @@ export const ViewTaskPage = () => {
           </Box>
         )}
         <MapContainer pmtilesUrls={isResettingPmtiles ? [] : pmtilesUrls} boundsRefreshKey={taskId} />
+        {resolvedPmtilesUri && (
+          <Box
+            sx={{
+              position: 'absolute',
+              right: 16,
+              bottom: 32,
+              zIndex: 10,
+              bgcolor: 'background.paper',
+              borderRadius: 1,
+              boxShadow: 3,
+              p: 1.5,
+              minWidth: 230,
+            }}>
+            <Typography variant="body2">Reference solution</Typography>
+          </Box>
+        )}
         <DrawControls ref={drawControlsRef} />
       </Box>
 

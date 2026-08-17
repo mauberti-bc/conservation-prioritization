@@ -27,13 +27,19 @@ export interface AuthorizeByTask {
   discriminator: 'Task';
 }
 
+export interface AuthorizeByTaskRun {
+  taskRunId: string;
+  validTaskRoles?: TASK_ROLE[];
+  discriminator: 'TaskRun';
+}
+
 export interface AuthorizeByProject {
   projectId: string;
   validProjectRoles?: PROJECT_ROLE[];
   discriminator: 'Project';
 }
 
-export type AuthorizeRule = AuthorizeByProfile | AuthorizeByTask | AuthorizeByProject;
+export type AuthorizeRule = AuthorizeByProfile | AuthorizeByTask | AuthorizeByTaskRun | AuthorizeByProject;
 
 export type AuthorizeConfigOr = {
   [AuthorizeOperator.AND]?: never;

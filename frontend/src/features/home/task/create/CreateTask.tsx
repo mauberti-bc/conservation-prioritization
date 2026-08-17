@@ -5,31 +5,29 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import { Formik } from 'formik';
-import {
-  CreateDraftTaskRequest,
-  CreateTaskLayer,
-  GetTaskResponse,
-  OPTIMIZATION_VARIANT,
-  SubmitTaskRequest,
-} from 'hooks/interfaces/useTaskApi.interface';
+import { CreateDraftTaskRequest, GetTaskResponse, OPTIMIZATION_MODE } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useMapContext } from 'hooks/useContext';
 import { MutableRefObject, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { buildTaskSubmission } from 'utils/task-submission';
 import { TaskAdvancedSection } from './form/advanced/TaskAdvancedSection';
 import { CreateTaskSubmitRefBinder } from './form/shared/CreateTaskSubmitRefBinder';
 import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
 import { taskValidationSchema } from './TaskCreateYup';
 
 const initialValues: TaskCreateFormValues = {
-  resolution: 1000,
+  resolution: 240,
   description: null,
   resampling: 'mode',
   name: '',
-  variant: OPTIMIZATION_VARIANT.STRICT,
-  budget: null,
-  layers: [],
-  geometry: [],
+  type: 'discrete_optimization',
+  optimizationMode: OPTIMIZATION_MODE.INTERACTIVE,
+  neighborPenaltyEnabled: false,
+  neighborPenaltyStrength: 1,
+  objectives: [],
+  constraints: [],
+  targetArea: [],
 };
 
 interface CreateTaskProps {
@@ -66,56 +64,15 @@ export const CreateTask = ({
     setIsSubmitting(true);
 
     try {
-      const mappedLayers: CreateTaskLayer[] = values.layers.map((layer) => ({
-        layer_name: layer.path,
-        description: null,
-        mode: layer.mode,
-        importance: layer.mode === 'flexible' ? layer.importance : undefined,
-        threshold: layer.mode === 'locked-in' || layer.mode === 'locked-out' ? layer.threshold : undefined,
-        constraints: layer.constraints.map((constraint) => ({
-          min: constraint.min ?? null,
-          max: constraint.max ?? null,
-          type: constraint.type,
-        })),
-      }));
-
-      const mappedBudget: CreateTaskLayer | undefined = values.budget
-        ? {
-            layer_name: values.budget.path,
-            description: null,
-            mode: values.budget.mode,
-            importance: values.budget.importance ?? null,
-            threshold: values.budget.threshold ?? null,
-            constraints: values.budget.constraints.map((constraint) => ({
-              min: constraint.min ?? null,
-              max: constraint.max ?? null,
-              type: constraint.type,
-            })),
-          }
-        : undefined;
-
       const draftTaskData: CreateDraftTaskRequest = {
+        type: values.type,
         name: values.name,
         description: values.description ?? null,
         resolution: values.resolution,
         resampling: values.resampling,
-        variant: values.variant,
       };
 
-      const submitData: SubmitTaskRequest = {
-        variant: values.variant,
-        resolution: values.resolution,
-        resampling: values.resampling,
-        layers: mappedLayers,
-        budget: mappedBudget,
-        geometry: values.geometry.length
-          ? values.geometry.map((geometry) => ({
-              name: geometry.name,
-              description: geometry.description,
-              geojson: geometry.geojson,
-            }))
-          : undefined,
-      };
+      const submitData = buildTaskSubmission(values);
 
       const createdDraftTask = await conservationApi.task.createTask(draftTaskData);
       const createdTask = await conservationApi.task.submitTask(createdDraftTask.task_id, submitData);
@@ -188,7 +145,7 @@ export const CreateTask = ({
                   <Icon path={mdiClose} size={1} />
                 </IconButton>
               </Box>
-              <TaskCreateForm autoSearchOnMount showAdvancedSection={false} />
+              <TaskCreateForm autoSearchOnMount showAdvancedSection={hideInternalActions} />
             </Box>
 
             {/* Sticky footer */}

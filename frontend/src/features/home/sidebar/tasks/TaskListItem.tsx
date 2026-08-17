@@ -13,7 +13,7 @@ import { InteractiveListItemButton } from 'components/list/InteractiveListItemBu
 import { TASK_STATUS } from 'constants/status';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useDialogContext, useTaskContext } from 'hooks/useContext';
+import { useApplicationEventsContext, useDialogContext, useTaskContext } from 'hooks/useContext';
 import { useState } from 'react';
 import { getTaskStatusLabel } from 'utils/task-status';
 
@@ -39,6 +39,7 @@ export const TaskListItem = ({
   const dialogContext = useDialogContext();
   const conservationApi = useConservationApi();
   const { taskId, refreshTasks } = useTaskContext();
+  const { unseenTaskIds, markTaskSeen } = useApplicationEventsContext();
   const [isHovered, setIsHovered] = useState(false);
   void onDeleteTask;
   void onAddToProject;
@@ -225,6 +226,7 @@ export const TaskListItem = ({
       <InteractiveListItemButton
         selected={task.task_id === taskId}
         onClick={() => {
+          markTaskSeen(task.task_id);
           onSelectTask(task);
         }}>
         <ListItemText
@@ -233,6 +235,9 @@ export const TaskListItem = ({
               <Typography fontWeight={700} noWrap>
                 {task.name}
               </Typography>
+              {unseenTaskIds.has(task.task_id) ? (
+                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main', flex: '0 0 auto' }} />
+              ) : null}
               {task.projects?.length ? (
                 <Box display="flex" alignItems="center" gap={0.5}>
                   {task.projects.map((project) => (

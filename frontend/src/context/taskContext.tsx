@@ -47,20 +47,16 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
   }
 
   useEffect(() => {
-    if (taskDataLoader.isLoading) {
-      return;
-    }
-
-    const hasRequestedRouteTask = lastRequestedTaskIdRef.current === activeTaskId;
-    const hasMismatchedLoadedTask = taskDataLoader.data?.task_id !== activeTaskId;
-    if (hasRequestedRouteTask && !hasMismatchedLoadedTask) {
+    if (taskDataLoader.isLoading || lastRequestedTaskIdRef.current === activeTaskId) {
       return;
     }
 
     lastRequestedTaskIdRef.current = activeTaskId;
     void taskDataLoader.refresh(activeTaskId);
+    // A failed route load must remain failed until an explicit refresh or route
+    // change. Treating missing data as a mismatch causes an immediate retry loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTaskId, taskDataLoader.data?.task_id, taskDataLoader.isLoading]);
+  }, [activeTaskId, taskDataLoader.isLoading]);
 
   const setFocusedTask = useCallback(
     (task: GetTaskResponse | null) => {

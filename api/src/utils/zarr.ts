@@ -1,7 +1,4 @@
 import { LayerMeta } from '../models/layer.interface';
-import { getLogger } from './logger';
-
-const defaultLog = getLogger('utils/zarr');
 
 const IGNORED_NAMES = new Set(['x', 'y', 'spatial_ref']);
 
@@ -13,6 +10,12 @@ interface ZarrArrayMetadata {
 interface ZarrAttrsMetadata {
   label?: string;
   description?: string;
+  representation_contract?: Record<string, unknown>;
+}
+
+interface ZarrRootAttrsMetadata {
+  storage_model?: string;
+  layer_descriptors?: Record<string, { array_path?: string }>;
 }
 
 const parseMetadataValue = <T>(value: unknown): T | null => {
@@ -39,6 +42,12 @@ const parseMetadataValue = <T>(value: unknown): T | null => {
  */
 export function parseArraysFromConsolidatedMetadata(metadata: Record<string, unknown>): LayerMeta[] {
   const arrays: LayerMeta[] = [];
+  const rootAttrs = parseMetadataValue<ZarrRootAttrsMetadata>(metadata['.zattrs']);
+  const authoritativePaths = rootAttrs?.layer_descriptors
+    ? new Set(
+        Object.entries(rootAttrs.layer_descriptors).map(([layerId, descriptor]) => descriptor.array_path ?? layerId)
+      )
+    : null;
 
   for (const path in metadata) {
     // Skip malformed entries rather than fail the entire parse.
@@ -46,23 +55,21 @@ export function parseArraysFromConsolidatedMetadata(metadata: Record<string, unk
       continue;
     }
 
-    const arrayPath = path.replace(/^\//, '').replace(/\/\.zarray$/, '');
+    const storedArrayPath = path.replace(/^\//, '').replace(/\/\.zarray$/, '');
+    if (authoritativePaths && !authoritativePaths.has(storedArrayPath)) {
+      continue;
+    }
+    const arrayPath = storedArrayPath;
     const zarrayMeta = parseMetadataValue<ZarrArrayMetadata>(metadata[path]);
 
     if (!zarrayMeta || typeof zarrayMeta !== 'object') {
-      defaultLog.debug({ label: 'parseArraysFromConsolidatedMetadata', message: 'Skipping invalid zarray metadata', path });
       continue;
     }
 
-    const zattrsMeta = parseMetadataValue<ZarrAttrsMetadata>(metadata[`${arrayPath}/.zattrs`]);
+    const zattrsMeta = parseMetadataValue<ZarrAttrsMetadata>(metadata[`${storedArrayPath}/.zattrs`]);
     const pathParts = arrayPath.split('/');
 
     if (!Array.isArray(pathParts) || pathParts.length === 0) {
-      defaultLog.debug({
-        label: 'parseArraysFromConsolidatedMetadata',
-        message: 'Skipping malformed path',
-        path: arrayPath
-      });
       continue;
     }
 
@@ -81,11 +88,6 @@ export function parseArraysFromConsolidatedMetadata(metadata: Record<string, unk
     const dtype = zarrayMeta.dtype;
 
     if (!Array.isArray(shape) || typeof dtype !== 'string') {
-      defaultLog.debug({
-        label: 'parseArraysFromConsolidatedMetadata',
-        message: 'Skipping array with invalid shape/dtype',
-        path: arrayPath
-      });
       continue;
     }
 
@@ -95,7 +97,12 @@ export function parseArraysFromConsolidatedMetadata(metadata: Record<string, unk
       name: typeof label === 'string' ? label : name,
       description: typeof description === 'string' ? description : undefined,
       shape,
-      dtype
+      dtype,
+      evidence_resolution:
+        typeof zattrsMeta?.representation_contract?.evidence_resolution === 'number'
+          ? zattrsMeta.representation_contract.evidence_resolution
+          : undefined,
+      representation_contract: zattrsMeta?.representation_contract
     });
   }
 

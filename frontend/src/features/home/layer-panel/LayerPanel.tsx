@@ -1,7 +1,7 @@
 import { Checkbox, Typography } from '@mui/material';
 import { Box, Stack } from '@mui/system';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
-import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/optimization-form.interface';
 import { useLayerSelectionContext } from 'hooks/useContext';
 import { LayerCardItem } from './card/LayerCardItem';
 

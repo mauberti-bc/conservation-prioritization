@@ -14,7 +14,9 @@ let DBConstants: DBConstants | undefined;
  */
 export const initDBConstants = async (): Promise<void> => {
   // Return early if already initialized
-  if (DBConstants) return;
+  if (DBConstants) {
+    return;
+  }
 
   const defaultLog = getLogger('database/db'); // Moved logger initialization up
 

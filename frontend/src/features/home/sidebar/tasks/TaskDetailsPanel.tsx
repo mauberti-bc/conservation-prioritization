@@ -34,6 +34,16 @@ export const TaskDetailsPanel = () => {
   const dashboardId = taskDataLoader.data?.dashboard_id ?? null;
 
   const task = taskDataLoader.data;
+  const evidenceResolution = task?.latest_run?.input_snapshot?.evidence_resolution;
+  const snapshotContracts = Object.values(task?.latest_run?.input_snapshot?.layer_contracts ?? {});
+  const usesLegacyMapping = snapshotContracts.some(
+    (contract) => contract?.compatibility_mode === 'legacy_noncanonical'
+  );
+  const evidenceLabel = evidenceResolution
+    ? evidenceResolution.minimum === evidenceResolution.maximum
+      ? `Evidence: ${evidenceResolution.minimum.toLocaleString()} m native`
+      : `Evidence: ${evidenceResolution.minimum.toLocaleString()}–${evidenceResolution.maximum.toLocaleString()} m native`
+    : 'Evidence: source-layer resolution';
 
   const publishInitialValues = useMemo<PublishDashboardFormValues>(() => {
     return {
@@ -145,9 +155,25 @@ export const TaskDetailsPanel = () => {
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap">
                 {task?.status && <Chip size="small" label={getTaskStatusLabel(task.status)} color="primary" />}
-                {task?.variant && <Chip size="small" label={`Variant: ${task.variant}`} />}
-                {task?.resampling && <Chip size="small" label={`Resampling: ${task.resampling}`} />}
-                {typeof task?.resolution === 'number' && <Chip size="small" label={`Resolution: ${task.resolution}`} />}
+                <Chip size="small" label={evidenceLabel} />
+                {usesLegacyMapping && <Chip size="small" color="warning" label="Noncanonical legacy mapping" />}
+                {typeof task?.resolution === 'number' && (
+                  <Chip size="small" label={`Planning units: ${task.resolution} m`} />
+                )}
+                {task?.latest_run?.execution_method && (
+                  <Chip size="small" label={`Method: ${task.latest_run.execution_method.replaceAll('_', ' ')}`} />
+                )}
+                {task?.latest_run?.solver_name && (
+                  <Chip
+                    size="small"
+                    label={`Solver: ${task.latest_run.solver_name}${
+                      task.latest_run.solver_version ? ` ${task.latest_run.solver_version}` : ''
+                    }`}
+                  />
+                )}
+                {typeof task?.latest_run?.planning_unit_count === 'number' && (
+                  <Chip size="small" label={`${task.latest_run.planning_unit_count.toLocaleString()} units`} />
+                )}
               </Stack>
               <Typography variant="body2" color="text.secondary">
                 {task?.description || 'No description provided.'}
@@ -158,18 +184,17 @@ export const TaskDetailsPanel = () => {
 
             <Stack gap={2}>
               <Typography variant="overline" color="text.secondary">
-                Layers
+                Objectives
               </Typography>
-              {(task?.layers ?? []).length === 0 && (
+              {(task?.latest_run?.input_snapshot?.objectives ?? []).length === 0 && (
                 <Typography variant="body2" color="text.secondary">
-                  No layers configured.
+                  No objectives configured.
                 </Typography>
               )}
-              {(task?.layers ?? []).map((layer) => {
-                const constraints = layer.constraints ?? [];
+              {(task?.latest_run?.input_snapshot?.objectives ?? []).map((objective) => {
                 return (
                   <Box
-                    key={layer.task_layer_id}
+                    key={objective.layer}
                     sx={{
                       border: '1px solid',
                       borderColor: 'divider',
@@ -180,42 +205,21 @@ export const TaskDetailsPanel = () => {
                       gap: 1,
                     }}>
                     <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
-                      <Typography fontWeight={600}>{layer.layer_name}</Typography>
-                      <Chip size="small" label={layer.mode} />
-                      {typeof layer.importance === 'number' && (
-                        <Chip size="small" label={`Importance: ${layer.importance}`} />
-                      )}
-                      {typeof layer.threshold === 'number' && (
-                        <Chip size="small" label={`Threshold: ${layer.threshold}`} />
-                      )}
-                    </Stack>
-                    {layer.description && (
-                      <Typography variant="body2" color="text.secondary">
-                        {layer.description}
-                      </Typography>
-                    )}
-                    <Stack gap={0.5}>
-                      <Typography variant="caption" color="text.secondary">
-                        Constraints
-                      </Typography>
-                      {constraints.length === 0 && (
-                        <Typography variant="body2" color="text.secondary">
-                          None
-                        </Typography>
-                      )}
-                      {constraints.map((constraint) => {
-                        const min = constraint.min ?? '–';
-                        const max = constraint.max ?? '–';
-                        return (
-                          <Typography key={constraint.task_layer_constraint_id} variant="body2">
-                            {constraint.type}: {min} to {max}
-                          </Typography>
-                        );
-                      })}
+                      <Typography fontWeight={600}>{objective.layer}</Typography>
+                      <Chip size="small" label={objective.direction} />
+                      <Chip size="small" label={`Importance: ${objective.importance}`} />
                     </Stack>
                   </Box>
                 );
               })}
+              <Typography variant="overline" color="text.secondary">
+                Constraints
+              </Typography>
+              {(task?.latest_run?.input_snapshot?.constraints ?? []).map((constraint, index) => (
+                <Typography key={`${constraint.type}:${constraint.layer}:${index}`} variant="body2">
+                  {constraint.type}: {constraint.layer} ({constraint.min ?? '–'} to {constraint.max ?? '–'})
+                </Typography>
+              ))}
             </Stack>
           </Box>
         </Box>

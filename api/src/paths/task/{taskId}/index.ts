@@ -2,11 +2,9 @@ import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getDBConnection } from '../../../database/db';
 import { DeleteTask, UpdateTask } from '../../../models/task';
-import { SubmitTaskRequest } from '../../../models/task-orchestrator';
 import { defaultErrorResponses } from '../../../openapi/schemas/http-responses';
 import { GetTaskSchema, UpdateTaskSchema } from '../../../openapi/schemas/task';
 import { authorizeRequestHandler } from '../../../request-handlers/security/authorization';
-import { TaskOrchestratorService } from '../../../services/task-orchestrator-service';
 import { TaskService } from '../../../services/task-service';
 import { getLogger } from '../../../utils/logger';
 import { UpdateTaskBody } from './task-update.interface';
@@ -179,8 +177,11 @@ export function updateTask(): RequestHandler {
       await connection.open();
 
       const taskService = new TaskService(connection);
-      const taskOrchestratorService = new TaskOrchestratorService(connection);
       const updates: UpdateTask = {};
+
+      if (body.type !== undefined) {
+        updates.type = body.type;
+      }
 
       if (body.name !== undefined) {
         updates.name = body.name;
@@ -191,24 +192,11 @@ export function updateTask(): RequestHandler {
       }
 
       if (body.resolution !== undefined) {
-        updates.resolution = body.resolution ?? undefined;
+        updates.resolution = body.resolution;
       }
 
       if (body.resampling !== undefined) {
-        updates.resampling = body.resampling ?? undefined;
-      }
-
-      if (body.variant !== undefined) {
-        updates.variant = body.variant ?? undefined;
-      }
-
-      if (body.layers !== undefined || body.budget !== undefined) {
-        const layerConfigRequest: SubmitTaskRequest = {
-          layers: body.layers ?? [],
-          budget: body.budget
-        };
-
-        await taskOrchestratorService.configureTaskLayers(taskId, layerConfigRequest);
+        updates.resampling = body.resampling;
       }
 
       if (Object.keys(updates).length > 0) {

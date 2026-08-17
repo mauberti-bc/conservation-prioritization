@@ -247,7 +247,8 @@ Services started:
 - db_setup
 - prefect_server
 - prefect_deploy
-- prefect_worker
+- prefect_worker (bounded spatial)
+- prefect_worker_sparse_solver
 
 ### Run Specific Components
 
@@ -418,15 +419,16 @@ Before workers can execute tasks, flows must be **registered with the Prefect se
 
 - A **deployment** links a flow to a schedule, parameters, and an execution environment
 - Deployments tell Prefect **what flows exist and how to run them**
-- The `prefect_deploy` service automatically registers all flows when started
+- The `prefect_deploy` service idempotently creates the `bounded-spatial`,
+  `streaming-selection`, and `sparse-solver` work pools before registering flows
 
-#### 3. Workers (`prefect_worker`)
+#### 3. Workers (`prefect_worker*`)
 
 Workers **watch queues** for scheduled flow runs:
 
 - Workers continuously poll the Prefect server for new flow runs
 - When a flow run is available, the worker executes it in its environment
-- Multiple workers can run in parallel for **scalable execution**
+- Separate workers poll the bounded-spatial, streaming-selection, and sparse-solver pools
 
 **Default worker port**: 8787
 
@@ -509,7 +511,7 @@ If starting services manually, use this order:
 4. api
 5. prefect_server
 6. prefect_deploy
-7. prefect_worker
+7. prefect_worker and prefect_worker_sparse_solver
 8. frontend
 
 ---

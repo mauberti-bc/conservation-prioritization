@@ -13,9 +13,9 @@
   },
   "scripts": {
     "setup": "npm-run-all -l -s migrate-latest seed",
-    "migrate-latest": "knex migrate:latest --knexfile ./src/knexfile.ts",
-    "migrate-rollback": "knex migrate:rollback --knexfile ./src/knexfile.ts",
-    "seed": "knex seed:run --knexfile ./src/knexfile.ts",
+    "migrate-latest": "node -r ts-node/register/transpile-only node_modules/knex/bin/cli.js migrate:latest --knexfile ./src/knexfile.ts",
+    "migrate-rollback": "node -r ts-node/register/transpile-only node_modules/knex/bin/cli.js migrate:rollback --knexfile ./src/knexfile.ts",
+    "seed": "node -r ts-node/register/transpile-only node_modules/knex/bin/cli.js seed:run --knexfile ./src/knexfile.ts",
     "lint": "eslint src/ --ext .js,.ts",
     "lint-fix": "npm run lint -- --fix",
     "format": "prettier --loglevel=warn --check \"./src/**/*.{js,jsx,ts,tsx,css,scss}\"",

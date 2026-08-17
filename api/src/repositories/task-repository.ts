@@ -22,21 +22,21 @@ export class TaskRepository extends BaseRepository {
   async createTask(task: CreateTask): Promise<Task> {
     const sqlStatement = SQL`
       INSERT INTO task (
+        type,
         name,
         description,
         resolution,
         resampling,
-        variant,
         status
       ) VALUES (
+        ${task.type},
         ${task.name},
         ${task.description},
         ${task.resolution ?? null},
         ${task.resampling ?? null},
-        ${task.variant ?? null},
         ${task.status}
       )
-      RETURNING task_id, name, description, resolution, resampling, variant, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
+      RETURNING task_id, type, name, description, resolution, resampling, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
     `;
 
     const response = await this.connection.sql(sqlStatement, Task);
@@ -58,7 +58,7 @@ export class TaskRepository extends BaseRepository {
   async getTaskById(taskId: string): Promise<Task> {
     const sqlStatement = SQL`
       SELECT
-        task_id, name, description, resolution, resampling, variant, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
+        task_id, type, name, description, resolution, resampling, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
       FROM
         task
       WHERE
@@ -89,7 +89,7 @@ export class TaskRepository extends BaseRepository {
   async findTaskById(taskId: string): Promise<Task | null> {
     const sqlStatement = SQL`
       SELECT
-        task_id, name, description, resolution, resampling, variant, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
+        task_id, type, name, description, resolution, resampling, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
       FROM
         task
       WHERE
@@ -116,7 +116,7 @@ export class TaskRepository extends BaseRepository {
   async getAllTasks(): Promise<Task[]> {
     const sqlStatement = SQL`
       SELECT
-        task_id, name, description, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
+        task_id, type, name, description, resolution, resampling, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
       FROM
         task
       WHERE
@@ -139,11 +139,11 @@ export class TaskRepository extends BaseRepository {
     const sqlStatement = SQL`
       SELECT
         t.task_id,
+        t.type,
         t.name,
         t.description,
         t.resolution,
         t.resampling,
-        t.variant,
         t.tileset_uri,
         t.output_uri,
         t.status,
@@ -208,11 +208,11 @@ export class TaskRepository extends BaseRepository {
     const sqlStatement = SQL`
       SELECT
         t.task_id,
+        t.type,
         t.name,
         t.description,
         t.resolution,
         t.resampling,
-        t.variant,
         t.tileset_uri,
         t.output_uri,
         t.status,
@@ -271,6 +271,7 @@ export class TaskRepository extends BaseRepository {
     const sqlStatement = SQL`
       SELECT
         t.task_id,
+        t.type,
         t.name,
         t.description,
         t.tileset_uri,
@@ -302,16 +303,16 @@ export class TaskRepository extends BaseRepository {
     const sqlStatement = SQL`
       UPDATE task
       SET
+        type = COALESCE(${updates.type}, type),
         name = COALESCE(${updates.name}, name),
         description = COALESCE(${updates.description}, description),
         resolution = COALESCE(${updates.resolution}, resolution),
-        resampling = COALESCE(${updates.resampling}, resampling),
-        variant = COALESCE(${updates.variant}, variant)
+        resampling = COALESCE(${updates.resampling}, resampling)
       WHERE
         task_id = ${taskId}
       AND
         record_end_date IS NULL
-      RETURNING task_id, name, description, resolution, resampling, variant, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
+      RETURNING task_id, type, name, description, resolution, resampling, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
     `;
 
     const response = await this.connection.sql(sqlStatement, Task);
@@ -403,7 +404,7 @@ export class TaskRepository extends BaseRepository {
         task_id = ${taskId}
       AND
         record_end_date IS NULL
-      RETURNING task_id, name, description, resolution, resampling, variant, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
+      RETURNING task_id, type, name, description, resolution, resampling, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
     `);
 
     const response = await this.connection.sql(sqlStatement, Task);

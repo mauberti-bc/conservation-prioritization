@@ -3,11 +3,12 @@ import { IDBConnection } from '../database/db';
 import { HTTP400 } from '../errors/http-error';
 import { TaskTile } from '../models/task-tile';
 import { TaskRepository } from '../repositories/task-repository';
+import { TaskRunRepository } from '../repositories/task-run-repository';
 import { TaskTileRepository } from '../repositories/task-tile-repository';
-import { PrefectService } from './prefect-service';
-import { DBService } from './db-service';
 import { TILE_STATUS } from '../types/status';
 import { normalizeTileStatus } from '../utils/status';
+import { DBService } from './db-service';
+import { TaskRunService } from './task-run-service';
 
 /**
  * Service for managing task tile records.
@@ -19,7 +20,7 @@ import { normalizeTileStatus } from '../utils/status';
 export class TaskTileService extends DBService {
   private taskTileRepository: TaskTileRepository;
   private taskRepository: TaskRepository;
-  private prefectService: PrefectService;
+  private taskRunRepository: TaskRunRepository;
 
   /**
    * Creates an instance of TaskTileService.
@@ -31,7 +32,7 @@ export class TaskTileService extends DBService {
     super(connection);
     this.taskTileRepository = new TaskTileRepository(connection);
     this.taskRepository = new TaskRepository(connection);
-    this.prefectService = new PrefectService();
+    this.taskRunRepository = new TaskRunRepository(connection);
   }
 
   /**
@@ -73,7 +74,11 @@ export class TaskTileService extends DBService {
     }
 
     const draftTile = await this.createDraftTileRecord(taskId);
-    await this.prefectService.submitTaskTile(taskId, draftTile.task_tile_id);
+    const latestRun = await this.taskRunRepository.getLatestTaskRunByTaskId(taskId);
+    if (!latestRun) {
+      throw new HTTP400('Task has no canonical task run to publish.');
+    }
+    await new TaskRunService(this.connection).dispatchPublication(latestRun.task_run_id);
 
     return draftTile;
   }

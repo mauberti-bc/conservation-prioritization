@@ -34,6 +34,15 @@ export const LayerMetaSchema: OpenAPIV3.SchemaObject = {
     dtype: {
       type: 'string',
       description: 'Data type string from Zarr metadata.'
+    },
+    evidence_resolution: {
+      type: 'number',
+      description: 'Native evidence resolution declared by the source layer.'
+    },
+    representation_contract: {
+      type: 'object',
+      additionalProperties: true,
+      description: 'Versioned scientific aggregation and validity semantics.'
     }
   }
 };
