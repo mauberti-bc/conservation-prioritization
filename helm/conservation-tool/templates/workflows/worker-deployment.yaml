@@ -23,14 +23,12 @@ spec:
     spec:
       serviceAccountName: deployer
       initContainers:
-        - name: ensure-work-pool
+        - name: sync-prefect-deployments
           image: "{{ $root.Values.registry }}/{{ $root.Values.services.workflows.worker.image.stream }}:{{ $root.Values.services.workflows.worker.image.tag }}"
           imagePullPolicy: {{ $root.Values.services.workflows.worker.image.pullPolicy | default "Always" }}
           command:
             - bash
-            - src/ensure_work_pool.sh
-            - "{{ $profile.pool }}"
-            - process
+            - src/setup.sh
           env:
             - name: HOME
               value: "/home/app"
@@ -38,6 +36,13 @@ spec:
               value: "/tmp/.prefect"
             - name: PREFECT_API_URL
               value: "{{ $root.Values.env.PREFECT_API_URL }}"
+            - name: ZARR_STORE_PATH
+              value: "{{ $root.Values.env.ZARR_STORE_PATH }}"
+            - name: WORKFLOW_SCRATCH_ROOT
+              value: {{ $profile.scratchRoot | default "/tmp/conservation-workflows" | quote }}
+          volumeMounts:
+            - name: workflow-tmp
+              mountPath: /tmp
       containers:
         - name: prefect-worker
           image: "{{ $root.Values.registry }}/{{ $root.Values.services.workflows.worker.image.stream }}:{{ $root.Values.services.workflows.worker.image.tag }}"
@@ -59,6 +64,8 @@ spec:
               value: "{{ $root.Values.env.PREFECT_API_URL }}"
             - name: ZARR_STORE_PATH
               value: "{{ $root.Values.env.ZARR_STORE_PATH }}"
+            - name: WORKFLOW_SCRATCH_ROOT
+              value: {{ $profile.scratchRoot | default "/tmp/conservation-workflows" | quote }}
             - name: CONSERVATION_API_URL
               value: "{{ $root.Values.env.CONSERVATION_API_URL }}"
             - name: INTERNAL_API_KEY
@@ -140,5 +147,11 @@ spec:
               value: {{ $profile.pmtilesMergeFanIn | default 64 | quote }}
           resources:
             {{- toYaml ($profile.resources | default $root.Values.services.workflows.worker.resources) | nindent 12 }}
+          volumeMounts:
+            - name: workflow-tmp
+              mountPath: /tmp
+      volumes:
+        - name: workflow-tmp
+          emptyDir: {}
 ---
 {{- end }}
