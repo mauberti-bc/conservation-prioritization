@@ -5,8 +5,8 @@ import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { SkeletonList } from 'components/loading/SkeletonLoaders';
 import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
-import { useDialogContext, useProjectContext, useTaskContext } from 'hooks/useContext';
-import { useState } from 'react';
+import { useApplicationEventsContext, useDialogContext, useProjectContext, useTaskContext } from 'hooks/useContext';
+import { useEffect, useState } from 'react';
 import { AddTaskToProjectDialog } from './dialog/AddTaskToProjectDialog';
 import { TaskListItem } from './TaskListItem';
 
@@ -31,12 +31,20 @@ export const TaskList = ({
   const conservationApi = useConservationApi();
   const { refreshTasks } = useTaskContext();
   const { refreshProjects } = useProjectContext();
+  const { taskRevisions, connectionEpoch } = useApplicationEventsContext();
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [projectDialogTaskIds, setProjectDialogTaskIds] = useState<string[]>([]);
   const [inviteTask, setInviteTask] = useState<GetTaskResponse | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
+
+  useEffect(() => {
+    if (!connectionEpoch) {
+      return;
+    }
+    void refreshTasks();
+  }, [connectionEpoch, refreshTasks, taskRevisions]);
 
   const handleDeleteTask = (task: GetTaskResponse) => {
     dialogContext.setYesNoDialog({

@@ -10,6 +10,7 @@ import {
   SubmitTaskRequest,
   UpdateTaskRequest,
   UpdateTaskStatusRequest,
+  TaskRunResponse,
 } from 'hooks/interfaces/useTaskApi.interface';
 import qs from 'qs';
 import { ApiPaginationRequestOptions } from 'types/pagination';
@@ -108,6 +109,30 @@ export const useTaskApi = (axios: AxiosInstance) => {
     return data;
   };
 
+  /** Creates an immutable run for a task. */
+  const createTaskRun = async (taskId: string, payload: SubmitTaskRequest): Promise<TaskRunResponse> => {
+    const { data } = await axios.post<TaskRunResponse>(`/api/task/${taskId}/run`, payload);
+    return data;
+  };
+
+  /** Lists immutable runs for a task. */
+  const getTaskRuns = async (taskId: string): Promise<TaskRunResponse[]> => {
+    const { data } = await axios.get<TaskRunResponse[]>(`/api/task/${taskId}/run`);
+    return data;
+  };
+
+  /** Gets one immutable run and its authoritative artifacts. */
+  const getTaskRun = async (runId: string): Promise<TaskRunResponse> => {
+    const { data } = await axios.get<TaskRunResponse>(`/api/run/${runId}`);
+    return data;
+  };
+
+  /** Retries publication without repeating a completed solve. */
+  const retryTaskRunPublication = async (runId: string): Promise<TaskRunResponse> => {
+    const { data } = await axios.post<TaskRunResponse>(`/api/run/${runId}/retry`);
+    return data;
+  };
+
   /**
    * Publish a task to a new dashboard.
    *
@@ -180,6 +205,10 @@ export const useTaskApi = (axios: AxiosInstance) => {
     updateTask,
     updateTaskStatus,
     submitTask,
+    createTaskRun,
+    getTaskRuns,
+    getTaskRun,
+    retryTaskRunPublication,
     publishTaskDashboard,
     getTaskDashboard,
     addProjectsToTask,

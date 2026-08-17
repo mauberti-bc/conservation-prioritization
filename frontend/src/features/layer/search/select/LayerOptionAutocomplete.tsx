@@ -1,7 +1,7 @@
 import { mdiArrowExpand } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Autocomplete, IconButton } from '@mui/material';
-import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/optimization-form.interface';
 import { useState } from 'react';
 import { LayerSearchDialog } from '../dialog/LayerSearchDialog';
 import { LayerSearchInput } from './autocomplete/input/LayerSearchInput';

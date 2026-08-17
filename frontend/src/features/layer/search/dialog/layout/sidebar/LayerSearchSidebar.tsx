@@ -1,6 +1,6 @@
 import { Box, List, ListItemButton, ListItemText } from '@mui/material';
 import { grey } from '@mui/material/colors';
-import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/optimization-form.interface';
 
 interface ILayerSearchSidebarProps {
   availableLayers: TaskLayerOption[];

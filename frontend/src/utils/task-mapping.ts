@@ -1,86 +1,56 @@
-import { COST_LAYER_PATH, TaskCreateFormValues } from 'features/home/task/create/form/TaskCreateForm';
-import { GetTaskResponse, OPTIMIZATION_VARIANT, RESAMPLING } from 'hooks/interfaces/useTaskApi.interface';
+import { TaskCreateFormValues } from 'features/home/task/create/form/TaskCreateForm';
+import { Feature, GeoJsonProperties, Geometry } from 'geojson';
+import { GetTaskResponse, OPTIMIZATION_MODE, RESAMPLING } from 'hooks/interfaces/useTaskApi.interface';
 import { v4 } from 'uuid';
 
-const DEFAULT_RESOLUTION = 1000;
+const DEFAULT_RESOLUTION = 960;
 const DEFAULT_RESAMPLING: RESAMPLING = 'mode';
-const DEFAULT_VARIANT = OPTIMIZATION_VARIANT.STRICT;
 
-/**
- * Maps a task response to initial values for creating a new task.
- *
- * @param {GetTaskResponse} task - Source task to copy.
- * @return {TaskCreateFormValues} Form values for initializing the create task form.
- */
-export const mapTaskResponseToCreateFormValues = (task: GetTaskResponse): TaskCreateFormValues => {
+/** Map one immutable run problem into editable form state. */
+function mapProblem(task: GetTaskResponse, name: string): TaskCreateFormValues {
+  const snapshot = task.latest_run?.input_snapshot;
+  const targetArea = snapshot?.target_area;
+  const features =
+    targetArea?.type === 'FeatureCollection' ? targetArea.features : targetArea?.type === 'Feature' ? [targetArea] : [];
+  const neighborPenalty = snapshot?.neighbor_penalty;
   return {
-    name: `Copy of ${task.name}`,
+    type: task.type ?? 'discrete_optimization',
+    name,
     description: task.description ?? null,
-    variant: task.variant ?? DEFAULT_VARIANT,
-    resolution: task.resolution ?? DEFAULT_RESOLUTION,
-    resampling: task.resampling ?? DEFAULT_RESAMPLING,
-    budget: null,
-    layers: task.layers.map((layer) => ({
-      name: layer.layer_name,
-      path: layer.layer_name,
-      mode: layer.mode,
-      importance: layer.importance ?? undefined,
-      threshold: layer.threshold ?? undefined,
-      constraints: layer.constraints.map((constraint) => ({
-        id: v4(),
-        min: constraint.min ?? null,
-        max: constraint.max ?? null,
-        type: constraint.type,
-      })),
+    optimizationMode: snapshot?.optimization_mode ?? OPTIMIZATION_MODE.INTERACTIVE,
+    resolution: snapshot?.planning_unit_resolution ?? task.resolution ?? DEFAULT_RESOLUTION,
+    resampling: snapshot?.resampling ?? task.resampling ?? DEFAULT_RESAMPLING,
+    neighborPenaltyEnabled: Boolean(neighborPenalty),
+    neighborPenaltyStrength: neighborPenalty?.strength ?? 1,
+    objectives: (snapshot?.objectives ?? []).map((objective) => ({
+      name: objective.layer,
+      path: objective.layer,
+      direction: objective.direction,
+      importance: objective.importance ?? 1,
     })),
-    geometry: [],
-  };
-};
-
-/**
- * Maps a task response to form values for submitting the same task.
- *
- * @param {GetTaskResponse} task
- * @return {TaskCreateFormValues}
- */
-export const mapTaskResponseToSubmitFormValues = (task: GetTaskResponse): TaskCreateFormValues => {
-  const mappedLayers = task.layers.map((layer) => ({
-    name: layer.layer_name,
-    path: layer.layer_name,
-    mode: layer.mode,
-    importance: layer.importance ?? undefined,
-    threshold: layer.threshold ?? undefined,
-    constraints: layer.constraints.map((constraint) => ({
+    constraints: (snapshot?.constraints ?? []).map((constraint) => ({
       id: v4(),
+      type: constraint.type,
+      layer: constraint.layer,
       min: constraint.min ?? null,
       max: constraint.max ?? null,
-      type: constraint.type,
     })),
-  }));
-
-  const budgetLayer = mappedLayers.find((layer) => {
-    return layer.path === COST_LAYER_PATH;
-  });
-
-  const nonBudgetLayers = mappedLayers.filter((layer) => {
-    return layer.path !== COST_LAYER_PATH;
-  });
-
-  return {
-    name: task.name,
-    description: task.description ?? null,
-    variant: task.variant ?? DEFAULT_VARIANT,
-    resolution: task.resolution ?? DEFAULT_RESOLUTION,
-    resampling: task.resampling ?? DEFAULT_RESAMPLING,
-    budget: budgetLayer ?? null,
-    layers: nonBudgetLayers,
-    geometry:
-      task.geometries?.map((geometry) => ({
-        id: geometry.geometry_id,
-        mapboxFeatureId: geometry.geometry_id,
-        name: geometry.name,
-        description: geometry.description,
-        geojson: geometry.geojson,
-      })) ?? [],
+    targetArea: features.map((feature, index) => ({
+      id: v4(),
+      mapboxFeatureId: v4(),
+      name: `Area ${index + 1}`,
+      description: null,
+      geojson: feature as Feature<Geometry, GeoJsonProperties>,
+    })),
   };
+}
+
+/** Map a task to values for a copied optimization problem. */
+export const mapTaskResponseToCreateFormValues = (task: GetTaskResponse): TaskCreateFormValues => {
+  return mapProblem(task, `Copy of ${task.name}`);
+};
+
+/** Map a task to values for an explicit new immutable submission. */
+export const mapTaskResponseToSubmitFormValues = (task: GetTaskResponse): TaskCreateFormValues => {
+  return mapProblem(task, task.name);
 };

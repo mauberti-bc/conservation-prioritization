@@ -32,17 +32,24 @@ export async function seed(knex: Knex): Promise<void> {
 
   await knex.raw(`SELECT api_set_context('${DB_USER_API}', 'database');`);
 
+  const resetDemoData = process.env.RESET_DEMO_DATA === 'true';
+  const hasExistingDomainData = Boolean(
+    (await knex('task').select('task_id').first()) || (await knex('project').select('project_id').first())
+  );
+
   /* ==========================================================================
    * CLEAR DATA (demo-only tables)
    * ========================================================================== */
 
-  await knex.raw(`SET session_replication_role = 'replica';`);
+  if (resetDemoData) {
+    await knex.raw(`SET session_replication_role = 'replica';`);
 
-  for (const table of C.TABLES_TO_CLEAR) {
-    await knex(table).del();
+    for (const table of C.TABLES_TO_CLEAR) {
+      await knex(table).del();
+    }
+
+    await knex.raw(`SET session_replication_role = 'origin';`);
   }
-
-  await knex.raw(`SET session_replication_role = 'origin';`);
 
   const projectAdminRole = await knex('role')
     .select('role_id')
@@ -87,6 +94,12 @@ export async function seed(knex: Knex): Promise<void> {
         agency: profile.agency,
         notes: profile.notes
       });
+  }
+
+  // Database setup runs during normal deployments. Seed fixtures only into an
+  // empty domain unless an explicit destructive demo reset was requested.
+  if (hasExistingDomainData && !resetDemoData) {
+    return;
   }
 
   /* ==========================================================================
@@ -211,43 +224,6 @@ export async function seed(knex: Knex): Promise<void> {
       await knex('project_task').insert({
         project_id: project.project_id,
         task_id: demoTask.task_id
-      });
-    }
-  }
-
-  /* ==========================================================================
-   * TASK LAYERS
-   * ========================================================================== */
-
-  if (demoTask?.task_id) {
-    for (const layer of C.TASK_LAYERS) {
-      await knex('task_layer').insert({
-        task_id: demoTask.task_id,
-        layer_name: layer.layer_name,
-        description: layer.description,
-        mode: layer.mode,
-        importance: layer.importance,
-        threshold: layer.threshold
-      });
-    }
-  }
-
-  const demoTaskLayer = await knex('task_layer')
-    .select('task_layer_id')
-    .where({ layer_name: 'landcover/forest' })
-    .first();
-
-  /* ==========================================================================
-   * TASK LAYER CONSTRAINTS
-   * ========================================================================== */
-
-  if (demoTaskLayer?.task_layer_id) {
-    for (const constraint of C.TASK_LAYER_CONSTRAINTS) {
-      await knex('task_layer_constraint').insert({
-        task_layer_id: demoTaskLayer.task_layer_id,
-        type: constraint.type,
-        min: constraint.min,
-        max: constraint.max
       });
     }
   }

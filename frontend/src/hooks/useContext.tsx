@@ -1,4 +1,5 @@
 import { AuthContext } from 'context/authContext';
+import { ApplicationEventsContext, IApplicationEventsContext } from 'context/applicationEventsContext';
 import { ConfigContext, IConfig } from 'context/configContext';
 import { DialogContext, IDialogContext } from 'context/dialogContext';
 import { ILayerSelectionContext, LayerSelectionContext } from 'context/layerSelectionContext';
@@ -37,6 +38,14 @@ export const useAuthContext = () => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuthContext must be used within a AuthProvider');
+  }
+  return context;
+};
+
+export const useApplicationEventsContext = (): IApplicationEventsContext => {
+  const context = useContext(ApplicationEventsContext);
+  if (!context) {
+    throw new Error('useApplicationEventsContext must be used within ApplicationEventsContextProvider');
   }
   return context;
 };

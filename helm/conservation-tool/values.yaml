@@ -252,7 +252,6 @@ services:
   workflows:
     worker:
       replicas: 1
-      pool: local
       image:
         stream: "prefect-worker"
         tag: "dev"
@@ -270,6 +269,40 @@ services:
         targetPort: 8081
       securityContext:
         runAsUser: 1003600000
+      profiles:
+        bounded-spatial:
+          pool: bounded-spatial
+          replicas: 1
+          daskWorkers: 2
+          daskWorkerMemory: 1500MB
+          tileSize: 1024
+          tileSubmissionWave: 32
+          pmtilesMetatileSize: 3
+          pmtilesPngCompressLevel: 3
+          pmtilesMaximumSourceWindow: 2048
+          pmtilesMergeFanIn: 64
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+        sparse-solver:
+          pool: sparse-solver
+          daskWorkers: 1
+          daskWorkerMemory: 4GB
+          executionProfile: sparse-32g
+          maxPeakMemoryBytes: 25769803776
+          maxScratchBytes: 68719476736
+          replicas: 1
+          resources:
+            requests:
+              cpu: "2"
+              memory: 16Gi
+            limits:
+              cpu: "8"
+              memory: 32Gi
 
     deploy:
       replicas: 0

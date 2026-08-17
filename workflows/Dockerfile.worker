@@ -34,14 +34,14 @@ COPY pyproject.toml uv.lock ./
 
 # Install dependencies only (no project yet)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-install-project
+    uv sync --locked --no-dev --no-install-project
 
 # Copy source code (now the project exists)
 COPY . ./
 
 # Install the project into the venv (and any editable/build steps)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked
+    uv sync --locked --no-dev
 
 # Add virtualenv to PATH (should be last)
 ENV PATH="/home/app/.venv/bin:$PATH"

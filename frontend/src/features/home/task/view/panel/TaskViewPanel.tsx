@@ -1,4 +1,4 @@
-import { Typography } from '@mui/material';
+import { Alert, Button, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { TaskCreateForm, TaskCreateFormValues } from 'features/home/task/create/form/TaskCreateForm';
@@ -27,6 +27,8 @@ export const TaskViewPanel = () => {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [retryingPublication, setRetryingPublication] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
 
   const initialValues = useMemo<TaskCreateFormValues | null>(() => {
     if (!taskDataLoader.data) {
@@ -101,6 +103,59 @@ export const TaskViewPanel = () => {
     });
   };
 
+  const canRetryPublication = useMemo(() => {
+    const run = taskDataLoader.data?.latest_run;
+    if (!run || run.status !== 'failed') {
+      return false;
+    }
+    const canonical = run.artifacts?.find((artifact) => artifact.type === 'canonical_result');
+    const pmtiles = run.artifacts?.find((artifact) => artifact.type === 'pmtiles');
+    return canonical?.status === 'ready' && pmtiles?.status !== 'ready';
+  }, [taskDataLoader.data?.latest_run]);
+
+  const solutionSummary = useMemo(() => {
+    const run = taskDataLoader.data?.latest_run;
+    if (!run || !run.solutions?.length) {
+      return null;
+    }
+    const reference = run.solutions.find((solution) => solution.role === 'reference');
+    const allocationTotal =
+      typeof reference?.metrics?.allocation_total === 'number' ? reference.metrics.allocation_total : null;
+    const priorityTotal =
+      typeof reference?.metrics?.priority_total === 'number' ? reference.metrics.priority_total : null;
+    return {
+      title: run.task_type === 'priority_ranking' ? 'Priority ranking' : 'Reference solution',
+      count: run.solutions.length,
+      objective: reference?.objective_value ?? null,
+      resource: reference?.resource_value ?? null,
+      selectedCount: reference?.selected_planning_unit_count ?? null,
+      allocationTotal,
+      priorityTotal,
+      gap: reference?.optimality_gap ?? null,
+      method: `${run.execution_method} · ${run.execution_method_version}`,
+      taskType: run.task_type,
+    };
+  }, [taskDataLoader.data?.latest_run]);
+
+  /** Retries only the failed map-publication stage for the current run. */
+  const handleRetryPublication = async () => {
+    const runId = taskDataLoader.data?.latest_run?.task_run_id;
+    if (!runId) {
+      return;
+    }
+    try {
+      setRetryingPublication(true);
+      setRetryError(null);
+      await conservationApi.task.retryTaskRunPublication(runId);
+      await taskDataLoader.refresh(taskId);
+    } catch (error) {
+      console.error('Failed to retry task publication', error);
+      setRetryError('Map publication could not be restarted. Please try again.');
+    } finally {
+      setRetryingPublication(false);
+    }
+  };
+
   return (
     <>
       <LoadingGuard
@@ -139,6 +194,37 @@ export const TaskViewPanel = () => {
                 onDelete={handleDeleteTask}
               />
 
+              {solutionSummary && (
+                <Box sx={{ mx: 2, mt: 2, p: 1.5, borderRadius: 1, bgcolor: 'action.hover' }}>
+                  <Typography variant="subtitle2">{solutionSummary.title}</Typography>
+                  <Typography variant="body2">Solutions: {solutionSummary.count}</Typography>
+                  <Typography variant="body2">Method: {solutionSummary.method}</Typography>
+                  {solutionSummary.objective !== null && (
+                    <Typography variant="body2">Reference objective: {solutionSummary.objective}</Typography>
+                  )}
+                  {solutionSummary.resource !== null && (
+                    <Typography variant="body2">Reference resource use: {solutionSummary.resource}</Typography>
+                  )}
+                  {solutionSummary.taskType === 'discrete_optimization' && solutionSummary.selectedCount !== null && (
+                    <Typography variant="body2">Selected planning units: {solutionSummary.selectedCount}</Typography>
+                  )}
+                  {solutionSummary.taskType === 'continuous_optimization' &&
+                    solutionSummary.allocationTotal !== null && (
+                      <Typography variant="body2">
+                        Total allocation intensity: {solutionSummary.allocationTotal}
+                      </Typography>
+                    )}
+                  {solutionSummary.taskType === 'priority_ranking' && solutionSummary.priorityTotal !== null && (
+                    <Typography variant="body2">
+                      Total nested priority score: {solutionSummary.priorityTotal}
+                    </Typography>
+                  )}
+                  {solutionSummary.gap !== null && (
+                    <Typography variant="body2">Optimality gap: {solutionSummary.gap}</Typography>
+                  )}
+                </Box>
+              )}
+
               <Box
                 sx={{
                   flex: 1,
@@ -148,6 +234,26 @@ export const TaskViewPanel = () => {
                   height: '100%',
                   overflow: 'auto',
                 }}>
+                {taskDataLoader.data?.latest_run?.status === 'failed' && (
+                  <Alert
+                    severity="error"
+                    sx={{ mb: 2 }}
+                    action={
+                      canRetryPublication ? (
+                        <Button
+                          color="inherit"
+                          size="small"
+                          disabled={retryingPublication}
+                          onClick={() => {
+                            void handleRetryPublication();
+                          }}>
+                          {retryingPublication ? 'Retrying…' : 'Retry map'}
+                        </Button>
+                      ) : undefined
+                    }>
+                    {retryError ?? taskDataLoader.data.latest_run.failure_message ?? 'This run failed.'}
+                  </Alert>
+                )}
                 <TaskCreateForm
                   isReadOnly
                   autoSearchOnMount={false}

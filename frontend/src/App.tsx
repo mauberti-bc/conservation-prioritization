@@ -2,6 +2,7 @@ import { CircularProgress, CssBaseline } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { AuthContextProvider } from 'context/authContext';
+import { ApplicationEventsContextProvider } from 'context/applicationEventsContext';
 import { ConfigContext, ConfigContextProvider } from 'context/configContext';
 import { WebStorageStateStore } from 'oidc-client-ts';
 import { AuthContext, AuthProvider, AuthProviderProps } from 'react-oidc-context';
@@ -41,7 +42,6 @@ const App = () => {
                       const authConfig: AuthProviderProps = {
                         authority,
                         client_id: config?.KEYCLOAK_CONFIG.clientId ?? '',
-                        resource: config?.KEYCLOAK_CONFIG.clientId ?? '',
                         // Automatically renew the access token before it expires
                         automaticSilentRenew: true,
                         // Default sign in redirect
@@ -66,7 +66,9 @@ const App = () => {
                                   <LoadingGuard
                                     isLoading={!authState}
                                     isLoadingFallback={<CircularProgress className="pageProgress" size={40} />}>
-                                    <AppRouter />
+                                    <ApplicationEventsContextProvider>
+                                      <AppRouter />
+                                    </ApplicationEventsContextProvider>
                                   </LoadingGuard>
                                 );
                               }}

@@ -1,5 +1,5 @@
 import { Box } from '@mui/material';
-import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/optimization-form.interface';
 import { ReactNode } from 'react';
 import { LayerSearchSidebar } from './sidebar/LayerSearchSidebar';
 

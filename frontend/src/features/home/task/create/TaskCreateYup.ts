@@ -1,14 +1,12 @@
-import { OPTIMIZATION_VARIANT } from 'hooks/interfaces/useTaskApi.interface';
+import { OPTIMIZATION_MODE } from 'hooks/interfaces/useTaskApi.interface';
 import yup from 'utils/yup';
 
 const constraintSchema = yup
   .object({
     min: yup.number().typeError('Minimum value must be a number').nullable(),
     max: yup.number().typeError('Maximum value must be a number').nullable(),
-    type: yup
-      .mixed<'percent' | 'unit'>()
-      .oneOf(['percent', 'unit'], 'Invalid constraint type')
-      .required('Constraint type is required'),
+    type: yup.mixed<'aggregate' | 'planning_unit'>().oneOf(['aggregate', 'planning_unit']).required(),
+    layer: yup.string().required('Layer is required'),
   })
   .test({
     name: 'at-least-one-of-min-max',
@@ -17,54 +15,41 @@ const constraintSchema = yup
       const { min, max } = value || {};
       return min != null || max != null;
     },
+  })
+  .test({
+    name: 'ordered-bounds',
+    message: 'Minimum cannot exceed maximum',
+    test: ({ min, max }) => min == null || max == null || min <= max,
   });
 
 const layerSchema = yup.object({
   name: yup.string().required('Layer name is required'),
   path: yup.string().required('Array path is required'),
-  mode: yup.string().oneOf(['flexible', 'locked-in', 'locked-out']).required('Mode is required'),
-  importance: yup.number().when('mode', {
-    is: 'flexible',
-    then: (schema) =>
-      schema
-        .required('Importance is required when mode is flexible')
-        .test(
-          'importance-range',
-          'You must adjust the influence of the layer',
-          (value) =>
-            value !== undefined && value !== 0 && ((value >= -100 && value <= -1) || (value >= 1 && value <= 100))
-        ),
-    otherwise: (schema) => schema.notRequired(),
-  }),
-  threshold: yup
-    .number()
-    .when('mode', {
-      is: 'locked-in',
-      then: (schema) => schema.required('Threshold is required when mode is locked-in'),
-      otherwise: (schema) => schema.notRequired(),
-    })
-    .when('mode', {
-      is: 'locked-out',
-      then: (schema) => schema.required('Threshold is required when mode is locked-out'),
-      otherwise: (schema) => schema.notRequired(),
-    }),
-  constraints: yup.array().of(constraintSchema).optional(),
+  direction: yup.string().oneOf(['maximize', 'minimize']).required('Direction is required'),
+  importance: yup.number().min(0).max(100).required('Importance is required'),
 });
 
 export const taskValidationSchema = yup.object({
-  variant: yup.string().oneOf([OPTIMIZATION_VARIANT.APPROXIMATE, OPTIMIZATION_VARIANT.STRICT]),
-  layers: yup.array().of(layerSchema).optional(),
+  type: yup
+    .string()
+    .oneOf(['continuous_optimization', 'discrete_optimization', 'priority_ranking'])
+    .required('Analysis type is required'),
+  optimizationMode: yup
+    .string()
+    .oneOf([OPTIMIZATION_MODE.INTERACTIVE, OPTIMIZATION_MODE.BALANCED, OPTIMIZATION_MODE.EXACT_AUDIT])
+    .required(),
+  neighborPenaltyEnabled: yup.boolean().required(),
+  neighborPenaltyStrength: yup.number().when('neighborPenaltyEnabled', {
+    is: true,
+    then: (schema) => schema.moreThan(0).required('Neighbor preference strength is required'),
+  }),
+  objectives: yup.array().of(layerSchema).min(1, 'At least one objective is required').required(),
+  constraints: yup.array().of(constraintSchema).required(),
+  targetArea: yup.array().min(1, 'A target area is required').required(),
   name: yup.string().required('You must name the conservation scenario'),
-  budget: yup
-    .object({
-      name: yup.string().required('Layer name is required'),
-      path: yup.string().required('Array path is required'),
-      constraints: yup.array().of(constraintSchema).optional(),
-    })
-    .nullable(),
   resolution: yup
     .number()
-    .oneOf([30, 100, 250, 500, 1000, 5000], 'Resolution must be an allowed value')
+    .oneOf([30, 60, 120, 240, 480, 960, 1920], 'Planning-unit resolution must be an allowed grid level')
     .required('Resolution is required'),
   resampling: yup
     .string()

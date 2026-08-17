@@ -2,14 +2,13 @@ import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { TASK_STATUS, TILE_STATUS } from 'constants/status';
+import { TASK_STATUS } from 'constants/status';
 import { useConservationApi } from 'hooks/useConservationApi';
 import useDataLoader from 'hooks/useDataLoader';
 import { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { getTaskStatusLabel } from 'utils/task-status';
 import { MapContainer } from 'features/home/map/MapContainer';
-import { useTaskStatusWebSocket } from 'features/home/task/status/useTaskStatusWebSocket';
 
 /**
  * Public view-only task dashboard for sharing results.
@@ -30,7 +29,6 @@ export const PublicTaskDashboardPage = () => {
   }, [dashboardDataLoader, dashboardId]);
 
   const primaryTaskId = dashboardDataLoader.data?.task_ids?.[0] ?? null;
-  const { data: taskStatus } = useTaskStatusWebSocket(primaryTaskId);
 
   useEffect(() => {
     if (!primaryTaskId) {
@@ -42,30 +40,23 @@ export const PublicTaskDashboardPage = () => {
   }, [primaryTaskId, taskDataLoader]);
 
   const pmtilesUrls = useMemo(() => {
-    const statusUri =
-      taskStatus?.tile?.status === TILE_STATUS.COMPLETED && taskStatus.tile.pmtiles_uri
-        ? taskStatus.tile.pmtiles_uri
-        : null;
-    const fallbackUri = taskDataLoader.data?.tileset_uri ?? null;
-    const resolvedUri = statusUri ?? fallbackUri;
-
+    const resolvedUri = taskDataLoader.data?.tileset_uri ?? null;
     return resolvedUri ? [resolvedUri] : [];
-  }, [taskStatus, taskDataLoader.data]);
+  }, [taskDataLoader.data]);
 
   const statusLabel = useMemo(() => {
-    const activeStatus = taskStatus?.status ?? taskDataLoader.data?.status;
-    const tileStatus = taskStatus?.tile?.status ?? null;
+    const activeStatus = taskDataLoader.data?.status;
 
     if (!activeStatus) {
       return null;
     }
 
-    if (activeStatus === TASK_STATUS.COMPLETED && tileStatus && tileStatus !== TILE_STATUS.COMPLETED) {
-      return `${getTaskStatusLabel(activeStatus)} (tiling: ${tileStatus})`;
+    if (activeStatus === TASK_STATUS.COMPLETED && !taskDataLoader.data?.tileset_uri) {
+      return `${getTaskStatusLabel(activeStatus)} (map unavailable)`;
     }
 
     return getTaskStatusLabel(activeStatus);
-  }, [taskStatus, taskDataLoader.data]);
+  }, [taskDataLoader.data]);
 
   return (
     <Stack height="100%" width="100%" overflow="hidden">

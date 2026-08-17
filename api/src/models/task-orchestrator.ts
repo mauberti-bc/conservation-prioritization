@@ -1,73 +1,62 @@
-/**
- * Interface for a constraint within a task layer.
- */
-export interface CreateTaskLayerConstraintRequest {
-  type: 'percent' | 'unit';
+import { Feature, FeatureCollection, Geometry } from 'geojson';
+import { TaskType } from './task';
+
+/** Optional normalized reward for selected rook-adjacent planning-unit pairs. */
+export interface NeighborPenaltyRequest {
+  strength: number;
+}
+
+/** One user-facing additive objective over a scientific layer. */
+export interface OptimizationObjectiveRequest {
+  layer: string;
+  direction: 'maximize' | 'minimize';
+  importance?: number;
+}
+
+/** One aggregate requirement over the selected solution. */
+export interface AggregateConstraintRequest {
+  type: 'aggregate';
+  layer: string;
   min?: number | null;
   max?: number | null;
 }
 
-/**
- * Interface for a geometry item within a task request.
- */
-export interface CreateTaskGeometryRequest {
-  name?: string | null;
-  description?: string | null;
-  geojson: {
-    geometry: unknown;
-    [key: string]: unknown;
-  };
+/** One per-planning-unit requirement used to define the candidate domain. */
+export interface PlanningUnitConstraintRequest {
+  type: 'planning_unit';
+  layer: string;
+  min?: number | null;
+  max?: number | null;
 }
 
-/**
- * Interface for a layer within a task.
- */
-export interface CreateTaskLayerRequest {
-  layer_name: string;
-  description: string | null;
-  mode: 'flexible' | 'locked-in' | 'locked-out';
-  importance?: number | null;
-  threshold?: number | null;
-  constraints: CreateTaskLayerConstraintRequest[];
-}
+export type OptimizationConstraintRequest = AggregateConstraintRequest | PlanningUnitConstraintRequest;
 
-/**
- * Interface for creating a task.
- */
-export interface CreateTaskRequest {
-  name: string;
-  description: string;
-  layers: CreateTaskLayerRequest[];
-  resolution?: number;
-  resampling?: 'mode' | 'min' | 'max';
-  variant?: 'strict' | 'approximate';
-  target_area?: number;
-  is_percentage?: boolean;
-  geometry?: CreateTaskGeometryRequest[];
-  budget?: CreateTaskLayerRequest;
-}
+/** GeoJSON target area from which candidate planning units are constructed. */
+export type OptimizationTargetAreaRequest = Feature<Geometry> | FeatureCollection<Geometry>;
 
 /**
  * Interface for creating a task draft.
  */
 export interface CreateTaskDraftRequest {
+  type?: TaskType;
   name: string;
   description?: string | null;
   resolution?: number;
+  planning_unit_resolution?: number;
   resampling?: 'mode' | 'min' | 'max';
-  variant?: 'strict' | 'approximate';
 }
 
 /**
  * Interface for submitting an existing draft task.
  */
 export interface SubmitTaskRequest {
-  layers?: CreateTaskLayerRequest[];
-  budget?: CreateTaskLayerRequest | null;
+  optimization_mode?: 'interactive' | 'balanced' | 'exact_audit' | null;
+  target_area: OptimizationTargetAreaRequest;
+  objectives: OptimizationObjectiveRequest[];
+  constraints: OptimizationConstraintRequest[];
   resolution?: number | null;
+  planning_unit_resolution?: number | null;
   resampling?: 'mode' | 'min' | 'max' | null;
-  variant?: 'strict' | 'approximate' | null;
-  target_area?: number;
-  is_percentage?: boolean;
-  geometry?: CreateTaskGeometryRequest[];
+  neighbor_penalty?: NeighborPenaltyRequest | null;
+  export_selected_parquet?: boolean;
 }

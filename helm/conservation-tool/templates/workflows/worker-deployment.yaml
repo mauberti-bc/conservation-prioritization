@@ -1,55 +1,75 @@
+{{- $root := . -}}
+{{- range $profileName, $profile := .Values.services.workflows.worker.profiles }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "conservation-tool.fullname.prefect-worker" . }}
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "conservation-tool.fullname.prefect-worker" $root }}-{{ $profileName }}
+  namespace: {{ $root.Release.Namespace }}
   labels:
-    {{- include "conservation-tool.labels" . | nindent 4 }}
+    {{- include "conservation-tool.labels" $root | nindent 4 }}
+    conservation-tool/workload-profile: {{ $profileName }}
 spec:
-  replicas: {{ .Values.services.workflows.worker.replicas }}
+  replicas: {{ $profile.replicas | default $root.Values.services.workflows.worker.replicas }}
   selector:
     matchLabels:
-      app: {{ include "conservation-tool.fullname.prefect-worker" . }}
+      app: {{ include "conservation-tool.fullname.prefect-worker" $root }}-{{ $profileName }}
   template:
     metadata:
       labels:
-        app: {{ include "conservation-tool.fullname.prefect-worker" . }}
+        app: {{ include "conservation-tool.fullname.prefect-worker" $root }}-{{ $profileName }}
+        conservation-tool/workload-profile: {{ $profileName }}
       annotations:
-        conservation-tool/release-revision: {{ .Release.Revision | quote }}
+        conservation-tool/release-revision: {{ $root.Release.Revision | quote }}
     spec:
       serviceAccountName: deployer
-      containers:
-        - name: prefect-worker
-          image: "{{ .Values.registry }}/{{ .Values.services.workflows.worker.image.stream }}:{{ .Values.services.workflows.worker.image.tag }}"
-          imagePullPolicy: {{ .Values.services.workflows.worker.image.pullPolicy | default "Always" }}
-          args:
-            - prefect
-            - worker
-            - start
-            - --pool
-            - "{{ .Values.services.workflows.worker.pool }}"
-          ports:
-            - containerPort: {{ .Values.ports.prefect_worker_api | default 4202 }}
+      initContainers:
+        - name: ensure-work-pool
+          image: "{{ $root.Values.registry }}/{{ $root.Values.services.workflows.worker.image.stream }}:{{ $root.Values.services.workflows.worker.image.tag }}"
+          imagePullPolicy: {{ $root.Values.services.workflows.worker.image.pullPolicy | default "Always" }}
+          command:
+            - bash
+            - src/ensure_work_pool.sh
+            - "{{ $profile.pool }}"
+            - process
           env:
             - name: HOME
               value: "/home/app"
             - name: PREFECT_HOME
               value: "/tmp/.prefect"
             - name: PREFECT_API_URL
-              value: "{{ .Values.env.PREFECT_API_URL }}"
+              value: "{{ $root.Values.env.PREFECT_API_URL }}"
+      containers:
+        - name: prefect-worker
+          image: "{{ $root.Values.registry }}/{{ $root.Values.services.workflows.worker.image.stream }}:{{ $root.Values.services.workflows.worker.image.tag }}"
+          imagePullPolicy: {{ $root.Values.services.workflows.worker.image.pullPolicy | default "Always" }}
+          args:
+            - prefect
+            - worker
+            - start
+            - --pool
+            - "{{ $profile.pool }}"
+          ports:
+            - containerPort: {{ $root.Values.ports.prefect_worker_api | default 4202 }}
+          env:
+            - name: HOME
+              value: "/home/app"
+            - name: PREFECT_HOME
+              value: "/tmp/.prefect"
+            - name: PREFECT_API_URL
+              value: "{{ $root.Values.env.PREFECT_API_URL }}"
             - name: ZARR_STORE_PATH
-              value: "{{ .Values.env.ZARR_STORE_PATH }}"
+              value: "{{ $root.Values.env.ZARR_STORE_PATH }}"
             - name: CONSERVATION_API_URL
-              value: "{{ .Values.env.CONSERVATION_API_URL }}"
+              value: "{{ $root.Values.env.CONSERVATION_API_URL }}"
             - name: INTERNAL_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-api
                   key: INTERNAL_API_KEY
             - name: OBJECT_STORE_URL
-              value: {{ .Values.env.OBJECT_STORE_PUBLIC_ENDPOINT | default .Values.env.OBJECT_STORE_URL | quote }}
+              value: {{ $root.Values.env.OBJECT_STORE_PUBLIC_ENDPOINT | default $root.Values.env.OBJECT_STORE_URL | quote }}
             - name: OBJECT_STORE_ENDPOINT
-              value: {{ .Values.env.OBJECT_STORE_PUBLIC_ENDPOINT | default .Values.env.OBJECT_STORE_ENDPOINT | quote }}
+              value: {{ $root.Values.env.OBJECT_STORE_PUBLIC_ENDPOINT | default $root.Values.env.OBJECT_STORE_ENDPOINT | quote }}
             - name: OBJECT_STORE_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
@@ -76,16 +96,16 @@ spec:
                   name: conservation-tool-source-object-storage
                   key: SOURCE_OBJECT_STORE_URL
             - name: SOURCE_OBJECT_STORE_REGION
-              value: {{ .Values.env.SOURCE_OBJECT_STORE_REGION | default .Values.env.OBJECT_STORE_REGION | quote }}
+              value: {{ $root.Values.env.SOURCE_OBJECT_STORE_REGION | default $root.Values.env.OBJECT_STORE_REGION | quote }}
             - name: SOURCE_OBJECT_STORE_BUCKET_NAME
               valueFrom:
                 secretKeyRef:
                   name: conservation-tool-source-object-storage
                   key: SOURCE_OBJECT_STORE_BUCKET_NAME
             - name: SOURCE_BC_BOUNDARY_PATH
-              value: {{ .Values.env.SOURCE_BC_BOUNDARY_PATH | default "" | quote }}
+              value: {{ $root.Values.env.SOURCE_BC_BOUNDARY_PATH | default "" | quote }}
             - name: SOURCE_OBJECT_STORE_FORCE_PATH_STYLE
-              value: {{ .Values.env.SOURCE_OBJECT_STORE_FORCE_PATH_STYLE | default .Values.env.OBJECT_STORE_FORCE_PATH_STYLE | default "true" | quote }}
+              value: {{ $root.Values.env.SOURCE_OBJECT_STORE_FORCE_PATH_STYLE | default $root.Values.env.OBJECT_STORE_FORCE_PATH_STYLE | default "true" | quote }}
             - name: SOURCE_OBJECT_STORE_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
@@ -96,5 +116,29 @@ spec:
                 secretKeyRef:
                   name: conservation-tool-source-object-storage
                   key: SOURCE_OBJECT_STORE_SECRET_KEY_ID
+            - name: SPATIAL_DASK_WORKERS
+              value: {{ $profile.daskWorkers | default 1 | quote }}
+            - name: SPATIAL_DASK_WORKER_MEMORY
+              value: {{ $profile.daskWorkerMemory | default "1500MB" | quote }}
+            - name: SPATIAL_TILE_SIZE
+              value: {{ $profile.tileSize | default 1024 | quote }}
+            - name: SPATIAL_TILE_SUBMISSION_WAVE
+              value: {{ $profile.tileSubmissionWave | default 32 | quote }}
+            - name: SPARSE_EXECUTION_PROFILE
+              value: {{ $profile.executionProfile | default $profile.pool | quote }}
+            - name: SPARSE_PROFILE_MAX_PEAK_MEMORY_BYTES
+              value: {{ $profile.maxPeakMemoryBytes | default 25769803776 | quote }}
+            - name: SPARSE_PROFILE_MAX_SCRATCH_BYTES
+              value: {{ $profile.maxScratchBytes | default 68719476736 | quote }}
+            - name: PMTILES_METATILE_SIZE
+              value: {{ $profile.pmtilesMetatileSize | default 3 | quote }}
+            - name: PMTILES_PNG_COMPRESS_LEVEL
+              value: {{ $profile.pmtilesPngCompressLevel | default 3 | quote }}
+            - name: PMTILES_MAXIMUM_SOURCE_WINDOW
+              value: {{ $profile.pmtilesMaximumSourceWindow | default 2048 | quote }}
+            - name: PMTILES_MERGE_FAN_IN
+              value: {{ $profile.pmtilesMergeFanIn | default 64 | quote }}
           resources:
-            {{- toYaml .Values.services.workflows.worker.resources | nindent 12 }}
+            {{- toYaml ($profile.resources | default $root.Values.services.workflows.worker.resources) | nindent 12 }}
+---
+{{- end }}

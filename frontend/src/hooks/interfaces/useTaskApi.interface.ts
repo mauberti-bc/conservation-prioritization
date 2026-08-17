@@ -3,80 +3,71 @@ import { Feature, GeoJsonProperties, Geometry } from 'geojson';
 import { ApiPaginationResponseParams } from 'types/pagination';
 import { DashboardAccessScheme, DashboardResponse } from './useDashboardApi.interface';
 
-export enum OPTIMIZATION_VARIANT {
-  STRICT = 'strict',
-  APPROXIMATE = 'approximate',
+export enum OPTIMIZATION_MODE {
+  INTERACTIVE = 'interactive',
+  BALANCED = 'balanced',
+  EXACT_AUDIT = 'exact_audit',
 }
+
+export type TASK_TYPE = 'continuous_optimization' | 'discrete_optimization' | 'priority_ranking';
 
 export type RESAMPLING = 'mode' | 'min' | 'max';
-/**
- * Interface representing a constraint for a task layer during creation (without task_layer_constraint_id).
- */
-export interface CreateTaskLayerConstraint {
-  min?: number | null; // Optional minimum value (for some constraints)
-  max?: number | null; // Optional maximum value (for some constraints)
-  type: 'percent' | 'unit'; // Type of the constraint, either 'percent' or 'unit'
-}
-
-/**
- * Interface representing a layer for a task during creation (without task_layer_id).
- */
-export interface CreateTaskLayer {
-  layer_name: string; // Name of the layer
-  description: string | null; // Description of the layer
-  mode: 'flexible' | 'locked-in' | 'locked-out'; // Mode of the layer
-  importance?: number | null; // Optional importance (required when mode is flexible)
-  threshold?: number | null; // Optional threshold (required when mode is locked-in or locked-out)
-  constraints: CreateTaskLayerConstraint[]; // Constraints for this layer
-}
-
-export interface ITask {
-  task_id: string;
-  name: string;
-  description: string | null;
-  layers: TaskLayer[];
-  resampling: RESAMPLING;
-  variant: OPTIMIZATION_VARIANT;
-}
-
 /**
  * Request interface for creating a draft task.
  */
 export interface CreateDraftTaskRequest {
+  type?: TASK_TYPE;
   name: string;
   description: string | null;
   resolution?: number;
+  planning_unit_resolution?: number;
   resampling?: RESAMPLING;
-  variant?: OPTIMIZATION_VARIANT;
 }
 
 /**
  * Request interface for submitting an existing draft task.
  */
 export interface SubmitTaskRequest {
-  layers?: CreateTaskLayer[];
-  budget?: CreateTaskLayer | null;
-  geometry?: {
-    name?: string;
-    description?: string | null;
-    geojson: Feature<Geometry, GeoJsonProperties>;
-  }[];
+  optimization_mode?: OPTIMIZATION_MODE | null;
+  target_area:
+    | Feature<Geometry, GeoJsonProperties>
+    | {
+        type: 'FeatureCollection';
+        features: Feature<Geometry, GeoJsonProperties>[];
+      };
+  objectives: OptimizationObjectiveRequest[];
+  constraints: OptimizationConstraintRequest[];
   resolution?: number | null;
+  planning_unit_resolution?: number | null;
   resampling?: RESAMPLING | null;
-  variant?: OPTIMIZATION_VARIANT | null;
-  target_area?: number;
-  is_percentage?: boolean;
+  neighbor_penalty?: NeighborPenaltyRequest | null;
+  export_selected_parquet?: boolean;
+}
+
+export interface OptimizationObjectiveRequest {
+  layer: string;
+  direction: 'maximize' | 'minimize';
+  importance?: number;
+}
+
+export type OptimizationConstraintRequest = {
+  type: 'aggregate' | 'planning_unit';
+  layer: string;
+  min?: number | null;
+  max?: number | null;
+};
+
+export interface NeighborPenaltyRequest {
+  strength: number;
 }
 
 export interface UpdateTaskRequest {
+  type?: TASK_TYPE;
   name?: string;
   description?: string | null;
   resolution?: number | null;
   resampling?: RESAMPLING | null;
-  variant?: OPTIMIZATION_VARIANT | null;
   status?: TaskStatusValue;
-  layers?: CreateTaskLayer[];
-  budget?: CreateTaskLayer;
 }
 
 /**
@@ -85,9 +76,9 @@ export interface UpdateTaskRequest {
 
 export interface GetTaskResponse {
   task_id: string; // UUID of the task
+  type: TASK_TYPE;
   name: string; // Name of the task
   description: string | null; // Description of the task
-  tileset_uri?: string | null;
   dashboard_id?: string | null;
   projects?: {
     project_id: string;
@@ -95,23 +86,108 @@ export interface GetTaskResponse {
     description: string | null;
     colour: string;
   }[];
-  geometries?: {
-    geometry_id: string;
-    name: string;
-    description: string | null;
-    geojson: Feature<Geometry, GeoJsonProperties>;
-  }[];
   status: TaskStatusValue;
   status_message?: string | null;
   prefect_flow_run_id?: string | null;
   prefect_deployment_id?: string | null;
+  tileset_uri?: string | null;
   record_effective_date?: string; // ISO string of record effective date
   record_end_date?: string | null; // ISO string of record end date or null
   resolution?: number;
   resampling?: RESAMPLING;
-  variant?: OPTIMIZATION_VARIANT;
-  layers: TaskLayer[]; // List of layers with constraints
-  budget?: TaskLayer | null;
+  latest_run?: TaskRunResponse | null;
+}
+
+export interface TaskRunResponse {
+  task_run_id: string;
+  task_id: string;
+  task_type: TASK_TYPE;
+  execution_method: 'compiled_continuous_optimization' | 'compiled_discrete_optimization' | 'compiled_priority_ranking';
+  execution_method_version: string;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  stage:
+    | 'counting'
+    | 'preparing'
+    | 'admitting'
+    | 'compiling'
+    | 'solving'
+    | 'materializing'
+    | 'exporting'
+    | 'publishing'
+    | null;
+  revision: number;
+  input_snapshot?: TaskRunInputSnapshot;
+  planning_unit_definition?: Record<string, unknown>;
+  preliminary_estimate?: Record<string, unknown> | null;
+  admission_outcome?: Record<string, unknown> | null;
+  progress?: Record<string, unknown> | null;
+  planning_unit_count?: number | null;
+  feature_nonzero_count?: number | null;
+  neighbor_edge_count?: number | null;
+  solver_status?: string | null;
+  solver_name?: string | null;
+  solver_version?: string | null;
+  failure_code?: string | null;
+  failure_message?: string | null;
+  artifacts?: TaskRunArtifactResponse[];
+  solutions?: TaskRunSolutionResponse[];
+}
+
+export interface TaskRunSolutionResponse {
+  task_run_solution_id: string;
+  solution_index: number;
+  role: 'reference';
+  status: string;
+  objective_value?: number | null;
+  resource_value?: number | null;
+  selected_planning_unit_count?: number | null;
+  optimality_gap?: number | null;
+  solver_name?: string | null;
+  solver_version?: string | null;
+  runtime_seconds?: number | null;
+  tileset_uri?: string | null;
+  metrics: Record<string, unknown>;
+}
+
+export interface TaskRunInputSnapshot {
+  schema_version?: number;
+  task_type?: TASK_TYPE;
+  decision_domain?: 'continuous' | 'discrete';
+  optimization_mode?: OPTIMIZATION_MODE;
+  work_budget?: Record<string, unknown>;
+  target_area?: SubmitTaskRequest['target_area'];
+  objectives?: OptimizationObjectiveRequest[];
+  constraints?: OptimizationConstraintRequest[];
+  resampling?: RESAMPLING;
+  planning_unit_resolution?: number;
+  neighbor_penalty?: NeighborPenaltyRequest | null;
+  export_selected_parquet?: boolean;
+  evidence_resolution?: {
+    minimum: number;
+    maximum: number;
+    by_layer: Record<string, number>;
+  };
+  layer_contracts?: Record<string, TaskRunSnapshotLayer['representation_contract']>;
+}
+
+export interface TaskRunSnapshotLayer {
+  layer_name: string;
+  representation_contract?: {
+    native_resolution?: number;
+    coarse_to_fine_policy?: string;
+    compatibility_mode?: 'legacy_noncanonical';
+  };
+}
+
+export interface TaskRunArtifactResponse {
+  artifact_id: string;
+  type: string;
+  status: 'pending' | 'building' | 'ready' | 'failed';
+  uri?: string | null;
+  content_type?: string | null;
+  checksum?: string | null;
+  manifest?: Record<string, unknown> | null;
+  lineage?: Record<string, unknown>;
 }
 
 /**
@@ -144,28 +220,3 @@ export interface PublishDashboardRequest {
 export interface PublishDashboardResponse extends DashboardResponse {}
 
 export interface GetTaskDashboardResponse extends DashboardResponse {}
-
-/**
- * Interface for the task layer (with task_layer_id and task_id as primary keys).
- */
-export interface TaskLayer {
-  task_layer_id: string; // UUID of the layer
-  task_id: string; // UUID of the task it belongs to
-  layer_name: string; // Name of the layer
-  description: string | null; // Description of the layer
-  mode: 'flexible' | 'locked-in' | 'locked-out';
-  importance?: number | null;
-  threshold?: number | null;
-  constraints: TaskLayerConstraint[]; // List of constraints for this layer
-}
-
-/**
- * Interface for the task layer constraint (with task_layer_constraint_id and task_layer_id as primary keys).
- */
-export interface TaskLayerConstraint {
-  task_layer_constraint_id: string; // UUID of the constraint
-  task_layer_id: string; // UUID of the layer it belongs to
-  min?: number | null; // Optional minimum value (for some constraints)
-  max?: number | null; // Optional maximum value (for some constraints)
-  type: 'percent' | 'unit'; // Type of the constraint, either 'percent' or 'unit'
-}

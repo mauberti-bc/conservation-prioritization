@@ -7,10 +7,11 @@ import { EditDialog } from 'components/dialog/EditDialog';
 import { InviteDialog } from 'components/dialog/InviteDialog';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { Formik } from 'formik';
-import { CreateDraftTaskRequest, CreateTaskLayer } from 'hooks/interfaces/useTaskApi.interface';
+import { CreateDraftTaskRequest } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useTaskContext } from 'hooks/useContext';
 import { useMemo, useState } from 'react';
+import { buildTaskSubmission } from 'utils/task-submission';
 import { mapTaskResponseToSubmitFormValues } from 'utils/task-mapping';
 import * as Yup from 'yup';
 import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
@@ -58,57 +59,16 @@ export const TaskSubmitPanel = () => {
     setIsSubmitting(true);
 
     try {
-      const mappedLayers: CreateTaskLayer[] = values.layers.map((layer) => ({
-        layer_name: layer.path,
-        description: null,
-        mode: layer.mode,
-        importance: layer.mode === 'flexible' ? layer.importance : undefined,
-        threshold: layer.mode === 'locked-in' || layer.mode === 'locked-out' ? layer.threshold : undefined,
-        constraints: layer.constraints.map((constraint) => ({
-          min: constraint.min ?? null,
-          max: constraint.max ?? null,
-          type: constraint.type,
-        })),
-      }));
-
-      const mappedBudget: CreateTaskLayer | undefined = values.budget
-        ? {
-            layer_name: values.budget.path,
-            description: null,
-            mode: values.budget.mode,
-            importance: values.budget.importance ?? null,
-            threshold: values.budget.threshold ?? null,
-            constraints: values.budget.constraints.map((constraint) => ({
-              min: constraint.min ?? null,
-              max: constraint.max ?? null,
-              type: constraint.type,
-            })),
-          }
-        : undefined;
-
       const draftTaskData: CreateDraftTaskRequest = {
+        type: values.type,
         name: values.name,
         description: values.description ?? null,
         resolution: values.resolution,
         resampling: values.resampling,
-        variant: values.variant,
       };
 
       const createdDraftTask = await conservationApi.task.createTask(draftTaskData);
-      const updatedTask = await conservationApi.task.submitTask(createdDraftTask.task_id, {
-        layers: mappedLayers,
-        budget: mappedBudget,
-        resolution: values.resolution,
-        resampling: values.resampling,
-        variant: values.variant,
-        geometry: values.geometry.length
-          ? values.geometry.map((geometry) => ({
-              name: geometry.name,
-              description: geometry.description,
-              geojson: geometry.geojson,
-            }))
-          : undefined,
-      });
+      const updatedTask = await conservationApi.task.submitTask(createdDraftTask.task_id, buildTaskSubmission(values));
 
       setFocusedTask(updatedTask);
       taskDataLoader.setData(updatedTask);

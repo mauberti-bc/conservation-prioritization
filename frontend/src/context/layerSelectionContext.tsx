@@ -1,5 +1,5 @@
 import { createContext, PropsWithChildren, useCallback, useMemo, useState } from 'react';
-import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/optimization-form.interface';
 
 export interface ILayerSelectionContext {
   selectedLayers: TaskLayerOption[];

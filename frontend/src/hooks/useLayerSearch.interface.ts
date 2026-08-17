@@ -1,4 +1,4 @@
-import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/optimization-form.interface';
 
 export interface UseLayerSearchReturn {
   layers: TaskLayerOption[];

@@ -1,7 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 import { ApiGeneralError } from '../errors/api-error';
+import { TaskType } from '../models/task';
+import { TaskRunExecutionMethod } from '../models/task-run';
 import { getLogger } from '../utils/logger';
-import { OptimizationParameters } from './prefect-service.interface';
 
 const defaultLog = getLogger(__filename);
 
@@ -62,61 +63,39 @@ export class PrefectService {
   }
 
   /**
-   * Submits a Prefect flow run for a deployment.
+   * Submits the run-scoped optimization pipeline. The workflow resolves all large inputs by run ID.
    *
-   * @param {string} deploymentId - Prefect deployment ID.
-   * @param {string} taskId - The task ID being executed.
-   * @param {OptimizationParameters} parameters - Optimization parameters for the run.
-   * @return {*} {Promise<string>} Prefect flow run ID.
-   * @memberof PrefectService
+   * @param {string} taskRunId Immutable task run ID.
+   * @returns {Promise<{ deploymentId: string; flowRunId: string }>}
    */
-  async submitFlowRun(
-    deploymentId: string,
-    taskId: string,
-    parameters: OptimizationParameters
-  ): Promise<string> {
-    return this.submitFlowRunWithParameters(deploymentId, { task_id: taskId, conditions: parameters });
-  }
-
-  /**
-   * Submits a strict optimization flow run and returns flow/deployment IDs.
-   *
-   * @param {string} taskId - The task ID being executed.
-   * @param {OptimizationParameters} parameters - Optimization parameters for the run.
-   * @return {*} {Promise<{ deploymentId: string; flowRunId: string }>} IDs for tracking the run.
-   * @memberof PrefectService
-   */
-  async submitStrictOptimization(
-    taskId: string,
-    parameters: OptimizationParameters
+  async submitTaskRun(
+    taskRunId: string,
+    taskType: TaskType,
+    executionMethod: TaskRunExecutionMethod,
+    dispatchAttempt = 1
   ): Promise<{ deploymentId: string; flowRunId: string }> {
-    const flowName = 'strict_optimization';
-    const deploymentName = 'strict-optimization';
-
+    const flowName = `task_run_${taskType}`;
+    const deploymentName = `task-run-${taskType.replace(/_/g, '-')}-compiled`;
     const deploymentId = await this.resolveDeploymentId(flowName, deploymentName);
-    const flowRunId = await this.submitFlowRun(deploymentId, taskId, parameters);
-
+    const flowRunId = await this.submitFlowRunWithParameters(
+      deploymentId,
+      { task_run_id: taskRunId },
+      `task-run:${taskType}:${executionMethod}:${taskRunId}:${dispatchAttempt}`
+    );
     return { deploymentId, flowRunId };
   }
 
-  /**
-   * Submits a task tile flow run and returns flow/deployment IDs.
-   *
-   * @param {string} taskId - The task ID being tiled.
-   * @param {string} taskTileId - The task tile ID to update.
-   * @return {*} {Promise<{ deploymentId: string; flowRunId: string }>} IDs for tracking the run.
-   * @memberof PrefectService
-   */
-  async submitTaskTile(taskId: string, taskTileId: string): Promise<{ deploymentId: string; flowRunId: string }> {
-    const flowName = 'task_tile';
-    const deploymentName = 'task-tile';
-
-    const deploymentId = await this.resolveDeploymentId(flowName, deploymentName);
-    const flowRunId = await this.submitFlowRunWithParameters(deploymentId, {
-      task_id: taskId,
-      task_tile_id: taskTileId
-    });
-
+  /** Dispatches presentation publication from a canonical task-run result. */
+  async submitTaskRunTile(
+    taskRunId: string,
+    publicationRevision: number
+  ): Promise<{ deploymentId: string; flowRunId: string }> {
+    const deploymentId = await this.resolveDeploymentId('task_tile', 'task-tile');
+    const flowRunId = await this.submitFlowRunWithParameters(
+      deploymentId,
+      { task_run_id: taskRunId },
+      `task-tile:${taskRunId}:${publicationRevision}`
+    );
     return { deploymentId, flowRunId };
   }
 
@@ -130,13 +109,14 @@ export class PrefectService {
    */
   private async submitFlowRunWithParameters(
     deploymentId: string,
-    parameters: Record<string, unknown>
+    parameters: Record<string, unknown>,
+    idempotencyKey?: string
   ): Promise<string> {
     try {
-      const { data } = await this.axios.post<PrefectFlowRunResponse>(
-        `/deployments/${deploymentId}/create_flow_run`,
-        { parameters }
-      );
+      const { data } = await this.axios.post<PrefectFlowRunResponse>(`/deployments/${deploymentId}/create_flow_run`, {
+        parameters,
+        idempotency_key: idempotencyKey
+      });
 
       return data.id;
     } catch (error) {

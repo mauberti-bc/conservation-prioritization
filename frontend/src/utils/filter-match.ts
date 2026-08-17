@@ -1,4 +1,4 @@
-import { TaskLayerOption } from 'features/home/task/create/form/layer/task-layer.interface';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/optimization-form.interface';
 
 export function doesLayerMatchFilters(layer: TaskLayerOption, inputValue: string, groupFilters: string[]): boolean {
   const search = inputValue.trim().toLowerCase();
