@@ -3,7 +3,6 @@ import { Operation } from 'express-openapi';
 import { getAPIUserDBConnection } from '../../../../../../database/db';
 import { ArtifactType } from '../../../../../../models/artifact';
 import { defaultErrorResponses } from '../../../../../../openapi/schemas/http-responses';
-import { TaskRunSchema } from '../../../../../../openapi/schemas/task-run';
 import { requireServiceKey } from '../../../../../../request-handlers/security/service-key';
 import { TaskRunService } from '../../../../../../services/task-run-service';
 
@@ -17,7 +16,7 @@ POST.apiDoc = {
   ],
   requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } },
   responses: {
-    200: { description: 'Updated run.', content: { 'application/json': { schema: TaskRunSchema } } },
+    200: { description: 'Updated artifact.', content: { 'application/json': { schema: { type: 'object' } } } },
     ...defaultErrorResponses
   }
 };
@@ -29,9 +28,9 @@ export function updateRunArtifact(): RequestHandler {
     const connection = getAPIUserDBConnection();
     try {
       await connection.open();
-      const run = await new TaskRunService(connection).updateArtifact(req.params.runId, type, req.body);
+      await new TaskRunService(connection).updateArtifact(req.params.runId, type, req.body);
       await connection.commit();
-      return res.status(200).json(run);
+      return res.status(200).json({ ok: true });
     } catch (error) {
       await connection.rollback();
       throw error;

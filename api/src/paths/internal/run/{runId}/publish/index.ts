@@ -2,7 +2,6 @@ import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getAPIUserDBConnection } from '../../../../../database/db';
 import { defaultErrorResponses } from '../../../../../openapi/schemas/http-responses';
-import { TaskRunSchema } from '../../../../../openapi/schemas/task-run';
 import { requireServiceKey } from '../../../../../request-handlers/security/service-key';
 import { TaskRunService } from '../../../../../services/task-run-service';
 
@@ -12,7 +11,7 @@ POST.apiDoc = {
   tags: ['task-runs', 'internal'],
   parameters: [{ in: 'path', name: 'runId', required: true, schema: { type: 'string', format: 'uuid' } }],
   responses: {
-    202: { description: 'Publication dispatched.', content: { 'application/json': { schema: TaskRunSchema } } },
+    202: { description: 'Publication dispatched.', content: { 'application/json': { schema: { type: 'object' } } } },
     ...defaultErrorResponses
   }
 };
@@ -34,10 +33,7 @@ export function publishTaskRun(): RequestHandler {
         await connection.commit();
         throw dispatchError;
       }
-      await connection.open();
-      const response = await service.getTaskRunById(req.params.runId);
-      await connection.commit();
-      return res.status(202).json(response);
+      return res.status(202).json({ ok: true });
     } catch (error) {
       await connection.rollback();
       throw error;

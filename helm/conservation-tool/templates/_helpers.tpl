@@ -46,6 +46,13 @@ Prefect worker fullname
 {{- end }}
 
 {{- /*
+Workflow scratch PVC fullname
+*/ -}}
+{{- define "conservation-tool.fullname.workflow-scratch" -}}
+{{ include "conservation-tool.fullname" . }}-workflow-scratch
+{{- end }}
+
+{{- /*
 Prefect deploy fullname
 */ -}}
 {{- define "conservation-tool.fullname.prefect-deploy" -}}

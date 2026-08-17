@@ -46,7 +46,11 @@ from ..utils.object_store import (
 )
 from ..utils.env import parse_int_setting
 from ..utils.internal_api import internal_api_request
-from ..utils.scratch import cleanup_scratch_directory, task_run_scratch_directory
+from ..utils.scratch import (
+    cleanup_scratch_directory,
+    enforce_scratch_limit,
+    task_run_scratch_directory,
+)
 from ..utils.task_run_concurrency import acquire_task_run_slot
 
 
@@ -237,7 +241,20 @@ def _upload_compiled_artifact(
         "content_type": "application/json",
         "checksum": checksum,
         "size_bytes": remote_manifest_path.stat().st_size,
-        "manifest": remote_manifest,
+        "manifest": {
+            "schema_version": 1,
+            "artifact_type": "compiled_model",
+            "commit_protocol": "manifest_last",
+            "remote_manifest_uri": uploaded["uri"],
+            "remote_manifest_checksum": checksum,
+            "remote_manifest_size_bytes": remote_manifest_path.stat().st_size,
+            "part_count": len(remote_parts),
+            "compiled_model_schema_version": compiled_manifest.get("schema_version"),
+            "mathematical_model_hash": compiled_manifest.get(
+                "mathematical_model_hash"
+            ),
+            "artifact_content_hash": compiled_manifest.get("artifact_content_hash"),
+        },
     }
 
 
@@ -284,7 +301,17 @@ def _upload_zarr_artifact(task_run_id: str, directory: Path) -> Dict[str, Any]:
         "content_type": "application/vnd.zarr+json",
         "checksum": checksum,
         "size_bytes": sum(int(part["size_bytes"]) for part in remote_parts),
-        "manifest": remote_manifest,
+        "manifest": {
+            "schema_version": 1,
+            "artifact_type": "canonical_result",
+            "commit_protocol": "manifest_last",
+            "remote_manifest_uri": uploaded_manifest["uri"],
+            "remote_manifest_checksum": checksum,
+            "remote_manifest_size_bytes": manifest_path.stat().st_size,
+            "partition_count": len(remote_parts),
+            "content_root": local_manifest.get("content_root"),
+            "surface": local_manifest.get("surface"),
+        },
     }
 
 
@@ -481,6 +508,9 @@ def _solve_compiled_model(
         task_run_id, "raw_solver_result", raw_path, "application/octet-stream"
     )
     update_artifact(task_run_id, "raw_solver_result", **raw_metadata)
+    cleanup_scratch_directory(preparation_dir)
+    cleanup_scratch_directory(output_dir / "decision-vectors")
+    enforce_scratch_limit(output_dir, "optimization materialization")
     resource_rows = [
         row_index
         for row_index, row_name in enumerate(artifact.model.row_names)
@@ -764,6 +794,7 @@ def compile_optimization_run(
                 task_run_id, "planning_unit_inventory", **inventory_metadata
             )
             active_artifacts = []
+            enforce_scratch_limit(output_dir, "planning inventory finalization")
 
         planning_unit_count = int(inventory["planning_unit_count"])
         update_run(
@@ -805,6 +836,7 @@ def compile_optimization_run(
             str(inventory_path),
         )
         preparation_manifest_path = preparation_future.result()
+        enforce_scratch_limit(output_dir, "spatial preparation")
         update_run(task_run_id, stage="compiling")
         active_artifacts = ["compiled_model"]
         update_artifact(task_run_id, "compiled_model", status="building")
@@ -864,6 +896,7 @@ def compile_optimization_run(
                 f"{second_admission['footprint']}, capacity="
                 f"{second_admission['profile']}."
             )
+        enforce_scratch_limit(output_dir, "compiled model creation")
         compiled_metadata = _upload_compiled_artifact(
             task_run_id, preparation_dir / "compiled-model"
         )
@@ -1128,6 +1161,10 @@ def _solve_priority_ranking_model(
         task_run_id, "raw_solver_result", raw_path, "application/json"
     )
     update_artifact(task_run_id, "raw_solver_result", **raw_metadata)
+    cleanup_scratch_directory(preparation_dir)
+    cleanup_scratch_directory(output_dir / "decision-vectors")
+    cleanup_scratch_directory(output_dir / "priority-increments")
+    enforce_scratch_limit(output_dir, "priority materialization")
     update_solution(
         task_run_id,
         solution_index=0,
