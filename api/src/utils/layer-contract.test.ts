@@ -66,18 +66,22 @@ describe('layer representation contract', () => {
     const intactness = resolveLayerContract(
       'ecological/ecosystem_intactness/Ecosystem_Intactness',
       source,
-      'mode',
-      true
+      'mode'
     );
     const oldGrowth = resolveLayerContract(
       'ecological/old_growth/Old_Growth_TAP_Old_Growth_Type',
       source,
-      'maximum',
-      true
+      'maximum'
+    );
+    const protectedAreas = resolveLayerContract(
+      'land_designations/any_protected_areas',
+      source,
+      'mode'
     );
 
     expect(intactness.aggregation_method).to.equal('area_weighted_mean');
     expect(oldGrowth.aggregation_method).to.equal('mode');
     expect(oldGrowth.aggregation_parameters.tie_rule).to.equal('lowest_value');
+    expect(protectedAreas.coarse_to_fine_policy).to.equal('nearest_constant');
   });
 });

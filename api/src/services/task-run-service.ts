@@ -96,8 +96,6 @@ export class TaskRunService extends DBService {
     const resampling = request.resampling ?? task.resampling ?? 'mode';
     const targetArea = request.target_area;
     const legacyAggregationMethod = resampling === 'min' ? 'minimum' : resampling === 'max' ? 'maximum' : 'mode';
-    const allowLegacyCoarseToFine =
-      process.env.ALLOW_LEGACY_COARSE_TO_FINE === 'true' || process.env.NODE_ENV === 'development';
     const layerIds = Array.from(
       new Set([
         ...objectives.map((objective) => objective.layer),
@@ -105,7 +103,7 @@ export class TaskRunService extends DBService {
       ])
     );
     const layerContracts = layerIds.map((layerId) =>
-      resolveLayerContract(layerId, resolvedSource.schema_metadata, legacyAggregationMethod, allowLegacyCoarseToFine)
+      resolveLayerContract(layerId, resolvedSource.schema_metadata, legacyAggregationMethod)
     );
     const planningUnitDefinition = createPlanningGridDefinition(
       planningUnitResolution,
