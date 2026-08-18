@@ -126,6 +126,7 @@ class PrefectConfigurationTest(unittest.TestCase):
         self.assertIn("persistentVolumeClaim:", worker_deployment)
         self.assertIn("conservation-tool.fullname.workflow-scratch", worker_deployment)
         self.assertIn("fsGroup:", worker_deployment)
+        self.assertIn("type: Recreate", worker_deployment)
 
     def test_dask_compilation_closes_before_highs_starts(self) -> None:
         repository = Path(__file__).resolve().parents[2]

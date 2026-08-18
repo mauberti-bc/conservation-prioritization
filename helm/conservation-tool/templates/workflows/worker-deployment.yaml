@@ -10,6 +10,8 @@ metadata:
     conservation-tool/workload-profile: {{ $profileName }}
 spec:
   replicas: {{ $profile.replicas | default $root.Values.services.workflows.worker.replicas }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: {{ include "conservation-tool.fullname.prefect-worker" $root }}-{{ $profileName }}
