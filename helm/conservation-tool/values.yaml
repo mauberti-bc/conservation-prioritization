@@ -272,7 +272,7 @@ services:
         fsGroup: 1003600000
       persistence:
         enabled: true
-        accessMode: ReadWriteOnce
+        accessMode: ReadWriteMany
         size: 512Mi
         existingClaim: ""
       profiles:

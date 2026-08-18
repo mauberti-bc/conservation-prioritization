@@ -1,9 +1,11 @@
+import hashlib
 import io
 import json
 import tempfile
 import unittest
 from dataclasses import asdict
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pyarrow as pa
@@ -15,6 +17,7 @@ from morecantile.commons import Tile
 from PIL import Image
 from pmtiles.reader import Reader
 
+from src.flows.task_tile import _download_canonical_zarr
 from src.optimization.canonical_result import write_solver_canonical_zarr
 from src.publication.windowed_pmtiles import (
     _style_destination,
@@ -26,6 +29,52 @@ from src.publication.windowed_pmtiles import (
 
 class WindowedPmtilesTest(unittest.TestCase):
     """Verify bounded metatile rendering and deterministic disk-backed packing."""
+
+    def test_download_canonical_zarr_uses_structural_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = self._canonical(root / "source")
+            output = root / "output"
+            parts = []
+            for path in sorted(value for value in source.rglob("*") if value.is_file()):
+                relative = path.relative_to(source)
+                checksum = hashlib.sha256(path.read_bytes()).hexdigest()
+                parts.append(
+                    {
+                        "path": str(relative),
+                        "uri": f"s3://bucket/{relative}",
+                        "checksum": checksum,
+                        "size_bytes": path.stat().st_size,
+                    }
+                )
+
+            def fake_download_object(
+                *,
+                bucket: str,
+                key: str,
+                local_path: str,
+            ) -> str:
+                self.assertEqual("bucket", bucket)
+                destination = Path(local_path)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes((source / key).read_bytes())
+                return local_path
+
+            with patch(
+                "src.flows.task_tile.download_object",
+                side_effect=fake_download_object,
+            ):
+                reconstructed = _download_canonical_zarr(
+                    {"manifest": {"partitions": parts}},
+                    output,
+                )
+
+            self.assertIn("decision", zarr.open_group(str(reconstructed), mode="r"))
+
+    def test_download_canonical_zarr_rejects_missing_partitions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(RuntimeError, "has no partitions"):
+                _download_canonical_zarr({"manifest": {}}, Path(directory))
 
     def _canonical(self, directory: Path) -> Path:
         destination = directory / "canonical.zarr"

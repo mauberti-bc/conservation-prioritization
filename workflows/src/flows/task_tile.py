@@ -41,11 +41,19 @@ def _sha256(path: Path) -> str:
 def _download_canonical_zarr(artifact: dict[str, Any], output: Path) -> Path:
     """Download and verify a manifest-committed canonical Zarr package."""
     manifest = artifact.get("manifest")
-    if not isinstance(manifest, dict) or manifest.get("format") != "zarr-v2":
-        raise RuntimeError("Canonical artifact is not a Zarr v2 result package.")
+    if not isinstance(manifest, dict):
+        raise RuntimeError("Canonical artifact manifest is missing.")
+    partitions = manifest.get("partitions")
+    if not isinstance(partitions, list) or not partitions:
+        raise RuntimeError("Canonical artifact manifest has no partitions.")
     destination = output / "canonical-result.zarr"
     destination.mkdir(parents=True, exist_ok=True)
-    for part in manifest.get("partitions", []):
+    for part in partitions:
+        if not isinstance(part, dict):
+            raise RuntimeError("Canonical manifest contains an invalid partition.")
+        required = ("path", "uri", "checksum")
+        if not all(isinstance(part.get(key), str) for key in required):
+            raise RuntimeError("Canonical manifest partition is incomplete.")
         relative = Path(part["path"])
         if relative.is_absolute() or ".." in relative.parts:
             raise RuntimeError("Canonical manifest contains an unsafe part path.")
@@ -55,6 +63,12 @@ def _download_canonical_zarr(artifact: dict[str, Any], output: Path) -> Path:
         download_object(bucket=bucket, key=key, local_path=str(local_path))
         if _sha256(local_path) != part["checksum"]:
             raise RuntimeError(f"Canonical Zarr checksum mismatch: {relative}.")
+    try:
+        zarr.open_group(str(destination), mode="r")
+    except Exception as error:
+        raise RuntimeError(
+            "Canonical artifact is not a readable Zarr package."
+        ) from error
     return destination
 
 
