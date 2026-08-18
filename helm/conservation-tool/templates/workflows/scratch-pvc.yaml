@@ -12,7 +12,7 @@ metadata:
     {{- end }}
 spec:
   accessModes:
-    - {{ .Values.services.workflows.worker.persistence.accessMode | default "ReadWriteMany" }}
+    - {{ .Values.services.workflows.worker.persistence.accessMode | default "ReadWriteOnce" }}
   resources:
     requests:
       storage: {{ .Values.services.workflows.worker.persistence.size | default "10Gi" }}
