@@ -66,14 +66,12 @@ for (const layerName of ['agriculture', 'any_human_disturbance', 'cut_blocks', '
  * @param {string} layerId Full group/variable identifier.
  * @param {Record<string, unknown>} sourceMetadata Immutable analytical-source metadata.
  * @param {'mode' | 'minimum' | 'maximum'} legacyAggregationMethod Explicit legacy aggregation semantics.
- * @param {boolean} allowLegacyCoarseToFine Whether noncanonical development mapping is enabled.
  * @returns {LayerRepresentationContract} Validated representation contract.
  */
 export function resolveLayerContract(
   layerId: string,
   sourceMetadata: Record<string, unknown>,
-  legacyAggregationMethod?: 'mode' | 'minimum' | 'maximum',
-  allowLegacyCoarseToFine = false
+  legacyAggregationMethod?: 'mode' | 'minimum' | 'maximum'
 ): LayerRepresentationContract {
   const contracts = sourceMetadata.layer_contracts;
   if (!contracts || typeof contracts !== 'object' || Array.isArray(contracts)) {
@@ -100,9 +98,9 @@ export function resolveLayerContract(
         extensive_or_intensive:
           declaredSemantics?.extensive_or_intensive ??
           (isCategorical ? 'categorical' : 'intensive'),
-        coarse_to_fine_policy: allowLegacyCoarseToFine
-          ? declaredSemantics?.coarse_to_fine_policy ?? 'nearest_constant'
-          : 'prohibit',
+        // TODO: Move resampling and coarse-to-fine policy into authoritative per-layer
+        // contracts based on each layer's units, quantity semantics, and data kind.
+        coarse_to_fine_policy: declaredSemantics?.coarse_to_fine_policy ?? 'nearest_constant',
         mapping_contract_version: 'legacy-affine-observed-v1',
         compatibility_mode: 'legacy_noncanonical'
       };
