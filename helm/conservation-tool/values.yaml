@@ -208,10 +208,6 @@ services:
       pullPolicy: "Always"
     config:
       port: 7100
-      image:
-        stream: "frontend-config"
-        tag: "dev"
-        pullPolicy: "Always"
       resources:
         requests:
           cpu: 25m
