@@ -128,6 +128,35 @@ class PrefectConfigurationTest(unittest.TestCase):
         self.assertIn("fsGroup:", worker_deployment)
         self.assertIn("type: Recreate", worker_deployment)
 
+    def test_environment_workflow_security_contexts_use_namespace_ids(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        expected_ids = {
+            "values.yaml": 1003600000,
+            "values-test.yaml": 1003620000,
+            "values-prod.yaml": 1003590000,
+        }
+
+        for values_file, namespace_id in expected_ids.items():
+            with self.subTest(values_file=values_file):
+                helm_values = yaml.safe_load(
+                    (
+                        repository
+                        / "helm"
+                        / "conservation-tool"
+                        / values_file
+                    ).read_text(encoding="utf-8")
+                )
+                worker_context = helm_values["services"]["workflows"]["worker"][
+                    "securityContext"
+                ]
+                deploy_context = helm_values["services"]["workflows"]["deploy"][
+                    "securityContext"
+                ]
+                self.assertEqual(namespace_id, worker_context["runAsUser"])
+                self.assertEqual(namespace_id, worker_context["fsGroup"])
+                self.assertEqual(namespace_id, deploy_context["runAsUser"])
+                self.assertEqual(namespace_id, deploy_context["fsGroup"])
+
     def test_dask_compilation_closes_before_highs_starts(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         for domain in ("continuous", "discrete"):

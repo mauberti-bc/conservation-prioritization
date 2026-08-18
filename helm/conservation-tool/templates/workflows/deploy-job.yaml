@@ -17,10 +17,31 @@ spec:
     spec:
       serviceAccountName: deployer
       restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        {{- if .Values.services.workflows.deploy.securityContext.runAsUser }}
+        runAsUser: {{ .Values.services.workflows.deploy.securityContext.runAsUser | int64 }}
+        {{- end }}
+        {{- if .Values.services.workflows.deploy.securityContext.fsGroup }}
+        fsGroup: {{ .Values.services.workflows.deploy.securityContext.fsGroup | int64 }}
+        {{- end }}
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: prefect-deploy
           image: "{{ .Values.registry }}/{{ .Values.services.workflows.deploy.image.stream }}:{{ .Values.services.workflows.deploy.image.tag }}"
           imagePullPolicy: {{ .Values.services.workflows.deploy.image.pullPolicy | default "IfNotPresent" }}
+          securityContext:
+            runAsNonRoot: true
+            {{- if .Values.services.workflows.deploy.securityContext.runAsUser }}
+            runAsUser: {{ .Values.services.workflows.deploy.securityContext.runAsUser | int64 }}
+            {{- end }}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
           command:
             - bash
             - src/setup.sh

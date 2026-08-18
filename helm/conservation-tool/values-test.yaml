@@ -72,12 +72,14 @@ services:
         tag: "test"
       securityContext:
         runAsUser: 1003620000
+        fsGroup: 1003620000
 
     deploy:
       image:
         tag: "test"
       securityContext:
         runAsUser: 1003620000
+        fsGroup: 1003620000
 
   api:
     image:
