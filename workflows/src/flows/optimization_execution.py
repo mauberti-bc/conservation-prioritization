@@ -301,17 +301,7 @@ def _upload_zarr_artifact(task_run_id: str, directory: Path) -> Dict[str, Any]:
         "content_type": "application/vnd.zarr+json",
         "checksum": checksum,
         "size_bytes": sum(int(part["size_bytes"]) for part in remote_parts),
-        "manifest": {
-            "schema_version": 1,
-            "artifact_type": "canonical_result",
-            "commit_protocol": "manifest_last",
-            "remote_manifest_uri": uploaded_manifest["uri"],
-            "remote_manifest_checksum": checksum,
-            "remote_manifest_size_bytes": manifest_path.stat().st_size,
-            "partition_count": len(remote_parts),
-            "content_root": local_manifest.get("content_root"),
-            "surface": local_manifest.get("surface"),
-        },
+        "manifest": remote_manifest,
     }
 
 

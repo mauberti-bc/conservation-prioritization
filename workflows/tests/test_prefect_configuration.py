@@ -60,6 +60,7 @@ class PrefectConfigurationTest(unittest.TestCase):
             deployment_pools,
             {profile["pool"] for profile in helm_profiles.values()},
         )
+        self.assertEqual("ReadWriteMany", worker_values["persistence"]["accessMode"])
         self.assertEqual("512Mi", worker_values["persistence"]["size"])
         sparse_profile = helm_profiles["sparse-solver"]
         self.assertEqual("sparse-16g", sparse_profile["executionProfile"])
@@ -211,6 +212,7 @@ class PrefectConfigurationTest(unittest.TestCase):
 
         self.assertIn("kind: PersistentVolumeClaim", pvc_template)
         self.assertIn("services.workflows.worker.persistence.enabled", pvc_template)
+        self.assertIn('default "ReadWriteMany"', pvc_template)
         self.assertIn("conservation-tool.fullname.workflow-scratch", pvc_template)
 
     def test_internal_workflow_callbacks_do_not_return_full_runs(self) -> None:
