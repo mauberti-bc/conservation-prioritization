@@ -62,9 +62,6 @@ services:
   frontend:
     image:
       tag: "prod"
-    config:
-      image:
-        tag: "prod"
     securityContext:
       runAsUser: 1003590000
       fsGroup: 1003590000
