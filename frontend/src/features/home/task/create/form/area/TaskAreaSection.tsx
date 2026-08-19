@@ -5,7 +5,7 @@ import { FileDropzone } from 'components/dropzone/FileDropzone';
 import { TooltipStack } from 'components/tooltip/TooltipStack';
 import { TooltipPopover } from 'components/TooltipPopover';
 import { useFormikContext } from 'formik';
-import { useMapContext } from 'hooks/useContext';
+import { useConfigContext, useMapContext } from 'hooks/useContext';
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { validateGeometry } from 'utils/spatial';
@@ -13,14 +13,18 @@ import { v4 } from 'uuid';
 import { TaskCreateFormValues } from '../TaskCreateForm';
 import { TaskGeometryForm } from './geometry/TaskGeometryForm';
 
+const AREA_UPLOAD_FEATURE_FLAG = 'APP_FF_AREA_UPLOAD';
+
 interface TaskAreaSectionProps {
   isReadOnly?: boolean;
 }
 
 export const TaskAreaSection = ({ isReadOnly = false }: TaskAreaSectionProps) => {
+  const config = useConfigContext();
   const { values, setFieldValue } = useFormikContext<TaskCreateFormValues>();
   const { drawControlsRef, mapRef, drawRef } = useMapContext();
   const [isDrawing, setIsDrawing] = useState(false);
+  const showUploadDropzone = config.FEATURE_FLAGS.includes(AREA_UPLOAD_FEATURE_FLAG);
 
   const startDrawing = useCallback(() => {
     if (!drawRef.current || !mapRef.current || !drawControlsRef.current) {
@@ -134,7 +138,7 @@ export const TaskAreaSection = ({ isReadOnly = false }: TaskAreaSectionProps) =>
         )}
       </Box>
 
-      {!isReadOnly && (
+      {!isReadOnly && showUploadDropzone && (
         <Box>
           <FileDropzone
             label="Upload areas of interest"

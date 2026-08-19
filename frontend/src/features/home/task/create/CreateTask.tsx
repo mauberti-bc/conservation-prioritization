@@ -13,15 +13,15 @@ import { useNavigate } from 'react-router-dom';
 import { buildTaskSubmission } from 'utils/task-submission';
 import { TaskAdvancedSection } from './form/advanced/TaskAdvancedSection';
 import { CreateTaskSubmitRefBinder } from './form/shared/CreateTaskSubmitRefBinder';
-import { TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
+import { DEFAULT_TASK_CREATE_NAME, TaskCreateForm, TaskCreateFormValues } from './form/TaskCreateForm';
 import { taskValidationSchema } from './TaskCreateYup';
 
 const initialValues: TaskCreateFormValues = {
   resolution: 240,
   description: null,
   resampling: 'mode',
-  name: '',
-  type: 'discrete_optimization',
+  name: DEFAULT_TASK_CREATE_NAME,
+  type: 'continuous_optimization',
   optimizationMode: OPTIMIZATION_MODE.INTERACTIVE,
   neighborPenaltyEnabled: false,
   neighborPenaltyStrength: 1,
@@ -32,6 +32,7 @@ const initialValues: TaskCreateFormValues = {
 
 interface CreateTaskProps {
   onSubmitSuccess?: (task: GetTaskResponse) => void;
+  onClose?: () => void;
   submitRef?: MutableRefObject<(() => void) | null>;
   hideInternalActions?: boolean;
   onSubmittingChange?: (isSubmitting: boolean) => void;
@@ -39,6 +40,7 @@ interface CreateTaskProps {
 
 export const CreateTask = ({
   onSubmitSuccess,
+  onClose,
   submitRef,
   hideInternalActions = false,
   onSubmittingChange,
@@ -113,7 +115,7 @@ export const CreateTask = ({
           <Box
             component="form"
             onSubmit={handleSubmit}
-            sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
             <CreateTaskSubmitRefBinder
               submitRef={submitRef}
               onSubmittingChange={onSubmittingChange}
@@ -121,59 +123,58 @@ export const CreateTask = ({
             />
             <Box
               sx={{
-                flex: 1,
-                py: 2,
-                px: 2,
                 display: 'flex',
-                flexDirection: 'column',
-                minHeight: 0,
-                gap: 2,
-                height: '100%',
-                overflow: 'auto',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 1,
+                px: 3,
+                pt: 3,
+                pb: 2,
+                flex: '0 0 auto',
               }}>
-              <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
-                <Typography variant="h2" component="h2">
-                  New Task
-                </Typography>
-                <IconButton
-                  aria-label="Close new task"
-                  onClick={() => {
-                    navigate('/t/');
-                  }}
-                  edge="end"
-                  size="small">
-                  <Icon path={mdiClose} size={1} />
-                </IconButton>
-              </Box>
-              <TaskCreateForm autoSearchOnMount showAdvancedSection={hideInternalActions} />
+              <Typography variant="h2" component="h2">
+                New Task
+              </Typography>
+              <IconButton
+                aria-label="Close new task"
+                onClick={() => {
+                  if (onClose) {
+                    onClose();
+                    return;
+                  }
+
+                  navigate('/t/');
+                }}
+                edge="end"
+                size="small">
+                <Icon path={mdiClose} size={1} />
+              </IconButton>
+            </Box>
+            <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 3, pt: 1, pb: 3 }}>
+              <TaskCreateForm autoSearchOnMount />
             </Box>
 
-            {/* Sticky footer */}
             {!hideInternalActions && (
               <Box
                 sx={{
-                  px: 2,
+                  px: 3,
                   py: 2,
                   boxShadow: '0px -2px 25px 0px rgba(0,0,0,0.05)',
-                  position: 'sticky',
-                  bottom: 0,
                   backgroundColor: 'white',
+                  flex: '0 0 auto',
                 }}>
                 <Box mb={1}>
                   <TaskAdvancedSection />
                 </Box>
-                {/* Submit Button */}
-                <Box>
-                  <Button
-                    variant="contained"
-                    loading={isSubmitting}
-                    type="submit"
-                    color="primary"
-                    sx={{ flex: 1, py: 2 }}
-                    fullWidth>
-                    Submit
-                  </Button>
-                </Box>
+                <Button
+                  variant="contained"
+                  loading={isSubmitting}
+                  type="submit"
+                  color="primary"
+                  sx={{ flex: 1, py: 2 }}
+                  fullWidth>
+                  Submit
+                </Button>
               </Box>
             )}
           </Box>

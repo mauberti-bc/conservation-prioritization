@@ -1,14 +1,16 @@
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import { TASK_STATUS } from 'constants/status';
+import { MapContainer } from 'features/home/map/MapContainer';
+import { FloatingSidebarContainer } from 'features/home/sidebar/FloatingSidebarContainer';
+import { Sidebar } from 'features/home/sidebar/Sidebar';
+import { SIDEBAR_FLOAT_MARGIN_PX } from 'features/home/sidebar/sidebar-layout.constants';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useApplicationEventsContext, useAuthContext, useTaskContext } from 'hooks/useContext';
 import useDataLoader from 'hooks/useDataLoader';
 import { useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getTaskStatusLabel } from 'utils/task-status';
-import { MapContainer } from 'features/home/map/MapContainer';
-import { Sidebar } from 'features/home/sidebar/Sidebar';
 
 /**
  * Authenticated dashboard view for published tasks.
@@ -17,7 +19,7 @@ export const DashboardPage = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const conservationApi = useConservationApi();
   const authContext = useAuthContext();
-  const { taskRevisions, connectionEpoch, markTaskSeen } = useApplicationEventsContext();
+  const { taskRevisions, taskStatuses, connectionEpoch, markTaskSeen } = useApplicationEventsContext();
   const { taskId, taskDataLoader, setFocusedTask, hoveredTilesetUri } = useTaskContext();
   const navigate = useNavigate();
   const location = useLocation();
@@ -98,7 +100,7 @@ export const DashboardPage = () => {
   }, [hoveredTilesetUri, taskDataLoader.data]);
 
   const statusLabel = useMemo(() => {
-    const activeStatus = taskDataLoader.data?.status;
+    const activeStatus = primaryTaskId ? (taskStatuses[primaryTaskId] ?? taskDataLoader.data?.status) : null;
 
     if (!activeStatus) {
       return null;
@@ -109,10 +111,11 @@ export const DashboardPage = () => {
     }
 
     return getTaskStatusLabel(activeStatus);
-  }, [taskDataLoader.data]);
+  }, [primaryTaskId, taskDataLoader.data, taskStatuses]);
 
-  const sidebarWidth = '50vw';
-  const sidebarMinWidth = 360;
+  const sidebarWidth = { xs: `calc(100vw - ${SIDEBAR_FLOAT_MARGIN_PX * 2}px)`, md: '50vw' };
+  const sidebarMaxWidth = { xs: `calc(100vw - ${SIDEBAR_FLOAT_MARGIN_PX * 2}px)`, md: 720 };
+  const statusChipLeft = `calc((100% + (${SIDEBAR_FLOAT_MARGIN_PX}px + min(50vw, 720px))) / 2)`;
 
   return (
     <Box position="relative" height="100%" overflow="hidden">
@@ -122,31 +125,19 @@ export const DashboardPage = () => {
             sx={{
               position: 'absolute',
               top: 16,
-              left: '50%',
+              left: { xs: '50%', md: statusChipLeft },
               transform: 'translateX(-50%)',
               zIndex: 10,
             }}>
             <Chip size="small" color="primary" label={statusLabel} />
           </Box>
         )}
-        <MapContainer pmtilesUrls={pmtilesUrls} />
+        <MapContainer pmtilesUrls={pmtilesUrls} pmtilesLegendTaskType={taskDataLoader.data?.type ?? null} />
       </Box>
 
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          bottom: 0,
-          left: 0,
-          width: sidebarWidth,
-          maxWidth: sidebarWidth,
-          minWidth: sidebarMinWidth,
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 12,
-        }}>
+      <FloatingSidebarContainer width={sidebarWidth} maxWidth={sidebarMaxWidth}>
         <Sidebar />
-      </Box>
+      </FloatingSidebarContainer>
     </Box>
   );
 };

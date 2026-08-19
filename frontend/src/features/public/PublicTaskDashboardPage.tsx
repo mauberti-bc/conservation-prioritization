@@ -83,7 +83,7 @@ export const PublicTaskDashboardPage = () => {
       </Box>
 
       <Box flex="1" position="relative" overflow="hidden">
-        <MapContainer pmtilesUrls={pmtilesUrls} />
+        <MapContainer pmtilesUrls={pmtilesUrls} pmtilesLegendTaskType={taskDataLoader.data?.type ?? null} />
       </Box>
     </Stack>
   );

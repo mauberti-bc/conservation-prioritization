@@ -16,6 +16,7 @@ export interface TaskObjectiveConfig {
 
 export interface TaskConstraintConfig {
   id: string;
+  name?: string;
   type: 'aggregate' | 'planning_unit';
   layer: string;
   min: number | null;

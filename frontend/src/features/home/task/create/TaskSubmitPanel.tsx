@@ -216,14 +216,12 @@ export const TaskSubmitPanel = () => {
                   <Box
                     sx={{
                       flex: 1,
-                      py: 3,
-                      display: 'flex',
-                      flexDirection: 'column',
                       minHeight: 0,
-                      height: '100%',
                       overflow: 'auto',
+                      px: 3,
+                      py: 3,
                     }}>
-                    <TaskCreateForm autoSearchOnMount showAdvancedSection={false} />
+                    <TaskCreateForm autoSearchOnMount />
                   </Box>
 
                   <TaskSubmitPanelFooter isSubmitting={isSubmitting} />

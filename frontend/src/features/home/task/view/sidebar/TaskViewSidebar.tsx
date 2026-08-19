@@ -1,6 +1,5 @@
 import Box from '@mui/material/Box';
 import { grey } from '@mui/material/colors';
-import Paper from '@mui/material/Paper';
 import { useTaskContext } from 'hooks/useContext';
 import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -36,14 +35,11 @@ export const TaskViewSidebar = ({ isPreviewOpen, onTogglePreview }: TaskViewSide
 
   return (
     <Box
-      component={Paper}
-      elevation={1}
       sx={{
         boxSizing: 'border-box',
         width: '100%',
         height: '100%',
         minHeight: 0,
-        borderRadius: 0,
         overflow: 'hidden',
       }}>
       <Box

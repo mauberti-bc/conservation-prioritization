@@ -1,14 +1,14 @@
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
-import Typography from '@mui/material/Typography';
 import { TASK_STATUS } from 'constants/status';
 import { useApplicationEventsContext, useMapContext, useTaskContext } from 'hooks/useContext';
 import { useEffect, useMemo, useState } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
-import { getTaskViewSidebarWidth } from './task/view/sidebar/task-view-sidebar.constants';
-import { TaskViewSidebar } from './task/view/sidebar/TaskViewSidebar';
+import { FloatingSidebarContainer } from './sidebar/FloatingSidebarContainer';
+import { SIDEBAR_FLOAT_MARGIN_PX, SIDEBAR_FLOAT_WIDTH_PX } from './sidebar/sidebar-layout.constants';
+import { TaskViewPanel } from './task/view/panel/TaskViewPanel';
 
 /**
  * Task detail view for an existing submitted task.
@@ -18,20 +18,21 @@ import { TaskViewSidebar } from './task/view/sidebar/TaskViewSidebar';
 export const ViewTaskPage = () => {
   const { drawControlsRef } = useMapContext();
   const { taskId, taskDataLoader, hoveredTilesetUri } = useTaskContext();
-  const { taskRevisions, connectionEpoch, markTaskSeen } = useApplicationEventsContext();
-  const [isPreviewOpen, setIsPreviewOpen] = useState(true);
+  const { taskRevisions, taskStatuses, connectionEpoch, markTaskSeen } = useApplicationEventsContext();
   const [isResettingPmtiles, setIsResettingPmtiles] = useState(false);
-  const sidebarWidthPx = getTaskViewSidebarWidth(isPreviewOpen);
-  const sidebarWidth = `${sidebarWidthPx}px`;
-
-  const sidebarMinWidth = 320;
+  const sidebarWidth = { xs: `calc(100vw - ${SIDEBAR_FLOAT_MARGIN_PX * 2}px)`, md: SIDEBAR_FLOAT_WIDTH_PX };
+  const sidebarMaxWidth = { xs: `calc(100vw - ${SIDEBAR_FLOAT_MARGIN_PX * 2}px)`, md: SIDEBAR_FLOAT_WIDTH_PX };
+  const statusChipLeft = `calc((100% + ${SIDEBAR_FLOAT_MARGIN_PX + SIDEBAR_FLOAT_WIDTH_PX}px) / 2)`;
   const activeTaskData = useMemo(() => {
     if (!taskDataLoader.data || taskDataLoader.data.task_id !== taskId) {
       return null;
     }
 
-    return taskDataLoader.data;
-  }, [taskDataLoader.data, taskId]);
+    return {
+      ...taskDataLoader.data,
+      status: taskStatuses[taskId] ?? taskDataLoader.data.status,
+    };
+  }, [taskDataLoader.data, taskId, taskStatuses]);
 
   useEffect(() => {
     const revision = taskRevisions[taskId];
@@ -149,7 +150,7 @@ export const ViewTaskPage = () => {
             sx={{
               position: 'absolute',
               top: 16,
-              left: `calc(${sidebarWidth} + ((100% - ${sidebarWidth}) / 2))`,
+              left: { xs: '50%', md: statusChipLeft },
               transform: 'translateX(-50%)',
               zIndex: 10,
             }}>
@@ -172,46 +173,17 @@ export const ViewTaskPage = () => {
             />
           </Box>
         )}
-        <MapContainer pmtilesUrls={isResettingPmtiles ? [] : pmtilesUrls} boundsRefreshKey={taskId} />
-        {resolvedPmtilesUri && (
-          <Box
-            sx={{
-              position: 'absolute',
-              right: 16,
-              bottom: 32,
-              zIndex: 10,
-              bgcolor: 'background.paper',
-              borderRadius: 1,
-              boxShadow: 3,
-              p: 1.5,
-              minWidth: 230,
-            }}>
-            <Typography variant="body2">Reference solution</Typography>
-          </Box>
-        )}
+        <MapContainer
+          pmtilesUrls={isResettingPmtiles ? [] : pmtilesUrls}
+          boundsRefreshKey={taskId}
+          pmtilesLegendTaskType={activeTaskData?.type ?? null}
+        />
         <DrawControls ref={drawControlsRef} />
       </Box>
 
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          bottom: 0,
-          left: 0,
-          width: sidebarWidth,
-          maxWidth: sidebarWidth,
-          minWidth: `${sidebarMinWidth}px`,
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 12,
-        }}>
-        <TaskViewSidebar
-          isPreviewOpen={isPreviewOpen}
-          onTogglePreview={() => {
-            setIsPreviewOpen((prev) => !prev);
-          }}
-        />
-      </Box>
+      <FloatingSidebarContainer width={sidebarWidth} maxWidth={sidebarMaxWidth}>
+        <TaskViewPanel />
+      </FloatingSidebarContainer>
     </Box>
   );
 };

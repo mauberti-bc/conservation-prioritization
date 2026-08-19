@@ -65,6 +65,7 @@ export const LayerOptionAutocomplete = ({
     <>
       <Autocomplete
         multiple
+        disablePortal
         filterSelectedOptions
         disableCloseOnSelect
         disableClearable
@@ -117,9 +118,9 @@ export const LayerOptionAutocomplete = ({
           />
         )}
         slotProps={{
-          paper: { sx: { maxHeight: '60vh' } },
-          popper: { sx: { maxHeight: '60vh' } },
-          listbox: { sx: { maxHeight: '60vh' } },
+          paper: { sx: { maxHeight: 360, overflow: 'hidden' } },
+          popper: { sx: { maxHeight: 360, zIndex: 13 } },
+          listbox: { sx: { maxHeight: 360, overflowY: 'auto' } },
         }}
       />
 

@@ -113,14 +113,13 @@ build-all: ## Build containers for all
 	@echo "==============================================="
 	@echo "Make: build-all - building all images"
 	@echo "==============================================="
-	@# All worker services share this image; build prefect_worker once to avoid concurrent exporters racing on one tag.
 	@docker compose build frontend db db_setup api prefect_server prefect_deploy prefect_worker
 
 run-all: ## Run containers for all
 	@echo "==============================================="
 	@echo "Make: run-all - running all images"
 	@echo "==============================================="
-	@docker compose up -d frontend db db_setup api prefect_server prefect_deploy prefect_worker prefect_worker_sparse_solver minio minio_setup
+	@docker compose up -d frontend db db_setup api prefect_server prefect_deploy prefect_worker minio minio_setup
 
 ## ------------------------------------------------------------------------------
 ## Build and Run Backend + Web
@@ -198,14 +197,13 @@ build-prefect: ## Build containers for prefect
 	@echo "==============================================="
 	@echo "Make: build-prefect - building prefect images"
 	@echo "==============================================="
-	@# The sparse solver worker inherits the prefect_worker image and does not need a separate build.
 	@docker compose build prefect_server prefect_deploy prefect_worker
 
 run-prefect: ## Run containers for prefect
 	@echo "==============================================="
 	@echo "Make: run-prefect - running prefect images"
 	@echo "==============================================="
-	@docker compose up -d prefect_server prefect_deploy prefect_worker prefect_worker_sparse_solver
+	@docker compose up -d prefect_server prefect_deploy prefect_worker
 
 
 ## ------------------------------------------------------------------------------

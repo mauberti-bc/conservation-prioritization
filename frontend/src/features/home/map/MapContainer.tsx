@@ -1,6 +1,7 @@
 import { CircularProgress } from '@mui/material';
 import Box from '@mui/material/Box';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
+import { TASK_TYPE } from 'hooks/interfaces/useTaskApi.interface';
 import { useMapContext } from 'hooks/useContext';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -8,6 +9,7 @@ import { PMTiles } from 'pmtiles';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { attachMapContainer, detachMapContainer, getMapCacheEntry, setMapCacheEntry } from 'utils/mapInstanceCache';
 import { ensurePMTilesProtocol } from 'utils/pmtilesProtocol';
+import { PmtilesLegend } from './PmtilesLegend';
 
 interface MapContainerProps {
   pmtilesUrls?: string[];
@@ -20,6 +22,8 @@ interface MapContainerProps {
   pmtilesOpacity?: number;
   onPmtilesDisplayed?: (displayed: boolean) => void;
   waitForPmtiles?: boolean;
+  showPmtilesLegend?: boolean;
+  pmtilesLegendTaskType?: TASK_TYPE | null;
 }
 
 /**
@@ -39,6 +43,8 @@ export const MapContainer = ({
   pmtilesOpacity = 0.75,
   onPmtilesDisplayed,
   waitForPmtiles = true,
+  showPmtilesLegend = true,
+  pmtilesLegendTaskType = null,
 }: MapContainerProps) => {
   const DefaultFitBoundsPadding = 32;
   const DefaultFitBoundsMaxZoom = 14;
@@ -512,6 +518,9 @@ export const MapContainer = ({
   return (
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
       <Box ref={mapHostRef} sx={{ position: 'absolute', inset: 0 }} />
+      {showPmtilesLegend && hasPmtiles ? (
+        <PmtilesLegend pmtilesUrls={normalizedPmtilesUrls} taskType={pmtilesLegendTaskType} />
+      ) : null}
       <LoadingGuard
         isLoading={isMapLoading}
         isLoadingFallbackDelay={300}

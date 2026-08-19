@@ -65,7 +65,13 @@ export const CustomAutocomplete = <
         </Box>
       )}
       renderInput={(params) => <TextField {...params} variant="outlined" size="small" label={label} />}
-      sx={{ width, ...autocompleteProps.sx }}
+      sx={{
+        width,
+        '& .MuiOutlinedInput-root .MuiAutocomplete-input': {
+          pl: '8px !important',
+        },
+        ...autocompleteProps.sx,
+      }}
       {...autocompleteProps}
     />
   );

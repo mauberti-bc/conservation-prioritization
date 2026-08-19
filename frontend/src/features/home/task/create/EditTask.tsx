@@ -127,19 +127,17 @@ export const EditTask = ({ taskId: taskIdProp }: EditTaskProps) => {
               <Box
                 component="form"
                 onSubmit={handleSubmit}
-                sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
                 <Box
                   sx={{
                     flex: 1,
-                    pb: 3,
-                    display: 'flex',
-                    flexDirection: 'column',
                     minHeight: 0,
-                    gap: 2,
-                    height: '100%',
                     overflow: 'auto',
+                    px: 3,
+                    pt: 3,
+                    pb: 3,
                   }}>
-                  <Box px={3} pt={2}>
+                  <Box pb={2}>
                     <Typography variant="body2" color="textSecondary">
                       This will create a new task based on the selected configuration.
                     </Typography>
@@ -147,28 +145,23 @@ export const EditTask = ({ taskId: taskIdProp }: EditTaskProps) => {
                   <TaskCreateForm />
                 </Box>
 
-                {/* Sticky footer */}
                 <Box
-                  mr={0.5}
-                  py={2}
                   sx={{
+                    px: 3,
+                    py: 2,
                     boxShadow: '0px -2px 25px 0px rgba(0,0,0,0.05)',
-                    position: 'sticky',
-                    bottom: 0,
                     backgroundColor: 'white',
+                    flex: '0 0 auto',
                   }}>
-                  {/* Submit Button */}
-                  <Box mx={3}>
-                    <Button
-                      variant="contained"
-                      loading={isSubmitting}
-                      type="submit"
-                      color="primary"
-                      sx={{ flex: 1, py: 2 }}
-                      fullWidth>
-                      Create Copy
-                    </Button>
-                  </Box>
+                  <Button
+                    variant="contained"
+                    loading={isSubmitting}
+                    type="submit"
+                    color="primary"
+                    sx={{ flex: 1, py: 2 }}
+                    fullWidth>
+                    Create Copy
+                  </Button>
                 </Box>
               </Box>
             );

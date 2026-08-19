@@ -1,0 +1,3 @@
+export const SIDEBAR_FLOAT_MARGIN_PX = 16;
+export const SIDEBAR_FLOAT_BORDER_RADIUS = 2;
+export const SIDEBAR_FLOAT_WIDTH_PX = 608;

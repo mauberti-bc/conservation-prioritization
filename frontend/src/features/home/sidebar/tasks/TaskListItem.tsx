@@ -39,8 +39,9 @@ export const TaskListItem = ({
   const dialogContext = useDialogContext();
   const conservationApi = useConservationApi();
   const { taskId, refreshTasks } = useTaskContext();
-  const { unseenTaskIds, markTaskSeen } = useApplicationEventsContext();
+  const { unseenTaskIds, markTaskSeen, taskStatuses } = useApplicationEventsContext();
   const [isHovered, setIsHovered] = useState(false);
+  const taskStatus = taskStatuses[task.task_id] ?? task.status;
   void onDeleteTask;
   void onAddToProject;
 
@@ -141,7 +142,7 @@ export const TaskListItem = ({
   };
 
   const renderStatusIndicator = () => {
-    if (task.status === TASK_STATUS.DRAFT) {
+    if (taskStatus === TASK_STATUS.DRAFT) {
       return (
         <IconButton
           size="small"
@@ -154,7 +155,7 @@ export const TaskListItem = ({
       );
     }
 
-    if (task.status === TASK_STATUS.PENDING) {
+    if (taskStatus === TASK_STATUS.PENDING) {
       return (
         <IconButton
           size="small"
@@ -167,19 +168,19 @@ export const TaskListItem = ({
       );
     }
 
-    if (task.status === TASK_STATUS.SUBMITTED) {
+    if (taskStatus === TASK_STATUS.SUBMITTED) {
       return <CircularProgress size={20} thickness={5} />;
     }
 
-    if (task.status === TASK_STATUS.IN_PROGRESS) {
+    if (taskStatus === TASK_STATUS.IN_PROGRESS) {
       return <CircularProgress size={20} thickness={5} />;
     }
 
-    if (task.status === TASK_STATUS.RUNNING) {
+    if (taskStatus === TASK_STATUS.RUNNING) {
       return <CircularProgress size={20} thickness={5} />;
     }
 
-    if (task.status === TASK_STATUS.FAILED || task.status === TASK_STATUS.FAILED_TO_SUBMIT) {
+    if (taskStatus === TASK_STATUS.FAILED || taskStatus === TASK_STATUS.FAILED_TO_SUBMIT) {
       return (
         <IconButton
           color="error"
@@ -193,7 +194,7 @@ export const TaskListItem = ({
       );
     }
 
-    return <Chip size="small" label={getTaskStatusLabel(task.status)} sx={{ px: 1, width: 'fit-content' }} />;
+    return <Chip size="small" label={getTaskStatusLabel(taskStatus)} sx={{ px: 1, width: 'fit-content' }} />;
   };
 
   return (

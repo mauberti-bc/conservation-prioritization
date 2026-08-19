@@ -6,6 +6,7 @@ import { Formik } from 'formik';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useTaskContext } from 'hooks/useContext';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { mapTaskResponseToSubmitFormValues } from 'utils/task-mapping';
 import { TaskViewEditDialog } from '../dialog/TaskViewEditDialog';
 import { TaskViewInviteDialog } from '../dialog/TaskViewInviteDialog';
@@ -18,6 +19,7 @@ import { TaskEditFormValues } from './task-view-panel.interface';
  * @returns {JSX.Element}
  */
 export const TaskViewPanel = () => {
+  const navigate = useNavigate();
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
   const { taskId, taskDataLoader, refreshTasks, setFocusedTask } = useTaskContext();
@@ -180,22 +182,27 @@ export const TaskViewPanel = () => {
             </Box>
           }>
           <Formik initialValues={initialValues as TaskCreateFormValues} enableReinitialize onSubmit={async () => {}}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-              <TaskViewPanelHeader
-                title={taskDataLoader.data?.name ?? 'Task'}
-                onEdit={() => {
-                  setEditTaskError(null);
-                  setEditTaskOpen(true);
-                }}
-                onShare={() => {
-                  setInviteError(null);
-                  setInviteOpen(true);
-                }}
-                onDelete={handleDeleteTask}
-              />
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
+              <Box sx={{ px: 3, pt: 3, pb: 2, flex: '0 0 auto' }}>
+                <TaskViewPanelHeader
+                  title={taskDataLoader.data?.name ?? 'Task'}
+                  onClose={() => {
+                    navigate('/map');
+                  }}
+                  onEdit={() => {
+                    setEditTaskError(null);
+                    setEditTaskOpen(true);
+                  }}
+                  onShare={() => {
+                    setInviteError(null);
+                    setInviteOpen(true);
+                  }}
+                  onDelete={handleDeleteTask}
+                />
+              </Box>
 
               {solutionSummary && (
-                <Box sx={{ mx: 2, mt: 2, p: 1.5, borderRadius: 1, bgcolor: 'action.hover' }}>
+                <Box sx={{ mx: 3, mb: 2, p: 1.5, borderRadius: 1, bgcolor: 'action.hover', flex: '0 0 auto' }}>
                   <Typography variant="subtitle2">{solutionSummary.title}</Typography>
                   <Typography variant="body2">Solutions: {solutionSummary.count}</Typography>
                   <Typography variant="body2">Method: {solutionSummary.method}</Typography>
@@ -228,11 +235,11 @@ export const TaskViewPanel = () => {
               <Box
                 sx={{
                   flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
                   minHeight: 0,
-                  height: '100%',
                   overflow: 'auto',
+                  px: 3,
+                  pt: 1,
+                  pb: 3,
                 }}>
                 {taskDataLoader.data?.latest_run?.status === 'failed' && (
                   <Alert
@@ -254,13 +261,7 @@ export const TaskViewPanel = () => {
                     {retryError ?? taskDataLoader.data.latest_run.failure_message ?? 'This run failed.'}
                   </Alert>
                 )}
-                <TaskCreateForm
-                  isReadOnly
-                  autoSearchOnMount={false}
-                  showAreaSection={false}
-                  showLayersSection
-                  showLayersHeader={false}
-                />
+                <TaskCreateForm isReadOnly autoSearchOnMount={false} showAreaSection={false} />
               </Box>
             </Box>
           </Formik>

@@ -4,6 +4,7 @@ import { grey } from '@mui/material/colors';
 import { IconMenuButton } from 'components/button/IconMenuButton';
 import { useFormikContext } from 'formik';
 import { useState } from 'react';
+import { TaskCreateFormValues } from '../../TaskCreateForm';
 import { GeometryEditDialog } from './edit/GeometryEditDialog';
 
 interface Geometry {
@@ -14,10 +15,6 @@ interface Geometry {
   geojson: any;
 }
 
-interface TaskGeometryFormValues {
-  geometry: Geometry[];
-}
-
 interface TaskGeometryFormProps {
   geometry: Geometry[];
   onDelete: (id: string) => void;
@@ -25,7 +22,7 @@ interface TaskGeometryFormProps {
 }
 
 export const TaskGeometryForm = ({ geometry, onDelete, isReadOnly = false }: TaskGeometryFormProps) => {
-  const { setFieldValue } = useFormikContext<TaskGeometryFormValues>();
+  const { setFieldValue } = useFormikContext<TaskCreateFormValues>();
   const [editingGeometry, setEditingGeometry] = useState<Geometry | null>(null);
 
   const handleEditClick = (g: Geometry) => {
@@ -39,9 +36,11 @@ export const TaskGeometryForm = ({ geometry, onDelete, isReadOnly = false }: Tas
   const handleEditSave = (values: { name: string; description: string }) => {
     if (editingGeometry) {
       const updatedGeometry = geometry.map((g) =>
-        g.id === editingGeometry.id ? { ...g, name: values.name, description: values.description } : g
+        g.id === editingGeometry.id
+          ? { ...g, name: values.name, description: values.description.trim() ? values.description : null }
+          : g
       );
-      setFieldValue('geometry', updatedGeometry);
+      setFieldValue('targetArea', updatedGeometry);
       setEditingGeometry(null);
     }
   };

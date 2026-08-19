@@ -8,7 +8,14 @@ const CHANNEL = 'conservation_realtime';
 const MAX_BUFFERED_BYTES = 1024 * 1024;
 const HEARTBEAT_INTERVAL_MS = 30000;
 
-export interface TaskRunChangedEvent {
+export interface TaskChangedEvent {
+  type: 'task.updated';
+  task_id: string;
+  status: string;
+  updated_at?: string;
+}
+
+interface TaskRunChangedEvent {
   type: 'task_run.updated';
   task_id: string;
   task_run_id: string;
@@ -103,17 +110,17 @@ function handleNotification(message: pg.Notification): void {
     return;
   }
   try {
-    const event = JSON.parse(message.payload) as TaskRunChangedEvent | ProfileScopeChangedEvent;
+    const event = JSON.parse(message.payload) as TaskChangedEvent | TaskRunChangedEvent | ProfileScopeChangedEvent;
     if (event.type === 'profile_scope.updated' && typeof event.profile_id === 'string') {
       reconnectProfileSockets(event.profile_id);
       return;
     }
-    if (
-      event.type !== 'task_run.updated' ||
-      typeof event.task_id !== 'string' ||
-      typeof event.task_run_id !== 'string' ||
-      typeof event.revision !== 'number'
-    ) {
+
+    if (event.type === 'task_run.updated') {
+      return;
+    }
+
+    if (event.type !== 'task.updated' || typeof event.task_id !== 'string' || typeof event.status !== 'string') {
       throw new Error('Invalid realtime event envelope.');
     }
     forwardRealtimeEvent(event);
@@ -135,7 +142,7 @@ function reconnectProfileSockets(profileId: string): void {
 }
 
 /** Forwards a committed event only to authorized sockets on this replica. */
-export function forwardRealtimeEvent(event: TaskRunChangedEvent): void {
+export function forwardRealtimeEvent(event: TaskChangedEvent): void {
   const payload = JSON.stringify(event);
   for (const profile of connectionsByProfile.values()) {
     if (!profile.visibleTaskIds.has(event.task_id)) {

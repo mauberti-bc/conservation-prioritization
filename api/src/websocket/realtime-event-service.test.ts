@@ -39,18 +39,16 @@ describe('realtime-event-service', () => {
     );
 
     forwardRealtimeEvent({
-      type: 'task_run.updated',
+      type: 'task.updated',
       task_id: 'task-1',
-      task_run_id: 'run-1',
-      revision: 4
+      status: 'running'
     });
 
     expect(allowed.sent).to.deep.equal([
       JSON.stringify({
-        type: 'task_run.updated',
+        type: 'task.updated',
         task_id: 'task-1',
-        task_run_id: 'run-1',
-        revision: 4
+        status: 'running'
       })
     ]);
     expect(denied.sent).to.deep.equal([]);
@@ -64,10 +62,9 @@ describe('realtime-event-service', () => {
     const unregister = registerRealtimeSocket(socket as unknown as WebSocket, 'profile-slow', new Set(['task-1']));
 
     forwardRealtimeEvent({
-      type: 'task_run.updated',
+      type: 'task.updated',
       task_id: 'task-1',
-      task_run_id: 'run-1',
-      revision: 5
+      status: 'completed'
     });
 
     expect(socket.closedCode).to.equal(1013);
