@@ -8,6 +8,7 @@ import { RequestAccessPage } from 'features/access/RequestAccessPage';
 import { DashboardPage } from 'features/dashboard/DashboardPage';
 import { CreateTaskPage } from 'features/home/CreateTaskPage';
 import { HomePage } from 'features/home/HomePage';
+import { MapPage } from 'features/home/map/MapPage';
 import { ViewTaskPage } from 'features/home/ViewTaskPage';
 import { PublicTaskDashboardPage } from 'features/public/PublicTaskDashboardPage';
 import { AuthRedirectGuard } from 'guards/Guards';
@@ -30,13 +31,13 @@ const RootRoute = () => {
     }
 
     if (isLoggedIn) {
-      return <Navigate to="/t/" replace />;
+      return <Navigate to="/map" replace />;
     }
 
     return <Navigate to="/auth/login" replace />;
   }
 
-  return <Navigate to="/t/" replace />;
+  return <Navigate to="/map" replace />;
 };
 
 export const AppRouter = () => {
@@ -68,6 +69,46 @@ export const AppRouter = () => {
               </BaseLayout>
             </MapContextProvider>
           </DialogContextProvider>
+        }
+      />
+      <Route
+        path="/map"
+        element={
+          <AuthRedirectGuard redirectTo="/auth/login">
+            <DialogContextProvider>
+              <MapContextProvider>
+                <BaseLayout>
+                  <SidebarUIContextProvider>
+                    <ProjectContextProvider>
+                      <LayerSelectionContextProvider>
+                        <MapPage />
+                      </LayerSelectionContextProvider>
+                    </ProjectContextProvider>
+                  </SidebarUIContextProvider>
+                </BaseLayout>
+              </MapContextProvider>
+            </DialogContextProvider>
+          </AuthRedirectGuard>
+        }
+      />
+      <Route
+        path="/map/new"
+        element={
+          <AuthRedirectGuard redirectTo="/auth/login">
+            <DialogContextProvider>
+              <MapContextProvider>
+                <BaseLayout>
+                  <SidebarUIContextProvider>
+                    <ProjectContextProvider>
+                      <LayerSelectionContextProvider>
+                        <MapPage mode="create" />
+                      </LayerSelectionContextProvider>
+                    </ProjectContextProvider>
+                  </SidebarUIContextProvider>
+                </BaseLayout>
+              </MapContextProvider>
+            </DialogContextProvider>
+          </AuthRedirectGuard>
         }
       />
       <Route
@@ -154,7 +195,7 @@ export const AppRouter = () => {
         }
       />
       <Route path="/" element={<RootRoute />} />
-      <Route path="*" element={<Navigate to="/t/" replace />} />
+      <Route path="*" element={<Navigate to="/map" replace />} />
     </Routes>
   );
 };

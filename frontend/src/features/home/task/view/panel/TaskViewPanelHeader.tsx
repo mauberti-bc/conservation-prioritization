@@ -1,15 +1,19 @@
+import { mdiClose } from '@mdi/js';
+import Icon from '@mdi/react';
 import { Typography } from '@mui/material';
 import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
 import { TaskViewPanelActionsMenu } from './TaskViewPanelActionsMenu';
 
 interface TaskViewPanelHeaderProps {
   title: string;
+  onClose: () => void;
   onEdit: () => void;
   onShare: () => void;
   onDelete: () => void;
 }
 
-export const TaskViewPanelHeader = ({ title, onEdit, onShare, onDelete }: TaskViewPanelHeaderProps) => {
+export const TaskViewPanelHeader = ({ title, onClose, onEdit, onShare, onDelete }: TaskViewPanelHeaderProps) => {
   return (
     <Box display="flex" gap={1} pb={2}>
       <Typography
@@ -19,6 +23,9 @@ export const TaskViewPanelHeader = ({ title, onEdit, onShare, onDelete }: TaskVi
         {title}
       </Typography>
       <TaskViewPanelActionsMenu onEdit={onEdit} onShare={onShare} onDelete={onDelete} />
+      <IconButton aria-label="Close task" onClick={onClose} edge="end" size="small">
+        <Icon path={mdiClose} size={1} />
+      </IconButton>
     </Box>
   );
 };

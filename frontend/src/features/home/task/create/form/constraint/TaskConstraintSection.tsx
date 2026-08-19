@@ -1,8 +1,11 @@
-import { Box, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 import { LayerSearch } from 'features/layer/search/LayerSearch';
 import { useFormikContext } from 'formik';
 import { TaskCreateFormValues } from '../TaskCreateForm';
-import { TaskLayerOption } from '../layer/optimization-form.interface';
+import { ConstraintItem } from '../layer/card/ConstraintItem';
+import { LayerCardList } from '../layer/card/LayerCardList';
+import { TaskConstraintConfig, TaskLayerOption } from '../layer/optimization-form.interface';
 
 interface Props {
   isReadOnly?: boolean;
@@ -12,6 +15,21 @@ interface Props {
 /** Author aggregate and per-planning-unit constraints independently of objectives. */
 export const TaskConstraintSection = ({ isReadOnly = false, autoSearchOnMount = false }: Props) => {
   const { values, setFieldValue } = useFormikContext<TaskCreateFormValues>();
+
+  const deleteConstraint = (deleted: TaskConstraintConfig) => {
+    setFieldValue(
+      'constraints',
+      values.constraints.filter((constraint) => constraint.id !== deleted.id)
+    );
+  };
+
+  const updateConstraint = (updated: TaskConstraintConfig) => {
+    setFieldValue(
+      'constraints',
+      values.constraints.map((constraint) => (constraint.id === updated.id ? updated : constraint))
+    );
+  };
+
   return (
     <Stack gap={2}>
       {!isReadOnly && (
@@ -20,7 +38,7 @@ export const TaskConstraintSection = ({ isReadOnly = false, autoSearchOnMount = 
           showCheckbox
           selectedLayers={values.constraints.map((constraint) => ({
             path: constraint.layer,
-            name: constraint.layer,
+            name: constraint.name ?? constraint.layer,
             group: constraint.layer.split('/').slice(0, -1).join('/'),
           }))}
           allowEmptySearch
@@ -34,54 +52,31 @@ export const TaskConstraintSection = ({ isReadOnly = false, autoSearchOnMount = 
                 ? values.constraints.filter((constraint) => constraint.layer !== layer.path)
                 : [
                     ...values.constraints,
-                    { id: crypto.randomUUID(), type: 'aggregate', layer: layer.path, min: null, max: null },
+                    {
+                      id: crypto.randomUUID(),
+                      name: layer.name,
+                      type: 'aggregate',
+                      layer: layer.path,
+                      min: null,
+                      max: null,
+                    },
                   ]
             );
           }}
         />
       )}
-      {values.constraints.map((constraint, index) => (
-        <Box key={constraint.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 2 }}>
-          <Typography fontWeight={600} mb={1}>
-            {constraint.layer}
-          </Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>
-            <TextField
-              select
-              label="Constraint type"
-              value={constraint.type}
-              disabled={isReadOnly}
-              onChange={(event) => setFieldValue(`constraints[${index}].type`, event.target.value)}>
-              <MenuItem value="aggregate">Solution total</MenuItem>
-              <MenuItem value="planning_unit">Each planning unit</MenuItem>
-            </TextField>
-            <TextField
-              type="number"
-              label="Minimum"
-              value={constraint.min ?? ''}
-              disabled={isReadOnly}
-              onChange={(event) =>
-                setFieldValue(
-                  `constraints[${index}].min`,
-                  event.target.value === '' ? null : Number(event.target.value)
-                )
-              }
+      <LayerCardList isEmpty={values.constraints.length === 0 && isReadOnly}>
+        {values.constraints.map((constraint) => (
+          <Box component="li" key={constraint.id}>
+            <ConstraintItem
+              constraint={constraint}
+              onChange={updateConstraint}
+              onDelete={deleteConstraint}
+              isReadOnly={isReadOnly}
             />
-            <TextField
-              type="number"
-              label="Maximum"
-              value={constraint.max ?? ''}
-              disabled={isReadOnly}
-              onChange={(event) =>
-                setFieldValue(
-                  `constraints[${index}].max`,
-                  event.target.value === '' ? null : Number(event.target.value)
-                )
-              }
-            />
-          </Stack>
-        </Box>
-      ))}
+          </Box>
+        ))}
+      </LayerCardList>
     </Stack>
   );
 };

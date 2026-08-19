@@ -1,50 +1,90 @@
-import { Box, Checkbox, ListItem, Slider, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { mdiDeleteOutline } from '@mdi/js';
+import { Box, Slider, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { appTheme } from 'theme/AppTheme';
 import { TaskObjectiveConfig } from '../optimization-form.interface';
+import { LayerCard } from './LayerCard';
 
 interface Props {
   objective: TaskObjectiveConfig;
-  checked: boolean;
   onChange: (objective: TaskObjectiveConfig) => void;
-  onCheckboxChange: (name: string) => void;
+  onDelete: (objective: TaskObjectiveConfig) => void;
   isReadOnly?: boolean;
 }
 
-/** Edit one explicit objective without mixing in constraint or lock semantics. */
-export const ObjectiveItem = ({ objective, checked, onChange, onCheckboxChange, isReadOnly = false }: Props) => {
+const getSignedImportance = (objective: TaskObjectiveConfig) => {
+  return objective.direction === 'minimize' ? -objective.importance : objective.importance;
+};
+
+const getTrackColor = (value: number) => {
+  if (value === 0) {
+    return appTheme.palette.primary.main;
+  }
+
+  return value < 0 ? appTheme.palette.error.light : appTheme.palette.success.light;
+};
+
+/** Edit one objective as a simple signed influence slider. */
+export const ObjectiveItem = ({ objective, onChange, onDelete, isReadOnly = false }: Props) => {
+  const [localImportance, setLocalImportance] = useState(getSignedImportance(objective));
+  const menuItems = [
+    {
+      label: 'Delete',
+      icon: mdiDeleteOutline,
+      onClick: () => {
+        onDelete(objective);
+      },
+    },
+  ];
+
+  useEffect(() => {
+    setLocalImportance(getSignedImportance(objective));
+  }, [objective]);
+
+  const handleImportanceChange = (value: number) => {
+    onChange({
+      ...objective,
+      direction: value < 0 ? 'minimize' : 'maximize',
+      importance: Math.abs(value),
+    });
+  };
+
   return (
-    <ListItem disableGutters sx={{ py: 1 }}>
-      {!isReadOnly && <Checkbox checked={checked} onChange={() => onCheckboxChange(objective.name)} />}
-      <Stack direction={{ xs: 'column', md: 'row' }} gap={2} alignItems={{ md: 'center' }} width="100%">
-        <Box minWidth={220}>
-          <Typography fontWeight={600}>{objective.name}</Typography>
-          <Typography variant="caption" color="text.secondary">
-            {objective.path}
+    <LayerCard title={objective.name} menuOptions={isReadOnly ? [] : menuItems}>
+      <Box>
+        <Box display="flex" justifyContent="space-between" mb={0.5}>
+          <Typography variant="caption" fontSize="0.7rem" color="text.secondary">
+            Minimize
+          </Typography>
+          <Typography variant="caption" fontSize="0.7rem" color="text.secondary">
+            Maximize
           </Typography>
         </Box>
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          value={objective.direction}
+        <Slider
+          value={localImportance}
           disabled={isReadOnly}
-          onChange={(_, direction: TaskObjectiveConfig['direction'] | null) => {
-            if (direction) {
-              onChange({ ...objective, direction });
-            }
-          }}>
-          <ToggleButton value="maximize">Maximize</ToggleButton>
-          <ToggleButton value="minimize">Minimize</ToggleButton>
-        </ToggleButtonGroup>
-        <Box flex={1} minWidth={180}>
-          <Typography variant="caption">Relative importance: {objective.importance}</Typography>
-          <Slider
-            min={0}
-            max={100}
-            value={objective.importance}
-            disabled={isReadOnly}
-            onChange={(_, importance) => onChange({ ...objective, importance: importance as number })}
-          />
-        </Box>
-      </Stack>
-    </ListItem>
+          onChange={(_, value) => {
+            setLocalImportance(value as number);
+          }}
+          onChangeCommitted={(_, value) => {
+            handleImportanceChange(value as number);
+          }}
+          step={1}
+          min={-100}
+          max={100}
+          marks={[{ value: 0 }]}
+          valueLabelDisplay="auto"
+          valueLabelFormat={(value) => `${value}%`}
+          sx={{
+            py: 1,
+            height: 7,
+            color: getTrackColor(localImportance),
+            '& .MuiSlider-thumb': {
+              border: '2px solid white',
+            },
+          }}
+        />
+      </Box>
+    </LayerCard>
   );
 };

@@ -27,7 +27,7 @@ export const appTheme = createTheme({
   },
   palette: {
     background: {
-      default: grey[100],
+      default: grey[50],
     },
     common: {
       white: '#ffffff',
@@ -221,7 +221,7 @@ export const appTheme = createTheme({
           fontWeight: 700,
           textTransform: 'capitalize',
           whiteSpace: 'nowrap',
-          padding: '6px 12px',
+          padding: '6px 16px',
           lineHeight: 1.4,
           '&:focus': {
             outline: '2px solid #3B99FC',
@@ -252,7 +252,6 @@ export const appTheme = createTheme({
         startIcon: {
           marginBottom: '1px',
           mr: 0,
-          padding: '0 8px',
         },
         sizeSmall: {
           fontSize: '0.9rem',
@@ -260,11 +259,11 @@ export const appTheme = createTheme({
         },
         sizeMedium: {
           fontSize: '0.875rem',
-          padding: '10px 12px',
+          padding: '10px 14px',
         },
         sizeLarge: {
           fontSize: '1rem',
-          padding: '12px 14px',
+          padding: '12px 16px',
         },
       },
     },
@@ -551,11 +550,11 @@ export const appTheme = createTheme({
         root: ({ theme }) => ({
           '&.MuiAutocomplete-hasPopupIcon .MuiOutlinedInput-root, &.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root':
             {
-              paddingRight: '18px',
+              paddingRight: '16px',
             },
           '& .MuiOutlinedInput-root': {
             borderRadius: '4px',
-            padding: '8px 16px 8px 16px',
+            padding: '8px 16px',
             '&.Mui-disabled': {
               backgroundColor: disabledInputBackground,
             },

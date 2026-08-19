@@ -17,6 +17,7 @@ export const TaskGridCardMapPreview = ({ task }: TaskGridCardMapPreviewProps) =>
         showBaseLayer
         pmtilesOpacity={0.75}
         waitForPmtiles={false}
+        showPmtilesLegend={false}
       />
     </Box>
   );

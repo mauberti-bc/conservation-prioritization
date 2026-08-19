@@ -32,6 +32,7 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
   const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
   const tasksDataLoader = useDataLoader(conservationApi.task.getAllTasks);
   const lastRequestedTaskIdRef = useRef<string | null>(null);
+  const refreshTasksRef = useRef(tasksDataLoader.refresh);
   const [hoveredTilesetUri, setHoveredTilesetUri] = useState<string | null>(null);
   const defaultPagination = useMemo<ApiPaginationRequestOptions>(() => {
     return {
@@ -41,6 +42,7 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
       order: 'desc',
     };
   }, []);
+  refreshTasksRef.current = tasksDataLoader.refresh;
 
   if (!activeTaskId) {
     throw new Error('TaskContextProvider requires a :taskId route parameter.');
@@ -74,8 +76,8 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
   );
 
   const refreshTasks = useCallback(async () => {
-    return tasksDataLoader.refresh(defaultPagination);
-  }, [defaultPagination, tasksDataLoader]);
+    return refreshTasksRef.current(defaultPagination);
+  }, [defaultPagination]);
 
   const taskContext: ITaskContext = useMemo(() => {
     return {
