@@ -1,12 +1,13 @@
 import { SYSTEM_ROLE } from '../constants/roles';
 import { IDBConnection } from '../database/db';
+import { TaskRunRepository } from '../repositories/task-run-repository';
 import { getUserGuid } from '../utils/keycloak-utils';
 import {
   AuthorizationScheme,
   AuthorizeByProfile,
   AuthorizeByProject,
-  AuthorizeByTaskRun,
   AuthorizeByTask,
+  AuthorizeByTaskRun,
   AuthorizeRule
 } from './authorization-service.interface';
 import { DBService } from './db-service';
@@ -15,7 +16,6 @@ import { ProjectProfileService } from './project-profile-service';
 import { ProjectService } from './project-service';
 import { TaskProfileService } from './task-profile-service';
 import { TaskService } from './task-service';
-import { TaskRunRepository } from '../repositories/task-run-repository';
 
 export class AuthorizationService extends DBService {
   private profileService: ProfileService;
@@ -81,7 +81,13 @@ export class AuthorizationService extends DBService {
     }
   }
 
-  /** Authorizes a run by resolving and applying its owning task permissions. */
+  /**
+   * Checks access to a task run using the permissions of its owning task.
+   *
+   * @param {AuthorizeByTaskRun} authorizeByTaskRun The run ID and task roles permitted to access it.
+   * @returns {Promise<boolean>} True if the user has an allowed role on the owning task; otherwise false.
+   * @throws {Error} Rejects if the run lookup or task permission lookup fails.
+   */
   private async authorizeByTaskRun(authorizeByTaskRun: AuthorizeByTaskRun): Promise<boolean> {
     const run = await this.taskRunRepository.getTaskRunById(authorizeByTaskRun.taskRunId);
     return this.authorizeByTask({
@@ -138,8 +144,6 @@ export class AuthorizationService extends DBService {
       return false;
     }
 
-    // Fetch the role for this task profile using the profile GUID from the authenticated token
-    // TODO: fix this, it might break with the new logic of passing profile_id instead of profile_guid
     const userRole = await this.getRoleForTaskProfile(authorizeByTask.taskId);
 
     if (!userRole) {
@@ -197,8 +201,6 @@ export class AuthorizationService extends DBService {
         ? authorizeByProfile.validSystemRoles
         : [SYSTEM_ROLE.MEMBER];
 
-    console.log(allowedSystemRoles, systemUserRoles, 'allowed');
-
     return this.hasRequiredRoles(systemUserRoles, allowedSystemRoles);
   }
 
@@ -219,7 +221,6 @@ export class AuthorizationService extends DBService {
    * @param {string} taskId - The ID of the task for which role is being checked.
    * @return {Promise<string | null>} - The role name if the user has a valid role, otherwise null.
    */
-  // TODO: change to profileID 
   private async getRoleForTaskProfile(taskId: string): Promise<string | null> {
     const profileGuid = this.getProfileGuidFromRequest();
 
@@ -250,14 +251,14 @@ export class AuthorizationService extends DBService {
       return null; // No GUID found in the token, return null
     }
 
-    // const profile = await this.profileService.findProfileByGuid(profileGuid);
+    const profile = await this.profileService.findProfileByGuid(profileGuid);
 
-    // if (!profile) {
-    //   return null;
-    // }
+    if (!profile) {
+      return null;
+    }
 
     // Fetch the role for the user's profile and project combination
-    return this.projectProfileService.getRoleForProjectProfile(projectId, profileGuid);
+    return this.projectProfileService.getRoleForProjectProfile(projectId, profile.profile_id);
   }
 
   /**
@@ -268,16 +269,12 @@ export class AuthorizationService extends DBService {
   private async getUserSystemRoles(): Promise<string[]> {
     const profileGuid = this.getProfileGuidFromRequest();
 
-    console.log(profileGuid);
-
     if (!profileGuid) {
       return []; // No GUID found in the token, return an empty array
     }
 
     // Fetch the profile using the GUID and return the system roles
     const profile = await this.profileService.findProfileByGuid(profileGuid);
-
-    console.log(profile, 'profile');
 
     if (!profile) {
       return [];

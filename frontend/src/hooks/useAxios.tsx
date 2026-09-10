@@ -22,6 +22,9 @@ export class APIError extends Error {
 
 /**
  * Ensures a URL has a protocol (http:// or https://).
+ *
+ * @param {string} url The API URL, with or without a protocol.
+ * @returns {string} The URL with its existing protocol or an added HTTPS protocol.
  */
 const ensureProtocol = (url: string): string => {
   if (!/^https?:\/\//i.test(url)) {
@@ -31,10 +34,12 @@ const ensureProtocol = (url: string): string => {
 };
 
 /**
- * Returns an Axios instance with baseURL set.
+ * Returns an Axios instance that attaches the access token and retries a 401 once after token renewal.
  *
- * @param {string} [baseUrl] - Optional base URL
- * @returns {AxiosInstance}
+ * Failed requests are surfaced as APIError instances after recovery is exhausted or renewal fails.
+ *
+ * @param {string} [baseUrl] The API base URL; HTTPS is added when no protocol is specified.
+ * @returns {AxiosInstance} The configured API client with authentication and error handling interceptors.
  */
 const useAxios = (baseUrl?: string): AxiosInstance => {
   const authContext = useContext(AuthContext);
@@ -72,20 +77,21 @@ const useAxios = (baseUrl?: string): AxiosInstance => {
 
         if (statusCode === 401 && requestConfig && !requestConfig._retry && getValidAccessToken) {
           requestConfig._retry = true;
-          const refreshedToken = await getValidAccessToken();
+          const refreshedToken = await getValidAccessToken(true);
 
           if (refreshedToken) {
+            tokenRef.current = refreshedToken;
             const headers =
               requestConfig.headers instanceof AxiosHeaders
                 ? requestConfig.headers
                 : AxiosHeaders.from(requestConfig.headers);
             headers.set('Authorization', `Bearer ${refreshedToken}`);
             requestConfig.headers = headers;
-            return instance(requestConfig);
+            return await instance(requestConfig);
           }
         }
 
-        return Promise.reject(new APIError(error));
+        throw new APIError(error);
       }
     );
 

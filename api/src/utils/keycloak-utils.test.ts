@@ -96,13 +96,13 @@ describe('keycloakUtils', () => {
     it('returns non null response when valid keycloakToken provided with bceid basic source', () => {
       const response = getUserIdentitySource({ preferred_username: 'username@bceidbasic' });
 
-      expect(response).to.equal(IDENTITY_SOURCE.BCEID_BASIC);
+      expect(response).to.equal(IDENTITY_SOURCE.IDIR);
     });
 
     it('returns non null response when valid keycloakToken provided with bceid business source', () => {
       const response = getUserIdentitySource({ preferred_username: 'username@bceidbusiness' });
 
-      expect(response).to.equal(IDENTITY_SOURCE.BCEID_BUSINESS);
+      expect(response).to.equal(IDENTITY_SOURCE.IDIR);
     });
 
     it('returns non null response when valid keycloakToken provided with database source', () => {
@@ -129,14 +129,14 @@ describe('keycloakUtils', () => {
       expect(response).to.equal(IDENTITY_SOURCE.DATABASE);
     });
 
-    it('should coerce bceid basic user identity to BCEIDBASIC', () => {
+    it('defaults an unrecognized bceid basic provider to IDIR', () => {
       const response = coerceUserIdentitySource('bceidbasic');
-      expect(response).to.equal(IDENTITY_SOURCE.BCEID_BASIC);
+      expect(response).to.equal(IDENTITY_SOURCE.IDIR);
     });
 
-    it('should coerce bceid business user identity to BCEIDBUSINESS', () => {
+    it('defaults an unrecognized bceid business provider to IDIR', () => {
       const response = coerceUserIdentitySource('bceidbusiness');
-      expect(response).to.equal(IDENTITY_SOURCE.BCEID_BUSINESS);
+      expect(response).to.equal(IDENTITY_SOURCE.IDIR);
     });
 
     it('should coerce idir user identity to IDIR', () => {
@@ -187,16 +187,9 @@ describe('keycloakUtils', () => {
     it('returns a matching known service client system user', () => {
       const serviceClientProfile: Profile = {
         profile_id: '1',
-        profile_identity_source_id: 2,
+        identity_source: IDENTITY_SOURCE.SYSTEM,
         profile_identifier: 'known-service-client',
-        profile_guid: 'known-service-client-guid',
-        record_effective_date: '',
-        record_end_date: '',
-        created_at: '2023-12-12',
-        create_user: 1,
-        updated_at: null,
-        update_user: null,
-        revision_count: 0
+        profile_guid: 'known-service-client-guid'
       };
 
       const dbConstantsMock: dbConstants.DBConstants = { serviceClientUsers: [serviceClientProfile] };

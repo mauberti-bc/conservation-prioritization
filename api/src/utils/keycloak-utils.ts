@@ -32,13 +32,13 @@ export const getUserIdentitySource = (keycloakToken: Record<string, any>): IDENT
 
 /**
  * Coerces the raw Keycloak identity provider value into a system identity source enum value.
- * Defaults to `DATABASE` if the value is not recognized.
+ * Defaults to `DATABASE` for an absent value and `IDIR` for an unrecognized provider.
  *
  * @param {string | null} identitySource - The raw identity provider string.
  * @return {IDENTITY_SOURCE} The coerced system identity source.
  */
 export const coerceUserIdentitySource = (identitySource: string | null): IDENTITY_SOURCE => {
-  const source = identitySource?.toLowerCase() ?? IDENTITY_SOURCE.DATABASE;
+  const source = identitySource?.toLowerCase() || IDENTITY_SOURCE.DATABASE;
   switch (source) {
     case IDENTITY_SOURCE.DATABASE:
       return IDENTITY_SOURCE.DATABASE;
@@ -74,7 +74,7 @@ export const getServiceClientProfile = (keycloakToken: Record<string, any>): Pro
     return null;
   }
 
-  return getDBConstants().serviceClientUsers.find((item) => item.user_guid === sub) ?? null;
+  return getDBConstants().serviceClientUsers.find((item) => item.profile_guid === sub) ?? null;
 };
 
 /**
