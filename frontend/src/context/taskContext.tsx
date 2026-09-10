@@ -10,6 +10,7 @@ export interface ITaskContext {
   tasksDataLoader: DataLoader<[pagination?: ApiPaginationRequestOptions], GetTasksResponse, unknown>;
   taskId: string;
   setFocusedTask: (task: GetTaskResponse | null) => void;
+  onDownloadTask: (task: GetTaskResponse) => void;
   refreshTasks: () => Promise<GetTasksResponse | undefined>;
   hoveredTilesetUri: string | null;
   setHoveredTilesetUri: (uri: string | null) => void;
@@ -20,6 +21,7 @@ export const TaskContext = createContext<ITaskContext>({
   tasksDataLoader: {} as DataLoader<[pagination?: ApiPaginationRequestOptions], GetTasksResponse, unknown>,
   taskId: '',
   setFocusedTask: () => undefined,
+  onDownloadTask: () => undefined,
   refreshTasks: async () => undefined,
   hoveredTilesetUri: null,
   setHoveredTilesetUri: () => undefined,
@@ -85,6 +87,7 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
       tasksDataLoader,
       taskId: activeTaskId,
       setFocusedTask,
+      onDownloadTask: () => undefined,
       refreshTasks,
       hoveredTilesetUri,
       setHoveredTilesetUri,

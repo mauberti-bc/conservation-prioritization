@@ -4,42 +4,62 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
+import { grey } from '@mui/material/colors';
 import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
-import { grey } from '@mui/material/colors';
 import { IconMenuButton } from 'components/button/IconMenuButton';
 import { InteractiveListItemButton } from 'components/list/InteractiveListItemButton';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { SkeletonList } from 'components/loading/SkeletonLoaders';
-import { TaskContext } from 'context/taskContext';
+import { CustomPagination } from 'components/pagination/CustomPagination';
 import { TASK_STATUS } from 'constants/status';
-import { GetTaskResponse } from 'hooks/interfaces/useTaskApi.interface';
+import { TaskContext } from 'context/taskContext';
+import { GetTaskResponse, TaskExportFormat } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useApplicationEventsContext, useDialogContext, useMapContext } from 'hooks/useContext';
 import useDataLoader from 'hooks/useDataLoader';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiPaginationRequestOptions } from 'types/pagination';
+import {
+  getLatestTaskExport,
+  getTaskExportAction,
+  isTaskLatestExportReady,
+  triggerBrowserDownload,
+} from 'utils/task-export';
 import { getTaskStatusLabel } from 'utils/task-status';
 import { FloatingSidebarContainer } from '../sidebar/FloatingSidebarContainer';
 import { SIDEBAR_FLOAT_MARGIN_PX, SIDEBAR_FLOAT_WIDTH_PX } from '../sidebar/sidebar-layout.constants';
 import { SidebarSection } from '../sidebar/SidebarSection';
 import { CreateTask } from '../task/create/CreateTask';
+import { TaskExportFormatDialog } from '../task/export/TaskExportFormatDialog';
 import { TaskViewEditDialog } from '../task/view/dialog/TaskViewEditDialog';
 import { TaskViewInviteDialog } from '../task/view/dialog/TaskViewInviteDialog';
-import { TaskViewPanel } from '../task/view/panel/TaskViewPanel';
 import { TaskEditFormValues } from '../task/view/panel/task-view-panel.interface';
+import { TaskViewPanel } from '../task/view/panel/TaskViewPanel';
 import { DrawControls } from './draw/DrawControls';
 import { MapContainer } from './MapContainer';
 
-const defaultPagination: ApiPaginationRequestOptions = {
-  page: 1,
-  limit: 25,
-  sort: 'created_at',
-  order: 'desc',
+const DEFAULT_PAGE = 1;
+const DEFAULT_PAGE_SIZE = 25;
+const DEFAULT_SORT = 'created_at';
+const DEFAULT_ORDER = 'desc';
+
+const makeTaskPaginationOptions = (page: number, limit: number, searchTerm: string): ApiPaginationRequestOptions => {
+  return {
+    page,
+    limit,
+    sort: DEFAULT_SORT,
+    order: DEFAULT_ORDER,
+    search: searchTerm || undefined,
+  };
+};
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  return error instanceof Error ? error.message : fallback;
 };
 
 interface MapPageProps {
@@ -62,8 +82,13 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
   const tasksDataLoader = useDataLoader(conservationApi.task.getAllTasks);
   const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
   const refreshTasksRef = useRef(tasksDataLoader.refresh);
+  const refreshTaskRef = useRef(taskDataLoader.refresh);
+  const clearTaskRef = useRef(taskDataLoader.clearData);
+  const setTaskDataRef = useRef(taskDataLoader.setData);
   const lastRequestedTaskIdRef = useRef<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(DEFAULT_PAGE);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [hoveredTilesetUri, setHoveredTilesetUri] = useState<string | null>(null);
   const [editTask, setEditTask] = useState<GetTaskResponse | null>(null);
   const [editTaskSaving, setEditTaskSaving] = useState(false);
@@ -71,83 +96,91 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
   const [inviteTask, setInviteTask] = useState<GetTaskResponse | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [exportTask, setExportTask] = useState<GetTaskResponse | null>(null);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const routeSegment = location.pathname.replace(/^\/map\/?/, '').split('/')[0] || null;
   const isCreating = mode === 'create' || routeSegment === 'new';
   const activeTaskId = routeSegment && routeSegment !== 'new' ? routeSegment : null;
   const activeTaskRevision = activeTaskId ? taskRevisions[activeTaskId] : undefined;
+  const taskPaginationOptions = useMemo(() => {
+    return makeTaskPaginationOptions(currentPage, pageSize, searchTerm);
+  }, [currentPage, pageSize, searchTerm]);
   refreshTasksRef.current = tasksDataLoader.refresh;
+  refreshTaskRef.current = taskDataLoader.refresh;
+  clearTaskRef.current = taskDataLoader.clearData;
+  setTaskDataRef.current = taskDataLoader.setData;
+  const hasLoadedActiveTask = taskDataLoader.hasLoaded;
 
   useEffect(() => {
-    void tasksDataLoader.load(defaultPagination);
-  }, [tasksDataLoader]);
+    void refreshTasksRef.current(taskPaginationOptions);
+  }, [taskPaginationOptions]);
 
   useEffect(() => {
     if (!connectionEpoch) {
       return;
     }
 
-    void refreshTasksRef.current({
-      ...defaultPagination,
-      search: searchTerm || undefined,
-    });
-  }, [connectionEpoch, searchTerm, taskRevisions]);
+    void refreshTasksRef.current(taskPaginationOptions);
+  }, [connectionEpoch, taskPaginationOptions]);
 
   useEffect(() => {
     if (!activeTaskId) {
-      lastRequestedTaskIdRef.current = null;
-      taskDataLoader.clearData();
+      if (lastRequestedTaskIdRef.current) {
+        lastRequestedTaskIdRef.current = null;
+        clearTaskRef.current();
+      }
       setHoveredTilesetUri(null);
       return;
     }
 
-    if (taskDataLoader.isLoading || lastRequestedTaskIdRef.current === activeTaskId) {
+    if (lastRequestedTaskIdRef.current === activeTaskId) {
       return;
     }
 
     lastRequestedTaskIdRef.current = activeTaskId;
-    void taskDataLoader.refresh(activeTaskId);
-  }, [activeTaskId, taskDataLoader]);
+    void refreshTaskRef.current(activeTaskId);
+  }, [activeTaskId]);
 
   useEffect(() => {
     if (!activeTaskId) {
       return;
     }
 
-    if (!activeTaskRevision || !taskDataLoader.hasLoaded) {
+    if (!activeTaskRevision || !hasLoadedActiveTask) {
       return;
     }
 
-    void taskDataLoader.refresh(activeTaskId);
+    void refreshTaskRef.current(activeTaskId);
     markTaskSeen(activeTaskId);
-    // The loader is intentionally refreshed only when the authoritative revision changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTaskId, activeTaskRevision, markTaskSeen]);
+  }, [activeTaskId, activeTaskRevision, hasLoadedActiveTask, markTaskSeen]);
 
   useEffect(() => {
-    if (!activeTaskId || !connectionEpoch || !taskDataLoader.hasLoaded) {
+    if (!activeTaskId || !connectionEpoch || !hasLoadedActiveTask) {
       return;
     }
 
-    void taskDataLoader.refresh(activeTaskId);
-    // Reconnect recovery is authoritative REST refetch, not event replay.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTaskId, connectionEpoch]);
+    void refreshTaskRef.current(activeTaskId);
+  }, [activeTaskId, connectionEpoch, hasLoadedActiveTask]);
 
   const handleSearch = (term: string) => {
     const trimmedTerm = term.trim();
+    setCurrentPage(DEFAULT_PAGE);
     setSearchTerm(trimmedTerm);
-    void tasksDataLoader.refresh({
-      ...defaultPagination,
-      search: trimmedTerm || undefined,
-    });
   };
 
   const refreshMapTasks = useCallback(async () => {
-    return tasksDataLoader.refresh({
-      ...defaultPagination,
-      search: searchTerm || undefined,
-    });
-  }, [searchTerm, tasksDataLoader]);
+    return refreshTasksRef.current(taskPaginationOptions);
+  }, [taskPaginationOptions]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (nextPageSize: number) => {
+    setCurrentPage(DEFAULT_PAGE);
+    setPageSize(nextPageSize);
+  };
 
   const handleDeleteTask = (task: GetTaskResponse) => {
     dialogContext.setYesNoDialog({
@@ -170,14 +203,90 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
     setEditTask(task);
   };
 
-  const handleDownloadTask = (task: GetTaskResponse) => {
-    void task;
+  const handleDownloadTask = useCallback(
+    async (task: GetTaskResponse) => {
+      const run = task.latest_run;
+      const action = getTaskExportAction(task);
+      if (!run || action === 'unavailable') {
+        dialogContext.setSnackbar({
+          open: true,
+          snackbarMessage: 'Exports are available after a task run is completed.',
+        });
+        return;
+      }
 
-    dialogContext.setSnackbar({
-      open: true,
-      snackbarMessage: 'Task export download is not available yet.',
-    });
-  };
+      if (action === 'preparing') {
+        dialogContext.setSnackbar({
+          open: true,
+          snackbarMessage: 'An export is already being prepared.',
+        });
+        return;
+      }
+
+      const latestExport = getLatestTaskExport(task);
+      if (action === 'download' && latestExport) {
+        if (!latestExport.files.length) {
+          dialogContext.setSnackbar({
+            open: true,
+            snackbarMessage: 'This export has no downloadable files.',
+          });
+          return;
+        }
+
+        try {
+          for (const file of latestExport.files) {
+            const download = await conservationApi.task.getTaskExportFileDownload(
+              run.task_run_id,
+              latestExport.task_export_id,
+              file.task_export_file_id
+            );
+            triggerBrowserDownload(download.url, file.filename);
+          }
+        } catch (error) {
+          console.error('Failed to download task export', error);
+          dialogContext.setSnackbar({
+            open: true,
+            snackbarMessage: getErrorMessage(error, 'Failed to download export. Please try again.'),
+          });
+        }
+        return;
+      }
+
+      setExportError(null);
+      setExportTask(task);
+    },
+    [conservationApi.task, dialogContext]
+  );
+
+  const handleExportFormatSubmit = useCallback(
+    async (format: TaskExportFormat) => {
+      const runId = exportTask?.latest_run?.task_run_id;
+      if (!exportTask || !runId) {
+        return;
+      }
+
+      try {
+        setExportLoading(true);
+        setExportError(null);
+        await conservationApi.task.createTaskExport(runId, { format });
+        await refreshMapTasks();
+        if (activeTaskId === exportTask.task_id) {
+          await refreshTaskRef.current(exportTask.task_id);
+        }
+        setExportTask(null);
+        dialogContext.setSnackbar({
+          open: true,
+          snackbarMessage: 'Export is being prepared.',
+        });
+      } catch (error) {
+        console.error('Failed to create task export', error);
+        setExportError(getErrorMessage(error, 'Failed to create export. Please try again.'));
+      } finally {
+        setExportLoading(false);
+      }
+    },
+    [activeTaskId, conservationApi.task, dialogContext, exportTask, refreshMapTasks]
+  );
 
   const handleEditTaskSave = async (values: TaskEditFormValues) => {
     if (!editTask) {
@@ -230,6 +339,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
       status: taskStatuses[task.task_id] ?? task.status,
     }));
   }, [taskStatuses, tasksDataLoader.data]);
+  const taskPagination = tasksDataLoader.data?.pagination;
 
   const activeTaskData = useMemo(() => {
     if (!activeTaskId || !taskDataLoader.data || taskDataLoader.data.task_id !== activeTaskId) {
@@ -327,15 +437,15 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
     (task: GetTaskResponse | null) => {
       setHoveredTilesetUri(null);
       if (task) {
-        taskDataLoader.setData(task);
+        setTaskDataRef.current(task);
         navigate(`/map/${task.task_id}`);
         return;
       }
 
-      taskDataLoader.clearData();
+      clearTaskRef.current();
       navigate('/map');
     },
-    [navigate, taskDataLoader]
+    [navigate]
   );
 
   const taskContext = useMemo(() => {
@@ -344,11 +454,22 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
       tasksDataLoader,
       taskId: activeTaskId ?? '',
       setFocusedTask,
+      onDownloadTask: (task: GetTaskResponse) => {
+        void handleDownloadTask(task);
+      },
       refreshTasks,
       hoveredTilesetUri,
       setHoveredTilesetUri,
     };
-  }, [activeTaskId, hoveredTilesetUri, refreshTasks, setFocusedTask, taskDataLoader, tasksDataLoader]);
+  }, [
+    activeTaskId,
+    handleDownloadTask,
+    hoveredTilesetUri,
+    refreshTasks,
+    setFocusedTask,
+    taskDataLoader,
+    tasksDataLoader,
+  ]);
 
   const sidebarWidth = { xs: `calc(100vw - ${SIDEBAR_FLOAT_MARGIN_PX * 2}px)`, md: SIDEBAR_FLOAT_WIDTH_PX };
   const sidebarMaxWidth = { xs: `calc(100vw - ${SIDEBAR_FLOAT_MARGIN_PX * 2}px)`, md: SIDEBAR_FLOAT_WIDTH_PX };
@@ -442,6 +563,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
                     <MapTaskListItem
                       key={task.task_id}
                       task={task}
+                      isExportReady={isTaskLatestExportReady(task)}
                       isUnseen={unseenTaskIds.has(task.task_id)}
                       onSelectTask={(selectedTask) => {
                         markTaskSeen(selectedTask.task_id);
@@ -454,6 +576,16 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
                     />
                   ))}
                 </List>
+                {taskPagination ? (
+                  <CustomPagination
+                    currentPage={taskPagination.current_page}
+                    pageSize={taskPagination.per_page ?? pageSize}
+                    totalCount={taskPagination.total}
+                    lastPage={taskPagination.last_page}
+                    onPageChange={handlePageChange}
+                    onPageSizeChange={handlePageSizeChange}
+                  />
+                ) : null}
               </LoadingGuard>
             </SidebarSection>
           )}
@@ -482,12 +614,26 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
         }}
         onSubmit={handleInviteSubmit}
       />
+
+      <TaskExportFormatDialog
+        open={Boolean(exportTask)}
+        isSubmitting={exportLoading}
+        error={exportError}
+        onClose={() => {
+          if (!exportLoading) {
+            setExportTask(null);
+            setExportError(null);
+          }
+        }}
+        onSubmit={handleExportFormatSubmit}
+      />
     </Box>
   );
 };
 
 interface MapTaskListItemProps {
   task: GetTaskResponse;
+  isExportReady: boolean;
   isUnseen: boolean;
   onSelectTask: (task: GetTaskResponse) => void;
   onDeleteTask: (task: GetTaskResponse) => void;
@@ -498,6 +644,7 @@ interface MapTaskListItemProps {
 
 const MapTaskListItem = ({
   task,
+  isExportReady,
   isUnseen,
   onSelectTask,
   onDeleteTask,
@@ -534,9 +681,10 @@ const MapTaskListItem = ({
           }}>
           <IconButton
             aria-label="Download task export"
+            color={isExportReady ? 'primary' : 'default'}
             size="small"
             onClick={() => {
-              onDownloadTask(task);
+              void onDownloadTask(task);
             }}>
             <Icon path={mdiDownload} size={0.75} />
           </IconButton>

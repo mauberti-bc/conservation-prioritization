@@ -22,7 +22,7 @@ export const TaskViewPanel = () => {
   const navigate = useNavigate();
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
-  const { taskId, taskDataLoader, refreshTasks, setFocusedTask } = useTaskContext();
+  const { taskId, taskDataLoader, onDownloadTask, refreshTasks, setFocusedTask } = useTaskContext();
   const [editTaskOpen, setEditTaskOpen] = useState(false);
   const [editTaskSaving, setEditTaskSaving] = useState(false);
   const [editTaskError, setEditTaskError] = useState<string | null>(null);
@@ -102,13 +102,6 @@ export const TaskViewPanel = () => {
       onNo: () => {
         dialogContext.setYesNoDialog({ open: false });
       },
-    });
-  };
-
-  const handleDownloadTask = () => {
-    dialogContext.setSnackbar({
-      open: true,
-      snackbarMessage: 'Task export download is not available yet.',
     });
   };
 
@@ -193,6 +186,7 @@ export const TaskViewPanel = () => {
               <Box sx={{ px: 3, pt: 3, pb: 2, flex: '0 0 auto' }}>
                 <TaskViewPanelHeader
                   title={taskDataLoader.data?.name ?? 'Task'}
+                  isExportReady={taskDataLoader.data?.latest_run?.exports?.[0]?.status === 'ready'}
                   onClose={() => {
                     navigate('/map');
                   }}
@@ -205,7 +199,11 @@ export const TaskViewPanel = () => {
                     setInviteOpen(true);
                   }}
                   onDelete={handleDeleteTask}
-                  onDownload={handleDownloadTask}
+                  onDownload={() => {
+                    if (taskDataLoader.data) {
+                      onDownloadTask(taskDataLoader.data);
+                    }
+                  }}
                 />
               </Box>
 

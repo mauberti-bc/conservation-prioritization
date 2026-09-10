@@ -12,6 +12,8 @@ export enum OPTIMIZATION_MODE {
 export type TASK_TYPE = 'continuous_optimization' | 'discrete_optimization' | 'priority_ranking';
 
 export type RESAMPLING = 'mode' | 'min' | 'max';
+export type TaskExportFormat = 'geotiff' | 'geodatabase';
+export type TaskExportStatus = 'queued' | 'running' | 'ready' | 'failed';
 /**
  * Request interface for creating a draft task.
  */
@@ -130,7 +132,56 @@ export interface TaskRunResponse {
   failure_code?: string | null;
   failure_message?: string | null;
   artifacts?: TaskRunArtifactResponse[];
+  exports?: TaskExportResponse[];
   solutions?: TaskRunSolutionResponse[];
+}
+
+export interface TaskExportResponse {
+  task_export_id: string;
+  task_run_id: string;
+  source_artifact_id: string;
+  format: TaskExportFormat;
+  format_version: string;
+  status: TaskExportStatus;
+  attempt: number;
+  prefect_flow_run_id: string | null;
+  prefect_deployment_id: string | null;
+  source_checksum: string | null;
+  specification: Record<string, unknown>;
+  progress: Record<string, unknown>;
+  resource_admission: Record<string, unknown> | null;
+  failure_code: string | null;
+  failure_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  failed_at: string | null;
+  files: TaskExportFileResponse[];
+}
+
+export interface TaskExportFileResponse {
+  task_export_file_id: string;
+  task_export_id: string;
+  part_index: number;
+  filename: string;
+  object_key: string;
+  content_type: string;
+  byte_size: number;
+  checksum: string;
+  row_offset: number;
+  column_offset: number;
+  width: number;
+  height: number;
+  transform: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+}
+
+export interface CreateTaskExportRequest {
+  format: TaskExportFormat;
+}
+
+export interface TaskExportDownloadResponse {
+  url: string;
+  expires_in_seconds: number;
 }
 
 export interface TaskRunSolutionResponse {

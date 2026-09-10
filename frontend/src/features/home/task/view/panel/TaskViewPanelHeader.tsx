@@ -7,6 +7,7 @@ import { TaskViewPanelActionsMenu } from './TaskViewPanelActionsMenu';
 
 interface TaskViewPanelHeaderProps {
   title: string;
+  isExportReady: boolean;
   onClose: () => void;
   onEdit: () => void;
   onShare: () => void;
@@ -16,6 +17,7 @@ interface TaskViewPanelHeaderProps {
 
 export const TaskViewPanelHeader = ({
   title,
+  isExportReady,
   onClose,
   onEdit,
   onShare,
@@ -30,7 +32,11 @@ export const TaskViewPanelHeader = ({
         sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
         {title}
       </Typography>
-      <IconButton aria-label="Download task export" onClick={onDownload} size="small">
+      <IconButton
+        aria-label="Download task export"
+        color={isExportReady ? 'primary' : 'default'}
+        onClick={onDownload}
+        size="small">
         <Icon path={mdiDownload} size={0.75} />
       </IconButton>
       <TaskViewPanelActionsMenu onEdit={onEdit} onShare={onShare} onDelete={onDelete} />

@@ -2,6 +2,7 @@ import { AxiosInstance } from 'axios';
 import { InviteProfilesRequest, InviteProfilesResponse } from 'hooks/interfaces/invite.interface';
 import {
   CreateDraftTaskRequest,
+  CreateTaskExportRequest,
   GetTaskDashboardResponse,
   GetTaskResponse,
   GetTasksResponse,
@@ -10,6 +11,8 @@ import {
   SubmitTaskRequest,
   UpdateTaskRequest,
   UpdateTaskStatusRequest,
+  TaskExportDownloadResponse,
+  TaskExportResponse,
   TaskRunResponse,
 } from 'hooks/interfaces/useTaskApi.interface';
 import qs from 'qs';
@@ -134,6 +137,48 @@ export const useTaskApi = (axios: AxiosInstance) => {
   };
 
   /**
+   * Creates and dispatches an export for a completed task run.
+   *
+   * @param {string} runId - The UUID of the task run to export.
+   * @param {CreateTaskExportRequest} payload - Export format selection.
+   * @return {Promise<TaskExportResponse>} The queued export.
+   */
+  const createTaskExport = async (runId: string, payload: CreateTaskExportRequest): Promise<TaskExportResponse> => {
+    const { data } = await axios.post<TaskExportResponse>(`/api/run/${runId}/export`, payload);
+    return data;
+  };
+
+  /**
+   * Lists exports for a task run.
+   *
+   * @param {string} runId - The UUID of the task run.
+   * @return {Promise<TaskExportResponse[]>} Export records newest first.
+   */
+  const getTaskExports = async (runId: string): Promise<TaskExportResponse[]> => {
+    const { data } = await axios.get<TaskExportResponse[]>(`/api/run/${runId}/export`);
+    return data;
+  };
+
+  /**
+   * Gets a presigned download URL for a ready export file.
+   *
+   * @param {string} runId - Parent task run UUID.
+   * @param {string} exportId - Parent export UUID.
+   * @param {string} exportFileId - Export file UUID to download.
+   * @return {Promise<TaskExportDownloadResponse>} Short-lived download URL.
+   */
+  const getTaskExportFileDownload = async (
+    runId: string,
+    exportId: string,
+    exportFileId: string
+  ): Promise<TaskExportDownloadResponse> => {
+    const { data } = await axios.get<TaskExportDownloadResponse>(
+      `/api/run/${runId}/export/${exportId}/file/${exportFileId}/download`
+    );
+    return data;
+  };
+
+  /**
    * Publish a task to a new dashboard.
    *
    * @param {string} taskId - The UUID of the task to publish.
@@ -209,6 +254,9 @@ export const useTaskApi = (axios: AxiosInstance) => {
     getTaskRuns,
     getTaskRun,
     retryTaskRunPublication,
+    createTaskExport,
+    getTaskExports,
+    getTaskExportFileDownload,
     publishTaskDashboard,
     getTaskDashboard,
     addProjectsToTask,
