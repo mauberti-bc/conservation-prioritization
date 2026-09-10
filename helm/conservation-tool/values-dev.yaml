@@ -1,5 +1,5 @@
-# Memory requests: 1536Mi for running services + 512Mi for deployment hooks = 2Gi.
-# The worker requests 576Mi and can use up to 704Mi; Postgres requests and limits 256Mi.
+# Memory requests and limits: 2560Mi for running services + 512Mi for deployment hooks = 3Gi.
+# Allocate 1408Mi to the worker, 448Mi to Prefect server, 320Mi each to API/Postgres, and 64Mi to frontend.
 prefect-server:
   ingress:
     host:
@@ -10,10 +10,10 @@ prefect-server:
     resources:
       requests:
         cpu: 50m
-        memory: 384Mi
+        memory: 448Mi
       limits:
         cpu: 100m
-        memory: 384Mi
+        memory: 448Mi
 
 services:
   frontend:
@@ -27,35 +27,35 @@ services:
     worker:
       profiles:
         sparse-solver:
-          executionProfile: dev-704mi
+          executionProfile: dev-1408mi
           # Leave 320Mi of the pod limit for Prefect and orchestration overhead.
-          daskWorkerMemory: 384MiB
-          maxPeakMemoryBytes: 402653184
+          daskWorkerMemory: 1088MiB
+          maxPeakMemoryBytes: 1140850688
           resources:
             requests:
               cpu: 100m
-              memory: 576Mi
+              memory: 1408Mi
             limits:
               cpu: "2"
-              memory: 704Mi
+              memory: 1408Mi
 
   api:
     resources:
       requests:
-        memory: 256Mi
+        memory: 320Mi
       limits:
-        memory: 256Mi
+        memory: 320Mi
     route:
       host: "conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"
 
   db:
     resources:
       requests:
-        memory: 256Mi
+        memory: 320Mi
       limits:
-        memory: 256Mi
+        memory: 320Mi
 
 env:
-  NODE_OPTIONS: "--max-old-space-size=160"
+  NODE_OPTIONS: "--max-old-space-size=192"
   NODE_ENV: "development"
   FRONTEND_API_HOST: "https://conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"
