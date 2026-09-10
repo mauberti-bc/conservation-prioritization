@@ -17,7 +17,7 @@ import { SkeletonList } from 'components/loading/SkeletonLoaders';
 import { CustomPagination } from 'components/pagination/CustomPagination';
 import { TASK_STATUS } from 'constants/status';
 import { TaskContext } from 'context/taskContext';
-import { GetTaskResponse, TaskExportFormat } from 'hooks/interfaces/useTaskApi.interface';
+import { GetTaskResponse, TaskExportFormat, TaskExportResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useApplicationEventsContext, useDialogContext, useMapContext } from 'hooks/useContext';
 import useDataLoader from 'hooks/useDataLoader';
@@ -26,7 +26,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiPaginationRequestOptions } from 'types/pagination';
 import { getLatestTaskExport, getTaskExportAction, triggerBrowserDownload } from 'utils/task-export';
 import { FloatingSidebarContainer } from '../sidebar/FloatingSidebarContainer';
-import { SIDEBAR_FLOAT_MARGIN_PX, SIDEBAR_FLOAT_WIDTH_PX } from '../sidebar/sidebar-layout.constants';
+import { SIDEBAR_STATUS_CHIP_LEFT } from '../sidebar/sidebar-layout.constants';
 import { SidebarSection } from '../sidebar/SidebarSection';
 import { CreateTask } from '../task/create/CreateTask';
 import { TaskExportFormatDialog } from '../task/export/TaskExportFormatDialog';
@@ -91,7 +91,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [exportTask, setExportTask] = useState<GetTaskResponse | null>(null);
-  const [exportLoading, setExportLoading] = useState(false);
+  const [exportLoadingFormat, setExportLoadingFormat] = useState<TaskExportFormat | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const routeSegment = location.pathname.replace(/^\/map\/?/, '').split('/')[0] || null;
   const isCreating = mode === 'create' || routeSegment === 'new';
@@ -198,10 +198,9 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
   };
 
   const handleDownloadTask = useCallback(
-    async (task: GetTaskResponse) => {
+    (task: GetTaskResponse) => {
       const run = task.latest_run;
-      const action = getTaskExportAction(task);
-      if (!run || action === 'unavailable') {
+      if (!run || getTaskExportAction(task) === 'unavailable') {
         dialogContext.setSnackbar({
           open: true,
           snackbarMessage: 'Exports are available after a task run is completed.',
@@ -209,47 +208,47 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
         return;
       }
 
-      if (action === 'preparing') {
+      setExportError(null);
+      setExportTask(task);
+    },
+    [dialogContext]
+  );
+
+  const handleExportFormatDownload = useCallback(
+    async (format: TaskExportFormat) => {
+      const run = exportTask?.latest_run;
+      const taskExport = exportTask ? getLatestTaskExport(exportTask, format) : null;
+      if (!run || !taskExport || taskExport.status !== 'ready') {
+        return;
+      }
+
+      if (!taskExport.files.length) {
         dialogContext.setSnackbar({
           open: true,
-          snackbarMessage: 'An export is already being prepared.',
+          snackbarMessage: 'This export has no downloadable files.',
         });
         return;
       }
 
-      const latestExport = getLatestTaskExport(task);
-      if (action === 'download' && latestExport) {
-        if (!latestExport.files.length) {
-          dialogContext.setSnackbar({
-            open: true,
-            snackbarMessage: 'This export has no downloadable files.',
-          });
-          return;
+      try {
+        setExportLoadingFormat(format);
+        setExportError(null);
+        for (const file of taskExport.files) {
+          const download = await conservationApi.task.getTaskExportFileDownload(
+            run.task_run_id,
+            taskExport.task_export_id,
+            file.task_export_file_id
+          );
+          triggerBrowserDownload(download.url, file.filename);
         }
-
-        try {
-          for (const file of latestExport.files) {
-            const download = await conservationApi.task.getTaskExportFileDownload(
-              run.task_run_id,
-              latestExport.task_export_id,
-              file.task_export_file_id
-            );
-            triggerBrowserDownload(download.url, file.filename);
-          }
-        } catch (error) {
-          console.error('Failed to download task export', error);
-          dialogContext.setSnackbar({
-            open: true,
-            snackbarMessage: getErrorMessage(error, 'Failed to download export. Please try again.'),
-          });
-        }
-        return;
+      } catch (error) {
+        console.error('Failed to download task export', error);
+        setExportError(getErrorMessage(error, 'Failed to download export. Please try again.'));
+      } finally {
+        setExportLoadingFormat(null);
       }
-
-      setExportError(null);
-      setExportTask(task);
     },
-    [conservationApi.task, dialogContext]
+    [conservationApi.task, dialogContext, exportTask]
   );
 
   const handleExportFormatSubmit = useCallback(
@@ -260,14 +259,32 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
       }
 
       try {
-        setExportLoading(true);
+        setExportLoadingFormat(format);
         setExportError(null);
-        await conservationApi.task.createTaskExport(runId, { format });
+        const createdExport = await conservationApi.task.createTaskExport(runId, { format });
+        setExportTask((currentTask) => {
+          if (!currentTask?.latest_run || currentTask.task_id !== exportTask.task_id) {
+            return currentTask;
+          }
+
+          const existingExports = currentTask.latest_run.exports ?? [];
+          const nextExports: TaskExportResponse[] = [
+            createdExport,
+            ...existingExports.filter((taskExport) => taskExport.task_export_id !== createdExport.task_export_id),
+          ];
+
+          return {
+            ...currentTask,
+            latest_run: {
+              ...currentTask.latest_run,
+              exports: nextExports,
+            },
+          };
+        });
         await refreshMapTasks();
         if (activeTaskId === exportTask.task_id) {
           await refreshTaskRef.current(exportTask.task_id);
         }
-        setExportTask(null);
         dialogContext.setSnackbar({
           open: true,
           snackbarMessage: 'Export is being prepared.',
@@ -276,7 +293,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
         console.error('Failed to create task export', error);
         setExportError(getErrorMessage(error, 'Failed to create export. Please try again.'));
       } finally {
-        setExportLoading(false);
+        setExportLoadingFormat(null);
       }
     },
     [activeTaskId, conservationApi.task, dialogContext, exportTask, refreshMapTasks]
@@ -465,10 +482,6 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
     tasksDataLoader,
   ]);
 
-  const sidebarWidth = { xs: `calc(100vw - ${SIDEBAR_FLOAT_MARGIN_PX * 2}px)`, md: SIDEBAR_FLOAT_WIDTH_PX };
-  const sidebarMaxWidth = { xs: `calc(100vw - ${SIDEBAR_FLOAT_MARGIN_PX * 2}px)`, md: SIDEBAR_FLOAT_WIDTH_PX };
-  const statusChipLeft = `calc((100% + ${SIDEBAR_FLOAT_MARGIN_PX + SIDEBAR_FLOAT_WIDTH_PX}px) / 2)`;
-
   return (
     <Box position="relative" height="100%" overflow="hidden">
       <Box height="100%" display="flex" flexDirection="column" overflow="hidden">
@@ -477,7 +490,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
             sx={{
               position: 'absolute',
               top: 16,
-              left: { xs: '50%', md: statusChipLeft },
+              left: { xs: '50%', md: SIDEBAR_STATUS_CHIP_LEFT },
               transform: 'translateX(-50%)',
               zIndex: 10,
             }}>
@@ -508,7 +521,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
         <DrawControls ref={drawControlsRef} />
       </Box>
 
-      <FloatingSidebarContainer width={sidebarWidth} maxWidth={sidebarMaxWidth}>
+      <FloatingSidebarContainer>
         <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
           {isCreating ? (
             <CreateTask
@@ -609,15 +622,17 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
 
       <TaskExportFormatDialog
         open={Boolean(exportTask)}
-        isSubmitting={exportLoading}
+        exports={exportTask?.latest_run?.exports ?? []}
+        loadingFormat={exportLoadingFormat}
         error={exportError}
         onClose={() => {
-          if (!exportLoading) {
+          if (!exportLoadingFormat) {
             setExportTask(null);
             setExportError(null);
           }
         }}
-        onSubmit={handleExportFormatSubmit}
+        onDownload={handleExportFormatDownload}
+        onExport={handleExportFormatSubmit}
       />
     </Box>
   );

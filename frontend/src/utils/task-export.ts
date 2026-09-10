@@ -1,4 +1,4 @@
-import { GetTaskResponse, TaskExportResponse } from 'hooks/interfaces/useTaskApi.interface';
+import { GetTaskResponse, TaskExportFormat, TaskExportResponse } from 'hooks/interfaces/useTaskApi.interface';
 
 export type TaskExportAction = 'create' | 'download' | 'preparing' | 'unavailable';
 
@@ -8,8 +8,13 @@ export type TaskExportAction = 'create' | 'download' | 'preparing' | 'unavailabl
  * @param {GetTaskResponse} task Task response with optional latest run exports.
  * @returns {TaskExportResponse | null} The newest export, if one exists.
  */
-export const getLatestTaskExport = (task: GetTaskResponse): TaskExportResponse | null => {
-  return task.latest_run?.exports?.[0] ?? null;
+export const getLatestTaskExport = (task: GetTaskResponse, format?: TaskExportFormat): TaskExportResponse | null => {
+  const exports = task.latest_run?.exports ?? [];
+  if (!format) {
+    return exports[0] ?? null;
+  }
+
+  return exports.find((taskExport) => taskExport.format === format) ?? null;
 };
 
 /**
@@ -28,12 +33,12 @@ export const isTaskLatestExportReady = (task: GetTaskResponse): boolean => {
  * @param {GetTaskResponse} task Task response with optional latest run exports.
  * @returns {TaskExportAction} The action the UI should take when the export button is clicked.
  */
-export const getTaskExportAction = (task: GetTaskResponse): TaskExportAction => {
+export const getTaskExportAction = (task: GetTaskResponse, format?: TaskExportFormat): TaskExportAction => {
   if (!task.latest_run || task.latest_run.status !== 'completed') {
     return 'unavailable';
   }
 
-  const latestExport = getLatestTaskExport(task);
+  const latestExport = getLatestTaskExport(task, format);
   if (!latestExport || latestExport.status === 'failed') {
     return 'create';
   }

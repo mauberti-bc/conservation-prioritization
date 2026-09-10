@@ -1,23 +1,31 @@
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
-import { TaskExportFormat } from 'hooks/interfaces/useTaskApi.interface';
+import Typography from '@mui/material/Typography';
+import { OkDialog } from 'components/dialog/OkDialog';
+import { TaskExportFormat, TaskExportResponse } from 'hooks/interfaces/useTaskApi.interface';
 
 interface TaskExportFormatDialogProps {
   open: boolean;
-  isSubmitting: boolean;
+  exports: TaskExportResponse[];
+  loadingFormat: TaskExportFormat | null;
   error: string | null;
   onClose: () => void;
-  onSubmit: (format: TaskExportFormat) => void;
+  onDownload: (format: TaskExportFormat) => void;
+  onExport: (format: TaskExportFormat) => void;
 }
 
 const FORMAT_OPTIONS: { label: string; format: TaskExportFormat }[] = [
   { label: 'GeoTIFF', format: 'geotiff' },
   { label: 'Geodatabase', format: 'geodatabase' },
 ];
+
+const getLatestExportForFormat = (
+  exports: TaskExportResponse[],
+  format: TaskExportFormat
+): TaskExportResponse | null => {
+  return exports.find((taskExport) => taskExport.format === format) ?? null;
+};
 
 /**
  * Prompts the user to select an export format before queueing an export.
@@ -27,38 +35,60 @@ const FORMAT_OPTIONS: { label: string; format: TaskExportFormat }[] = [
  */
 export const TaskExportFormatDialog = ({
   open,
-  isSubmitting,
+  exports,
+  loadingFormat,
   error,
   onClose,
-  onSubmit,
+  onDownload,
+  onExport,
 }: TaskExportFormatDialogProps) => {
+  const isLoading = Boolean(loadingFormat);
+
   return (
-    <Dialog fullWidth maxWidth="xs" open={open} onClose={isSubmitting ? undefined : onClose}>
-      <DialogTitle>Create export</DialogTitle>
-      <DialogContent>
-        <DialogContentText>Select an export format for this completed task run.</DialogContentText>
-        {error ? (
-          <DialogContentText color="error" sx={{ mt: 2 }}>
-            {error}
-          </DialogContentText>
-        ) : null}
-      </DialogContent>
-      <DialogActions>
-        {FORMAT_OPTIONS.map((option) => (
-          <Button
-            key={option.format}
-            variant={option.format === 'geotiff' ? 'contained' : 'outlined'}
-            disabled={isSubmitting}
-            onClick={() => {
-              onSubmit(option.format);
-            }}>
-            {option.label}
-          </Button>
-        ))}
-        <Button disabled={isSubmitting} onClick={onClose}>
-          Cancel
-        </Button>
-      </DialogActions>
-    </Dialog>
+    <OkDialog
+      open={open}
+      onClose={onClose}
+      dialogTitle="Create export"
+      dialogText="Select an export format for this completed task run."
+      dialogProps={{ fullWidth: true, maxWidth: 'xs', onClose: isLoading ? undefined : onClose }}
+      dialogContent={
+        <>
+          {error ? (
+            <DialogContentText color="error" sx={{ mt: 2 }}>
+              {error}
+            </DialogContentText>
+          ) : null}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 2 }}>
+            {FORMAT_OPTIONS.map((option) => {
+              const taskExport = getLatestExportForFormat(exports, option.format);
+              const isReady = taskExport?.status === 'ready';
+              const isPreparing = taskExport?.status === 'queued' || taskExport?.status === 'running';
+
+              return (
+                <Box
+                  key={option.format}
+                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                  <Typography fontWeight={700}>{option.label}</Typography>
+                  <Button
+                    variant={isReady ? 'outlined' : 'contained'}
+                    loading={loadingFormat === option.format}
+                    disabled={isLoading || isPreparing}
+                    onClick={() => {
+                      if (isReady) {
+                        onDownload(option.format);
+                        return;
+                      }
+
+                      onExport(option.format);
+                    }}>
+                    {isReady ? 'Download' : isPreparing ? 'Preparing' : 'Export'}
+                  </Button>
+                </Box>
+              );
+            })}
+          </Box>
+        </>
+      }
+    />
   );
 };

@@ -25,6 +25,22 @@ describe('task export utilities', () => {
     expect(isTaskLatestExportReady(task)).toBe(true);
     expect(getLatestTaskExport(task)?.task_export_id).toBe('export-id');
   });
+
+  it('resolves export actions by format', () => {
+    const task = buildTask({
+      latest_run: {
+        ...buildRun(),
+        exports: [
+          buildExport({ task_export_id: 'geodatabase-export-id', format: 'geodatabase', status: 'ready' }),
+          buildExport({ task_export_id: 'geotiff-export-id', format: 'geotiff', status: 'running' }),
+        ],
+      },
+    });
+
+    expect(getTaskExportAction(task, 'geotiff')).toBe('preparing');
+    expect(getTaskExportAction(task, 'geodatabase')).toBe('download');
+    expect(getLatestTaskExport(task, 'geodatabase')?.task_export_id).toBe('geodatabase-export-id');
+  });
 });
 
 function buildTask(overrides: Partial<GetTaskResponse> = {}): GetTaskResponse {
@@ -43,32 +59,34 @@ function buildTaskWithExport(exportOverrides: Partial<TaskExportResponse>): GetT
   return buildTask({
     latest_run: {
       ...buildRun(),
-      exports: [
-        {
-          task_export_id: 'export-id',
-          task_run_id: 'run-id',
-          source_artifact_id: 'artifact-id',
-          format: 'geotiff',
-          format_version: 'geotiff-v1',
-          status: 'ready',
-          attempt: 1,
-          prefect_flow_run_id: null,
-          prefect_deployment_id: null,
-          source_checksum: null,
-          specification: {},
-          progress: {},
-          resource_admission: null,
-          failure_code: null,
-          failure_message: null,
-          started_at: null,
-          completed_at: null,
-          failed_at: null,
-          files: [],
-          ...exportOverrides,
-        },
-      ],
+      exports: [buildExport(exportOverrides)],
     },
   });
+}
+
+function buildExport(exportOverrides: Partial<TaskExportResponse>): TaskExportResponse {
+  return {
+    task_export_id: 'export-id',
+    task_run_id: 'run-id',
+    source_artifact_id: 'artifact-id',
+    format: 'geotiff',
+    format_version: 'geotiff-v1',
+    status: 'ready',
+    attempt: 1,
+    prefect_flow_run_id: null,
+    prefect_deployment_id: null,
+    source_checksum: null,
+    specification: {},
+    progress: {},
+    resource_admission: null,
+    failure_code: null,
+    failure_message: null,
+    started_at: null,
+    completed_at: null,
+    failed_at: null,
+    files: [],
+    ...exportOverrides,
+  };
 }
 
 function buildRun(): NonNullable<GetTaskResponse['latest_run']> {
