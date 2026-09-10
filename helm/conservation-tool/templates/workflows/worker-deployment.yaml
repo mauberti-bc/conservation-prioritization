@@ -72,6 +72,9 @@ spec:
           ports:
             - containerPort: {{ $root.Values.ports.prefect_worker_api | default 4202 }}
           env:
+            # Runner heartbeats let the server release slots after a worker OOM.
+            - name: PREFECT_RUNNER_HEARTBEAT_FREQUENCY
+              value: "60"
             - name: HOME
               value: "/home/app"
             - name: PREFECT_HOME

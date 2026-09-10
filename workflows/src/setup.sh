@@ -6,6 +6,8 @@ WORK_POOL_NAMES=(
 )
 TASK_RUN_CONCURRENCY_LIMIT="conservation-task-runs"
 
+python -m src.utils.flow_run_recovery
+
 for work_pool_name in "${WORK_POOL_NAMES[@]}"; do
   bash src/ensure_work_pool.sh "$work_pool_name" process
 done
