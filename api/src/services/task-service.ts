@@ -1,12 +1,16 @@
 import { IDBConnection } from '../database/db';
 import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination';
+import { TaskExportWithFiles } from '../models/task-export.interface';
 import { CreateTask, DeleteTask, Task, TaskStatus, UpdateTask, UpdateTaskExecution } from '../models/task';
+import { TaskRun } from '../models/task-run';
 import { TaskRunWithArtifacts } from '../models/task-run.interface';
 import { TaskDetails } from '../models/task.interface';
 import { ArtifactRepository } from '../repositories/artifact-repository';
 import { DashboardTaskRepository } from '../repositories/dashboard-task-repository';
 import { ProfileRepository } from '../repositories/profile-repository';
 import { ProjectRepository } from '../repositories/project-repository';
+import { TaskExportFileRepository } from '../repositories/task-export-file-repository';
+import { TaskExportRepository } from '../repositories/task-export-repository';
 import { TaskRepository } from '../repositories/task-repository';
 import { TaskRunRepository } from '../repositories/task-run-repository';
 import { TaskRunSolutionRepository } from '../repositories/task-run-solution-repository';
@@ -40,6 +44,8 @@ export class TaskService extends DBService {
   profileRepository: ProfileRepository;
   projectRepository: ProjectRepository;
   dashboardTaskRepository: DashboardTaskRepository;
+  taskExportRepository: TaskExportRepository;
+  taskExportFileRepository: TaskExportFileRepository;
   taskRunRepository: TaskRunRepository;
   artifactRepository: ArtifactRepository;
   taskRunSolutionRepository: TaskRunSolutionRepository;
@@ -60,6 +66,8 @@ export class TaskService extends DBService {
     this.profileRepository = new ProfileRepository(connection);
     this.projectRepository = new ProjectRepository(connection);
     this.dashboardTaskRepository = new DashboardTaskRepository(connection);
+    this.taskExportRepository = new TaskExportRepository(connection);
+    this.taskExportFileRepository = new TaskExportFileRepository(connection);
     this.taskRunRepository = new TaskRunRepository(connection);
     this.artifactRepository = new ArtifactRepository(connection);
     this.taskRunSolutionRepository = new TaskRunSolutionRepository(connection);
@@ -88,7 +96,7 @@ export class TaskService extends DBService {
     const taskProjects = await this.projectRepository.getProjectsByTaskIds([taskId]);
     const dashboardId = await this.dashboardTaskRepository.getLatestDashboardIdForTask(taskId);
     const tilesetUri = await this.toPresignedTilesetUri(task.tileset_uri);
-    const latestRun = await this.getLatestTaskRunWithArtifacts(taskId);
+    const latestRunsByTaskId = await this.buildLatestRunsByTaskId([taskId]);
 
     // Generate presigned URL
 
@@ -102,7 +110,7 @@ export class TaskService extends DBService {
         colour: project.colour
       })),
       dashboard_id: dashboardId ?? null,
-      latest_run: latestRun
+      latest_run: latestRunsByTaskId.get(taskId) ?? null
     };
   }
 
@@ -121,13 +129,14 @@ export class TaskService extends DBService {
     }
 
     const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
+    const latestRunsByTaskId = await this.buildLatestRunsByTaskId(taskIds);
 
     return Promise.all(
       tasks.map(async (task) => ({
         ...task,
         tileset_uri: await this.toPresignedTilesetUri(task.tileset_uri),
         projects: projectsByTaskId.get(task.task_id) ?? [],
-        latest_run: await this.getLatestTaskRunWithArtifacts(task.task_id)
+        latest_run: latestRunsByTaskId.get(task.task_id) ?? null
       }))
     );
   }
@@ -148,13 +157,14 @@ export class TaskService extends DBService {
     }
 
     const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
+    const latestRunsByTaskId = await this.buildLatestRunsByTaskId(taskIds);
 
     return Promise.all(
       tasks.map(async (task) => ({
         ...task,
         tileset_uri: await this.toPresignedTilesetUri(task.tileset_uri),
         projects: projectsByTaskId.get(task.task_id) ?? [],
-        latest_run: await this.getLatestTaskRunWithArtifacts(task.task_id)
+        latest_run: latestRunsByTaskId.get(task.task_id) ?? null
       }))
     );
   }
@@ -180,13 +190,14 @@ export class TaskService extends DBService {
     }
 
     const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
+    const latestRunsByTaskId = await this.buildLatestRunsByTaskId(taskIds);
 
     const populatedTasks = await Promise.all(
       tasks.map(async (task) => ({
         ...task,
         tileset_uri: await this.toPresignedTilesetUri(task.tileset_uri),
         projects: projectsByTaskId.get(task.task_id) ?? [],
-        latest_run: await this.getLatestTaskRunWithArtifacts(task.task_id)
+        latest_run: latestRunsByTaskId.get(task.task_id) ?? null
       }))
     );
 
@@ -212,13 +223,14 @@ export class TaskService extends DBService {
     }
 
     const projectsByTaskId = await this.buildProjectsByTaskId(taskIds);
+    const latestRunsByTaskId = await this.buildLatestRunsByTaskId(taskIds);
 
     return Promise.all(
       tasks.map(async (task) => ({
         ...task,
         tileset_uri: await this.toPresignedTilesetUri(task.tileset_uri),
         projects: projectsByTaskId.get(task.task_id) ?? [],
-        latest_run: await this.getLatestTaskRunWithArtifacts(task.task_id)
+        latest_run: latestRunsByTaskId.get(task.task_id) ?? null
       }))
     );
   }
@@ -234,24 +246,70 @@ export class TaskService extends DBService {
     return toPresignedPmtilesUrl(uri);
   }
 
-  /** Returns the latest run with authoritative artifacts for task compatibility responses. */
-  private async getLatestTaskRunWithArtifacts(taskId: string): Promise<TaskRunWithArtifacts | null> {
-    const run = await this.taskRunRepository.getLatestTaskRunByTaskId(taskId);
-    if (!run) {
-      return null;
+  /**
+   * Builds latest task runs by task ID with artifacts, solutions, and exports.
+   *
+   * @param {string[]} taskIds Task IDs to hydrate.
+   * @return {*}  {Promise<Map<string, TaskRunWithArtifacts>>}
+   * @memberof TaskService
+   */
+  private async buildLatestRunsByTaskId(taskIds: string[]): Promise<Map<string, TaskRunWithArtifacts>> {
+    const latestRuns = (
+      await Promise.all(taskIds.map(async (taskId) => this.taskRunRepository.getLatestTaskRunByTaskId(taskId)))
+    ).filter((run): run is TaskRun => Boolean(run));
+    const exportsByRunId = await this.buildExportsByRunId(latestRuns.map((run) => run.task_run_id));
+    const latestRunsByTaskId = new Map<string, TaskRunWithArtifacts>();
+
+    for (const run of latestRuns) {
+      const artifacts = await this.artifactRepository.getArtifactsByRunId(run.task_run_id);
+      const solutions = await this.taskRunSolutionRepository.getTaskRunSolutions(run.task_run_id);
+      latestRunsByTaskId.set(run.task_id, {
+        ...run,
+        exports: exportsByRunId.get(run.task_run_id) ?? [],
+        solutions,
+        artifacts: await Promise.all(
+          artifacts.map(async (artifact) => ({
+            ...artifact,
+            uri: artifact.type === 'pmtiles' ? await toPresignedPmtilesUrl(artifact.uri) : artifact.uri
+          }))
+        )
+      });
     }
-    const artifacts = await this.artifactRepository.getArtifactsByRunId(run.task_run_id);
-    const solutions = await this.taskRunSolutionRepository.getTaskRunSolutions(run.task_run_id);
-    return {
-      ...run,
-      solutions,
-      artifacts: await Promise.all(
-        artifacts.map(async (artifact) => ({
-          ...artifact,
-          uri: artifact.type === 'pmtiles' ? await toPresignedPmtilesUrl(artifact.uri) : artifact.uri
-        }))
-      )
-    };
+
+    return latestRunsByTaskId;
+  }
+
+  /**
+   * Builds task exports with files grouped by parent run ID.
+   *
+   * @param {string[]} taskRunIds Task run IDs to hydrate.
+   * @return {*}  {Promise<Map<string, TaskExportWithFiles[]>>}
+   * @memberof TaskService
+   */
+  private async buildExportsByRunId(taskRunIds: string[]): Promise<Map<string, TaskExportWithFiles[]>> {
+    const exports = await this.taskExportRepository.getTaskExportsByRunIds(taskRunIds);
+    const files = await this.taskExportFileRepository.getTaskExportFilesByExportIds(
+      exports.map((taskExport) => taskExport.task_export_id)
+    );
+    const filesByExportId = new Map<string, typeof files>();
+    const exportsByRunId = new Map<string, TaskExportWithFiles[]>();
+
+    for (const file of files) {
+      const existing = filesByExportId.get(file.task_export_id) ?? [];
+      existing.push(file);
+      filesByExportId.set(file.task_export_id, existing);
+    }
+
+    for (const taskExport of exports) {
+      const existing = exportsByRunId.get(taskExport.task_run_id) ?? [];
+      existing.push({
+        ...taskExport,
+        files: filesByExportId.get(taskExport.task_export_id) ?? []
+      });
+      exportsByRunId.set(taskExport.task_run_id, existing);
+    }
+
+    return exportsByRunId;
   }
 
   /**

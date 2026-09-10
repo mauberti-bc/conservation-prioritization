@@ -109,6 +109,29 @@ export class TaskExportFileRepository extends BaseRepository {
   }
 
   /**
+   * Returns all files for the provided exports ordered by export and deterministic part index.
+   *
+   * @param {string[]} taskExportIds Parent export IDs.
+   * @returns {Promise<TaskExportFile[]>}
+   */
+  async getTaskExportFilesByExportIds(taskExportIds: string[]): Promise<TaskExportFile[]> {
+    if (!taskExportIds.length) {
+      return [];
+    }
+
+    const response = await this.connection.sql(
+      SQL`SELECT `.append(TASK_EXPORT_FILE_COLUMNS).append(SQL`
+        FROM task_export_file
+        WHERE task_export_id = ANY(${taskExportIds}::uuid[])
+        ORDER BY task_export_id, part_index
+      `),
+      TaskExportFile
+    );
+
+    return response.rows;
+  }
+
+  /**
    * Updates one export file record.
    *
    * @param {string} taskExportFileId Export file ID.

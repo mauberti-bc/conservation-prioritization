@@ -7,6 +7,8 @@ import { UpsertTaskRunSolution } from '../models/task-run-solution';
 import { TaskRunWithArtifacts } from '../models/task-run.interface';
 import { AnalyticalSourceRepository } from '../repositories/analytical-source-repository';
 import { ArtifactRepository } from '../repositories/artifact-repository';
+import { TaskExportFileRepository } from '../repositories/task-export-file-repository';
+import { TaskExportRepository } from '../repositories/task-export-repository';
 import { TaskRunRepository } from '../repositories/task-run-repository';
 import { TaskRunSolutionRepository } from '../repositories/task-run-solution-repository';
 import { hashCanonicalJson } from '../utils/canonical-json';
@@ -25,6 +27,8 @@ export class TaskRunService extends DBService {
   private taskService: TaskService;
   private taskRunRepository: TaskRunRepository;
   private artifactRepository: ArtifactRepository;
+  private taskExportRepository: TaskExportRepository;
+  private taskExportFileRepository: TaskExportFileRepository;
   private sourceRepository: AnalyticalSourceRepository;
   private solutionRepository: TaskRunSolutionRepository;
 
@@ -33,6 +37,8 @@ export class TaskRunService extends DBService {
     this.taskService = new TaskService(connection);
     this.taskRunRepository = new TaskRunRepository(connection);
     this.artifactRepository = new ArtifactRepository(connection);
+    this.taskExportRepository = new TaskExportRepository(connection);
+    this.taskExportFileRepository = new TaskExportFileRepository(connection);
     this.sourceRepository = new AnalyticalSourceRepository(connection);
     this.solutionRepository = new TaskRunSolutionRepository(connection);
   }
@@ -371,8 +377,23 @@ export class TaskRunService extends DBService {
     const run = await this.taskRunRepository.getTaskRunById(taskRunId);
     const artifacts = await this.artifactRepository.getArtifactsByRunId(taskRunId);
     const solutions = await this.solutionRepository.getTaskRunSolutions(taskRunId);
+    const exports = await this.taskExportRepository.getTaskExportsByRunId(taskRunId);
+    const exportFiles = await this.taskExportFileRepository.getTaskExportFilesByExportIds(
+      exports.map((taskExport) => taskExport.task_export_id)
+    );
+    const filesByExportId = new Map<string, typeof exportFiles>();
+    for (const file of exportFiles) {
+      const existing = filesByExportId.get(file.task_export_id) ?? [];
+      existing.push(file);
+      filesByExportId.set(file.task_export_id, existing);
+    }
+
     return {
       ...run,
+      exports: exports.map((taskExport) => ({
+        ...taskExport,
+        files: filesByExportId.get(taskExport.task_export_id) ?? []
+      })),
       solutions,
       artifacts: await Promise.all(
         artifacts.map(async (artifact) => ({

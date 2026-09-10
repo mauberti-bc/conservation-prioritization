@@ -108,6 +108,29 @@ export class TaskExportRepository extends BaseRepository {
   }
 
   /**
+   * Returns export jobs for provided task runs newest first within each run.
+   *
+   * @param {string[]} taskRunIds Parent task run IDs.
+   * @returns {Promise<TaskExport[]>}
+   */
+  async getTaskExportsByRunIds(taskRunIds: string[]): Promise<TaskExport[]> {
+    if (!taskRunIds.length) {
+      return [];
+    }
+
+    const response = await this.connection.sql(
+      SQL`SELECT `.append(TASK_EXPORT_COLUMNS).append(SQL`
+        FROM task_export
+        WHERE task_run_id = ANY(${taskRunIds}::uuid[])
+        ORDER BY task_run_id, created_at DESC
+      `),
+      TaskExport
+    );
+
+    return response.rows;
+  }
+
+  /**
    * Updates an export job.
    *
    * @param {string} taskExportId Export job ID.

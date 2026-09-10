@@ -41,6 +41,17 @@ describe('TaskExportRepository', () => {
     expect(statement.text).to.contain('ORDER BY created_at DESC');
     expect(statement.text).not.to.contain('created_at, updated_at');
   });
+
+  it('loads exports for multiple runs with one ordered query', async () => {
+    const sql = sinon.stub().resolves({ rowCount: 1, rows: [buildTaskExport()] });
+    const repository = new TaskExportRepository(getMockDBConnection({ sql }));
+
+    await repository.getTaskExportsByRunIds([TASK_RUN_ID]);
+
+    const statement = sql.firstCall.args[0] as SQLStatement;
+    expect(statement.text).to.contain('WHERE task_run_id = ANY($1::uuid[])');
+    expect(statement.text).to.contain('ORDER BY task_run_id, created_at DESC');
+  });
 });
 
 describe('TaskExportFileRepository', () => {
@@ -70,6 +81,17 @@ describe('TaskExportFileRepository', () => {
     const statement = sql.firstCall.args[0] as SQLStatement;
     expect(statement.text).to.contain('ON CONFLICT (task_export_id, part_index) DO UPDATE');
     expect(statement.text).to.contain('object_key = EXCLUDED.object_key');
+  });
+
+  it('loads files for multiple exports with one ordered query', async () => {
+    const sql = sinon.stub().resolves({ rowCount: 1, rows: [buildTaskExportFile()] });
+    const repository = new TaskExportFileRepository(getMockDBConnection({ sql }));
+
+    await repository.getTaskExportFilesByExportIds([EXPORT_ID]);
+
+    const statement = sql.firstCall.args[0] as SQLStatement;
+    expect(statement.text).to.contain('WHERE task_export_id = ANY($1::uuid[])');
+    expect(statement.text).to.contain('ORDER BY task_export_id, part_index');
   });
 });
 

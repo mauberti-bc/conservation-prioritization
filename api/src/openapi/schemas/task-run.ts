@@ -1,4 +1,5 @@
 import { OpenAPIV3 } from 'openapi-types';
+import { TaskExportSchema } from './task-export';
 
 export const TaskRunSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
@@ -13,6 +14,7 @@ export const TaskRunSchema: OpenAPIV3.SchemaObject = {
     'input_snapshot',
     'input_hash',
     'artifacts',
+    'exports',
     'solutions'
   ],
   properties: {
@@ -57,6 +59,10 @@ export const TaskRunSchema: OpenAPIV3.SchemaObject = {
     artifacts: {
       type: 'array',
       items: { type: 'object', additionalProperties: true }
+    },
+    exports: {
+      type: 'array',
+      items: TaskExportSchema
     },
     solutions: {
       type: 'array',
