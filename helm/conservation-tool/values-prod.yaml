@@ -23,6 +23,13 @@ prefect-server:
   server:
     uiConfig:
       prefectUiApiUrl: "https://conservation-tool-prefect-server-fa9440-prod.apps.gold.devops.gov.bc.ca/api"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 512Mi
+      limits:
+        cpu: 100m
+        memory: 768Mi
     podSecurityContext:
       runAsUser: 1003590000
       fsGroup: null
@@ -73,6 +80,15 @@ services:
       securityContext:
         runAsUser: 1003590000
         fsGroup: 1003590000
+      profiles:
+        sparse-solver:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi
 
     deploy:
       image:
