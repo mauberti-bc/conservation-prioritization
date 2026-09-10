@@ -35,6 +35,27 @@ minio: | check-env run-minio
 fix: | lint-fix format-fix
 install: | install-deps
 
+.PHONY: test test-api test-frontend test-frontend-server test-workflows test-deployment
+
+# Keep running independent suites after a failure, but return a nonzero exit status.
+test: ## Run all API, frontend, workflow, and deployment tests
+	@$(MAKE) --keep-going test-api test-frontend test-frontend-server test-workflows test-deployment
+
+test-api: ## Run TypeScript API tests with Mocha
+	@cd api && node --import tsx node_modules/mocha/bin/mocha.js 'src/**/*.test.ts'
+
+test-frontend: ## Run frontend application tests with Vitest
+	@cd frontend && node_modules/.bin/vitest run src
+
+test-frontend-server: ## Run frontend HTTP server tests with Node's test runner
+	@cd frontend && node --test server/*.test.mjs
+
+test-workflows: ## Run Python workflow tests using the locked environment
+	@cd workflows && uv run --frozen python -m unittest discover -s tests
+
+test-deployment: ## Run deployment script tests
+	@python3 -m unittest discover -s helm/scripts/tests
+
 ## ------------------------------------------------------------------------------
 ## Setup Commands
 ## ------------------------------------------------------------------------------
