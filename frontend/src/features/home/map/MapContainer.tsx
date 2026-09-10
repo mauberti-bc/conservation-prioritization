@@ -10,6 +10,7 @@ import { PMTiles } from 'pmtiles';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { attachMapContainer, detachMapContainer, getMapCacheEntry, setMapCacheEntry } from 'utils/mapInstanceCache';
 import { ensurePMTilesProtocol } from 'utils/pmtilesProtocol';
+import { GeoJsonBounds } from 'utils/spatial';
 import { PmtilesLegend } from './PmtilesLegend';
 
 const BASEMAP_SOURCE_ID = 'basemap';
@@ -22,6 +23,7 @@ interface MapContainerProps {
   pmtilesUrls?: string[];
   keepAliveKey?: string;
   boundsRefreshKey?: string | number;
+  fitBounds?: GeoJsonBounds | null;
   useSharedContext?: boolean;
   interactive?: boolean;
   showNavigationControl?: boolean;
@@ -43,6 +45,7 @@ export const MapContainer = ({
   pmtilesUrls = [],
   keepAliveKey,
   boundsRefreshKey,
+  fitBounds,
   useSharedContext = true,
   interactive = true,
   showNavigationControl = true,
@@ -82,6 +85,13 @@ export const MapContainer = ({
 
     return `${baseKey}::${boundsRefreshKey}`;
   }, [boundsRefreshKey, normalizedPmtilesUrls]);
+  const explicitFitKey = useMemo(() => {
+    if (!fitBounds) {
+      return null;
+    }
+
+    return `${fitBounds[0][0]},${fitBounds[0][1]},${fitBounds[1][0]},${fitBounds[1][1]}::${boundsRefreshKey ?? ''}`;
+  }, [boundsRefreshKey, fitBounds]);
   const hasPmtiles = normalizedPmtilesUrls.length > 0;
   const hasRenderedPmtiles = hasAnyPmtilesLayers(mapRef.current, PMTILES_LAYER_PREFIX);
   const basemapStyle = useMemo(() => {
@@ -268,6 +278,20 @@ export const MapContainer = ({
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!map || !isMapInitialized || !map.isStyleLoaded() || !fitBounds || !explicitFitKey) {
+      return;
+    }
+
+    if (lastFitKeyRef.current === explicitFitKey) {
+      return;
+    }
+
+    lastFitKeyRef.current = explicitFitKey;
+    fitMapToBounds(map, fitBounds, DefaultFitBoundsPadding, DefaultFitBoundsMaxZoom);
+  }, [explicitFitKey, fitBounds, isMapInitialized, mapRef, styleReadyTick]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     if (!map) {
       return undefined;
     }
@@ -377,7 +401,7 @@ export const MapContainer = ({
       return;
     }
 
-    if (!normalizedPmtilesUrls.length) {
+    if (!normalizedPmtilesUrls.length || fitBounds) {
       return;
     }
 
@@ -510,17 +534,7 @@ export const MapContainer = ({
       }
 
       lastFitKeyRef.current = fitKey;
-      if (bounds.getWest() === bounds.getEast() && bounds.getSouth() === bounds.getNorth()) {
-        map.setCenter(bounds.getCenter());
-        map.setZoom(DefaultFitBoundsMaxZoom);
-        return;
-      }
-
-      map.fitBounds(bounds, {
-        padding: DefaultFitBoundsPadding,
-        duration: 0,
-        maxZoom: DefaultFitBoundsMaxZoom,
-      });
+      fitMapToBounds(map, bounds, DefaultFitBoundsPadding, DefaultFitBoundsMaxZoom);
     };
 
     void fitPmtilesBounds();
@@ -528,7 +542,7 @@ export const MapContainer = ({
     return () => {
       isCancelled = true;
     };
-  }, [areLayersLoaded, fitKey, isMapInitialized, mapRef, normalizedPmtilesUrls, styleReadyTick]);
+  }, [areLayersLoaded, fitBounds, fitKey, isMapInitialized, mapRef, normalizedPmtilesUrls, styleReadyTick]);
 
   return (
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -737,6 +751,35 @@ const hasAnyPmtilesLayers = (map: maplibregl.Map | null, layerPrefix: string): b
 
   return style.layers.some((layer) => {
     return layer.id.startsWith(layerPrefix);
+  });
+};
+
+/**
+ * Fits a MapLibre map to bounds, handling single-coordinate bounds as a centered point.
+ *
+ * @param {maplibregl.Map} map Map instance to move.
+ * @param {maplibregl.LngLatBoundsLike} bounds Bounds in longitude/latitude order.
+ * @param {number} padding Padding in screen pixels.
+ * @param {number} maxZoom Maximum zoom after fitting.
+ * @returns {void}
+ */
+const fitMapToBounds = (
+  map: maplibregl.Map,
+  bounds: maplibregl.LngLatBoundsLike,
+  padding: number,
+  maxZoom: number
+): void => {
+  const lngLatBounds = maplibregl.LngLatBounds.convert(bounds);
+  if (lngLatBounds.getWest() === lngLatBounds.getEast() && lngLatBounds.getSouth() === lngLatBounds.getNorth()) {
+    map.setCenter(lngLatBounds.getCenter());
+    map.setZoom(maxZoom);
+    return;
+  }
+
+  map.fitBounds(lngLatBounds, {
+    padding,
+    duration: 0,
+    maxZoom,
   });
 };
 

@@ -4,6 +4,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { TASK_STATUS } from 'constants/status';
 import { useApplicationEventsContext, useMapContext, useTaskContext } from 'hooks/useContext';
 import { useEffect, useMemo, useState } from 'react';
+import { getFeaturesBounds } from 'utils/spatial';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
 import { FloatingSidebarContainer } from './sidebar/FloatingSidebarContainer';
@@ -72,6 +73,15 @@ export const ViewTaskPage = () => {
 
     return baseUrls;
   }, [hoveredTilesetUri, resolvedPmtilesUri]);
+
+  const taskAreaBounds = useMemo(() => {
+    const areas = activeTaskData?.latest_run?.areas ?? [];
+    return getFeaturesBounds(
+      areas.map((area) => {
+        return area.geojson;
+      })
+    );
+  }, [activeTaskData]);
 
   useEffect(() => {
     setIsResettingPmtiles(true);
@@ -173,6 +183,7 @@ export const ViewTaskPage = () => {
         <MapContainer
           pmtilesUrls={isResettingPmtiles ? [] : pmtilesUrls}
           boundsRefreshKey={taskId}
+          fitBounds={taskAreaBounds}
           pmtilesLegendTaskType={activeTaskData?.type ?? null}
         />
         <DrawControls ref={drawControlsRef} />

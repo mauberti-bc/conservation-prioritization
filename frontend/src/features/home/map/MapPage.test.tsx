@@ -2,7 +2,7 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { IApplicationEventsContext } from 'context/applicationEventsContext';
-import { GetTaskResponse, TaskExportResponse } from 'hooks/interfaces/useTaskApi.interface';
+import { GetTaskResponse, TaskExportResponse, TaskRunAreaResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   events: {} as IApplicationEventsContext,
   dialog: { setSnackbar: vi.fn(), setYesNoDialog: vi.fn() },
   map: { drawControlsRef: { current: null } },
+  mapContainer: vi.fn(),
 }));
 
 vi.mock('hooks/useConservationApi', () => ({ useConservationApi: () => ({ task: mocks.taskApi }) }));
@@ -27,7 +28,12 @@ vi.mock('hooks/useContext', () => ({
   useDialogContext: () => mocks.dialog,
   useMapContext: () => mocks.map,
 }));
-vi.mock('./MapContainer', () => ({ MapContainer: () => null }));
+vi.mock('./MapContainer', () => ({
+  MapContainer: (props: unknown) => {
+    mocks.mapContainer(props);
+    return null;
+  },
+}));
 vi.mock('./draw/DrawControls', () => ({ DrawControls: () => null }));
 vi.mock('../task/create/CreateTask', () => ({ CreateTask: () => null }));
 vi.mock('../task/view/panel/TaskViewPanel', () => ({ TaskViewPanel: () => null }));
@@ -49,12 +55,12 @@ vi.mock('components/list/InteractiveListItemButton', () => ({
 }));
 
 /** Builds a task with the run fields consumed by the map workspace. */
-function buildTask(status = 'completed'): GetTaskResponse {
+function buildTask(status = 'completed', areas: TaskRunAreaResponse[] = []): GetTaskResponse {
   return {
     task_id: 'task-1',
     name: 'Conservation task',
     status,
-    latest_run: { task_run_id: 'run-1', status, exports: [], artifacts: [] },
+    latest_run: { task_run_id: 'run-1', status, exports: [], artifacts: [], areas },
   } as unknown as GetTaskResponse;
 }
 
@@ -64,9 +70,9 @@ function buildExport(status: TaskExportResponse['status']): TaskExportResponse {
 }
 
 /** Mounts the map list with its real loaders and export dialog. */
-function workspace() {
+function workspace(initialEntry = '/map') {
   return (
-    <MemoryRouter initialEntries={['/map']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <MapPage />
     </MemoryRouter>
   );
@@ -86,6 +92,7 @@ describe('MapPage task and export refresh', () => {
       tasks: [buildTask()],
       pagination: { current_page: 1, per_page: 25, total: 1, last_page: 1 },
     });
+    mocks.taskApi.getTaskById.mockResolvedValue(buildTask());
     mocks.taskApi.getTaskExports.mockResolvedValue([]);
     mocks.taskApi.createTaskExport.mockResolvedValue(buildExport('queued'));
   });
@@ -153,5 +160,64 @@ describe('MapPage task and export refresh', () => {
     });
     expect(await screen.findByText('1-25 of 25')).toBeTruthy();
     expect(screen.getByText('Conservation task')).toBeTruthy();
+  });
+
+  it('passes merged target-area bounds to the map on a task route', async () => {
+    mocks.taskApi.getTaskById.mockResolvedValue(
+      buildTask('completed', [
+        {
+          task_run_area_id: 'area-1',
+          geojson: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Polygon',
+              coordinates: [
+                [
+                  [-124, 49],
+                  [-123, 49],
+                  [-123, 50],
+                  [-124, 50],
+                  [-124, 49],
+                ],
+              ],
+            },
+          },
+        },
+        {
+          task_run_area_id: 'area-2',
+          geojson: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Polygon',
+              coordinates: [
+                [
+                  [-130, 52],
+                  [-129, 52],
+                  [-129, 53],
+                  [-130, 53],
+                  [-130, 52],
+                ],
+              ],
+            },
+          },
+        },
+      ] as TaskRunAreaResponse[])
+    );
+
+    render(workspace('/map/task-1'));
+    await waitFor(() => expect(mocks.taskApi.getTaskById).toHaveBeenCalledWith('task-1'));
+    await waitFor(() =>
+      expect(mocks.mapContainer).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          boundsRefreshKey: 'task-1',
+          fitBounds: [
+            [-130, 49],
+            [-123, 53],
+          ],
+        })
+      )
+    );
   });
 });

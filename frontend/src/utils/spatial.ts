@@ -124,6 +124,29 @@ export function getFeatureBounds(feature: Feature<Geometry, GeoJsonProperties>):
 }
 
 /**
+ * Computes merged map bounds for a list of GeoJSON features.
+ *
+ * @param {Feature<Geometry, GeoJsonProperties>[]} features GeoJSON features to inspect in longitude/latitude order.
+ * @returns {GeoJsonBounds | null} Bounds covering every feature, or null when no coordinates are available.
+ */
+export function getFeaturesBounds(features: Feature<Geometry, GeoJsonProperties>[]): GeoJsonBounds | null {
+  const bounds: GeoJsonBounds = [
+    [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
+    [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY],
+  ];
+
+  for (const feature of features) {
+    extendBoundsFromGeometry(feature.geometry, bounds);
+  }
+
+  if (!Number.isFinite(bounds[0][0]) || !Number.isFinite(bounds[0][1])) {
+    return null;
+  }
+
+  return bounds;
+}
+
+/**
  * Validates a list of GeoJSON features.
  * Returns an object with validity and error message if any.
  */

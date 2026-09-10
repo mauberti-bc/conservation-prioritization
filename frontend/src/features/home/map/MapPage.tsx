@@ -24,6 +24,7 @@ import useDataLoader from 'hooks/useDataLoader';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiPaginationRequestOptions } from 'types/pagination';
+import { getFeaturesBounds } from 'utils/spatial';
 import { getLatestTaskExport, getTaskExportAction, triggerBrowserDownload } from 'utils/task-export';
 import { FloatingSidebarContainer } from '../sidebar/FloatingSidebarContainer';
 import { SIDEBAR_STATUS_CHIP_LEFT } from '../sidebar/sidebar-layout.constants';
@@ -448,6 +449,15 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
     return baseUrls;
   }, [hoveredTilesetUri, resolvedPmtilesUri]);
 
+  const taskAreaBounds = useMemo(() => {
+    const areas = activeTaskData?.latest_run?.areas ?? [];
+    return getFeaturesBounds(
+      areas.map((area) => {
+        return area.geojson;
+      })
+    );
+  }, [activeTaskData]);
+
   const showStatusChip = useMemo(() => {
     const activeStatus = activeTaskData?.status;
     const hasPmtilesUri = Boolean(activeTaskData?.tileset_uri);
@@ -579,6 +589,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
         <MapContainer
           pmtilesUrls={pmtilesUrls}
           boundsRefreshKey={activeTaskId ?? undefined}
+          fitBounds={taskAreaBounds}
           pmtilesLegendTaskType={activeTaskData?.type ?? null}
         />
         <DrawControls ref={drawControlsRef} />
