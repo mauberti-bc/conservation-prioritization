@@ -14,6 +14,7 @@ from src.optimization.compiler import (
 from src.optimization.artifact import load_compiled_artifact, write_compiled_artifact
 from src.optimization.highs import (
     HighsModelSession,
+    NoFeasibleSolutionError,
     build_objective_warm_start,
     solve_with_highs,
 )
@@ -258,7 +259,7 @@ class OptimizationProblemTest(unittest.TestCase):
         )
 
         with TemporaryDirectory() as directory:
-            with self.assertRaisesRegex(RuntimeError, "Priority ranking solve failed"):
+            with self.assertRaises(NoFeasibleSolutionError):
                 solve_priority_ranking(
                     compilation.model,
                     configuration=SolveConfiguration(),

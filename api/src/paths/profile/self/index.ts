@@ -1,7 +1,7 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
 import { getAPIUserDBConnection } from '../../../database/db';
-import { HTTP400 } from '../../../errors/http-error';
+import { HTTP400, HTTP404 } from '../../../errors/http-error';
 import { UpsertProfile } from '../../../models/profile';
 import { defaultErrorResponses } from '../../../openapi/schemas/http-responses';
 import { GetProfileSchema } from '../../../openapi/schemas/profile';
@@ -19,6 +19,32 @@ import {
 import { getLogger } from '../../../utils/logger';
 
 const defaultLog = getLogger(__filename);
+
+export const GET: Operation = [getSelfProfile()];
+
+GET.apiDoc = {
+  description: 'Fetch the currently authenticated user profile.',
+  tags: ['profile'],
+  security: [
+    {
+      Bearer: []
+    }
+  ],
+  responses: {
+    200: {
+      description: 'Profile returned successfully.',
+      content: {
+        'application/json': {
+          schema: GetProfileSchema
+        }
+      }
+    },
+    404: {
+      description: 'Profile not found.'
+    },
+    ...defaultErrorResponses
+  }
+};
 
 export const PUT: Operation = [upsertProfile()];
 
@@ -51,6 +77,44 @@ PUT.apiDoc = {
     ...defaultErrorResponses
   }
 };
+
+/**
+ * Fetch the currently authenticated user profile.
+ *
+ * @returns {RequestHandler}
+ */
+export function getSelfProfile(): RequestHandler {
+  return async (req, res) => {
+    const connection = getAPIUserDBConnection();
+
+    try {
+      const userGuid = getUserGuid(req.keycloak_token);
+
+      if (!userGuid) {
+        throw new HTTP400('Failed to identify user GUID from token');
+      }
+
+      await connection.open();
+
+      const profileService = new ProfileService(connection);
+      const profile = await profileService.findProfileByGuid(userGuid);
+
+      if (!profile) {
+        throw new HTTP404('Profile not found.');
+      }
+
+      await connection.commit();
+
+      return res.status(200).json(profile);
+    } catch (error) {
+      defaultLog.error({ label: 'getSelfProfile', message: 'error', error });
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  };
+}
 
 /**
  * Upsert the currently authenticated user profile.

@@ -457,7 +457,8 @@ export class TaskRunService extends DBService {
     if (updates.status && !allowedStatuses[current.status].includes(updates.status)) {
       throw new ApiGeneralError(`Invalid run status transition from ${current.status} to ${updates.status}.`, []);
     }
-    if (updates.status === 'completed') {
+    const hasNoSolution = (updates.solver_status ?? current.solver_status) === 'infeasible';
+    if (updates.status === 'completed' && !hasNoSolution) {
       const artifacts = await this.artifactRepository.getArtifactsByRunId(taskRunId);
       const requiredTypes = ['canonical_result', 'pmtiles'];
       const requiredReady = requiredTypes.every((type) =>
@@ -479,7 +480,10 @@ export class TaskRunService extends DBService {
       await this.taskService.updateTaskExecution(current.task_id, { status: 'running', status_message: null });
     }
     if (updates.status === 'completed') {
-      await this.taskService.updateTaskExecution(current.task_id, { status: 'completed', status_message: null });
+      await this.taskService.updateTaskExecution(current.task_id, {
+        status: 'completed',
+        status_message: hasNoSolution ? 'No feasible solution satisfies the selected constraints.' : null
+      });
     }
     if (updates.status === 'failed') {
       await this.taskService.updateTaskExecution(current.task_id, {

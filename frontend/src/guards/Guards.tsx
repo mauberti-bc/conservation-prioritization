@@ -1,6 +1,6 @@
-import { useAuthContext } from 'hooks/useContext';
 import { PropsWithChildren, ReactElement } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { useAuthContext } from 'hooks/useContext';
 
 interface IGuardProps {
   /**
@@ -82,5 +82,18 @@ export const AuthRedirectGuard = (props: PropsWithChildren<IGuardProps>) => {
     return <Navigate to={redirectTarget} replace state={{ from: location.pathname }} />;
   }
 
+  return <>{props.children}</>;
+};
+
+/**
+ * Renders admin children after authentication.
+ *
+ * Backend admin endpoints enforce system administrator authorization. This guard intentionally avoids
+ * making a client-side role decision because the profile API returns role names without role scope.
+ *
+ * @param {PropsWithChildren<IGuardProps>} props Guard props.
+ * @returns {JSX.Element} Guarded children.
+ */
+export const AdminRedirectGuard = (props: PropsWithChildren<IGuardProps>) => {
   return <>{props.children}</>;
 };

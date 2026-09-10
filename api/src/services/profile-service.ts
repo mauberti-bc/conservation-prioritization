@@ -1,8 +1,8 @@
 import { SYSTEM_ROLE } from '../constants/roles';
 import { IDBConnection } from '../database/db';
+import { ApiExecuteSQLError } from '../errors/api-error';
 import { CreateProfile, DeleteProfile, Profile, UpdateProfile, UpsertProfile } from '../models/profile';
 import { ProfileRepository } from '../repositories/profile-repository';
-import { ApiExecuteSQLError } from '../errors/api-error';
 import { DBService } from './db-service';
 
 /**

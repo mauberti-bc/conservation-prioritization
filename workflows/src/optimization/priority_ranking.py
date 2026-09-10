@@ -9,7 +9,7 @@ from typing import Callable, Sequence
 
 import numpy as np
 
-from .highs import HighsModelSession, require_acceptable_result
+from .highs import HighsModelSession, NoFeasibleSolutionError, require_acceptable_result
 from .model import CompiledOptimizationModel, SolveConfiguration, SolverResult
 from .numerical import csr_row_activities
 
@@ -129,6 +129,8 @@ def solve_priority_ranking(
         total_runtime += result.runtime_seconds
         try:
             require_acceptable_result(result, configuration, model)
+        except NoFeasibleSolutionError:
+            raise
         except RuntimeError as error:
             raise RuntimeError(
                 "Priority ranking solve failed at budget "

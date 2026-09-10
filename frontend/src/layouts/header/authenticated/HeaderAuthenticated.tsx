@@ -2,15 +2,28 @@ import { mdiAccountCircle, mdiMenu } from '@mdi/js';
 import Icon from '@mdi/react';
 import { Button, Divider, IconButton, Menu, MenuItem, Typography } from '@mui/material';
 import { Box } from '@mui/system';
+import { useConservationApi } from 'hooks/useConservationApi';
 import { useAuthContext } from 'hooks/useContext';
+import useDataLoader from 'hooks/useDataLoader';
 import { MouseEvent, useState } from 'react';
+import { useEffect } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 
 export const HeaderAuthenticated = () => {
   const authContext = useAuthContext();
+  const conservationApi = useConservationApi();
+  const profileLoader = useDataLoader(conservationApi.profile.getSelf);
   const displayName =
     authContext.auth.user?.profile?.name || authContext.auth.user?.profile?.preferred_username || 'User';
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [adminAnchorEl, setAdminAnchorEl] = useState<null | HTMLElement>(null);
   const isMobileMenuOpen = Boolean(anchorEl);
+  const isAdminMenuOpen = Boolean(adminAnchorEl);
+  const isAdmin = profileLoader.data?.role_name === 'admin';
+
+  useEffect(() => {
+    void profileLoader.load();
+  }, [profileLoader]);
 
   const handleOpenMobileMenu = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -18,6 +31,14 @@ export const HeaderAuthenticated = () => {
 
   const handleCloseMobileMenu = () => {
     setAnchorEl(null);
+  };
+
+  const handleOpenAdminMenu = (event: MouseEvent<HTMLElement>) => {
+    setAdminAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseAdminMenu = () => {
+    setAdminAnchorEl(null);
   };
 
   const handleLogout = async () => {
@@ -39,6 +60,33 @@ export const HeaderAuthenticated = () => {
           fontSize: '16px',
           fontWeight: 700,
         }}>
+        <Button
+          component={RouterLink}
+          to="/tutorial"
+          variant="text"
+          data-testid="menu_tutorial"
+          sx={{
+            color: 'inherit',
+            fontSize: '16px',
+            fontWeight: 700,
+            textTransform: 'none',
+          }}>
+          Tutorial
+        </Button>
+        {isAdmin && (
+          <Button
+            variant="text"
+            onClick={handleOpenAdminMenu}
+            data-testid="menu_admin"
+            sx={{
+              color: 'inherit',
+              fontSize: '16px',
+              fontWeight: 700,
+              textTransform: 'none',
+            }}>
+            Admin
+          </Button>
+        )}
         <Box
           display="flex"
           alignItems="center"
@@ -76,6 +124,22 @@ export const HeaderAuthenticated = () => {
         </Button>
       </Box>
 
+      <Menu
+        anchorEl={adminAnchorEl}
+        open={isAdminMenuOpen}
+        onClose={handleCloseAdminMenu}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{ sx: { minWidth: 200, mt: 1 } }}>
+        <MenuItem
+          component={RouterLink}
+          to="/admin/tutorial"
+          onClick={handleCloseAdminMenu}
+          data-testid="menu_admin_tutorial">
+          Tutorial
+        </MenuItem>
+      </Menu>
+
       <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center' }}>
         <IconButton
           color="inherit"
@@ -101,6 +165,22 @@ export const HeaderAuthenticated = () => {
           </Typography>
         </Box>
         <Divider />
+        {isAdmin && (
+          <MenuItem
+            component={RouterLink}
+            to="/admin/tutorial"
+            onClick={handleCloseMobileMenu}
+            data-testid="collapsed_menu_admin_tutorial">
+            Admin Tutorial
+          </MenuItem>
+        )}
+        <MenuItem
+          component={RouterLink}
+          to="/tutorial"
+          onClick={handleCloseMobileMenu}
+          data-testid="collapsed_menu_tutorial">
+          Tutorial
+        </MenuItem>
         <MenuItem
           onClick={() => {
             void handleLogout();

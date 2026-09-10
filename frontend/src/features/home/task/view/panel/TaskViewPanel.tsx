@@ -146,7 +146,6 @@ export const TaskViewPanel = () => {
     const priorityTotal =
       typeof reference?.metrics?.priority_total === 'number' ? reference.metrics.priority_total : null;
     return {
-      title: run.task_type === 'priority_ranking' ? 'Priority ranking' : 'Reference solution',
       count: run.solutions.length,
       objective: reference?.objective_value ?? null,
       resource: reference?.resource_value ?? null,
@@ -258,8 +257,7 @@ export const TaskViewPanel = () => {
 
               {solutionSummary && (
                 <Box sx={{ mx: 3, mb: 2, p: 1.5, borderRadius: 1, bgcolor: 'action.hover', flex: '0 0 auto' }}>
-                  <Typography variant="subtitle2">{solutionSummary.title}</Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.75 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     {solutionSummaryRows.map((row) => (
                       <Box
                         key={row.label}

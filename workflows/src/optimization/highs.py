@@ -644,6 +644,16 @@ class HighsModelSession:
         return self._solver
 
 
+
+class NoFeasibleSolutionError(RuntimeError):
+    """Signal a completed solve that proved the constraints infeasible."""
+
+    def __init__(self, result: SolverResult) -> None:
+        """Preserve the solver outcome for the run completion update."""
+        super().__init__("No feasible solution satisfies the selected constraints.")
+        self.result = result
+
+
 def require_acceptable_result(
     result: SolverResult,
     configuration: SolveConfiguration,
@@ -655,6 +665,8 @@ def require_acceptable_result(
     incumbent. Exact audits accept only HiGHS' proven-optimal status and a
     numerically zero certified gap.
     """
+    if result.status == "infeasible":
+        raise NoFeasibleSolutionError(result)
     if configuration.mode == "exact_audit":
         if model is not None and not np.any(np.asarray(model.integrality) != 0):
             if result.status != "optimal":

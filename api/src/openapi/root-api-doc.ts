@@ -81,6 +81,16 @@ export const rootAPIDoc = {
           }
         }
       },
+      '404': {
+        description: 'Not Found',
+        content: {
+          'application/json': {
+            schema: {
+              $ref: '#/components/schemas/Error'
+            }
+          }
+        }
+      },
       '409': {
         description: 'Conflict',
         content: {

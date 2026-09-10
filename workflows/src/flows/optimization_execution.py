@@ -27,7 +27,11 @@ from ..optimization.admission import (
     admit_structural_inventory,
 )
 from ..optimization.canonical_result import write_solver_canonical_zarr
-from ..optimization.highs import require_acceptable_result, solve_with_highs
+from ..optimization.highs import (
+    NoFeasibleSolutionError,
+    require_acceptable_result,
+    solve_with_highs,
+)
 from ..optimization.model import SolveConfiguration
 from ..optimization.artifact import load_compiled_artifact
 from ..optimization.neighbor import load_neighbor_structure, raw_neighbor_value
@@ -992,6 +996,25 @@ def execute_optimization_run(
             "Optimization run solved; task-tile publication dispatched: %s",
             task_run_id,
         )
+    except NoFeasibleSolutionError as error:
+        logger.info("Task run completed without a feasible solution: %s", task_run_id)
+        for artifact_type in active_artifacts:
+            update_artifact(
+                task_run_id,
+                artifact_type,
+                status="failed",
+                failure_code="no_feasible_solution",
+                failure_message=str(error),
+            )
+        update_run(
+            task_run_id,
+            status="completed",
+            stage="solving",
+            solver_status=error.result.status,
+            runtime_seconds=error.result.runtime_seconds,
+            failure_code=None,
+            failure_message=None,
+        )
     except Exception as error:
         logger.error("Task run failed: %s", error)
         for artifact_type in active_artifacts:
@@ -1311,6 +1334,25 @@ def execute_priority_ranking_run(
         logger.info(
             "Priority ranking run solved; task-tile publication dispatched: %s",
             task_run_id,
+        )
+    except NoFeasibleSolutionError as error:
+        logger.info("Task run completed without a feasible solution: %s", task_run_id)
+        for artifact_type in active_artifacts:
+            update_artifact(
+                task_run_id,
+                artifact_type,
+                status="failed",
+                failure_code="no_feasible_solution",
+                failure_message=str(error),
+            )
+        update_run(
+            task_run_id,
+            status="completed",
+            stage="solving",
+            solver_status=error.result.status,
+            runtime_seconds=error.result.runtime_seconds,
+            failure_code=None,
+            failure_message=None,
         )
     except Exception as error:
         logger.error("Priority ranking run failed: %s", error)

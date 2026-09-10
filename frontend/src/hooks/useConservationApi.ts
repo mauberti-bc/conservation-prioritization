@@ -1,5 +1,6 @@
-import { useLayersApi } from './api/useLayerApi';
 import { useDashboardApi } from './api/useDashboardApi';
+import { useLayersApi } from './api/useLayerApi';
+import { useMarkdownApi } from './api/useMarkdownApi';
 import { useProfileApi } from './api/useProfileApi';
 import { useProjectApi } from './api/useProjectApi';
 import { useTaskApi } from './api/useTaskApi';
@@ -23,6 +24,7 @@ export const useConservationApi = () => {
   const project = useProjectApi(apiAxios);
 
   const layer = useLayersApi(apiAxios);
+  const markdown = useMarkdownApi(apiAxios);
   const dashboard = useDashboardApi(apiAxios);
 
   return {
@@ -30,6 +32,7 @@ export const useConservationApi = () => {
     profile,
     project,
     layer,
+    markdown,
     dashboard,
   };
 };

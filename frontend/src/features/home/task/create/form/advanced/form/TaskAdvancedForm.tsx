@@ -97,7 +97,7 @@ export const TaskAdvancedForm = ({ isReadOnly = false }: TaskAdvancedFormProps) 
       <TaskAdvancedInputRow
         label="Neighbor preference"
         tooltip="Softly rewards rook-adjacent planning units receiving allocation together. Strength is a normalized relative preference comparable to objective importance; it encourages coherent patches but does not require connectivity.">
-        <Stack direction="row" gap={2} alignItems="center">
+        <Stack direction="row" gap={2} alignItems="center" sx={{ width: 250 }}>
           <FormControlLabel
             control={
               <Switch
@@ -106,6 +106,7 @@ export const TaskAdvancedForm = ({ isReadOnly = false }: TaskAdvancedFormProps) 
               />
             }
             label="Enable"
+            sx={{ m: 0 }}
           />
           <TextField
             name="neighborPenaltyStrength"
@@ -115,7 +116,7 @@ export const TaskAdvancedForm = ({ isReadOnly = false }: TaskAdvancedFormProps) 
             disabled={!values.neighborPenaltyEnabled}
             onChange={(event) => setFieldValue('neighborPenaltyStrength', Number(event.target.value))}
             slotProps={{ htmlInput: { min: 0, step: 0.1 } }}
-            sx={{ width: 140 }}
+            sx={{ width: 120 }}
           />
         </Stack>
       </TaskAdvancedInputRow>
