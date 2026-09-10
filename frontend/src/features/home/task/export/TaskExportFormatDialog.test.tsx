@@ -53,6 +53,46 @@ describe('TaskExportFormatDialog', () => {
     expect(onDownload).toHaveBeenCalledWith('geotiff');
   });
 
+  it('only shows loading for the active export format', () => {
+    render(
+      <TaskExportFormatDialog
+        open
+        exports={[]}
+        loadingFormat="geotiff"
+        error={null}
+        onClose={vi.fn()}
+        onDownload={vi.fn()}
+        onExport={vi.fn()}
+      />
+    );
+
+    const exportButtons = screen.getAllByRole('button', { name: 'Export' });
+
+    expect(exportButtons[0].hasAttribute('disabled')).to.equal(true);
+    expect(exportButtons[1].hasAttribute('disabled')).to.equal(false);
+  });
+
+  it('shows loading for preparing exports without rendering Preparing text', () => {
+    render(
+      <TaskExportFormatDialog
+        open
+        exports={[buildExport({ format: 'geodatabase', status: 'running' })]}
+        loadingFormat={null}
+        error={null}
+        onClose={vi.fn()}
+        onDownload={vi.fn()}
+        onExport={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText('Preparing')).toBeNull();
+
+    const exportButtons = screen.getAllByRole('button', { name: 'Export' });
+
+    expect(exportButtons[0].hasAttribute('disabled')).to.equal(false);
+    expect(exportButtons[1].hasAttribute('disabled')).to.equal(true);
+  });
+
   it('displays export creation errors', () => {
     render(
       <TaskExportFormatDialog

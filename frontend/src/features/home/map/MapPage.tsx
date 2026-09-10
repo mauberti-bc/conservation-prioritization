@@ -77,9 +77,11 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
   const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
   const refreshTasksRef = useRef(tasksDataLoader.refresh);
   const refreshTaskRef = useRef(taskDataLoader.refresh);
+  const getTaskExportsRef = useRef(conservationApi.task.getTaskExports);
   const clearTaskRef = useRef(taskDataLoader.clearData);
   const setTaskDataRef = useRef(taskDataLoader.setData);
   const lastRequestedTaskIdRef = useRef<string | null>(null);
+  const refreshedTaskRevisionsRef = useRef('');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(DEFAULT_PAGE);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -102,9 +104,70 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
   }, [currentPage, pageSize, searchTerm]);
   refreshTasksRef.current = tasksDataLoader.refresh;
   refreshTaskRef.current = taskDataLoader.refresh;
+  getTaskExportsRef.current = conservationApi.task.getTaskExports;
   clearTaskRef.current = taskDataLoader.clearData;
   setTaskDataRef.current = taskDataLoader.setData;
   const hasLoadedActiveTask = taskDataLoader.hasLoaded;
+  const visibleTaskRevisions = (tasksDataLoader.data?.tasks ?? [])
+    .map((task) => `${task.task_id}:${taskRevisions[task.task_id] ?? 0}`)
+    .join(',');
+  const exportRunId = exportTask?.latest_run?.task_run_id;
+
+  useEffect(() => {
+    if (
+      !visibleTaskRevisions ||
+      tasksDataLoader.isLoading ||
+      refreshedTaskRevisionsRef.current === visibleTaskRevisions
+    ) {
+      return;
+    }
+
+    refreshedTaskRevisionsRef.current = visibleTaskRevisions;
+    void refreshTasksRef.current(taskPaginationOptions);
+  }, [visibleTaskRevisions, taskPaginationOptions, tasksDataLoader.isLoading]);
+
+  useEffect(() => {
+    const pagination = tasksDataLoader.data?.pagination;
+    if (pagination && pagination.current_page === currentPage && currentPage > pagination.last_page) {
+      setCurrentPage(Math.max(DEFAULT_PAGE, pagination.last_page));
+    }
+  }, [currentPage, tasksDataLoader.data?.pagination]);
+
+  useEffect(() => {
+    if (!exportRunId || exportLoadingFormat) {
+      return;
+    }
+
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    /** Refreshes the selected run's exports without overlapping requests or updating a closed dialog. */
+    const refreshExports = async (): Promise<void> => {
+      try {
+        const exports = await getTaskExportsRef.current(exportRunId);
+        if (!cancelled) {
+          setExportTask((task) => {
+            if (!task?.latest_run || task.latest_run.task_run_id !== exportRunId) {
+              return task;
+            }
+            return { ...task, latest_run: { ...task.latest_run, exports } };
+          });
+        }
+      } catch (error) {
+        console.error('Failed to refresh task exports', error);
+      } finally {
+        if (!cancelled) {
+          timeoutId = setTimeout(refreshExports, 2000);
+        }
+      }
+    };
+
+    void refreshExports();
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [exportRunId, exportLoadingFormat]);
 
   useEffect(() => {
     void refreshTasksRef.current(taskPaginationOptions);
@@ -490,7 +553,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
             sx={{
               position: 'absolute',
               top: 16,
-              left: { xs: '50%', md: SIDEBAR_STATUS_CHIP_LEFT },
+              left: SIDEBAR_STATUS_CHIP_LEFT,
               transform: 'translateX(-50%)',
               zIndex: 10,
             }}>
@@ -581,17 +644,17 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
                     />
                   ))}
                 </List>
-                {taskPagination ? (
-                  <CustomPagination
-                    currentPage={taskPagination.current_page}
-                    pageSize={taskPagination.per_page ?? pageSize}
-                    totalCount={taskPagination.total}
-                    lastPage={taskPagination.last_page}
-                    onPageChange={handlePageChange}
-                    onPageSizeChange={handlePageSizeChange}
-                  />
-                ) : null}
               </LoadingGuard>
+              {taskPagination ? (
+                <CustomPagination
+                  currentPage={taskPagination.current_page}
+                  pageSize={taskPagination.per_page ?? pageSize}
+                  totalCount={taskPagination.total}
+                  lastPage={taskPagination.last_page}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                />
+              ) : null}
             </SidebarSection>
           )}
         </Box>

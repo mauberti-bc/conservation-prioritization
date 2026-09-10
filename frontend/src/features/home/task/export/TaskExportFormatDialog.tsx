@@ -71,8 +71,7 @@ export const TaskExportFormatDialog = ({
                   <Typography fontWeight={700}>{option.label}</Typography>
                   <Button
                     variant={isReady ? 'outlined' : 'contained'}
-                    loading={loadingFormat === option.format}
-                    disabled={isLoading || isPreparing}
+                    loading={loadingFormat === option.format || isPreparing}
                     onClick={() => {
                       if (isReady) {
                         onDownload(option.format);
@@ -81,7 +80,7 @@ export const TaskExportFormatDialog = ({
 
                       onExport(option.format);
                     }}>
-                    {isReady ? 'Download' : isPreparing ? 'Preparing' : 'Export'}
+                    {isReady ? 'Download' : 'Export'}
                   </Button>
                 </Box>
               );
