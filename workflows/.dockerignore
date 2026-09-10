@@ -93,6 +93,7 @@ temp/
 !src/
 !uv.lock
 !pyproject.toml
+!README.md
 !requirements.txt
 !flows/
 !deployments/

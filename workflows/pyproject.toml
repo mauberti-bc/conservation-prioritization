@@ -8,14 +8,9 @@ dependencies = [
     "boto3>=1.36.0",
     "bokeh>=3.8.2",
     "dask>=2025.5.1",
-    "debugpy>=1.8.14",
     "fiona>=1.10.1",
     "geopandas>=1.1.1",
     "highspy>=1.11.0",
-    "ipykernel>=6.29.5",
-    "jupyter>=1.1.1",
-    "jupyter-contrib-nbextensions>=0.7.0",
-    "jupyterlab-rise>=0.43.1",
     "matplotlib>=3.10.3",
     "morecantile>=6.2.0",
     "pip>=25.1.1",
@@ -30,8 +25,6 @@ dependencies = [
     "rio-tiler>=7.8.1",
     "rioxarray>=0.19.0",
     "requests>=2.32.3",
-    "rise>=5.7.1",
-    "ruff>=0.12.11",
     "s3fs>=2025.7.0",
     "scikit-learn>=1.7.0",
     "scipy>=1.16.0",
@@ -68,6 +61,13 @@ build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 dev = [
+    "debugpy>=1.8.14",
+    "ipykernel>=6.29.5",
+    "jupyter>=1.1.1",
+    "jupyter-contrib-nbextensions>=0.7.0",
+    "jupyterlab-rise>=0.43.1",
+    "rise>=5.7.1",
+    "ruff>=0.12.11",
     "black>=25.1.0",
     "isort>=6.0.1",
 ]

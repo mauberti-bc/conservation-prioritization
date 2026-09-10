@@ -1,6 +1,6 @@
 # Dockerfile.worker
 # Base image with Python and GDAL
-FROM ghcr.io/osgeo/gdal:ubuntu-small-3.10.0
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.10.0 AS build
 
 # Copy uv package manager
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -36,12 +36,28 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-install-project
 
-# Copy source code (now the project exists)
-COPY . ./
+# Copy only the runtime project files.
+COPY src ./src
+COPY README.md prefect.yaml ./
 
 # Install the project into the venv (and any editable/build steps)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev
+    uv sync --locked --no-dev --no-editable
+
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.10.0 AS runtime
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /home/app
+COPY --from=build /home/app/.venv /home/app/.venv
+COPY --from=build /home/app/src /home/app/src
+COPY prefect.yaml ./
+
+ENV PYTHONPATH="/home/app"
+RUN mkdir -p /tmp/.prefect /tmp/.config/matplotlib \
+    && chmod 777 /home/app /tmp/.prefect /tmp/.config/matplotlib
 
 # Add virtualenv to PATH (should be last)
 ENV PATH="/home/app/.venv/bin:$PATH"
