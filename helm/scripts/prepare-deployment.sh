@@ -28,6 +28,7 @@ fi
 umask 077
 registry_config="$(mktemp)"
 trap 'rm -f "$registry_config"' EXIT
+printf '{"auths":{}}\n' > "$registry_config"
 oc registry login --registry="${repository%%/*}" --to="$registry_config" >/dev/null
 images=(frontend api database db-setup prefect-worker prefect-deploy)
 for image in "${images[@]}"; do

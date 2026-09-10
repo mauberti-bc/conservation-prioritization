@@ -40,7 +40,10 @@ elif command == "oc" and args[:2] == ["get", "--raw=/readyz"]:
     print("ok")
 elif command == "oc" and args[:2] == ["registry", "login"]:
     config = next(arg.split("=", 1)[1] for arg in args if arg.startswith("--to="))
-    Path(config).write_text("test-only credentials")
+    # Match oc: an existing --to file must contain valid registry configuration.
+    credentials = json.loads(Path(config).read_text())
+    assert credentials == {"auths": {}}
+    Path(config).write_text(json.dumps({"auths": {"registry.example": {"auth": "test-only"}}}))
 elif command == "oc" and args[:2] == ["image", "info"]:
     if args[2] == state.get("missing_image"):
         print("manifest unknown", file=sys.stderr)
