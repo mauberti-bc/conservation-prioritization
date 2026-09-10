@@ -46,15 +46,56 @@ describe('task export path handlers', () => {
     const createQueuedExportStub = sinon
       .stub(TaskExportService.prototype, 'createQueuedExport')
       .resolves(buildTaskExport());
+    const dispatchStub = sinon.stub(TaskExportService.prototype, 'dispatchQueuedExport').callsFake(async () => {
+      expect(connection.commit).to.have.been.calledOnce;
+      expect(connection.release).to.have.been.calledOnce;
+      expect(connection.open).to.have.been.calledTwice;
+      return buildTaskExport();
+    });
     const { mockReq, mockRes } = getRequestHandlerMocks();
     mockReq.params = { runId: TASK_RUN_ID };
     mockReq.body = { format: 'geotiff' };
 
     await createTaskExport()(mockReq, mockRes, sinon.fake());
 
-    expect(connection.commit).to.have.been.calledOnce;
+    expect(connection.commit).to.have.been.calledTwice;
     expect(createQueuedExportStub).to.have.been.calledOnceWith(TASK_RUN_ID, 'geotiff');
+    expect(dispatchStub).to.have.been.calledOnceWith(EXPORT_ID);
     expect(mockRes.status).to.have.been.calledOnceWith(201);
+  });
+
+  it('commits the dispatch failure instead of rolling back the queued export', async () => {
+    const connection = registerUserConnection();
+    sinon.stub(TaskExportService.prototype, 'createQueuedExport').resolves(buildTaskExport());
+    sinon.stub(TaskExportService.prototype, 'dispatchQueuedExport').rejects(new Error('Prefect unavailable'));
+    const { mockReq, mockRes } = getRequestHandlerMocks();
+    mockReq.params = { runId: TASK_RUN_ID };
+
+    try {
+      await createTaskExport()(mockReq, mockRes, sinon.fake());
+      expect.fail('Expected dispatch failure');
+    } catch (error) {
+      expect((error as Error).message).to.equal('Prefect unavailable');
+      expect(connection.commit).to.have.been.calledTwice;
+      expect(connection.release).to.have.been.calledTwice;
+    }
+  });
+
+  it('does not dispatch when the queued export cannot be committed', async () => {
+    const connection = registerUserConnection();
+    (connection.commit as sinon.SinonStub).rejects(new Error('Commit failed'));
+    sinon.stub(TaskExportService.prototype, 'createQueuedExport').resolves(buildTaskExport());
+    const dispatch = sinon.stub(TaskExportService.prototype, 'dispatchQueuedExport');
+    const { mockReq, mockRes } = getRequestHandlerMocks();
+    mockReq.params = { runId: TASK_RUN_ID };
+
+    try {
+      await createTaskExport()(mockReq, mockRes, sinon.fake());
+      expect.fail('Expected commit failure');
+    } catch (error) {
+      expect((error as Error).message).to.equal('Commit failed');
+      expect(dispatch).not.to.have.been.called;
+    }
   });
 
   it('returns one export only through the run-scoped service method', async () => {

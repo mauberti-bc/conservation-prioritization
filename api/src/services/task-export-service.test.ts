@@ -39,10 +39,22 @@ describe('TaskExportService', () => {
     sinon.restore();
   });
 
-  it('creates a queued GeoTIFF export and dispatches Prefect', async () => {
+  it('creates a queued GeoTIFF export without dispatching before commit', async () => {
     sinon.stub(TaskRunRepository.prototype, 'getTaskRunById').resolves(buildTaskRun());
     sinon.stub(ArtifactRepository.prototype, 'getArtifactByRunAndType').resolves(buildArtifact());
     sinon.stub(TaskExportRepository.prototype, 'createTaskExport').resolves(buildTaskExport());
+    sinon.stub(TaskExportFileRepository.prototype, 'getTaskExportFilesByExportId').resolves([]);
+    const submitTaskExportStub = sinon.stub(PrefectService.prototype, 'submitTaskExport');
+
+    const taskExport = await new TaskExportService(getMockDBConnection()).createQueuedExport(TASK_RUN_ID);
+
+    expect(taskExport.task_export_id).to.equal(EXPORT_ID);
+    expect(taskExport.files).to.deep.equal([]);
+    expect(submitTaskExportStub).not.to.have.been.called;
+  });
+
+  it('dispatches a persisted queued export', async () => {
+    sinon.stub(TaskExportRepository.prototype, 'getTaskExportForUpdate').resolves(buildTaskExport());
     sinon.stub(TaskExportFileRepository.prototype, 'getTaskExportFilesByExportId').resolves([]);
     const updateTaskExportStub = sinon
       .stub(TaskExportRepository.prototype, 'updateTaskExport')
@@ -52,7 +64,7 @@ describe('TaskExportService', () => {
       flowRunId: '00000000-0000-4000-8000-000000000006'
     });
 
-    const taskExport = await new TaskExportService(getMockDBConnection()).createQueuedExport(TASK_RUN_ID);
+    const taskExport = await new TaskExportService(getMockDBConnection()).dispatchQueuedExport(EXPORT_ID);
 
     expect(taskExport.task_export_id).to.equal(EXPORT_ID);
     expect(taskExport.files).to.deep.equal([]);
@@ -61,6 +73,36 @@ describe('TaskExportService', () => {
       prefect_flow_run_id: '00000000-0000-4000-8000-000000000006',
       prefect_deployment_id: '00000000-0000-4000-8000-000000000007'
     });
+  });
+
+  it('records dispatch failure on the durable export', async () => {
+    sinon.stub(TaskExportRepository.prototype, 'getTaskExportForUpdate').resolves(buildTaskExport());
+    sinon.stub(PrefectService.prototype, 'submitTaskExport').rejects(new Error('Prefect unavailable'));
+    const update = sinon.stub(TaskExportRepository.prototype, 'updateTaskExport').resolves(buildTaskExport());
+
+    try {
+      await new TaskExportService(getMockDBConnection()).dispatchQueuedExport(EXPORT_ID);
+      expect.fail('Expected dispatch to fail');
+    } catch (error) {
+      expect((error as Error).message).to.equal('Prefect unavailable');
+      expect(update).to.have.been.calledOnceWith(EXPORT_ID, {
+        status: 'failed',
+        failure_code: 'dispatch_failed',
+        failure_message: 'Prefect unavailable'
+      });
+    }
+  });
+
+  it('does not redispatch an export already running', async () => {
+    sinon
+      .stub(TaskExportRepository.prototype, 'getTaskExportForUpdate')
+      .resolves(buildTaskExport({ status: 'running' }));
+    sinon.stub(TaskExportFileRepository.prototype, 'getTaskExportFilesByExportId').resolves([]);
+    const submit = sinon.stub(PrefectService.prototype, 'submitTaskExport');
+
+    await new TaskExportService(getMockDBConnection()).dispatchQueuedExport(EXPORT_ID);
+
+    expect(submit).not.to.have.been.called;
   });
 
   it('rejects geodatabase exports until an ESRI worker is implemented', async () => {

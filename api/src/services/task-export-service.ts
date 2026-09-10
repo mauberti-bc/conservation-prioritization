@@ -40,10 +40,12 @@ export class TaskExportService extends DBService {
   }
 
   /**
-   * Creates a queued export and dispatches the matching Prefect flow.
+   * Creates a queued export to be committed before dispatching its Prefect flow.
    *
    * @param {string} taskRunId Immutable parent task run ID.
-   * @returns {Promise<TaskExportWithFiles>}
+   * @param {TaskExportFormat} format Requested output format.
+   * @returns {Promise<TaskExportWithFiles>} Queued export awaiting commit and dispatch.
+   * @throws {HTTP400} When the format is unsupported or the run has no completed canonical result.
    */
   async createQueuedExport(taskRunId: string, format: TaskExportFormat = 'geotiff'): Promise<TaskExportWithFiles> {
     if (format === 'geodatabase') {
@@ -65,16 +67,29 @@ export class TaskExportService extends DBService {
       specification: this.buildExportSpecification(run.task_type, sourceArtifact, format)
     });
 
+    return this.withFiles(taskExport);
+  }
+
+  /**
+   * Dispatches a previously committed queued export using its stable Prefect idempotency key.
+   *
+   * @param {string} taskExportId Persisted export ID to dispatch.
+   * @returns {Promise<TaskExportWithFiles>} Export with dispatch metadata, or its existing execution state.
+   * @throws {Error} When dispatch fails; the caller must commit the recorded failure before propagating it.
+   */
+  async dispatchQueuedExport(taskExportId: string): Promise<TaskExportWithFiles> {
+    const taskExport = await this.taskExportRepository.getTaskExportForUpdate(taskExportId);
+    if (taskExport.prefect_flow_run_id || taskExport.status !== 'queued') {
+      return this.withFiles(taskExport);
+    }
+
+    let deploymentId: string;
+    let flowRunId: string;
     try {
-      const { deploymentId, flowRunId } = await new PrefectService().submitTaskExport(
+      ({ deploymentId, flowRunId } = await new PrefectService().submitTaskExport(
         taskExport.task_export_id,
         taskExport.attempt
-      );
-      const updated = await this.taskExportRepository.updateTaskExport(taskExport.task_export_id, {
-        prefect_flow_run_id: flowRunId,
-        prefect_deployment_id: deploymentId
-      });
-      return this.withFiles(updated);
+      ));
     } catch (error) {
       await this.taskExportRepository.updateTaskExport(taskExport.task_export_id, {
         status: 'failed',
@@ -83,6 +98,12 @@ export class TaskExportService extends DBService {
       });
       throw error;
     }
+
+    const updated = await this.taskExportRepository.updateTaskExport(taskExport.task_export_id, {
+      prefect_flow_run_id: flowRunId,
+      prefect_deployment_id: deploymentId
+    });
+    return this.withFiles(updated);
   }
 
   /**

@@ -79,9 +79,22 @@ export function createTaskExport(): RequestHandler {
     try {
       await connection.open();
       const format = TaskExportFormat.optional().parse(req.body?.format) ?? 'geotiff';
-      const taskExport = await new TaskExportService(connection).createQueuedExport(req.params.runId, format);
+      const service = new TaskExportService(connection);
+      const taskExport = await service.createQueuedExport(req.params.runId, format);
       await connection.commit();
-      return res.status(201).json(taskExport);
+      connection.release();
+
+      await connection.open();
+      let dispatchedExport;
+      try {
+        dispatchedExport = await service.dispatchQueuedExport(taskExport.task_export_id);
+      } catch (error) {
+        // Preserve a dispatch failure so it remains visible and can be retried as a new export.
+        await connection.commit();
+        throw error;
+      }
+      await connection.commit();
+      return res.status(201).json(dispatchedExport);
     } catch (error) {
       await connection.rollback();
       throw error;
