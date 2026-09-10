@@ -62,7 +62,7 @@ export default {
       directory: './migrations'
     },
     seeds: {
-      directory: ['./seeds', 'procedures']
+      directory: ['procedures']
     }
   }
 };

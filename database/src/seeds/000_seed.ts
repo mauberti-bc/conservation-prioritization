@@ -15,6 +15,15 @@ const C = SEED_CONSTANTS;
  * Demo data seed for non-production environments.
  * ========================================================================== */
 
+/**
+ * Seeds demo conservation data into an empty domain or an explicitly requested demo reset.
+ *
+ * Human profiles are created by authenticated self-registration rather than seeded administrator accounts.
+ *
+ * @param {Knex} knex The database connection used to create demo records.
+ * @returns {Promise<void>} Resolves after demo seeding completes or existing domain data is preserved.
+ * @throws {Error} Rejects if the API profile is missing or a database operation fails.
+ */
 export async function seed(knex: Knex): Promise<void> {
   await knex.raw(`
     SET SCHEMA '${DB_SCHEMA}';
@@ -60,41 +69,6 @@ export async function seed(knex: Knex): Promise<void> {
     .select('role_id')
     .where({ name: 'admin', scope: 'task', record_end_date: null })
     .first();
-
-  /* ==========================================================================
-   * PROFILES (from SEED_CONSTANTS)
-   * ========================================================================== */
-
-  for (const profile of C.PROFILES) {
-    const resolvedRole = await knex('role')
-      .select('role_id')
-      .where({ name: profile.system_role ?? 'member', scope: 'profile', record_end_date: null })
-      .first();
-
-    await knex('profile')
-      .insert({
-        profile_guid: profile.profile_guid,
-        profile_identifier: profile.profile_identifier,
-        identity_source: profile.identity_source,
-        role_id: resolvedRole?.role_id || null,
-        display_name: profile.display_name,
-        email: profile.email,
-        given_name: profile.given_name,
-        family_name: profile.family_name,
-        agency: profile.agency,
-        notes: profile.notes
-      })
-      .onConflict('profile_guid')
-      .merge({
-        role_id: resolvedRole?.role_id || null,
-        display_name: profile.display_name,
-        email: profile.email,
-        given_name: profile.given_name,
-        family_name: profile.family_name,
-        agency: profile.agency,
-        notes: profile.notes
-      });
-  }
 
   // Database setup runs during normal deployments. Seed fixtures only into an
   // empty domain unless an explicit destructive demo reset was requested.

@@ -1,5 +1,3 @@
-import { SYSTEM_ROLE } from './profile';
-
 export const SEED_CONSTANTS = {
   TABLES_TO_CLEAR: [
     'audit_log',
@@ -14,20 +12,6 @@ export const SEED_CONSTANTS = {
     'project_profile',
     'project_permission',
     'project'
-  ],
-  PROFILES: [
-    {
-      profile_guid: '62ec624e50844486a046dc9709854f8d@azureidir',
-      profile_identifier: 'MAUBERTI',
-      identity_source: 'azureidir',
-      display_name: 'mauberti',
-      email: null,
-      given_name: null,
-      family_name: null,
-      agency: null,
-      notes: null,
-      system_role: SYSTEM_ROLE.ADMIN
-    }
   ],
   PROJECTS: [
     {
