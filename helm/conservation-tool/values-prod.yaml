@@ -2,8 +2,8 @@ environment:
   id: "prod"
   name: "prod"
 
-# Memory limits: 1536Mi for running services + 512Mi for deployment hooks = 2Gi.
-# Prefect receives 1088Mi of the running-service budget (704Mi worker + 384Mi server).
+# Memory requests: 1536Mi for running services + 512Mi for deployment hooks = 2Gi.
+# The worker requests 576Mi and can use up to 704Mi; Postgres requests and limits 256Mi.
 prefect-server:
   ingress:
     host:
@@ -95,7 +95,7 @@ services:
           resources:
             requests:
               cpu: 100m
-              memory: 704Mi
+              memory: 576Mi
             limits:
               cpu: "2"
               memory: 704Mi
@@ -110,9 +110,9 @@ services:
   api:
     resources:
       requests:
-        memory: 128Mi
+        memory: 256Mi
       limits:
-        memory: 128Mi
+        memory: 256Mi
     image:
       tag: "prod"
     route:
@@ -151,6 +151,6 @@ backgroundServices:
         - ALL
 
 env:
-  NODE_OPTIONS: "--max-old-space-size=64"
+  NODE_OPTIONS: "--max-old-space-size=160"
   NODE_ENV: "production"
   FRONTEND_API_HOST: "https://conservation-tool-api-fa9440-prod.apps.gold.devops.gov.bc.ca"
