@@ -80,7 +80,13 @@ export const TaskGeometryForm = ({ geometry, onDelete, isReadOnly = false }: Tas
               <IconMenuButton
                 items={[
                   { label: 'Edit', icon: mdiPencilOutline, onClick: () => handleEditClick(g) },
-                  { label: 'Delete', icon: mdiDeleteOutline, onClick: () => onDelete(g.id) },
+                  {
+                    label: 'Delete',
+                    icon: mdiDeleteOutline,
+                    color: 'error',
+                    dividerBefore: true,
+                    onClick: () => onDelete(g.id),
+                  },
                 ]}
               />
             )}

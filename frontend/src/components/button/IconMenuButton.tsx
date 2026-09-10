@@ -1,11 +1,15 @@
 import { mdiDotsVertical } from '@mdi/js';
 import Icon from '@mdi/react';
-import { Box, IconButton, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material';
-import { useState } from 'react';
+import { Box, Divider, IconButton, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material';
+import { Fragment, useState } from 'react';
+
+type IconMenuItemColor = 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
 export interface IconMenuItem {
   label: string;
   icon: string;
+  color?: IconMenuItemColor;
+  dividerBefore?: boolean;
   onClick: () => void;
 }
 
@@ -83,25 +87,27 @@ export const IconMenuButton = ({ items, inlineTrigger = false }: IconMenuButtonP
 
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
         {items.map((item, i) => (
-          <MenuItem
-            key={i}
-            sx={{
-              color: 'text.primary',
-              '& .MuiListItemIcon-root': {
-                color: 'inherit',
-              },
-              '& .MuiListItemText-primary': {
-                color: 'inherit',
-              },
-            }}
-            onClick={(event) => {
-              handleItemClick(event, item.onClick);
-            }}>
-            <ListItemIcon>
-              <Icon path={item.icon} size={0.9} color="currentColor" />
-            </ListItemIcon>
-            <ListItemText>{item.label}</ListItemText>
-          </MenuItem>
+          <Fragment key={i}>
+            {item.dividerBefore && <Divider />}
+            <MenuItem
+              sx={{
+                color: item.color ? `${item.color}.main` : 'text.primary',
+                '& .MuiListItemIcon-root': {
+                  color: 'inherit',
+                },
+                '& .MuiListItemText-primary': {
+                  color: 'inherit',
+                },
+              }}
+              onClick={(event) => {
+                handleItemClick(event, item.onClick);
+              }}>
+              <ListItemIcon>
+                <Icon path={item.icon} size={0.9} color="currentColor" />
+              </ListItemIcon>
+              <ListItemText>{item.label}</ListItemText>
+            </MenuItem>
+          </Fragment>
         ))}
       </Menu>
     </>

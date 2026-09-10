@@ -9,13 +9,12 @@ describe('TaskViewPanelHeader', () => {
     cleanup();
   });
 
-  it('calls the download handler from the header icon button', () => {
+  it('calls the download handler from the header export button', () => {
     const onDownload = vi.fn();
 
     render(
       <TaskViewPanelHeader
         title="Task"
-        isExportReady
         onClose={vi.fn()}
         onEdit={vi.fn()}
         onShare={vi.fn()}
@@ -24,7 +23,7 @@ describe('TaskViewPanelHeader', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Download task export' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
 
     expect(onDownload).toHaveBeenCalledOnce();
   });

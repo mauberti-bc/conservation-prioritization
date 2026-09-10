@@ -24,6 +24,8 @@ export const TaskViewPanelActionsMenu = ({ onEdit, onShare, onDelete }: TaskView
         {
           label: 'Delete',
           icon: mdiDeleteOutline,
+          color: 'error',
+          dividerBefore: true,
           onClick: onDelete,
         },
       ]}

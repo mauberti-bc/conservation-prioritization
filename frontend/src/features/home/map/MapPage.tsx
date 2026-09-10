@@ -10,6 +10,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
 import { IconMenuButton } from 'components/button/IconMenuButton';
+import { TaskStatusChip } from 'components/chip/TaskStatusChip';
 import { InteractiveListItemButton } from 'components/list/InteractiveListItemButton';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { SkeletonList } from 'components/loading/SkeletonLoaders';
@@ -24,7 +25,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiPaginationRequestOptions } from 'types/pagination';
 import { getLatestTaskExport, getTaskExportAction, triggerBrowserDownload } from 'utils/task-export';
-import { getTaskStatusLabel } from 'utils/task-status';
 import { FloatingSidebarContainer } from '../sidebar/FloatingSidebarContainer';
 import { SIDEBAR_FLOAT_MARGIN_PX, SIDEBAR_FLOAT_WIDTH_PX } from '../sidebar/sidebar-layout.constants';
 import { SidebarSection } from '../sidebar/SidebarSection';
@@ -657,7 +657,7 @@ const MapTaskListItem = ({
           secondary={task.description ?? undefined}
         />
         {task.status !== TASK_STATUS.DRAFT ? (
-          <Chip size="small" label={getTaskStatusLabel(task.status)} sx={{ ml: 2, flex: '0 0 auto' }} />
+          <TaskStatusChip status={task.status} sx={{ ml: 2, flex: '0 0 auto' }} />
         ) : null}
         <Box
           sx={{ ml: 1, flex: '0 0 auto', display: 'flex', alignItems: 'center' }}
@@ -674,13 +674,6 @@ const MapTaskListItem = ({
                 },
               },
               {
-                label: 'Delete',
-                icon: mdiDeleteOutline,
-                onClick: () => {
-                  onDeleteTask(task);
-                },
-              },
-              {
                 label: 'Share',
                 icon: mdiAccountPlusOutline,
                 onClick: () => {
@@ -692,6 +685,15 @@ const MapTaskListItem = ({
                 icon: mdiPencilOutline,
                 onClick: () => {
                   onEditTask(task);
+                },
+              },
+              {
+                label: 'Delete',
+                icon: mdiDeleteOutline,
+                color: 'error',
+                dividerBefore: true,
+                onClick: () => {
+                  onDeleteTask(task);
                 },
               },
             ]}

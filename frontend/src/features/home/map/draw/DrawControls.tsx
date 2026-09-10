@@ -118,18 +118,23 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
     mapRef.current.getCanvas().style.cursor = '';
   };
 
+  /**
+   * Removes draft geometry and exits drawing mode using the public Draw API.
+   *
+   * @returns {void}
+   */
   const clearDrawing = () => {
-    const draw = drawRef.current as MapboxDraw & { _ctx?: { store?: unknown } };
+    const draw = drawRef.current;
     if (!draw) {
-      return;
-    }
-
-    if (!draw._ctx?.store) {
       return;
     }
 
     try {
       draw.deleteAll();
+      draw.changeMode('simple_select');
+      if (mapRef.current) {
+        mapRef.current.getCanvas().style.cursor = '';
+      }
     } catch (error) {
       console.debug('Failed to clear drawing:', error);
     }

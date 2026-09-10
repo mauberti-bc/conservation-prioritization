@@ -11,7 +11,7 @@ import { mapTaskResponseToSubmitFormValues } from 'utils/task-mapping';
 import { TaskViewEditDialog } from '../dialog/TaskViewEditDialog';
 import { TaskViewInviteDialog } from '../dialog/TaskViewInviteDialog';
 import { TaskViewPanelHeader } from './TaskViewPanelHeader';
-import { TaskEditFormValues } from './task-view-panel.interface';
+import { TaskEditFormValues, TaskSolutionSummaryRow } from './task-view-panel.interface';
 
 /**
  * Read-only task sidebar content for viewing an existing task.
@@ -139,6 +139,43 @@ export const TaskViewPanel = () => {
     };
   }, [taskDataLoader.data?.latest_run]);
 
+  const solutionSummaryRows = useMemo<TaskSolutionSummaryRow[]>(() => {
+    if (!solutionSummary) {
+      return [];
+    }
+
+    const rows: TaskSolutionSummaryRow[] = [
+      { label: 'Solutions', value: solutionSummary.count },
+      { label: 'Method', value: solutionSummary.method },
+    ];
+
+    if (solutionSummary.objective !== null) {
+      rows.push({ label: 'Reference objective', value: solutionSummary.objective });
+    }
+
+    if (solutionSummary.resource !== null) {
+      rows.push({ label: 'Reference resource use', value: solutionSummary.resource });
+    }
+
+    if (solutionSummary.taskType === 'discrete_optimization' && solutionSummary.selectedCount !== null) {
+      rows.push({ label: 'Selected planning units', value: solutionSummary.selectedCount });
+    }
+
+    if (solutionSummary.taskType === 'continuous_optimization' && solutionSummary.allocationTotal !== null) {
+      rows.push({ label: 'Total allocation intensity', value: solutionSummary.allocationTotal });
+    }
+
+    if (solutionSummary.taskType === 'priority_ranking' && solutionSummary.priorityTotal !== null) {
+      rows.push({ label: 'Total nested priority score', value: solutionSummary.priorityTotal });
+    }
+
+    if (solutionSummary.gap !== null) {
+      rows.push({ label: 'Optimality gap', value: solutionSummary.gap });
+    }
+
+    return rows;
+  }, [solutionSummary]);
+
   /** Retries only the failed map-publication stage for the current run. */
   const handleRetryPublication = async () => {
     const runId = taskDataLoader.data?.latest_run?.task_run_id;
@@ -186,7 +223,7 @@ export const TaskViewPanel = () => {
               <Box sx={{ px: 3, pt: 3, pb: 2, flex: '0 0 auto' }}>
                 <TaskViewPanelHeader
                   title={taskDataLoader.data?.name ?? 'Task'}
-                  isExportReady={taskDataLoader.data?.latest_run?.exports?.[0]?.status === 'ready'}
+                  status={taskDataLoader.data?.status}
                   onClose={() => {
                     navigate('/map');
                   }}
@@ -210,31 +247,20 @@ export const TaskViewPanel = () => {
               {solutionSummary && (
                 <Box sx={{ mx: 3, mb: 2, p: 1.5, borderRadius: 1, bgcolor: 'action.hover', flex: '0 0 auto' }}>
                   <Typography variant="subtitle2">{solutionSummary.title}</Typography>
-                  <Typography variant="body2">Solutions: {solutionSummary.count}</Typography>
-                  <Typography variant="body2">Method: {solutionSummary.method}</Typography>
-                  {solutionSummary.objective !== null && (
-                    <Typography variant="body2">Reference objective: {solutionSummary.objective}</Typography>
-                  )}
-                  {solutionSummary.resource !== null && (
-                    <Typography variant="body2">Reference resource use: {solutionSummary.resource}</Typography>
-                  )}
-                  {solutionSummary.taskType === 'discrete_optimization' && solutionSummary.selectedCount !== null && (
-                    <Typography variant="body2">Selected planning units: {solutionSummary.selectedCount}</Typography>
-                  )}
-                  {solutionSummary.taskType === 'continuous_optimization' &&
-                    solutionSummary.allocationTotal !== null && (
-                      <Typography variant="body2">
-                        Total allocation intensity: {solutionSummary.allocationTotal}
-                      </Typography>
-                    )}
-                  {solutionSummary.taskType === 'priority_ranking' && solutionSummary.priorityTotal !== null && (
-                    <Typography variant="body2">
-                      Total nested priority score: {solutionSummary.priorityTotal}
-                    </Typography>
-                  )}
-                  {solutionSummary.gap !== null && (
-                    <Typography variant="body2">Optimality gap: {solutionSummary.gap}</Typography>
-                  )}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.75 }}>
+                    {solutionSummaryRows.map((row) => (
+                      <Box
+                        key={row.label}
+                        sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 2 }}>
+                        <Typography variant="body2" fontWeight={700}>
+                          {row.label}
+                        </Typography>
+                        <Typography variant="body2" textAlign="right">
+                          {row.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
                 </Box>
               )}
 

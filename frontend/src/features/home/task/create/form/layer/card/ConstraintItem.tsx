@@ -2,6 +2,7 @@ import { mdiDeleteOutline } from '@mdi/js';
 import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
+import { IconMenuItem } from 'components/button/IconMenuButton';
 import { TaskConstraintConfig } from '../optimization-form.interface';
 import { LayerCard } from './LayerCard';
 
@@ -14,10 +15,11 @@ interface Props {
 
 /** Edit one constraint as type and optional numeric bounds. */
 export const ConstraintItem = ({ constraint, onChange, onDelete, isReadOnly = false }: Props) => {
-  const menuItems = [
+  const menuItems: IconMenuItem[] = [
     {
       label: 'Delete',
       icon: mdiDeleteOutline,
+      color: 'error',
       onClick: () => {
         onDelete(constraint);
       },

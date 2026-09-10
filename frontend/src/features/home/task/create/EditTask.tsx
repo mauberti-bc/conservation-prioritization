@@ -72,6 +72,7 @@ export const EditTask = ({ taskId: taskIdProp }: EditTaskProps) => {
       const createdDraftTask = await conservationApi.task.createTask(draftTaskData);
       await conservationApi.task.submitTask(createdDraftTask.task_id, submitData);
 
+      drawControlsRef.current?.clearDrawing();
       dialogContext.setSnackbar({
         open: true,
         snackbarMessage: (

@@ -1,5 +1,6 @@
 import { mdiDeleteOutline } from '@mdi/js';
 import { Box, Slider, Typography } from '@mui/material';
+import { IconMenuItem } from 'components/button/IconMenuButton';
 import { useEffect, useState } from 'react';
 import { appTheme } from 'theme/AppTheme';
 import { TaskObjectiveConfig } from '../optimization-form.interface';
@@ -27,10 +28,11 @@ const getTrackColor = (value: number) => {
 /** Edit one objective as a simple signed influence slider. */
 export const ObjectiveItem = ({ objective, onChange, onDelete, isReadOnly = false }: Props) => {
   const [localImportance, setLocalImportance] = useState(getSignedImportance(objective));
-  const menuItems = [
+  const menuItems: IconMenuItem[] = [
     {
       label: 'Delete',
       icon: mdiDeleteOutline,
+      color: 'error',
       onClick: () => {
         onDelete(objective);
       },

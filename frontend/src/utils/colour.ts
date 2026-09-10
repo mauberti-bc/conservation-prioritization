@@ -1,3 +1,27 @@
+import { TASK_STATUS, TaskStatusValue } from 'constants/status';
+import { TaskViewStatusColor } from './colour.interface';
+
+/**
+ * Maps a task status to its task-view status color.
+ *
+ * @param {TaskStatusValue} status The task's current execution status.
+ * @returns {TaskViewStatusColor} The informational, success, or default color.
+ */
+export const getTaskViewStatusColor = (status: TaskStatusValue): TaskViewStatusColor => {
+  switch (status) {
+    case TASK_STATUS.RUNNING:
+    case TASK_STATUS.IN_PROGRESS: {
+      return 'info';
+    }
+    case TASK_STATUS.COMPLETED: {
+      return 'success';
+    }
+    default: {
+      return 'default';
+    }
+  }
+};
+
 /**
  * Converts a user-entered hex body (with or without leading #) to canonical API format.
  *

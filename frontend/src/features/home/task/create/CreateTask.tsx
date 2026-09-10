@@ -1,9 +1,10 @@
 import { mdiCheck, mdiClose } from '@mdi/js';
 import Icon from '@mdi/react';
-import { IconButton, Typography } from '@mui/material';
+import { IconButton } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
+import { CustomTextField } from 'components/input/CustomTextField';
 import { Formik } from 'formik';
 import { CreateDraftTaskRequest, GetTaskResponse, OPTIMIZATION_MODE } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
@@ -79,6 +80,7 @@ export const CreateTask = ({
       const createdDraftTask = await conservationApi.task.createTask(draftTaskData);
       const createdTask = await conservationApi.task.submitTask(createdDraftTask.task_id, submitData);
 
+      drawControlsRef.current?.clearDrawing();
       onSubmitSuccess?.(createdTask);
 
       // Success message
@@ -110,7 +112,7 @@ export const CreateTask = ({
       validateOnChange={false}
       validateOnMount={false}
       validateOnBlur={false}>
-      {({ handleSubmit }) => {
+      {({ errors, handleSubmit, setFieldTouched, setFieldValue, touched, values }) => {
         return (
           <Box
             component="form"
@@ -132,9 +134,20 @@ export const CreateTask = ({
                 pb: 2,
                 flex: '0 0 auto',
               }}>
-              <Typography variant="h2" component="h2">
-                New Task
-              </Typography>
+              <CustomTextField
+                label="Task name"
+                value={values.name}
+                onChange={(event) => {
+                  void setFieldValue('name', event.target.value);
+                }}
+                onBlur={() => {
+                  void setFieldTouched('name', true);
+                }}
+                error={touched.name && Boolean(errors.name)}
+                helperText={touched.name && errors.name ? String(errors.name) : ''}
+                sx={{ flex: 1, minWidth: 0 }}
+                width="100%"
+              />
               <IconButton
                 aria-label="Close new task"
                 onClick={() => {
