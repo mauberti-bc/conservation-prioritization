@@ -1,12 +1,12 @@
 import { expect } from 'chai';
 import { describe } from 'mocha';
 import sinon from 'sinon';
-import { getMockDBConnection } from '../__mocks__/db';
 import { Artifact } from '../models/artifact';
+import { Task } from '../models/task';
 import { TaskExport } from '../models/task-export';
 import { TaskExportFile } from '../models/task-export-file';
-import { Task } from '../models/task';
 import { TaskRun } from '../models/task-run';
+import { TaskRunArea } from '../models/task-run-area';
 import { TaskRunSolution } from '../models/task-run-solution';
 import { ArtifactRepository } from '../repositories/artifact-repository';
 import { DashboardTaskRepository } from '../repositories/dashboard-task-repository';
@@ -14,8 +14,10 @@ import { ProjectRepository } from '../repositories/project-repository';
 import { TaskExportFileRepository } from '../repositories/task-export-file-repository';
 import { TaskExportRepository } from '../repositories/task-export-repository';
 import { TaskRepository } from '../repositories/task-repository';
+import { TaskRunAreaRepository } from '../repositories/task-run-area-repository';
 import { TaskRunRepository } from '../repositories/task-run-repository';
 import { TaskRunSolutionRepository } from '../repositories/task-run-solution-repository';
+import { getMockDBConnection } from '../__mocks__/db';
 import { TaskService } from './task-service';
 
 const TASK_ID = '00000000-0000-4000-8000-000000000001';
@@ -24,6 +26,7 @@ const ARTIFACT_ID = '00000000-0000-4000-8000-000000000003';
 const EXPORT_ID = '00000000-0000-4000-8000-000000000004';
 const FILE_ID = '00000000-0000-4000-8000-000000000005';
 const SOLUTION_ID = '00000000-0000-4000-8000-000000000006';
+const AREA_ID = '00000000-0000-4000-8000-000000000007';
 
 describe('TaskService export hydration', () => {
   afterEach(() => {
@@ -36,6 +39,7 @@ describe('TaskService export hydration', () => {
     sinon.stub(DashboardTaskRepository.prototype, 'getLatestDashboardIdForTask').resolves(null);
     sinon.stub(TaskRunRepository.prototype, 'getLatestTaskRunByTaskId').resolves(buildTaskRun());
     sinon.stub(ArtifactRepository.prototype, 'getArtifactsByRunId').resolves([buildArtifact()]);
+    sinon.stub(TaskRunAreaRepository.prototype, 'getTaskRunAreasByRunIds').resolves([buildArea()]);
     sinon.stub(TaskRunSolutionRepository.prototype, 'getTaskRunSolutions').resolves([buildSolution()]);
     sinon.stub(TaskExportRepository.prototype, 'getTaskExportsByRunIds').resolves([buildTaskExport()]);
     sinon.stub(TaskExportFileRepository.prototype, 'getTaskExportFilesByExportIds').resolves([buildTaskExportFile()]);
@@ -45,6 +49,7 @@ describe('TaskService export hydration', () => {
     expect(task.latest_run?.exports).to.have.length(1);
     expect(task.latest_run?.exports[0].task_export_id).to.equal(EXPORT_ID);
     expect(task.latest_run?.exports[0].files).to.deep.equal([buildTaskExportFile()]);
+    expect(task.latest_run?.areas).to.deep.equal([buildArea()]);
   });
 
   it('includes latest run exports on paginated task list responses', async () => {
@@ -52,6 +57,7 @@ describe('TaskService export hydration', () => {
     sinon.stub(ProjectRepository.prototype, 'getProjectsByTaskIds').resolves([]);
     sinon.stub(TaskRunRepository.prototype, 'getLatestTaskRunByTaskId').resolves(buildTaskRun());
     sinon.stub(ArtifactRepository.prototype, 'getArtifactsByRunId').resolves([]);
+    sinon.stub(TaskRunAreaRepository.prototype, 'getTaskRunAreasByRunIds').resolves([buildArea()]);
     sinon.stub(TaskRunSolutionRepository.prototype, 'getTaskRunSolutions').resolves([]);
     const getTaskExportsByRunIdsStub = sinon
       .stub(TaskExportRepository.prototype, 'getTaskExportsByRunIds')
@@ -66,6 +72,7 @@ describe('TaskService export hydration', () => {
     });
 
     expect(response.tasks[0].latest_run?.exports[0].files).to.deep.equal([buildTaskExportFile()]);
+    expect(response.tasks[0].latest_run?.areas).to.deep.equal([buildArea()]);
     expect(getTaskExportsByRunIdsStub).to.have.been.calledOnceWith([TASK_RUN_ID]);
   });
 });
@@ -125,8 +132,6 @@ function buildTaskRun(overrides: Partial<TaskRun> = {}): TaskRun {
     completed_at: null,
     failed_at: null,
     cancelled_at: null,
-    created_at: '2026-01-01T00:00:00.000Z',
-    updated_at: null,
     ...overrides
   };
 }
@@ -149,8 +154,6 @@ function buildArtifact(overrides: Partial<Artifact> = {}): Artifact {
     started_at: null,
     completed_at: null,
     failed_at: null,
-    created_at: '2026-01-01T00:00:00.000Z',
-    updated_at: null,
     ...overrides
   };
 }
@@ -170,10 +173,33 @@ function buildSolution(overrides: Partial<TaskRunSolution> = {}): TaskRunSolutio
     solver_version: null,
     runtime_seconds: null,
     metrics: {},
-    created_at: '2026-01-01T00:00:00.000Z',
-    created_by: null,
-    updated_at: null,
-    updated_by: null,
+    ...overrides
+  };
+}
+
+function buildArea(overrides: Partial<TaskRunArea> = {}): TaskRunArea {
+  return {
+    task_run_area_id: AREA_ID,
+    task_run_id: TASK_RUN_ID,
+    area_index: 0,
+    name: 'Area 1',
+    description: null,
+    geojson: {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [-123, 49],
+            [-122, 49],
+            [-122, 50],
+            [-123, 50],
+            [-123, 49]
+          ]
+        ]
+      }
+    },
     ...overrides
   };
 }

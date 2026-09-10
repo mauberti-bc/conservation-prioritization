@@ -17,11 +17,7 @@ export const TaskRunSolution = z.object({
   solver_name: z.string().nullable(),
   solver_version: z.string().nullable(),
   runtime_seconds: z.coerce.number().nullable(),
-  metrics: z.record(z.unknown()),
-  created_at: z.string(),
-  created_by: z.string().uuid().nullable(),
-  updated_at: z.string().nullable(),
-  updated_by: z.string().uuid().nullable()
+  metrics: z.record(z.unknown())
 });
 
 export type TaskRunSolution = z.infer<typeof TaskRunSolution>;

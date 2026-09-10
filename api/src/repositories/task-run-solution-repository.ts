@@ -6,7 +6,7 @@ import { BaseRepository } from './base-repository';
 const SOLUTION_COLUMNS = `task_run_solution_id, task_run_id, solution_index, role, status,
   objective_value, resource_value, selected_planning_unit_count, optimality_gap,
   solver_name, solver_version,
-  runtime_seconds, metrics, created_at, created_by, updated_at, updated_by`;
+  runtime_seconds, metrics`;
 
 /** Repository for normalized run solution metadata. */
 export class TaskRunSolutionRepository extends BaseRepository {

@@ -11,8 +11,7 @@ const TASK_RUN_COLUMNS = `
   preliminary_estimate, admission_outcome, progress, planning_unit_count,
   feature_nonzero_count, neighbor_edge_count,
   prefect_flow_run_id, prefect_deployment_id, dispatch_attempts,
-  failure_code, failure_message, started_at, completed_at, failed_at, cancelled_at,
-  created_at, updated_at
+  failure_code, failure_message, started_at, completed_at, failed_at, cancelled_at
 `;
 
 /** Repository for immutable task runs and lifecycle updates. */

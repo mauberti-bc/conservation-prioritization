@@ -5,7 +5,7 @@ import { BaseRepository } from './base-repository';
 
 const ARTIFACT_COLUMNS = `artifact_id, task_run_id, type, status, uri, content_type, checksum,
   size_bytes, cache_key, manifest, lineage, failure_code, failure_message,
-  started_at, completed_at, failed_at, created_at, updated_at`;
+  started_at, completed_at, failed_at`;
 
 /** Repository for durable artifact metadata and finalization. */
 export class ArtifactRepository extends BaseRepository {

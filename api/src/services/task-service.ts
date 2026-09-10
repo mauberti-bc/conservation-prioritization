@@ -1,8 +1,9 @@
 import { IDBConnection } from '../database/db';
 import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination';
-import { TaskExportWithFiles } from '../models/task-export.interface';
 import { CreateTask, DeleteTask, Task, TaskStatus, UpdateTask, UpdateTaskExecution } from '../models/task';
+import { TaskExportWithFiles } from '../models/task-export.interface';
 import { TaskRun } from '../models/task-run';
+import { TaskRunArea } from '../models/task-run-area';
 import { TaskRunWithArtifacts } from '../models/task-run.interface';
 import { TaskDetails } from '../models/task.interface';
 import { ArtifactRepository } from '../repositories/artifact-repository';
@@ -12,6 +13,7 @@ import { ProjectRepository } from '../repositories/project-repository';
 import { TaskExportFileRepository } from '../repositories/task-export-file-repository';
 import { TaskExportRepository } from '../repositories/task-export-repository';
 import { TaskRepository } from '../repositories/task-repository';
+import { TaskRunAreaRepository } from '../repositories/task-run-area-repository';
 import { TaskRunRepository } from '../repositories/task-run-repository';
 import { TaskRunSolutionRepository } from '../repositories/task-run-solution-repository';
 import { TaskTileRepository } from '../repositories/task-tile-repository';
@@ -47,6 +49,7 @@ export class TaskService extends DBService {
   taskExportRepository: TaskExportRepository;
   taskExportFileRepository: TaskExportFileRepository;
   taskRunRepository: TaskRunRepository;
+  taskRunAreaRepository: TaskRunAreaRepository;
   artifactRepository: ArtifactRepository;
   taskRunSolutionRepository: TaskRunSolutionRepository;
 
@@ -69,6 +72,7 @@ export class TaskService extends DBService {
     this.taskExportRepository = new TaskExportRepository(connection);
     this.taskExportFileRepository = new TaskExportFileRepository(connection);
     this.taskRunRepository = new TaskRunRepository(connection);
+    this.taskRunAreaRepository = new TaskRunAreaRepository(connection);
     this.artifactRepository = new ArtifactRepository(connection);
     this.taskRunSolutionRepository = new TaskRunSolutionRepository(connection);
   }
@@ -238,9 +242,8 @@ export class TaskService extends DBService {
   /**
    * Convert a stored tileset URI into a presigned PMTiles URL.
    *
-   * @param {string | null | undefined} uri
-   * @return {*}  {Promise<string | null>}
-   * @memberof TaskService
+   * @param {string | null | undefined} uri Stored PMTiles object URI, or null when no tileset has been published.
+   * @returns {Promise<string | null>} Presigned PMTiles URL suitable for frontend display, or null for empty input.
    */
   private async toPresignedTilesetUri(uri: string | null | undefined): Promise<string | null> {
     return toPresignedPmtilesUrl(uri);
@@ -249,15 +252,16 @@ export class TaskService extends DBService {
   /**
    * Builds latest task runs by task ID with artifacts, solutions, and exports.
    *
-   * @param {string[]} taskIds Task IDs to hydrate.
-   * @return {*}  {Promise<Map<string, TaskRunWithArtifacts>>}
-   * @memberof TaskService
+   * @param {string[]} taskIds Task IDs whose latest immutable runs should be loaded.
+   * @returns {Promise<Map<string, TaskRunWithArtifacts>>} Latest run metadata keyed by parent task ID.
+   * @throws {ApiExecuteSQLError} When run, artifact, solution, export, or area records cannot be queried.
    */
   private async buildLatestRunsByTaskId(taskIds: string[]): Promise<Map<string, TaskRunWithArtifacts>> {
     const latestRuns = (
       await Promise.all(taskIds.map(async (taskId) => this.taskRunRepository.getLatestTaskRunByTaskId(taskId)))
     ).filter((run): run is TaskRun => Boolean(run));
     const exportsByRunId = await this.buildExportsByRunId(latestRuns.map((run) => run.task_run_id));
+    const areasByRunId = await this.buildAreasByRunId(latestRuns.map((run) => run.task_run_id));
     const latestRunsByTaskId = new Map<string, TaskRunWithArtifacts>();
 
     for (const run of latestRuns) {
@@ -265,6 +269,7 @@ export class TaskService extends DBService {
       const solutions = await this.taskRunSolutionRepository.getTaskRunSolutions(run.task_run_id);
       latestRunsByTaskId.set(run.task_id, {
         ...run,
+        areas: areasByRunId.get(run.task_run_id) ?? [],
         exports: exportsByRunId.get(run.task_run_id) ?? [],
         solutions,
         artifacts: await Promise.all(
@@ -280,11 +285,31 @@ export class TaskService extends DBService {
   }
 
   /**
+   * Builds task-run areas grouped by parent run ID.
+   *
+   * @param {string[]} taskRunIds Task run IDs whose persisted target areas should be loaded.
+   * @returns {Promise<Map<string, TaskRunArea[]>>} Target-area features keyed by parent task run ID.
+   * @throws {ApiExecuteSQLError} When target-area records cannot be queried.
+   */
+  private async buildAreasByRunId(taskRunIds: string[]): Promise<Map<string, TaskRunArea[]>> {
+    const areas = await this.taskRunAreaRepository.getTaskRunAreasByRunIds(taskRunIds);
+    const areasByRunId = new Map<string, typeof areas>();
+
+    for (const area of areas) {
+      const existing = areasByRunId.get(area.task_run_id) ?? [];
+      existing.push(area);
+      areasByRunId.set(area.task_run_id, existing);
+    }
+
+    return areasByRunId;
+  }
+
+  /**
    * Builds task exports with files grouped by parent run ID.
    *
-   * @param {string[]} taskRunIds Task run IDs to hydrate.
-   * @return {*}  {Promise<Map<string, TaskExportWithFiles[]>>}
-   * @memberof TaskService
+   * @param {string[]} taskRunIds Task run IDs whose export jobs should be loaded.
+   * @returns {Promise<Map<string, TaskExportWithFiles[]>>} Exports with files keyed by parent task run ID.
+   * @throws {ApiExecuteSQLError} When export or export-file records cannot be queried.
    */
   private async buildExportsByRunId(taskRunIds: string[]): Promise<Map<string, TaskExportWithFiles[]>> {
     const exports = await this.taskExportRepository.getTaskExportsByRunIds(taskRunIds);
@@ -573,5 +598,4 @@ export class TaskService extends DBService {
           : null
     };
   }
-
 }

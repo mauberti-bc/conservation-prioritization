@@ -1,5 +1,19 @@
 import { OpenAPIV3 } from 'openapi-types';
+import { GeoJSONFeature } from './geoJson';
 import { TaskExportSchema } from './task-export';
+
+const TaskRunAreaSchema: OpenAPIV3.SchemaObject = {
+  type: 'object',
+  required: ['task_run_area_id', 'task_run_id', 'area_index', 'name', 'geojson'],
+  properties: {
+    task_run_area_id: { type: 'string', format: 'uuid' },
+    task_run_id: { type: 'string', format: 'uuid' },
+    area_index: { type: 'integer' },
+    name: { type: 'string' },
+    description: { type: 'string', nullable: true },
+    geojson: GeoJSONFeature
+  }
+};
 
 export const TaskRunSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
@@ -14,6 +28,7 @@ export const TaskRunSchema: OpenAPIV3.SchemaObject = {
     'input_snapshot',
     'input_hash',
     'artifacts',
+    'areas',
     'exports',
     'solutions'
   ],
@@ -59,6 +74,10 @@ export const TaskRunSchema: OpenAPIV3.SchemaObject = {
     artifacts: {
       type: 'array',
       items: { type: 'object', additionalProperties: true }
+    },
+    areas: {
+      type: 'array',
+      items: TaskRunAreaSchema
     },
     exports: {
       type: 'array',

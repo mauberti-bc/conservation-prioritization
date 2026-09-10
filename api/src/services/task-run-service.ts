@@ -1,3 +1,4 @@
+import { Feature, Geometry } from 'geojson';
 import { IDBConnection } from '../database/db';
 import { ApiGeneralError } from '../errors/api-error';
 import { ArtifactType, UpdateArtifact } from '../models/artifact';
@@ -9,6 +10,7 @@ import { AnalyticalSourceRepository } from '../repositories/analytical-source-re
 import { ArtifactRepository } from '../repositories/artifact-repository';
 import { TaskExportFileRepository } from '../repositories/task-export-file-repository';
 import { TaskExportRepository } from '../repositories/task-export-repository';
+import { TaskRunAreaRepository } from '../repositories/task-run-area-repository';
 import { TaskRunRepository } from '../repositories/task-run-repository';
 import { TaskRunSolutionRepository } from '../repositories/task-run-solution-repository';
 import { hashCanonicalJson } from '../utils/canonical-json';
@@ -30,6 +32,7 @@ export class TaskRunService extends DBService {
   private taskExportRepository: TaskExportRepository;
   private taskExportFileRepository: TaskExportFileRepository;
   private sourceRepository: AnalyticalSourceRepository;
+  private areaRepository: TaskRunAreaRepository;
   private solutionRepository: TaskRunSolutionRepository;
 
   constructor(connection: IDBConnection) {
@@ -40,6 +43,7 @@ export class TaskRunService extends DBService {
     this.taskExportRepository = new TaskExportRepository(connection);
     this.taskExportFileRepository = new TaskExportFileRepository(connection);
     this.sourceRepository = new AnalyticalSourceRepository(connection);
+    this.areaRepository = new TaskRunAreaRepository(connection);
     this.solutionRepository = new TaskRunSolutionRepository(connection);
   }
 
@@ -144,8 +148,8 @@ export class TaskRunService extends DBService {
       taskType === 'priority_ranking'
         ? 'compiled_priority_ranking'
         : decisionDomain === 'continuous'
-          ? 'compiled_continuous_optimization'
-          : 'compiled_discrete_optimization';
+        ? 'compiled_continuous_optimization'
+        : 'compiled_discrete_optimization';
     const evidenceResolutions = layerContracts.map((contract) => contract.evidence_resolution);
     const snapshot: Record<string, unknown> = {
       schema_version: 9,
@@ -234,6 +238,16 @@ export class TaskRunService extends DBService {
       solver_config: this.getExecutionConfiguration(optimizationMode),
       code_version: process.env.APP_VERSION ?? process.env.GIT_SHA ?? null
     });
+
+    const targetAreaFeatures = this.getTargetAreaFeatures(targetArea);
+    for (let index = 0; index < targetAreaFeatures.length; index++) {
+      await this.areaRepository.createTaskRunArea(run.task_run_id, {
+        area_index: index,
+        name: `Area ${index + 1}`,
+        description: null,
+        geojson: targetAreaFeatures[index]
+      });
+    }
 
     await this.taskRunRepository.updateTaskRun(run.task_run_id, { preliminary_estimate: preliminaryEstimate });
 
@@ -372,9 +386,16 @@ export class TaskRunService extends DBService {
     });
   }
 
-  /** Returns one run with artifacts. */
+  /**
+   * Returns one task run with all related display and export metadata.
+   *
+   * @param {string} taskRunId Immutable task run identifier to hydrate.
+   * @returns {Promise<TaskRunWithArtifacts>} Run metadata with persisted target areas, artifacts, solutions, and exports.
+   * @throws {ApiExecuteSQLError} When the run or one of its related records cannot be queried.
+   */
   async getTaskRunById(taskRunId: string): Promise<TaskRunWithArtifacts> {
     const run = await this.taskRunRepository.getTaskRunById(taskRunId);
+    const areas = await this.areaRepository.getTaskRunAreas(taskRunId);
     const artifacts = await this.artifactRepository.getArtifactsByRunId(taskRunId);
     const solutions = await this.solutionRepository.getTaskRunSolutions(taskRunId);
     const exports = await this.taskExportRepository.getTaskExportsByRunId(taskRunId);
@@ -390,6 +411,7 @@ export class TaskRunService extends DBService {
 
     return {
       ...run,
+      areas,
       exports: exports.map((taskExport) => ({
         ...taskExport,
         files: filesByExportId.get(taskExport.task_export_id) ?? []
@@ -492,6 +514,21 @@ export class TaskRunService extends DBService {
     }
   }
 
+  /**
+   * Converts a submitted target area into stable run-area features.
+   *
+   * @param {SubmitTaskRequest['target_area']} targetArea Submitted GeoJSON feature or feature collection from the
+   * immutable optimization problem.
+   * @returns {Feature<Geometry>[]} Individual GeoJSON features to persist in source order for the run.
+   */
+  private getTargetAreaFeatures(targetArea: SubmitTaskRequest['target_area']): Feature<Geometry>[] {
+    if (targetArea.type === 'FeatureCollection') {
+      return targetArea.features;
+    }
+
+    return [targetArea];
+  }
+
   /** Returns the immutable engine configuration for the classified formulation. */
   private getExecutionConfiguration(
     optimizationMode: 'interactive' | 'balanced' | 'exact_audit' = 'exact_audit'
@@ -510,9 +547,7 @@ export class TaskRunService extends DBService {
     if (executionMethod === 'compiled_priority_ranking') {
       return 'highs-csr-priority-ranking-v1';
     }
-    return executionMethod === 'compiled_continuous_optimization'
-      ? 'highs-csr-continuous-v1'
-      : 'highs-csr-discrete-v1';
+    return executionMethod === 'compiled_continuous_optimization' ? 'highs-csr-continuous-v1' : 'highs-csr-discrete-v1';
   }
 
   /** Returns only artifacts crossed by the selected durable execution path. */

@@ -62,9 +62,7 @@ export const TaskRun = z.object({
   started_at: z.string().nullable(),
   completed_at: z.string().nullable(),
   failed_at: z.string().nullable(),
-  cancelled_at: z.string().nullable(),
-  created_at: z.string(),
-  updated_at: z.string().nullable()
+  cancelled_at: z.string().nullable()
 });
 
 export type TaskRun = z.infer<typeof TaskRun>;
