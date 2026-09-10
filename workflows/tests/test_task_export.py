@@ -32,12 +32,17 @@ class GeoTiffExportTest(unittest.TestCase):
             with patch("src.publication.geotiff_export.PART_SIZE_PIXELS", 2):
                 parts = write_geotiff_parts(
                     export_id="export-1",
+                    task_run_id="run-1",
+                    task_name="Coastal Habitat",
                     canonical_path=root,
                     output_directory=output,
                 )
                 self.assertFalse(output.exists())
                 count = 0
                 for part in parts:
+                    self.assertTrue(
+                        part.filename.startswith("Coastal_Habitat_run-1_priority_")
+                    )
                     self.assertEqual([part.path], list(output.glob("*.tif")))
                     with xr.open_dataarray(part.path, engine="rasterio") as array:
                         self.assertEqual("EPSG:3005", array.rio.crs.to_string())
@@ -59,6 +64,8 @@ class GeoTiffExportTest(unittest.TestCase):
 
             parts = write_geotiff_parts(
                 export_id="export-1",
+                task_run_id="run-1",
+                task_name="Coastal Habitat",
                 canonical_path=root,
                 output_directory=output,
             )
@@ -66,9 +73,11 @@ class GeoTiffExportTest(unittest.TestCase):
             parts = list(parts)
             self.assertEqual(1, len(parts))
             part = parts[0]
-            self.assertEqual("decision_y000000_x000000.tif", part.filename)
             self.assertEqual(
-                "task-exports/export-1/parts/decision_y000000_x000000.tif",
+                "Coastal_Habitat_run-1_decision_y000000_x000000.tif", part.filename
+            )
+            self.assertEqual(
+                "task-exports/export-1/parts/Coastal_Habitat_run-1_decision_y000000_x000000.tif",
                 part.object_key,
             )
             self.assertEqual(0, part.row_offset)
@@ -92,6 +101,8 @@ class GeoTiffExportTest(unittest.TestCase):
             part = next(
                 write_geotiff_parts(
                     export_id="export-1",
+                    task_run_id="run-1",
+                    task_name="Coastal Habitat",
                     canonical_path=root,
                     output_directory=output,
                 )
@@ -138,6 +149,8 @@ class GeoTiffExportTest(unittest.TestCase):
             part = next(
                 write_geotiff_parts(
                     export_id="export-1",
+                    task_run_id="run-1",
+                    task_name="Coastal Habitat",
                     canonical_path=root,
                     output_directory=Path(directory) / "parts",
                 )
@@ -188,6 +201,7 @@ class TaskExportFlowTest(unittest.TestCase):
                         },
                         "run": {
                             "task_run_id": "run-1",
+                            "input_snapshot": {"task": {"name": "Coastal Habitat"}},
                             "artifacts": [
                                 {
                                     "artifact_id": "artifact-1",
@@ -210,10 +224,12 @@ class TaskExportFlowTest(unittest.TestCase):
                         "upload_geotiff_part",
                         return_value={
                             "part_index": 0,
-                            "filename": "decision_y000000_x000000.tif",
+                            "filename": (
+                                "Coastal_Habitat_run-1_decision_y000000_x000000.tif"
+                            ),
                             "object_key": (
                                 "task-exports/export-1/parts/"
-                                "decision_y000000_x000000.tif"
+                                "Coastal_Habitat_run-1_decision_y000000_x000000.tif"
                             ),
                             "content_type": "image/tiff",
                             "byte_size": 100,
@@ -225,7 +241,7 @@ class TaskExportFlowTest(unittest.TestCase):
                             "transform": {"gdal": [0, 30, 0, 60, 0, -30]},
                             "metadata": {"surface": "decision"},
                         },
-                    ):
+                    ) as upload:
                         with patch.object(
                             task_export_module,
                             "internal_api_request",
@@ -242,6 +258,11 @@ class TaskExportFlowTest(unittest.TestCase):
                                     "flow-run-1",
                                 ):
                                     task_export_module.task_export.fn("export-1", 1)
+
+                        self.assertEqual(
+                            "Coastal_Habitat_run-1_decision_y000000_x000000.tif",
+                            upload.call_args.kwargs["part"].filename,
+                        )
 
             file_callbacks = [
                 value

@@ -13,6 +13,7 @@ import xarray as xr
 import zarr
 from affine import Affine
 
+from ..utils.filename import sanitize_filename_stem
 from ..utils.object_store import build_object_key, get_object_store_config, put_object
 
 
@@ -43,10 +44,12 @@ class GeoTiffPart:
 def write_geotiff_parts(
     *,
     export_id: str,
+    task_run_id: str,
+    task_name: str,
     canonical_path: Path,
     output_directory: Path,
 ) -> Iterator[GeoTiffPart]:
-    """Yield each written part so callers can upload and remove it before advancing."""
+    """Yield run-named parts for upload and removal before writing the next part."""
     root = zarr.open_group(str(canonical_path), mode="r")
     surface = str(root.attrs.get("surface", "decision"))
     if surface not in root:
@@ -57,6 +60,7 @@ def write_geotiff_parts(
     transform = Affine.from_gdal(*(float(value) for value in root.attrs["transform"]))
     nodata = 255 if values.dtype == np.dtype("uint8") else np.nan
     output_directory.mkdir(parents=True, exist_ok=True)
+    filename_prefix = f"{sanitize_filename_stem(task_name)}_{task_run_id}"
 
     part_index = 0
     for row_offset in range(0, values.shape[0], PART_SIZE_PIXELS):
@@ -67,7 +71,9 @@ def write_geotiff_parts(
                 column_offset,
                 row_offset,
             )
-            filename = f"{surface}_y{row_offset:06d}_x{column_offset:06d}.tif"
+            filename = (
+                f"{filename_prefix}_{surface}_y{row_offset:06d}_x{column_offset:06d}.tif"
+            )
             path = output_directory / filename
             data = np.asarray(
                 values[

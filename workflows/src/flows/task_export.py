@@ -101,6 +101,10 @@ def task_export(task_export_id: str, attempt: int) -> None:
         completed_files = 0
         parts = write_geotiff_parts(
             export_id=task_export_id,
+            task_run_id=run["task_run_id"],
+            task_name=(
+                run.get("input_snapshot", {}).get("task", {}).get("name") or "task"
+            ),
             canonical_path=canonical_path,
             output_directory=output / "geotiff-parts",
         )
