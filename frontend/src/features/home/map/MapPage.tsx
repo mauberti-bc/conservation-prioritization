@@ -5,7 +5,6 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import { grey } from '@mui/material/colors';
-import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
@@ -24,12 +23,7 @@ import useDataLoader from 'hooks/useDataLoader';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiPaginationRequestOptions } from 'types/pagination';
-import {
-  getLatestTaskExport,
-  getTaskExportAction,
-  isTaskLatestExportReady,
-  triggerBrowserDownload,
-} from 'utils/task-export';
+import { getLatestTaskExport, getTaskExportAction, triggerBrowserDownload } from 'utils/task-export';
 import { getTaskStatusLabel } from 'utils/task-status';
 import { FloatingSidebarContainer } from '../sidebar/FloatingSidebarContainer';
 import { SIDEBAR_FLOAT_MARGIN_PX, SIDEBAR_FLOAT_WIDTH_PX } from '../sidebar/sidebar-layout.constants';
@@ -78,7 +72,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
   const conservationApi = useConservationApi();
   const dialogContext = useDialogContext();
   const { drawControlsRef } = useMapContext();
-  const { connectionEpoch, markTaskSeen, taskRevisions, taskStatuses, unseenTaskIds } = useApplicationEventsContext();
+  const { connectionEpoch, markTaskSeen, taskRevisions, taskStatuses } = useApplicationEventsContext();
   const tasksDataLoader = useDataLoader(conservationApi.task.getAllTasks);
   const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
   const refreshTasksRef = useRef(tasksDataLoader.refresh);
@@ -563,8 +557,6 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
                     <MapTaskListItem
                       key={task.task_id}
                       task={task}
-                      isExportReady={isTaskLatestExportReady(task)}
-                      isUnseen={unseenTaskIds.has(task.task_id)}
                       onSelectTask={(selectedTask) => {
                         markTaskSeen(selectedTask.task_id);
                         navigate(`/map/${selectedTask.task_id}`);
@@ -633,8 +625,6 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
 
 interface MapTaskListItemProps {
   task: GetTaskResponse;
-  isExportReady: boolean;
-  isUnseen: boolean;
   onSelectTask: (task: GetTaskResponse) => void;
   onDeleteTask: (task: GetTaskResponse) => void;
   onShareTask: (task: GetTaskResponse) => void;
@@ -644,8 +634,6 @@ interface MapTaskListItemProps {
 
 const MapTaskListItem = ({
   task,
-  isExportReady,
-  isUnseen,
   onSelectTask,
   onDeleteTask,
   onShareTask,
@@ -664,9 +652,6 @@ const MapTaskListItem = ({
               <Typography fontWeight={700} noWrap>
                 {task.name}
               </Typography>
-              {isUnseen ? (
-                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main', flex: '0 0 auto' }} />
-              ) : null}
             </Box>
           }
           secondary={task.description ?? undefined}
@@ -679,17 +664,15 @@ const MapTaskListItem = ({
           onClick={(event) => {
             event.stopPropagation();
           }}>
-          <IconButton
-            aria-label="Download task export"
-            color={isExportReady ? 'primary' : 'default'}
-            size="small"
-            onClick={() => {
-              void onDownloadTask(task);
-            }}>
-            <Icon path={mdiDownload} size={0.75} />
-          </IconButton>
           <IconMenuButton
             items={[
+              {
+                label: 'Export',
+                icon: mdiDownload,
+                onClick: () => {
+                  void onDownloadTask(task);
+                },
+              },
               {
                 label: 'Delete',
                 icon: mdiDeleteOutline,

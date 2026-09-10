@@ -1,10 +1,14 @@
 /* @vitest-environment jsdom */
 
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CustomPagination } from './CustomPagination';
 
 describe('CustomPagination', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   it('renders the current item range and page controls', () => {
     render(
       <CustomPagination

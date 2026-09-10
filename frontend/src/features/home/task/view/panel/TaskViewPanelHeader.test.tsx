@@ -1,10 +1,14 @@
 /* @vitest-environment jsdom */
 
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TaskViewPanelHeader } from './TaskViewPanelHeader';
 
 describe('TaskViewPanelHeader', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   it('calls the download handler from the header icon button', () => {
     const onDownload = vi.fn();
 
