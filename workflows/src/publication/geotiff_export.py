@@ -7,6 +7,8 @@ from typing import Any
 
 import numpy as np
 import rasterio
+import rioxarray  # noqa: F401  # Registers the xarray rio accessor.
+import xarray as xr
 import zarr
 from affine import Affine
 
@@ -198,26 +200,54 @@ def _write_geotiff(
     transform: Affine,
     nodata: int | float,
 ) -> None:
-    """Write one tiled, lossless GeoTIFF."""
+    """Write one tiled, lossless GeoTIFF using xarray spatial metadata."""
+    data_array = _to_spatial_data_array(
+        data=data,
+        crs=crs,
+        transform=transform,
+        nodata=nodata,
+    )
     with rasterio.Env(GDAL_NUM_THREADS="1", GDAL_CACHEMAX=64):
-        with rasterio.open(
+        data_array.rio.to_raster(
             path,
-            "w",
             driver="GTiff",
-            height=data.shape[0],
-            width=data.shape[1],
-            count=1,
-            dtype=data.dtype,
-            crs=crs,
-            transform=transform,
-            nodata=nodata,
             tiled=True,
             blockxsize=BLOCK_SIZE_PIXELS,
             blockysize=BLOCK_SIZE_PIXELS,
             compress="DEFLATE",
             num_threads="1",
-        ) as dataset:
-            dataset.write(data, 1)
+        )
+
+
+def _to_spatial_data_array(
+    *,
+    data: np.ndarray,
+    crs: str,
+    transform: Affine,
+    nodata: int | float,
+) -> xr.DataArray:
+    """Return an xarray DataArray with CRS, transform, nodata, and spatial dims."""
+    if not transform.is_rectilinear:
+        data_array = xr.DataArray(data, dims=("y", "x"), name="surface")
+        return (
+            data_array.rio.write_crs(crs)
+            .rio.write_transform(transform)
+            .rio.write_nodata(nodata)
+        )
+
+    x_coordinates = transform.c + transform.a * (np.arange(data.shape[1]) + 0.5)
+    y_coordinates = transform.f + transform.e * (np.arange(data.shape[0]) + 0.5)
+    data_array = xr.DataArray(
+        data,
+        dims=("y", "x"),
+        coords={"y": y_coordinates, "x": x_coordinates},
+        name="surface",
+    )
+    return (
+        data_array.rio.write_crs(crs)
+        .rio.write_transform(transform)
+        .rio.write_nodata(nodata)
+    )
 
 
 def _sha256(path: Path) -> str:

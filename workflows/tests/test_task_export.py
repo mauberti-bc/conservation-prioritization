@@ -5,6 +5,8 @@ from unittest.mock import patch
 
 import numpy as np
 import rasterio
+import rioxarray
+import xarray as xr
 import zarr
 
 from src.flows import task_export as task_export_module
@@ -47,6 +49,41 @@ class GeoTiffExportTest(unittest.TestCase):
                     dataset.read(1),
                     np.array([[1, 0, 255], [0, 1, 255]], dtype=np.uint8),
                 )
+
+    def test_write_geotiff_parts_creates_xarray_readable_spatial_tiff(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = _write_canonical_zarr(Path(directory) / "canonical.zarr")
+            output = Path(directory) / "parts"
+
+            part = write_geotiff_parts(
+                export_id="export-1",
+                canonical_path=root,
+                output_directory=output,
+            )[0]
+
+            data_array = rioxarray.open_rasterio(part.path)
+            try:
+                self.assertEqual(("band", "y", "x"), data_array.dims)
+                self.assertEqual("EPSG:3005", data_array.rio.crs.to_string())
+                self.assertEqual(255, data_array.rio.nodata)
+                self.assertEqual(part.transform, data_array.rio.transform())
+                self.assertIn("spatial_ref", data_array.coords)
+                np.testing.assert_array_equal(
+                    data_array.values[0],
+                    np.array([[1, 0, 255], [0, 1, 255]], dtype=np.uint8),
+                )
+            finally:
+                data_array.close()
+
+            xarray_data_array = xr.open_dataarray(part.path, engine="rasterio")
+            try:
+                self.assertEqual(("band", "y", "x"), xarray_data_array.dims)
+                self.assertEqual(
+                    "EPSG:3005",
+                    xarray_data_array.rio.crs.to_string(),
+                )
+            finally:
+                xarray_data_array.close()
 
     def test_export_resource_admission_describes_bounded_part(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
