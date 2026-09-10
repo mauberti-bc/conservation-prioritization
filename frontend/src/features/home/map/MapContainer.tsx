@@ -15,8 +15,8 @@ import { PmtilesLegend } from './PmtilesLegend';
 const BASEMAP_SOURCE_ID = 'basemap';
 const BASEMAP_LAYER_ID = 'basemap';
 const PMTILES_LAYER_PREFIX = 'pmtiles-layer-';
-const BC_INITIAL_CENTER: [number, number] = [-124.75, 54.5];
-const BC_INITIAL_ZOOM = 4.5;
+const HAIDA_GWAII_INITIAL_CENTER: [number, number] = [-132.0, 53.25];
+const HAIDA_GWAII_INITIAL_ZOOM = 4.5;
 
 interface MapContainerProps {
   pmtilesUrls?: string[];
@@ -170,8 +170,8 @@ export const MapContainer = ({
     const map = new maplibregl.Map({
       container: innerContainer,
       style: basemapStyle,
-      center: BC_INITIAL_CENTER,
-      zoom: BC_INITIAL_ZOOM,
+      center: HAIDA_GWAII_INITIAL_CENTER,
+      zoom: HAIDA_GWAII_INITIAL_ZOOM,
       maxZoom: 11,
       interactive,
     });

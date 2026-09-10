@@ -132,8 +132,18 @@ export interface TaskRunResponse {
   failure_code?: string | null;
   failure_message?: string | null;
   artifacts?: TaskRunArtifactResponse[];
+  areas?: TaskRunAreaResponse[];
   exports?: TaskExportResponse[];
   solutions?: TaskRunSolutionResponse[];
+}
+
+export interface TaskRunAreaResponse {
+  task_run_area_id: string;
+  task_run_id: string;
+  area_index: number;
+  name: string;
+  description: string | null;
+  geojson: Feature<Geometry, GeoJsonProperties>;
 }
 
 export interface TaskExportResponse {
