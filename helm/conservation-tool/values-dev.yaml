@@ -37,18 +37,18 @@ services:
   api:
     resources:
       requests:
-        memory: 128Mi
+        memory: 256Mi
       limits:
-        memory: 128Mi
+        memory: 256Mi
     route:
       host: "conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"
 
   db:
     resources:
       requests:
-        memory: 256Mi
+        memory: 128Mi
       limits:
-        memory: 256Mi
+        memory: 128Mi
 
 env:
   NODE_ENV: "development"
