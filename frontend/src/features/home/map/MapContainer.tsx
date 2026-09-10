@@ -11,6 +11,9 @@ import { attachMapContainer, detachMapContainer, getMapCacheEntry, setMapCacheEn
 import { ensurePMTilesProtocol } from 'utils/pmtilesProtocol';
 import { PmtilesLegend } from './PmtilesLegend';
 
+const OPENFREEMAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+const PMTILES_LAYER_PREFIX = 'pmtiles-layer-';
+
 interface MapContainerProps {
   pmtilesUrls?: string[];
   keepAliveKey?: string;
@@ -49,7 +52,6 @@ export const MapContainer = ({
   const DefaultFitBoundsPadding = 32;
   const DefaultFitBoundsMaxZoom = 14;
   const PmtilesSourcePrefix = 'pmtiles-source-';
-  const PmtilesLayerPrefix = 'pmtiles-layer-';
   const mapHostRef = useRef<HTMLDivElement | null>(null);
   const { mapRef: sharedMapRef, setIsMapReady } = useMapContext();
   const localMapRef = useRef<maplibregl.Map | null>(null);
@@ -76,7 +78,7 @@ export const MapContainer = ({
     return `${baseKey}::${boundsRefreshKey}`;
   }, [boundsRefreshKey, normalizedPmtilesUrls]);
   const hasPmtiles = normalizedPmtilesUrls.length > 0;
-  const hasRenderedPmtiles = hasAnyPmtilesLayers(mapRef.current, PmtilesLayerPrefix);
+  const hasRenderedPmtiles = hasAnyPmtilesLayers(mapRef.current, PMTILES_LAYER_PREFIX);
 
   const isMapLoading = !isMapInitialized || (waitForPmtiles && hasPmtiles && !areLayersLoaded && !hasRenderedPmtiles);
 
@@ -105,7 +107,7 @@ export const MapContainer = ({
         hydratePmtilesTrackingFromStyle(
           cached.map,
           PmtilesSourcePrefix,
-          PmtilesLayerPrefix,
+          PMTILES_LAYER_PREFIX,
           addedSourceIdsRef.current,
           addedLayerIdsRef.current,
           sourceUrlBySourceIdRef.current
@@ -159,11 +161,7 @@ export const MapContainer = ({
 
     const map = new maplibregl.Map({
       container: innerContainer,
-      style: {
-        version: 8,
-        sources: {},
-        layers: [],
-      },
+      style: OPENFREEMAP_STYLE_URL,
       center: [-125, 50],
       zoom: 3,
       maxZoom: 11,
@@ -327,7 +325,7 @@ export const MapContainer = ({
           normalizedPmtilesUrls,
           pmtilesOpacity,
           PmtilesSourcePrefix,
-          PmtilesLayerPrefix,
+          PMTILES_LAYER_PREFIX,
           addedLayerIdsRef.current,
           addedSourceIdsRef.current,
           sourceUrlBySourceIdRef.current
@@ -545,57 +543,28 @@ export const MapContainer = ({
 };
 
 /**
- * Ensure the base OSM raster layer exists.
+ * Ensure the base OpenFreeMap style layers use the requested visibility.
  */
 const ensureBaseLayer = (map: maplibregl.Map, showBaseLayer: boolean): void => {
-  if (!showBaseLayer) {
-    if (map.getLayer('osm-tiles')) {
-      map.removeLayer('osm-tiles');
-    }
-
-    if (map.getSource('osm')) {
-      map.removeSource('osm');
-    }
-
-    return;
-  }
-
-  if (!map.getSource('osm')) {
-    map.addSource('osm', {
-      type: 'raster',
-      tiles: [
-        'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-        'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-      ],
-      tileSize: 256,
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    });
-  }
-
-  if (!map.getLayer('osm-tiles')) {
-    map.addLayer({
-      id: 'osm-tiles',
-      type: 'raster',
-      source: 'osm',
-      minzoom: 0,
-      maxzoom: 19,
-    });
-  }
-
   const style = map.getStyle();
   if (!style || !style.layers) {
     return;
   }
 
-  const firstNonBaseLayerId = style.layers?.find((layer) => {
-    return layer.id !== 'osm-tiles';
-  })?.id;
-
-  if (firstNonBaseLayerId && map.getLayer('osm-tiles')) {
-    map.moveLayer('osm-tiles', firstNonBaseLayerId);
+  if (map.getLayer('osm-tiles')) {
+    map.removeLayer('osm-tiles');
   }
+  if (map.getSource('osm')) {
+    map.removeSource('osm');
+  }
+
+  style.layers.forEach((layer) => {
+    if (layer.id.startsWith(PMTILES_LAYER_PREFIX) || !map.getLayer(layer.id)) {
+      return;
+    }
+
+    map.setLayoutProperty(layer.id, 'visibility', showBaseLayer ? 'visible' : 'none');
+  });
 };
 
 /**
