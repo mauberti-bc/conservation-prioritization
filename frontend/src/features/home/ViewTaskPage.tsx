@@ -147,7 +147,7 @@ export const ViewTaskPage = () => {
             sx={{
               position: 'absolute',
               top: 16,
-              left: { xs: '50%', md: SIDEBAR_STATUS_CHIP_LEFT },
+              left: SIDEBAR_STATUS_CHIP_LEFT,
               transform: 'translateX(-50%)',
               zIndex: 10,
             }}>

@@ -1,7 +1,12 @@
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import { ReactNode } from 'react';
-import { SIDEBAR_FLOAT_BORDER_RADIUS, SIDEBAR_FLOAT_MARGIN_PX, SIDEBAR_FLOAT_WIDTH } from './sidebar-layout.constants';
+import {
+  SIDEBAR_FLOAT_BORDER_RADIUS,
+  SIDEBAR_FLOAT_MARGIN_PX,
+  SIDEBAR_FLOAT_MIN_WIDTH,
+  SIDEBAR_FLOAT_WIDTH,
+} from './sidebar-layout.constants';
 
 interface FloatingSidebarContainerProps {
   children: ReactNode;
@@ -23,8 +28,8 @@ export const FloatingSidebarContainer = ({ children, zIndex = 12 }: FloatingSide
         bottom: SIDEBAR_FLOAT_MARGIN_PX,
         left: SIDEBAR_FLOAT_MARGIN_PX,
         width: SIDEBAR_FLOAT_WIDTH,
-        maxWidth: SIDEBAR_FLOAT_WIDTH,
-        minWidth: 0,
+        maxWidth: `calc(100vw - ${SIDEBAR_FLOAT_MARGIN_PX * 2}px)`,
+        minWidth: `min(${SIDEBAR_FLOAT_MIN_WIDTH}px, calc(100vw - ${SIDEBAR_FLOAT_MARGIN_PX * 2}px))`,
         display: 'flex',
         flexDirection: 'column',
         zIndex,
