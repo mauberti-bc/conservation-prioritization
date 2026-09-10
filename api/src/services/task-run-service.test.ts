@@ -1,15 +1,25 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { getMockDBConnection } from '../__mocks__/db';
 import { TaskRun } from '../models/task-run';
 import { ArtifactRepository } from '../repositories/artifact-repository';
 import { TaskRunRepository } from '../repositories/task-run-repository';
+import { getMockDBConnection } from '../__mocks__/db';
 import { TaskRunService } from './task-run-service';
 import { TaskService } from './task-service';
 
 describe('TaskRunService completion', () => {
   afterEach(() => {
     sinon.restore();
+  });
+
+  it('maps cancelled runs to aborted tasks', async () => {
+    sinon
+      .stub(TaskRunRepository.prototype, 'getTaskRunById')
+      .resolves({ task_id: 'task-id', status: 'running' } as TaskRun);
+    sinon.stub(TaskRunRepository.prototype, 'updateTaskRun').resolves();
+    const updateTask = sinon.stub(TaskService.prototype, 'updateTaskExecution').resolves();
+    await new TaskRunService(getMockDBConnection()).updateRun('run-id', { status: 'cancelled' });
+    expect(updateTask.firstCall.args).to.deep.equal(['task-id', { status: 'aborted', status_message: null }]);
   });
 
   for (const solverStatus of ['infeasible', 'optimal', 'solve_error']) {

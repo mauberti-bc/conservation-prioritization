@@ -100,9 +100,24 @@ describe('MapPage task and export refresh', () => {
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
+  });
+
+  it('displays aborted tasks without an abort action', async () => {
+    mocks.taskApi.getAllTasks.mockResolvedValue({
+      tasks: [buildTask('aborted')],
+      pagination: { current_page: 1, per_page: 25, total: 1, last_page: 1 },
+    });
+    render(workspace());
+    expect(await screen.findByText('Aborted')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Abort' })).toBeNull();
   });
 
   it('requests abort for the selected task and refreshes the list', async () => {
+    mocks.taskApi.getAllTasks.mockResolvedValue({
+      tasks: [buildTask('running')],
+      pagination: { current_page: 1, per_page: 25, total: 1, last_page: 1 },
+    });
     mocks.taskApi.abortTask.mockResolvedValue(undefined);
     render(workspace());
     const abortButton = await screen.findByRole('button', { name: 'Abort' });
@@ -114,6 +129,10 @@ describe('MapPage task and export refresh', () => {
   });
 
   it('reports abort failures without showing success', async () => {
+    mocks.taskApi.getAllTasks.mockResolvedValue({
+      tasks: [buildTask('running')],
+      pagination: { current_page: 1, per_page: 25, total: 1, last_page: 1 },
+    });
     mocks.taskApi.abortTask.mockRejectedValueOnce(new Error('Unavailable'));
     render(workspace());
     const abortButton = await screen.findByRole('button', { name: 'Abort' });
@@ -133,15 +152,25 @@ describe('MapPage task and export refresh', () => {
     render(workspace());
     fireEvent.click(await screen.findByRole('button', { name: 'Export' }));
     await waitFor(() => expect(mocks.taskApi.getTaskExports).toHaveBeenCalledWith('run-1'));
+    // Reopen with fake timers so the initial refresh schedules a controlled poll.
+    fireEvent.click(screen.getByRole('button', { name: 'Close dialog' }));
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'Export' })[0]);
+    });
     mocks.taskApi.getTaskExports.mockResolvedValue([buildExport(status)]);
-
-    await waitFor(
-      () => {
-        const buttons = screen.queryAllByRole('button', { name: status === 'ready' ? 'Download' : 'Export' });
-        expect(buttons.length > 0 && buttons.every((button) => !button.hasAttribute('disabled'))).toBe(true);
-      },
-      { timeout: 3500 }
-    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    const buttons = within(screen.getByRole('dialog')).getAllByRole('button', {
+      name: status === 'ready' ? 'Download' : 'Export',
+    });
+    expect(buttons.every((button) => !button.hasAttribute('disabled'))).toBe(true);
+    const requests = mocks.taskApi.getTaskExports.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100_000);
+    });
+    expect(mocks.taskApi.getTaskExports).toHaveBeenCalledTimes(requests);
   });
 
   it('refreshes run data after a task-list completion event', async () => {
@@ -163,10 +192,53 @@ describe('MapPage task and export refresh', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Export' }));
     await waitFor(() => expect(mocks.taskApi.getTaskExports).toHaveBeenCalledWith('run-1'));
     mocks.taskApi.getTaskExports.mockResolvedValue([buildExport('ready')]);
-    fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Export' })[0]);
-
-    expect(await screen.findByRole('button', { name: 'Download' })).toBeTruthy();
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Export' })[0]);
+    });
+    const requests = mocks.taskApi.getTaskExports.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(9999);
+    });
+    expect(mocks.taskApi.getTaskExports).toHaveBeenCalledTimes(requests);
+    expect(screen.queryByRole('button', { name: 'Download' })).toBeNull();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(screen.getByRole('button', { name: 'Download' })).toBeTruthy();
     expect(mocks.taskApi.createTaskExport).toHaveBeenCalledWith('run-1', { format: 'geotiff' });
+  });
+
+  it('limits polling after creation to ten attempts', async () => {
+    render(workspace());
+    fireEvent.click(await screen.findByRole('button', { name: 'Export' }));
+    await waitFor(() => expect(mocks.taskApi.getTaskExports).toHaveBeenCalledWith('run-1'));
+    mocks.taskApi.getTaskExports.mockResolvedValue([buildExport('running')]);
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Export' })[0]);
+    });
+    const requests = mocks.taskApi.getTaskExports.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(200_000);
+    });
+    expect(mocks.taskApi.getTaskExports).toHaveBeenCalledTimes(requests + 10);
+  });
+
+  it('cancels polling when the export dialog closes', async () => {
+    render(workspace());
+    fireEvent.click(await screen.findByRole('button', { name: 'Export' }));
+    await waitFor(() => expect(mocks.taskApi.getTaskExports).toHaveBeenCalledWith('run-1'));
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Export' })[0]);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Close dialog' }));
+    const requests = mocks.taskApi.getTaskExports.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100_000);
+    });
+    expect(mocks.taskApi.getTaskExports).toHaveBeenCalledTimes(requests);
   });
 
   it('returns to the previous page after deleting the last task on page two', async () => {

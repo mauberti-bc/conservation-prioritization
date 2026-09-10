@@ -19,6 +19,13 @@ describe('TaskStatusChip', () => {
     expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
+  it('shows aborted without an activity indicator', () => {
+    const { container } = render(<TaskStatusChip status="aborted" />);
+    expect(screen.getByText('Aborted')).toBeTruthy();
+    expect(screen.queryByRole('progressbar')).toBeNull();
+    expect(container.querySelector('.MuiChip-icon')).toBeNull();
+  });
+
   it('shows success without an icon when completed', () => {
     const { container } = render(<TaskStatusChip status="completed" />);
     expect(screen.getByText('Completed')).toBeTruthy();

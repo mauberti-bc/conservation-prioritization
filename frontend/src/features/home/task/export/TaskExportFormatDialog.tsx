@@ -49,7 +49,7 @@ export const TaskExportFormatDialog = ({
       open={open}
       onClose={onClose}
       dialogTitle="Create export"
-      dialogText="Select an export format for this completed task run."
+      dialogText="Select an export format."
       dialogProps={{ fullWidth: true, maxWidth: 'xs', onClose: isLoading ? undefined : onClose }}
       dialogContent={
         <>
@@ -71,6 +71,7 @@ export const TaskExportFormatDialog = ({
                   <Typography fontWeight={700}>{option.label}</Typography>
                   <Button
                     variant={isReady ? 'outlined' : 'contained'}
+                    disabled={option.format === 'geodatabase'}
                     loading={loadingFormat === option.format || isPreparing}
                     onClick={() => {
                       if (isReady) {

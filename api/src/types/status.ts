@@ -4,6 +4,7 @@ export const TASK_STATUS = {
   SUBMITTED: 'submitted',
   RUNNING: 'running',
   COMPLETED: 'completed',
+  ABORTED: 'aborted',
   FAILED: 'failed',
   FAILED_TO_SUBMIT: 'failed_to_submit'
 } as const;

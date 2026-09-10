@@ -83,15 +83,25 @@ export class TaskService extends DBService {
    * Sends an abort request to the flow currently associated with a task.
    *
    * @param {string} taskId Task whose Prefect flow should be cancelled.
-   * @returns {Promise<void>} Resolves when Prefect accepts cancellation.
-   * @throws {ApiConflictError} If the task has no dispatched flow.
+   * @returns {Promise<void>} Resolves after accepted cancellation is recorded as aborted.
+   * @throws {ApiConflictError} If the task is completed or has no dispatched flow.
    */
   async abortTask(taskId: string): Promise<void> {
     const task = await this.taskRepository.getTaskById(taskId);
+    if (task.status === TASK_STATUS.ABORTED) {
+      return;
+    }
+    if (task.status === TASK_STATUS.COMPLETED) {
+      throw new ApiConflictError('Completed tasks cannot be aborted.');
+    }
     if (!task.prefect_flow_run_id) {
       throw new ApiConflictError('This task has no dispatched flow to abort.');
     }
     await new PrefectService().cancelFlowRun(task.prefect_flow_run_id);
+    await this.taskRepository.updateTaskExecution(taskId, {
+      status: TASK_STATUS.ABORTED,
+      status_message: 'Abort requested. The workflow may still be stopping.'
+    });
   }
 
   /**

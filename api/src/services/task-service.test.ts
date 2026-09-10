@@ -20,6 +20,7 @@ import { TaskRunSolutionRepository } from '../repositories/task-run-solution-rep
 import { getMockDBConnection } from '../__mocks__/db';
 import { PrefectService } from './prefect-service';
 import { TaskService } from './task-service';
+import { TaskTileService } from './task-tile-service';
 
 const TASK_ID = '00000000-0000-4000-8000-000000000001';
 const TASK_RUN_ID = '00000000-0000-4000-8000-000000000002';
@@ -40,11 +41,17 @@ describe('TaskService export hydration', () => {
     try {
       const getTask = sinon
         .stub(TaskRepository.prototype, 'getTaskById')
-        .resolves({ ...buildTask(), prefect_flow_run_id: 'flow-id' });
+        .resolves({ ...buildTask(), status: 'running', prefect_flow_run_id: 'flow-id' });
       const cancel = sinon.stub(PrefectService.prototype, 'cancelFlowRun').resolves();
+      const update = sinon.stub(TaskRepository.prototype, 'updateTaskExecution').resolves();
       await new TaskService(getMockDBConnection()).abortTask(TASK_ID);
       expect(getTask).to.have.been.calledOnceWith(TASK_ID);
       expect(cancel).to.have.been.calledOnceWith('flow-id');
+      expect(update).to.have.been.calledOnceWith(TASK_ID, {
+        status: 'aborted',
+        status_message: 'Abort requested. The workflow may still be stopping.'
+      });
+      expect(cancel.calledBefore(update)).to.equal(true);
     } finally {
       if (originalUrl === undefined) {
         delete process.env.PREFECT_API_URL;
@@ -55,7 +62,9 @@ describe('TaskService export hydration', () => {
   });
 
   it('rejects abort when the task has no dispatched flow', async () => {
-    sinon.stub(TaskRepository.prototype, 'getTaskById').resolves({ ...buildTask(), prefect_flow_run_id: null });
+    sinon
+      .stub(TaskRepository.prototype, 'getTaskById')
+      .resolves({ ...buildTask(), status: 'running', prefect_flow_run_id: null });
     const cancel = sinon.stub(PrefectService.prototype, 'cancelFlowRun').resolves();
     try {
       await new TaskService(getMockDBConnection()).abortTask(TASK_ID);
@@ -64,6 +73,64 @@ describe('TaskService export hydration', () => {
       expect((error as Error).message).to.equal('This task has no dispatched flow to abort.');
     }
     expect(cancel).not.to.have.been.called;
+  });
+
+  it('does not record aborted when Prefect rejects cancellation', async () => {
+    const originalUrl = process.env.PREFECT_API_URL;
+    process.env.PREFECT_API_URL = 'http://prefect.example/api';
+    sinon.stub(TaskRepository.prototype, 'getTaskById').resolves({
+      ...buildTask(),
+      status: 'running',
+      prefect_flow_run_id: 'flow-id'
+    });
+    sinon.stub(PrefectService.prototype, 'cancelFlowRun').rejects(new Error('Cancellation failed'));
+    const update = sinon.stub(TaskRepository.prototype, 'updateTaskExecution').resolves();
+    try {
+      await new TaskService(getMockDBConnection()).abortTask(TASK_ID);
+      expect.fail('Expected cancellation failure');
+    } catch (error) {
+      expect((error as Error).message).to.equal('Cancellation failed');
+    } finally {
+      if (originalUrl === undefined) {
+        delete process.env.PREFECT_API_URL;
+      } else {
+        process.env.PREFECT_API_URL = originalUrl;
+      }
+    }
+    expect(update).not.to.have.been.called;
+  });
+
+  it('rejects abort for completed tasks', async () => {
+    sinon.stub(TaskRepository.prototype, 'getTaskById').resolves({ ...buildTask(), status: 'completed' });
+    const cancel = sinon.stub(PrefectService.prototype, 'cancelFlowRun').resolves();
+    try {
+      await new TaskService(getMockDBConnection()).abortTask(TASK_ID);
+      expect.fail('Expected completed task conflict');
+    } catch (error) {
+      expect((error as Error).message).to.equal('Completed tasks cannot be aborted.');
+    }
+    expect(cancel).not.to.have.been.called;
+  });
+
+  it('treats repeated abort requests as a no-op', async () => {
+    sinon.stub(TaskRepository.prototype, 'getTaskById').resolves({ ...buildTask(), status: 'aborted' });
+    const cancel = sinon.stub(PrefectService.prototype, 'cancelFlowRun').resolves();
+    await new TaskService(getMockDBConnection()).abortTask(TASK_ID);
+    expect(cancel).not.to.have.been.called;
+  });
+
+  it('rejects a blocked completion update without another query or tile submission', async () => {
+    const sql = sinon.stub().resolves({ rowCount: 0, rows: [] });
+    const service = new TaskService(getMockDBConnection({ sql }));
+    const submit = sinon.stub(TaskTileService.prototype, 'createDraftTileAndSubmit').resolves();
+    try {
+      await service.updateTaskStatus(TASK_ID, { status: 'completed' });
+      expect.fail('Expected blocked update error');
+    } catch (error) {
+      expect((error as Error).message).to.equal('Failed to update task execution metadata');
+    }
+    expect(sql).to.have.been.calledOnce;
+    expect(submit).not.to.have.been.called;
   });
 
   it('includes latest run exports and files on task details', async () => {

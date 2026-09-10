@@ -1,4 +1,4 @@
-import { Alert, Button, CircularProgress, Stack } from '@mui/material';
+import { CircularProgress, Stack } from '@mui/material';
 import axios from 'axios';
 import React, { PropsWithChildren, useCallback, useEffect, useRef, useState } from 'react';
 import { AuthContextProps, useAuth } from 'react-oidc-context';
@@ -30,10 +30,10 @@ export const AuthContext = React.createContext<IAuth | undefined>(undefined);
 /**
  * Provides authentication state and token recovery, waiting for profile registration before rendering signed-in content.
  *
- * Registration failures display a retry action; signed-out content renders without registration.
+ * Registration failures retry automatically behind the loading guard; signed-out content renders without registration.
  *
  * @param {PropsWithChildren} props The application content that consumes the authentication context.
- * @returns {React.JSX.Element} The context provider, a registration indicator, or a recoverable sign-in error.
+ * @returns {React.JSX.Element} The context provider or a registration loading guard.
  */
 export const AuthContextProvider = (props: PropsWithChildren) => {
   const auth = useAuth();
@@ -158,22 +158,24 @@ export const AuthContextProvider = (props: PropsWithChildren) => {
     };
   }, [profileKey, accessToken, config.API_HOST, registeredProfile, registrationAttempt]);
 
+  useEffect(() => {
+    if (!registrationFailed || !profileKey) {
+      return;
+    }
+
+    const retryTimeout = window.setTimeout(() => {
+      setRegistrationAttempt((attempt) => attempt + 1);
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(retryTimeout);
+    };
+  }, [registrationFailed, profileKey]);
+
   if (profileKey && registeredProfile !== profileKey) {
     return (
-      <Stack alignItems="center" justifyContent="center" minHeight="100vh" spacing={2}>
-        {registrationFailed ? (
-          <Alert
-            severity="error"
-            action={
-              <Button color="inherit" onClick={() => setRegistrationAttempt((attempt) => attempt + 1)}>
-                Retry
-              </Button>
-            }>
-            We couldn’t finish signing you in. Please try again.
-          </Alert>
-        ) : (
-          <CircularProgress aria-label="Finishing sign in" />
-        )}
+      <Stack alignItems="center" justifyContent="center" minHeight="100vh">
+        <CircularProgress size={64} aria-label="Finishing sign in" />
       </Stack>
     );
   }

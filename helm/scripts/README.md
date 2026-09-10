@@ -1,5 +1,8 @@
 # Using OpenShift Secrets with Helm Deployment
 
+For pipeline ordering, image retention, and failed-release recovery, see
+[Deployment and recovery](DEPLOYMENT.md).
+
 ## Overview
 
 This guide explains how to use OpenShift secrets in your deployment:

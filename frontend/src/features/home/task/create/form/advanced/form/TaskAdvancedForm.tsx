@@ -86,8 +86,15 @@ export const TaskAdvancedForm = ({ isReadOnly = false }: TaskAdvancedFormProps) 
         tooltip="The size of each decision unit. Source evidence keeps its published resolution and scientifically defined aggregation. Finer units cost more to analyze.">
         <CustomAutocomplete
           options={resolutionOptions}
+          getOptionDisabled={(option) => option.value === 30 || option.value === 60}
           value={resolutionOptions.find((o) => o.value === values.resolution)}
-          handleSelect={(option) => setFieldValue('resolution', option.value)}
+          handleSelect={async (option) => {
+            if (option.value === 30 || option.value === 60) {
+              return;
+            }
+
+            await setFieldValue('resolution', option.value);
+          }}
           disableClearable
           disabled={isReadOnly}
           sx={{ width: 250 }}

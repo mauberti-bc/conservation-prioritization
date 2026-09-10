@@ -45,6 +45,7 @@ describe('profile registration', () => {
   });
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
     vi.resetAllMocks();
   });
 
@@ -79,16 +80,39 @@ describe('profile registration', () => {
     expect(axios.put).toHaveBeenCalledOnce();
   });
 
-  it('allows retrying failed registration with the same token', async () => {
+  it('keeps the loading guard visible and automatically retries failed registration', async () => {
+    vi.useFakeTimers();
     vi.mocked(axios.put).mockRejectedValueOnce(new Error('Unavailable'));
     render(
       <AuthContextProvider>
         <Content />
       </AuthContextProvider>
     );
-    fireEvent.click(await screen.findByText('Retry'));
-    expect(await screen.findByText('Protected')).toBeTruthy();
+    await act(async () => {});
+    expect(screen.getByRole('progressbar', { name: 'Finishing sign in' })).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText('Protected')).toBeNull();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+    expect(screen.getByText('Protected')).toBeTruthy();
     expect(axios.put).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels a scheduled registration retry on unmount', async () => {
+    vi.useFakeTimers();
+    vi.mocked(axios.put).mockRejectedValueOnce(new Error('Unavailable'));
+    const view = render(
+      <AuthContextProvider>
+        <Content />
+      </AuthContextProvider>
+    );
+    await act(async () => {});
+    view.unmount();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+    expect(axios.put).toHaveBeenCalledOnce();
   });
 
   it('renews a rejected token even if its local expiry has not passed', async () => {

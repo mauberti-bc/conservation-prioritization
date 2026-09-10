@@ -10,7 +10,7 @@ describe('TaskExportFormatDialog', () => {
     cleanup();
   });
 
-  it('exports the selected format from each row', () => {
+  it('exports GeoTIFF while keeping the Geodatabase export button visible and disabled', () => {
     const onExport = vi.fn();
 
     render(
@@ -26,11 +26,14 @@ describe('TaskExportFormatDialog', () => {
     );
 
     const exportButtons = screen.getAllByRole('button', { name: 'Export' });
+    expect(screen.getByText('Geodatabase')).toBeTruthy();
+    expect(exportButtons[1].hasAttribute('disabled')).to.equal(true);
     fireEvent.click(exportButtons[0]);
     fireEvent.click(exportButtons[1]);
 
+    expect(onExport).toHaveBeenCalledOnce();
     expect(onExport).toHaveBeenCalledWith('geotiff');
-    expect(onExport).toHaveBeenCalledWith('geodatabase');
+    expect(onExport).not.toHaveBeenCalledWith('geodatabase');
   });
 
   it('downloads a ready export from its row', () => {
@@ -69,7 +72,7 @@ describe('TaskExportFormatDialog', () => {
     const exportButtons = screen.getAllByRole('button', { name: 'Export' });
 
     expect(exportButtons[0].hasAttribute('disabled')).to.equal(true);
-    expect(exportButtons[1].hasAttribute('disabled')).to.equal(false);
+    expect(exportButtons[1].hasAttribute('disabled')).to.equal(true);
   });
 
   it('shows loading for preparing exports without rendering Preparing text', () => {

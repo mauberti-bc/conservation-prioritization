@@ -9,6 +9,7 @@ export const TaskStatus = z.enum([
   'submitted',
   'running',
   'completed',
+  'aborted',
   'failed',
   'failed_to_submit'
 ]);
@@ -37,7 +38,7 @@ export const Task = z.object({
   status: TaskStatus, // Current task status
   status_message: z.string().max(500).nullable(), // Optional status message
   prefect_flow_run_id: z.string().uuid().nullable(), // Prefect flow run ID
-  prefect_deployment_id: z.string().uuid().nullable(), // Prefect deployment ID
+  prefect_deployment_id: z.string().uuid().nullable() // Prefect deployment ID
 });
 
 export type Task = z.infer<typeof Task>;

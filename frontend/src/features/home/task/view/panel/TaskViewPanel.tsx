@@ -1,8 +1,8 @@
 import { Alert, Button, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
-import { TaskViewPanelSkeleton } from 'features/skeleton/TaskViewPanelSkeleton';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { TaskCreateForm, TaskCreateFormValues } from 'features/home/task/create/form/TaskCreateForm';
+import { TaskViewPanelSkeleton } from 'features/skeleton/TaskViewPanelSkeleton';
 import { Formik } from 'formik';
 import { useConservationApi } from 'hooks/useConservationApi';
 import { useDialogContext, useTaskContext } from 'hooks/useContext';
@@ -235,7 +235,7 @@ export const TaskViewPanel = () => {
           }>
           <Formik initialValues={initialValues as TaskCreateFormValues} enableReinitialize onSubmit={async () => {}}>
             <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
-              <Box sx={{ px: 3, pt: 3, pb: 2, flex: '0 0 auto' }}>
+              <Box sx={{ px: 3, pt: 3, flex: '0 0 auto' }}>
                 <TaskViewPanelHeader
                   title={taskDataLoader.data?.name ?? 'Task'}
                   status={taskDataLoader.data?.status}
@@ -280,7 +280,7 @@ export const TaskViewPanel = () => {
                   minHeight: 0,
                   overflow: 'auto',
                   px: 3,
-                  pt: 1,
+                  pt: 0,
                   pb: 3,
                 }}>
                 {taskDataLoader.data?.latest_run?.status === 'failed' && (
@@ -315,6 +315,7 @@ export const TaskViewPanel = () => {
                   flex: '0 0 auto',
                 }}>
                 <Button
+                  sx={{ py: 2 }}
                   variant="contained"
                   color="primary"
                   fullWidth

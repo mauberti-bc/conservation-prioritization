@@ -45,6 +45,8 @@ import { TaskViewPanel } from '../task/view/panel/TaskViewPanel';
 import { DrawControls } from './draw/DrawControls';
 import { MapContainer } from './MapContainer';
 
+const EXPORT_POLL_INTERVAL_MS = 10_000;
+const MAX_EXPORT_POLL_ATTEMPTS = 10;
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 25;
 const DEFAULT_SORT = 'created_at';
@@ -102,6 +104,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [exportTask, setExportTask] = useState<GetTaskResponse | null>(null);
   const [exportLoadingFormat, setExportLoadingFormat] = useState<TaskExportFormat | null>(null);
+  const [exportRequestVersion, setExportRequestVersion] = useState(0);
   const [exportError, setExportError] = useState<string | null>(null);
   const routeSegment = location.pathname.replace(/^\/map\/?/, '').split('/')[0] || null;
   const isCreating = mode === 'create' || routeSegment === 'new';
@@ -142,17 +145,20 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
   }, [currentPage, tasksDataLoader.data?.pagination]);
 
   useEffect(() => {
-    if (!exportRunId || exportLoadingFormat) {
+    if (!exportRunId) {
       return;
     }
 
     let cancelled = false;
+    let pollAttempts = 0;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     /** Refreshes the selected run's exports without overlapping requests or updating a closed dialog. */
     const refreshExports = async (): Promise<void> => {
+      let shouldPoll = true;
       try {
         const exports = await getTaskExportsRef.current(exportRunId);
+        shouldPoll = exports.some((taskExport) => taskExport.status === 'queued' || taskExport.status === 'running');
         if (!cancelled) {
           setExportTask((task) => {
             if (!task?.latest_run || task.latest_run.task_run_id !== exportRunId) {
@@ -164,18 +170,28 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
       } catch (error) {
         console.error('Failed to refresh task exports', error);
       } finally {
-        if (!cancelled) {
-          timeoutId = setTimeout(refreshExports, 2000);
+        if (!cancelled && shouldPoll && pollAttempts < MAX_EXPORT_POLL_ATTEMPTS) {
+          timeoutId = setTimeout(pollExports, EXPORT_POLL_INTERVAL_MS);
         }
       }
     };
 
-    void refreshExports();
+    /** Counts each scheduled refresh, including failed requests, toward the polling limit. */
+    const pollExports = async (): Promise<void> => {
+      pollAttempts += 1;
+      await refreshExports();
+    };
+
+    if (exportRequestVersion) {
+      timeoutId = setTimeout(pollExports, EXPORT_POLL_INTERVAL_MS);
+    } else {
+      void refreshExports();
+    }
     return () => {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [exportRunId, exportLoadingFormat]);
+  }, [exportRunId, exportRequestVersion]);
 
   useEffect(() => {
     void refreshTasksRef.current(taskPaginationOptions);
@@ -294,6 +310,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
       }
 
       setExportError(null);
+      setExportRequestVersion(0);
       setExportTask(task);
     },
     [dialogContext]
@@ -347,6 +364,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
         setExportLoadingFormat(format);
         setExportError(null);
         const createdExport = await conservationApi.task.createTaskExport(runId, { format });
+        setExportRequestVersion((version) => version + 1);
         setExportTask((currentTask) => {
           if (!currentTask?.latest_run || currentTask.task_id !== exportTask.task_id) {
             return currentTask;
@@ -753,6 +771,8 @@ const MapTaskListItem = ({
   onEditTask,
   onDownloadTask,
 }: MapTaskListItemProps) => {
+  const showAbort = task.status !== TASK_STATUS.COMPLETED && task.status !== TASK_STATUS.ABORTED;
+
   return (
     <ListItem key={task.task_id} disablePadding>
       <InteractiveListItemButton
@@ -779,9 +799,21 @@ const MapTaskListItem = ({
           }}>
           <IconMenuButton
             items={[
+              ...(showAbort
+                ? [
+                    {
+                      label: 'Abort',
+                      icon: mdiStopCircleOutline,
+                      onClick: () => {
+                        onAbortTask(task);
+                      },
+                    },
+                  ]
+                : []),
               {
                 label: 'Export',
                 icon: mdiDownload,
+                dividerBefore: showAbort,
                 onClick: () => {
                   void onDownloadTask(task);
                 },
@@ -798,13 +830,6 @@ const MapTaskListItem = ({
                 icon: mdiPencilOutline,
                 onClick: () => {
                   onEditTask(task);
-                },
-              },
-              {
-                label: 'Abort',
-                icon: mdiStopCircleOutline,
-                onClick: () => {
-                  onAbortTask(task);
                 },
               },
               {

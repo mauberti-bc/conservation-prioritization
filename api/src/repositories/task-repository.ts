@@ -351,6 +351,7 @@ export class TaskRepository extends BaseRepository {
 
   /**
    * Updates task execution metadata like status and Prefect IDs.
+   * Rejects updates to aborted tasks unless dispatching a different flow run.
    *
    * @param {string} taskId - The UUID of the task to update.
    * @param {UpdateTaskExecution} updates - The execution metadata to update.
@@ -404,6 +405,11 @@ export class TaskRepository extends BaseRepository {
         task_id = ${taskId}
       AND
         record_end_date IS NULL
+      AND (
+        status <> 'aborted'
+        OR (${updates.prefect_flow_run_id ?? null}::uuid IS NOT NULL
+          AND prefect_flow_run_id IS DISTINCT FROM ${updates.prefect_flow_run_id ?? null}::uuid)
+      )
       RETURNING task_id, type, name, description, resolution, resampling, tileset_uri, output_uri, status, status_message, prefect_flow_run_id, prefect_deployment_id
     `);
 

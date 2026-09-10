@@ -50,11 +50,11 @@ describe('TaskViewPanelHeader', () => {
     ]);
   });
 
-  it('does not render abort for completed tasks', () => {
+  it.each([TASK_STATUS.COMPLETED, TASK_STATUS.ABORTED])('does not render abort for %s tasks', (status) => {
     render(
       <TaskViewPanelHeader
         title="Task"
-        status={TASK_STATUS.COMPLETED}
+        status={status}
         onClose={vi.fn()}
         onEdit={vi.fn()}
         onShare={vi.fn()}

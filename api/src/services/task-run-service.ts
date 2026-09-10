@@ -476,6 +476,9 @@ export class TaskRunService extends DBService {
       }
     }
     await this.taskRunRepository.updateTaskRun(taskRunId, updates);
+    if (updates.status === 'cancelled') {
+      await this.taskService.updateTaskExecution(current.task_id, { status: 'aborted', status_message: null });
+    }
     if (updates.status === 'running') {
       await this.taskService.updateTaskExecution(current.task_id, { status: 'running', status_message: null });
     }

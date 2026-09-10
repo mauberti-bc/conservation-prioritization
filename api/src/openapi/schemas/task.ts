@@ -125,7 +125,7 @@ export const GetTaskSchema: OpenAPIV3.SchemaObject = {
     output_uri: { type: 'string', nullable: true },
     status: {
       type: 'string',
-      enum: ['draft', 'pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit']
+      enum: ['draft', 'pending', 'submitted', 'running', 'completed', 'aborted', 'failed', 'failed_to_submit']
     },
     status_message: { type: 'string', nullable: true },
     latest_run: { ...TaskRunSchema, nullable: true, additionalProperties: true }
@@ -144,7 +144,7 @@ export const UpdateTaskSchema: OpenAPIV3.SchemaObject = {
     resampling: { type: 'string', enum: ['mode', 'min', 'max'], nullable: true },
     status: {
       type: 'string',
-      enum: ['draft', 'pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit']
+      enum: ['draft', 'pending', 'submitted', 'running', 'completed', 'aborted', 'failed', 'failed_to_submit']
     }
   }
 };
@@ -156,7 +156,7 @@ export const TaskStatusUpdateSchema: OpenAPIV3.SchemaObject = {
   properties: {
     status: {
       type: 'string',
-      enum: ['draft', 'pending', 'submitted', 'running', 'completed', 'failed', 'failed_to_submit']
+      enum: ['draft', 'pending', 'submitted', 'running', 'completed', 'aborted', 'failed', 'failed_to_submit']
     },
     message: { type: 'string', nullable: true },
     output_uri: { type: 'string', nullable: true }

@@ -29,6 +29,9 @@ export const getTaskStatusLabel = (status: TaskStatusValue): string => {
     case 'completed': {
       return 'Completed';
     }
+    case 'aborted': {
+      return 'Aborted';
+    }
     case 'failed': {
       return 'Failed';
     }
