@@ -1,5 +1,6 @@
-import { mdiDeleteOutline, mdiPencilOutline } from '@mdi/js';
-import { Box, Paper, Stack, Typography } from '@mui/material';
+import { mdiDeleteOutline, mdiImageFilterCenterFocusWeak, mdiPencilOutline } from '@mdi/js';
+import Icon from '@mdi/react';
+import { Box, IconButton, Paper, Stack, Typography } from '@mui/material';
 import { grey } from '@mui/material/colors';
 import { IconMenuButton } from 'components/button/IconMenuButton';
 import { useFormikContext } from 'formik';
@@ -81,17 +82,6 @@ export const TaskGeometryForm = ({ geometry, onDelete, isReadOnly = false }: Tas
           <Paper
             key={g.id}
             variant="outlined"
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              handleZoomToGeometry(g);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                handleZoomToGeometry(g);
-              }
-            }}
             sx={{
               py: 1,
               px: 2,
@@ -100,7 +90,6 @@ export const TaskGeometryForm = ({ geometry, onDelete, isReadOnly = false }: Tas
               justifyContent: 'space-between',
               alignItems: 'center',
               overflow: 'hidden', // ensure content doesn't overflow Paper
-              cursor: 'pointer',
             }}>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', minWidth: 0, flex: 1 }}>
               <Typography variant="body2" fontWeight={700} noWrap sx={{ flexShrink: 0 }}>
@@ -116,6 +105,15 @@ export const TaskGeometryForm = ({ geometry, onDelete, isReadOnly = false }: Tas
                 </Typography>
               )}
             </Box>
+
+            <IconButton
+              aria-label={`Zoom to ${g.name}`}
+              size="small"
+              onClick={() => {
+                handleZoomToGeometry(g);
+              }}>
+              <Icon path={mdiImageFilterCenterFocusWeak} size={0.8} />
+            </IconButton>
 
             {!isReadOnly && (
               <Box
