@@ -40,13 +40,13 @@ export const CreateDraftTaskDialog = ({ open, onClose }: CreateDraftTaskDialogPr
       setIsSaving(true);
       setError(null);
 
-      const createdTask = await conservationApi.task.createDraftTask({
+      await conservationApi.task.createDraftTask({
         name: values.name,
         description: values.description.trim() ? values.description.trim() : null,
       });
 
       onClose();
-      navigate(`/t/${createdTask.task_id}`);
+      navigate('/map');
 
       dialogContext.setSnackbar({
         open: true,

@@ -105,6 +105,13 @@ export const TaskViewPanel = () => {
     });
   };
 
+  const handleDownloadTask = () => {
+    dialogContext.setSnackbar({
+      open: true,
+      snackbarMessage: 'Task export download is not available yet.',
+    });
+  };
+
   const canRetryPublication = useMemo(() => {
     const run = taskDataLoader.data?.latest_run;
     if (!run || run.status !== 'failed') {
@@ -198,6 +205,7 @@ export const TaskViewPanel = () => {
                     setInviteOpen(true);
                   }}
                   onDelete={handleDeleteTask}
+                  onDownload={handleDownloadTask}
                 />
               </Box>
 

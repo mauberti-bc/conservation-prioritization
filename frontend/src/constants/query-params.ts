@@ -1,5 +1,5 @@
 export const QUERY_PARAM = {
-  // VIEW: controls HomePage active sidebar view (tasks/projects/layers)
+  // VIEW: controls the active sidebar view (tasks/projects/layers)
   VIEW: 'v',
 } as const;
 

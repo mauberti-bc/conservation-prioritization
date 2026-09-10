@@ -7,7 +7,7 @@ interface CreateTaskDialogProps {
   onCloseNavigateTo?: string;
 }
 
-export const CreateTaskDialog = ({ onCloseNavigateTo = '/t/' }: CreateTaskDialogProps) => {
+export const CreateTaskDialog = ({ onCloseNavigateTo = '/map' }: CreateTaskDialogProps) => {
   const navigate = useNavigate();
   const submitRef = useRef<(() => void) | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

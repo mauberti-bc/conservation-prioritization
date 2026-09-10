@@ -3,13 +3,8 @@ import { LayerSelectionContextProvider } from 'context/layerSelectionContext';
 import { MapContextProvider } from 'context/mapContext';
 import { ProjectContextProvider } from 'context/projectContext';
 import { SidebarUIContextProvider } from 'context/sidebarUIContext';
-import { TaskContextProvider } from 'context/taskContext';
 import { RequestAccessPage } from 'features/access/RequestAccessPage';
-import { DashboardPage } from 'features/dashboard/DashboardPage';
-import { CreateTaskPage } from 'features/home/CreateTaskPage';
-import { HomePage } from 'features/home/HomePage';
 import { MapPage } from 'features/home/map/MapPage';
-import { ViewTaskPage } from 'features/home/ViewTaskPage';
 import { PublicTaskDashboardPage } from 'features/public/PublicTaskDashboardPage';
 import { AuthRedirectGuard } from 'guards/Guards';
 import { useAuthContext } from 'hooks/useContext';
@@ -52,27 +47,7 @@ export const AppRouter = () => {
         }
       />
       <Route
-        path="/t/:taskId/dashboard/:dashboardId"
-        element={
-          <DialogContextProvider>
-            <MapContextProvider>
-              <BaseLayout>
-                <SidebarUIContextProvider>
-                  <TaskContextProvider>
-                    <ProjectContextProvider>
-                      <LayerSelectionContextProvider>
-                        <DashboardPage />
-                      </LayerSelectionContextProvider>
-                    </ProjectContextProvider>
-                  </TaskContextProvider>
-                </SidebarUIContextProvider>
-              </BaseLayout>
-            </MapContextProvider>
-          </DialogContextProvider>
-        }
-      />
-      <Route
-        path="/map"
+        path="/map/*"
         element={
           <AuthRedirectGuard redirectTo="/auth/login">
             <DialogContextProvider>
@@ -92,90 +67,7 @@ export const AppRouter = () => {
         }
       />
       <Route
-        path="/map/new"
-        element={
-          <AuthRedirectGuard redirectTo="/auth/login">
-            <DialogContextProvider>
-              <MapContextProvider>
-                <BaseLayout>
-                  <SidebarUIContextProvider>
-                    <ProjectContextProvider>
-                      <LayerSelectionContextProvider>
-                        <MapPage mode="create" />
-                      </LayerSelectionContextProvider>
-                    </ProjectContextProvider>
-                  </SidebarUIContextProvider>
-                </BaseLayout>
-              </MapContextProvider>
-            </DialogContextProvider>
-          </AuthRedirectGuard>
-        }
-      />
-      <Route
-        path="/t/new"
-        element={
-          <AuthRedirectGuard redirectTo="/auth/login">
-            <DialogContextProvider>
-              <MapContextProvider>
-                <BaseLayout>
-                  <SidebarUIContextProvider>
-                    <ProjectContextProvider>
-                      <LayerSelectionContextProvider>
-                        <CreateTaskPage />
-                      </LayerSelectionContextProvider>
-                    </ProjectContextProvider>
-                  </SidebarUIContextProvider>
-                </BaseLayout>
-              </MapContextProvider>
-            </DialogContextProvider>
-          </AuthRedirectGuard>
-        }
-      />
-      <Route
-        path="/t/"
-        element={
-          <AuthRedirectGuard redirectTo="/auth/login">
-            <DialogContextProvider>
-              <MapContextProvider>
-                <BaseLayout>
-                  <SidebarUIContextProvider>
-                    <ProjectContextProvider>
-                      <LayerSelectionContextProvider>
-                        <HomePage />
-                      </LayerSelectionContextProvider>
-                    </ProjectContextProvider>
-                  </SidebarUIContextProvider>
-                </BaseLayout>
-              </MapContextProvider>
-            </DialogContextProvider>
-          </AuthRedirectGuard>
-        }
-      />
-      <Route
-        path="/t/:taskId"
-        element={
-          <AuthRedirectGuard redirectTo="/auth/login">
-            <DialogContextProvider>
-              <MapContextProvider>
-                <BaseLayout>
-                  <SidebarUIContextProvider>
-                    <TaskContextProvider>
-                      <ProjectContextProvider>
-                        <LayerSelectionContextProvider>
-                          <ViewTaskPage />
-                        </LayerSelectionContextProvider>
-                      </ProjectContextProvider>
-                    </TaskContextProvider>
-                  </SidebarUIContextProvider>
-                </BaseLayout>
-              </MapContextProvider>
-            </DialogContextProvider>
-          </AuthRedirectGuard>
-        }
-      />
-
-      <Route
-        path="/t/request-access"
+        path="/request-access"
         element={
           <AuthRedirectGuard redirectTo="/auth/login">
             <BaseLayout>
@@ -195,6 +87,7 @@ export const AppRouter = () => {
         }
       />
       <Route path="/" element={<RootRoute />} />
+      <Route path="/t/*" element={<Navigate to="/map" replace />} />
       <Route path="*" element={<Navigate to="/map" replace />} />
     </Routes>
   );

@@ -81,7 +81,8 @@ export const CreateTaskDialogContent = ({
               hideInternalActions
               onSubmittingChange={onSubmittingChange}
               onSubmitSuccess={(task) => {
-                navigate(`/t/${task.task_id}`);
+                void task;
+                navigate('/map');
               }}
             />
           </Box>

@@ -9,7 +9,7 @@ import { HeaderUnauthenticated } from './unauthenticated/HeaderUnauthenticated';
 export const Header = () => {
   const authContext = useAuthContext();
   const isAuthenticated = Boolean(authContext.auth.isAuthenticated);
-  const homeLink = isAuthenticated ? '/t/' : '/auth/login';
+  const homeLink = isAuthenticated ? '/map' : '/auth/login';
 
   return (
     <AppBar

@@ -143,7 +143,7 @@ export const CreateTask = ({
                     return;
                   }
 
-                  navigate('/t/');
+                  navigate('/map');
                 }}
                 edge="end"
                 size="small">

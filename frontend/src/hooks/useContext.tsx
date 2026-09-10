@@ -68,9 +68,9 @@ export const useConfigContext = (): IConfig => {
 };
 
 /**
- * Returns an instance of `ITask` from `TaskContext`.
+ * Returns an instance of `ITaskContext` from `TaskContext`.
  *
- * @return {*}  {ITask}
+ * @return {*}  {ITaskContext}
  */
 export const useTaskContext = (): ITaskContext => {
   const context = useContext(TaskContext);

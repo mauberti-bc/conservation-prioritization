@@ -64,10 +64,10 @@ export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>
     (task: GetTaskResponse | null) => {
       setHoveredTilesetUri(null);
       if (task) {
-        navigate(`/t/${task.task_id}`);
+        navigate(`/map/${task.task_id}`);
         taskDataLoader.setData(task);
       } else {
-        navigate('/t/');
+        navigate('/map');
         taskDataLoader.clearData();
         setHoveredTilesetUri(null); // clear hovered layer too
       }
