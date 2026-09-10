@@ -45,7 +45,9 @@ spec:
             - name: HOME
               value: "/home/app"
             - name: PREFECT_HOME
-              value: "/tmp/.prefect"
+              value: {{ printf "%s/.prefect" ($profile.scratchRoot | default "/workflow-scratch") | quote }}
+            - name: TMPDIR
+              value: {{ $profile.scratchRoot | default "/workflow-scratch" | quote }}
             - name: PREFECT_API_URL
               value: "{{ $root.Values.env.PREFECT_API_URL }}"
             - name: ZARR_STORE_PATH
@@ -73,7 +75,9 @@ spec:
             - name: HOME
               value: "/home/app"
             - name: PREFECT_HOME
-              value: "/tmp/.prefect"
+              value: {{ printf "%s/.prefect" ($profile.scratchRoot | default "/workflow-scratch") | quote }}
+            - name: TMPDIR
+              value: {{ $profile.scratchRoot | default "/workflow-scratch" | quote }}
             - name: PREFECT_API_URL
               value: "{{ $root.Values.env.PREFECT_API_URL }}"
             - name: ZARR_STORE_PATH

@@ -2,6 +2,8 @@ environment:
   id: "test"
   name: "test"
 
+# Memory limits: 1536Mi for running services + 512Mi for deployment hooks = 2Gi.
+# Prefect receives 1088Mi of the running-service budget (704Mi worker + 384Mi server).
 prefect-server:
   ingress:
     host:
@@ -26,10 +28,10 @@ prefect-server:
     resources:
       requests:
         cpu: 50m
-        memory: 512Mi
+        memory: 384Mi
       limits:
         cpu: 100m
-        memory: 768Mi
+        memory: 384Mi
     podSecurityContext:
       runAsUser: 1003620000
       fsGroup: null
@@ -67,6 +69,11 @@ database:
 
 services:
   frontend:
+    resources:
+      requests:
+        memory: 64Mi
+      limits:
+        memory: 64Mi
     image:
       tag: "test"
     securityContext:
@@ -82,13 +89,17 @@ services:
         fsGroup: 1003620000
       profiles:
         sparse-solver:
+          executionProfile: test-704mi
+          # Leave 320Mi of the pod limit for Prefect and orchestration overhead.
+          daskWorkerMemory: 384MiB
+          maxPeakMemoryBytes: 402653184
           resources:
             requests:
               cpu: 100m
-              memory: 512Mi
+              memory: 704Mi
             limits:
               cpu: "2"
-              memory: 1Gi
+              memory: 704Mi
 
     deploy:
       image:
@@ -98,6 +109,11 @@ services:
         fsGroup: 1003620000
 
   api:
+    resources:
+      requests:
+        memory: 128Mi
+      limits:
+        memory: 128Mi
     image:
       tag: "test"
     route:
@@ -107,6 +123,11 @@ services:
       fsGroup: 1003620000
 
   db:
+    resources:
+      requests:
+        memory: 256Mi
+      limits:
+        memory: 256Mi
     image:
       tag: "test"
     securityContext:

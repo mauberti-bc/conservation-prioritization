@@ -1,3 +1,5 @@
+# Memory limits: 1536Mi for running services + 512Mi for deployment hooks = 2Gi.
+# Prefect receives 1088Mi of the running-service budget (704Mi worker + 384Mi server).
 prefect-server:
   ingress:
     host:
@@ -8,27 +10,50 @@ prefect-server:
     resources:
       requests:
         cpu: 50m
-        memory: 512Mi
+        memory: 384Mi
       limits:
         cpu: 100m
-        memory: 768Mi
+        memory: 384Mi
 
 services:
+  frontend:
+    resources:
+      requests:
+        memory: 64Mi
+      limits:
+        memory: 64Mi
+
   workflows:
     worker:
       profiles:
         sparse-solver:
+          executionProfile: dev-704mi
+          # Leave 320Mi of the pod limit for Prefect and orchestration overhead.
+          daskWorkerMemory: 384MiB
+          maxPeakMemoryBytes: 402653184
           resources:
             requests:
               cpu: 100m
-              memory: 512Mi
+              memory: 704Mi
             limits:
               cpu: "2"
-              memory: 1Gi
+              memory: 704Mi
 
   api:
+    resources:
+      requests:
+        memory: 128Mi
+      limits:
+        memory: 128Mi
     route:
       host: "conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"
+
+  db:
+    resources:
+      requests:
+        memory: 256Mi
+      limits:
+        memory: 256Mi
 
 env:
   NODE_ENV: "development"

@@ -12,6 +12,40 @@ from src.utils.task_run_concurrency import (
 
 
 class PrefectConfigurationTest(unittest.TestCase):
+    def test_environment_memory_budgets_include_deployment_headroom(self) -> None:
+        """Keep each environment's services and largest deployment hook within 2 GiB."""
+        repository = Path(__file__).resolve().parents[2]
+        chart = repository / "helm" / "conservation-tool"
+        base = yaml.safe_load((chart / "values.yaml").read_text(encoding="utf-8"))
+        for environment in ("dev", "test", "prod"):
+            with self.subTest(environment=environment):
+                values = yaml.safe_load((chart / f"values-{environment}.yaml").read_text(encoding="utf-8"))
+                services = values["services"]
+                profile = services["workflows"]["worker"]["profiles"]["sparse-solver"]
+                resources = [
+                    services[name]["resources"] for name in ("api", "db", "frontend")
+                ] + [profile["resources"], values["prefect-server"]["server"]["resources"]]
+                hook_resources = [
+                    base["services"]["workflows"]["deploy"]["resources"],
+                    base["services"]["dbSetup"]["resources"],
+                    base["prefect-server"]["migrations"]["resources"],
+                ]
+                for resource_type in ("requests", "limits"):
+                    running_mib = sum(
+                        int(resource[resource_type]["memory"].removesuffix("Mi"))
+                        for resource in resources
+                    )
+                    hook_mib = max(
+                        int(resource[resource_type]["memory"].removesuffix("Mi"))
+                        for resource in hook_resources
+                    )
+                    self.assertEqual(2048, running_mib + hook_mib)
+
+                worker_bytes = int(profile["resources"]["limits"]["memory"].removesuffix("Mi")) * 1024**2
+                dask_bytes = int(profile["daskWorkerMemory"].removesuffix("MiB")) * 1024**2
+                self.assertLess(dask_bytes, worker_bytes)
+                self.assertLess(profile["maxPeakMemoryBytes"], worker_bytes)
+
     def test_continuous_and_discrete_optimization_are_deployed(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         configuration = yaml.safe_load(
