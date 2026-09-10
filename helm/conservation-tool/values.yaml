@@ -95,7 +95,7 @@ keycloak:
 # ========================
 prefect-server:
   route:
-    enabled: false
+    enabled: true
     name: prefect-server
     serviceName: prefect-server
     targetPort: server-svc-port
@@ -111,7 +111,7 @@ prefect-server:
     name: "prefect-server"
 
   ui:
-    enabled: false
+    enabled: true
     podSecurityContext:
       runAsUser: 1003600000
       fsGroup: null
@@ -163,6 +163,8 @@ prefect-server:
         cpu: 100m
         memory: 512Mi
     env:
+      - name: PREFECT_UI_ENABLED
+        value: "true"
       - name: PREFECT_HOME
         value: /tmp/prefect
     extraVolumes:

@@ -5,6 +5,9 @@ environment:
 # Memory limits: 1536Mi for running services + 512Mi for deployment hooks = 2Gi.
 # Prefect receives 1088Mi of the running-service budget (704Mi worker + 384Mi server).
 prefect-server:
+  ingress:
+    host:
+      hostname: "conservation-tool-prefect-server-fa9440-prod.apps.gold.devops.gov.bc.ca"
   ui:
     podSecurityContext:
       runAsUser: 1003590000
@@ -19,6 +22,8 @@ prefect-server:
           - ALL
 
   server:
+    uiConfig:
+      prefectUiApiUrl: "https://conservation-tool-prefect-server-fa9440-prod.apps.gold.devops.gov.bc.ca/api"
     resources:
       requests:
         cpu: 50m
