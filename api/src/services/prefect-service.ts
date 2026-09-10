@@ -3,6 +3,7 @@ import { ApiGeneralError } from '../errors/api-error';
 import { TaskType } from '../models/task';
 import { TaskRunExecutionMethod } from '../models/task-run';
 import { getLogger } from '../utils/logger';
+import { PrefectStateTransitionResponse } from './prefect-service.interface';
 
 const defaultLog = getLogger(__filename);
 
@@ -39,6 +40,32 @@ export class PrefectService {
       baseURL: baseUrl,
       headers: this.buildHeaders()
     });
+  }
+
+  /**
+   * Requests worker cancellation without forcing a terminal state.
+   *
+   * @param {string} flowRunId Prefect flow run associated with the task.
+   * @returns {Promise<void>} Resolves for accepted or already requested cancellation.
+   * @throws {ApiGeneralError} If Prefect is unavailable or refuses cancellation.
+   */
+  async cancelFlowRun(flowRunId: string): Promise<void> {
+    try {
+      const { data } = await this.axios.post<PrefectStateTransitionResponse>(`/flow_runs/${flowRunId}/set_state`, {
+        state: { type: 'CANCELLING', message: 'Abort requested by a conservation task user.' },
+        force: false
+      });
+      if (
+        !['ACCEPT', 'REJECT'].includes(data.status) ||
+        !data.state ||
+        !['CANCELLING', 'CANCELLED'].includes(data.state.type)
+      ) {
+        throw new ApiGeneralError('Prefect did not accept the cancellation request.', []);
+      }
+    } catch (error) {
+      defaultLog.error({ label: 'PrefectService.cancelFlowRun', error });
+      throw new ApiGeneralError('Failed to cancel Prefect flow run', ['PrefectService.cancelFlowRun']);
+    }
   }
 
   /**

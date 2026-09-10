@@ -62,13 +62,6 @@ export const TaskAdvancedForm = ({ isReadOnly = false }: TaskAdvancedFormProps) 
 
         <Stack gap={0.25}>
           <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Evidence resolution
-          </Typography>
-          <Typography variant="body2">Source-layer resolution (typically 30 m)</Typography>
-        </Stack>
-
-        <Stack gap={0.25}>
-          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Optimization Mode
           </Typography>
           <Typography variant="body2">{selectedMode?.label ?? values.optimizationMode}</Typography>
@@ -125,12 +118,6 @@ export const TaskAdvancedForm = ({ isReadOnly = false }: TaskAdvancedFormProps) 
             sx={{ width: 140 }}
           />
         </Stack>
-      </TaskAdvancedInputRow>
-
-      <TaskAdvancedInputRow
-        label="Evidence resolution"
-        tooltip="Evidence resolution is declared independently by each immutable source layer. Aggregation is defined by that layer's scientific contract.">
-        <Typography variant="body2">Source-layer resolution (typically 30 m)</Typography>
       </TaskAdvancedInputRow>
 
       <TaskAdvancedInputRow

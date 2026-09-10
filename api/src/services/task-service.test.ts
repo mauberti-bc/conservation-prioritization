@@ -18,6 +18,7 @@ import { TaskRunAreaRepository } from '../repositories/task-run-area-repository'
 import { TaskRunRepository } from '../repositories/task-run-repository';
 import { TaskRunSolutionRepository } from '../repositories/task-run-solution-repository';
 import { getMockDBConnection } from '../__mocks__/db';
+import { PrefectService } from './prefect-service';
 import { TaskService } from './task-service';
 
 const TASK_ID = '00000000-0000-4000-8000-000000000001';
@@ -31,6 +32,38 @@ const AREA_ID = '00000000-0000-4000-8000-000000000007';
 describe('TaskService export hydration', () => {
   afterEach(() => {
     sinon.restore();
+  });
+
+  it('aborts only the flow associated with the requested task', async () => {
+    const originalUrl = process.env.PREFECT_API_URL;
+    process.env.PREFECT_API_URL = 'http://prefect.example/api';
+    try {
+      const getTask = sinon
+        .stub(TaskRepository.prototype, 'getTaskById')
+        .resolves({ ...buildTask(), prefect_flow_run_id: 'flow-id' });
+      const cancel = sinon.stub(PrefectService.prototype, 'cancelFlowRun').resolves();
+      await new TaskService(getMockDBConnection()).abortTask(TASK_ID);
+      expect(getTask).to.have.been.calledOnceWith(TASK_ID);
+      expect(cancel).to.have.been.calledOnceWith('flow-id');
+    } finally {
+      if (originalUrl === undefined) {
+        delete process.env.PREFECT_API_URL;
+      } else {
+        process.env.PREFECT_API_URL = originalUrl;
+      }
+    }
+  });
+
+  it('rejects abort when the task has no dispatched flow', async () => {
+    sinon.stub(TaskRepository.prototype, 'getTaskById').resolves({ ...buildTask(), prefect_flow_run_id: null });
+    const cancel = sinon.stub(PrefectService.prototype, 'cancelFlowRun').resolves();
+    try {
+      await new TaskService(getMockDBConnection()).abortTask(TASK_ID);
+      expect.fail('Expected missing flow error');
+    } catch (error) {
+      expect((error as Error).message).to.equal('This task has no dispatched flow to abort.');
+    }
+    expect(cancel).not.to.have.been.called;
   });
 
   it('includes latest run exports and files on task details', async () => {

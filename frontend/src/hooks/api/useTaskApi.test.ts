@@ -2,6 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { useTaskApi } from './useTaskApi';
 
 describe('useTaskApi task export methods', () => {
+  it('posts an abort request using the task ID', async () => {
+    const post = vi.fn().mockResolvedValue({});
+    await useTaskApi({ post } as any).abortTask('task-id');
+    expect(post).toHaveBeenCalledWith('/api/task/task-id/abort');
+  });
+
   it('creates task exports with the selected format', async () => {
     const post = vi.fn().mockResolvedValue({ data: { task_export_id: 'export-id' } });
     const api = useTaskApi({ post } as any);

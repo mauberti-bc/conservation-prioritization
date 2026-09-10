@@ -4,7 +4,7 @@ import { Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import { TaskStatusChip } from 'components/chip/TaskStatusChip';
-import { TaskStatusValue } from 'constants/status';
+import { TASK_STATUS, TaskStatusValue } from 'constants/status';
 import { TaskViewPanelActionsMenu } from './TaskViewPanelActionsMenu';
 
 interface TaskViewPanelHeaderProps {
@@ -13,15 +13,18 @@ interface TaskViewPanelHeaderProps {
   onClose: () => void;
   onEdit: () => void;
   onShare: () => void;
+  onAbort: () => void;
   onDelete: () => void;
 }
 
+/** Renders the task header actions. */
 export const TaskViewPanelHeader = ({
   title,
   status,
   onClose,
   onEdit,
   onShare,
+  onAbort,
   onDelete,
 }: TaskViewPanelHeaderProps) => {
   return (
@@ -33,7 +36,13 @@ export const TaskViewPanelHeader = ({
         {title}
       </Typography>
       {status && <TaskStatusChip status={status} sx={{ flex: '0 0 auto' }} />}
-      <TaskViewPanelActionsMenu onEdit={onEdit} onShare={onShare} onDelete={onDelete} />
+      <TaskViewPanelActionsMenu
+        showAbort={status !== TASK_STATUS.COMPLETED}
+        onEdit={onEdit}
+        onShare={onShare}
+        onAbort={onAbort}
+        onDelete={onDelete}
+      />
       <IconButton aria-label="Close task" onClick={onClose} edge="end" size="small">
         <Icon path={mdiClose} size={1} />
       </IconButton>

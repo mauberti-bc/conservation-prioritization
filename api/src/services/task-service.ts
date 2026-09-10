@@ -1,4 +1,5 @@
 import { IDBConnection } from '../database/db';
+import { ApiConflictError } from '../errors/api-error';
 import { ApiPaginationOptions, ApiPaginationResults } from '../models/pagination';
 import { CreateTask, DeleteTask, Task, TaskStatus, UpdateTask, UpdateTaskExecution } from '../models/task';
 import { TaskExportWithFiles } from '../models/task-export.interface';
@@ -26,6 +27,7 @@ import { normalizeTaskStatus, normalizeTileStatus } from '../utils/status';
 import { TASK_ROLE } from './authorization-service.interface';
 import { DBService } from './db-service';
 import { InviteProfilesResult } from './invite-profiles.interface';
+import { PrefectService } from './prefect-service';
 import { TaskPermissionService } from './task-permission-service';
 import { TaskProfileService } from './task-profile-service';
 import { TaskTileService } from './task-tile-service';
@@ -75,6 +77,21 @@ export class TaskService extends DBService {
     this.taskRunAreaRepository = new TaskRunAreaRepository(connection);
     this.artifactRepository = new ArtifactRepository(connection);
     this.taskRunSolutionRepository = new TaskRunSolutionRepository(connection);
+  }
+
+  /**
+   * Sends an abort request to the flow currently associated with a task.
+   *
+   * @param {string} taskId Task whose Prefect flow should be cancelled.
+   * @returns {Promise<void>} Resolves when Prefect accepts cancellation.
+   * @throws {ApiConflictError} If the task has no dispatched flow.
+   */
+  async abortTask(taskId: string): Promise<void> {
+    const task = await this.taskRepository.getTaskById(taskId);
+    if (!task.prefect_flow_run_id) {
+      throw new ApiConflictError('This task has no dispatched flow to abort.');
+    }
+    await new PrefectService().cancelFlowRun(task.prefect_flow_run_id);
   }
 
   /**

@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
     getTaskExports: vi.fn(),
     createTaskExport: vi.fn(),
     deleteTask: vi.fn(),
+    abortTask: vi.fn(),
   },
   events: {} as IApplicationEventsContext,
   dialog: { setSnackbar: vi.fn(), setYesNoDialog: vi.fn() },
@@ -99,6 +100,32 @@ describe('MapPage task and export refresh', () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  it('requests abort for the selected task and refreshes the list', async () => {
+    mocks.taskApi.abortTask.mockResolvedValue(undefined);
+    render(workspace());
+    const abortButton = await screen.findByRole('button', { name: 'Abort' });
+    const initialRequests = mocks.taskApi.getAllTasks.mock.calls.length;
+    fireEvent.click(abortButton);
+    await waitFor(() => expect(mocks.taskApi.abortTask).toHaveBeenCalledWith('task-1'));
+    await waitFor(() => expect(mocks.taskApi.getAllTasks).toHaveBeenCalledTimes(initialRequests + 1));
+    expect(mocks.dialog.setSnackbar).toHaveBeenCalledWith({ open: true, snackbarMessage: 'Abort requested.' });
+  });
+
+  it('reports abort failures without showing success', async () => {
+    mocks.taskApi.abortTask.mockRejectedValueOnce(new Error('Unavailable'));
+    render(workspace());
+    const abortButton = await screen.findByRole('button', { name: 'Abort' });
+    const initialRequests = mocks.taskApi.getAllTasks.mock.calls.length;
+    fireEvent.click(abortButton);
+    await waitFor(() =>
+      expect(mocks.dialog.setSnackbar).toHaveBeenCalledWith({
+        open: true,
+        snackbarMessage: 'Failed to abort task. Please try again.',
+      })
+    );
+    expect(mocks.taskApi.getAllTasks).toHaveBeenCalledTimes(initialRequests);
   });
 
   it.each(['ready', 'failed'] as const)('updates an open export dialog when the job becomes %s', async (status) => {

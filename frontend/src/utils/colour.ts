@@ -16,6 +16,9 @@ export const getTaskViewStatusColor = (status: TaskStatusValue): TaskViewStatusC
     case TASK_STATUS.COMPLETED: {
       return 'success';
     }
+    case TASK_STATUS.FAILED: {
+      return 'error';
+    }
     default: {
       return 'default';
     }

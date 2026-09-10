@@ -1,1 +1,1 @@
-export type TaskViewStatusColor = 'default' | 'info' | 'success';
+export type TaskViewStatusColor = 'default' | 'info' | 'success' | 'error';

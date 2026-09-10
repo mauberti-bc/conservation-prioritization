@@ -1,19 +1,38 @@
-import { mdiAccountPlusOutline, mdiDeleteOutline, mdiPencilOutline } from '@mdi/js';
+import { mdiAccountPlusOutline, mdiDeleteOutline, mdiPencilOutline, mdiStopCircleOutline } from '@mdi/js';
 import { IconMenuButton } from 'components/button/IconMenuButton';
 
 interface TaskViewPanelActionsMenuProps {
+  showAbort: boolean;
   onEdit: () => void;
   onShare: () => void;
+  onAbort: () => void;
   onDelete: () => void;
 }
 
-export const TaskViewPanelActionsMenu = ({ onEdit, onShare, onDelete }: TaskViewPanelActionsMenuProps) => {
+/** Renders the task header actions. */
+export const TaskViewPanelActionsMenu = ({
+  showAbort,
+  onEdit,
+  onShare,
+  onAbort,
+  onDelete,
+}: TaskViewPanelActionsMenuProps) => {
   return (
     <IconMenuButton
       items={[
+        ...(showAbort
+          ? [
+              {
+                label: 'Abort',
+                icon: mdiStopCircleOutline,
+                onClick: onAbort,
+              },
+            ]
+          : []),
         {
           label: 'Edit',
           icon: mdiPencilOutline,
+          dividerBefore: showAbort,
           onClick: onEdit,
         },
         {

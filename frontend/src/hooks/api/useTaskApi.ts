@@ -232,6 +232,16 @@ export const useTaskApi = (axios: AxiosInstance) => {
   };
 
   /**
+   * Requests cancellation of the task's flow run.
+   *
+   * @param {string} taskId - UUID of the task to abort.
+   * @returns {Promise<void>} Resolves when the cancellation request is accepted; rejects on API errors.
+   */
+  const abortTask = async (taskId: string): Promise<void> => {
+    await axios.post(`/api/task/${taskId}/abort`);
+  };
+
+  /**
    * Delete a task by its ID.
    *
    * @param {string} taskId - The UUID of the task to delete.
@@ -261,6 +271,7 @@ export const useTaskApi = (axios: AxiosInstance) => {
     getTaskDashboard,
     addProjectsToTask,
     inviteProfilesToTask,
+    abortTask,
     deleteTask,
   };
 };

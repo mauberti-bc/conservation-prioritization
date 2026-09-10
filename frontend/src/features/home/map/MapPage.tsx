@@ -1,4 +1,11 @@
-import { mdiAccountPlusOutline, mdiDeleteOutline, mdiDownload, mdiPencilOutline, mdiPlus } from '@mdi/js';
+import {
+  mdiStopCircleOutline,
+  mdiAccountPlusOutline,
+  mdiDeleteOutline,
+  mdiDownload,
+  mdiPencilOutline,
+  mdiPlus,
+} from '@mdi/js';
 import Icon from '@mdi/react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -238,6 +245,20 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
   const handlePageSizeChange = (nextPageSize: number) => {
     setCurrentPage(DEFAULT_PAGE);
     setPageSize(nextPageSize);
+  };
+
+  /** Requests cancellation for the selected task and refreshes the task list. */
+  const handleAbortTask = async (task: GetTaskResponse) => {
+    try {
+      await conservationApi.task.abortTask(task.task_id);
+      dialogContext.setSnackbar({ open: true, snackbarMessage: 'Abort requested.' });
+    } catch (error) {
+      console.error('Failed to abort task', error);
+      dialogContext.setSnackbar({ open: true, snackbarMessage: 'Failed to abort task. Please try again.' });
+      return;
+    }
+
+    await refreshMapTasks();
   };
 
   const handleDeleteTask = (task: GetTaskResponse) => {
@@ -648,6 +669,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
                         markTaskSeen(selectedTask.task_id);
                         navigate(`/map/${selectedTask.task_id}`);
                       }}
+                      onAbortTask={handleAbortTask}
                       onDeleteTask={handleDeleteTask}
                       onShareTask={handleShareTask}
                       onEditTask={handleEditTask}
@@ -715,6 +737,7 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
 interface MapTaskListItemProps {
   task: GetTaskResponse;
   onSelectTask: (task: GetTaskResponse) => void;
+  onAbortTask: (task: GetTaskResponse) => void;
   onDeleteTask: (task: GetTaskResponse) => void;
   onShareTask: (task: GetTaskResponse) => void;
   onEditTask: (task: GetTaskResponse) => void;
@@ -724,6 +747,7 @@ interface MapTaskListItemProps {
 const MapTaskListItem = ({
   task,
   onSelectTask,
+  onAbortTask,
   onDeleteTask,
   onShareTask,
   onEditTask,
@@ -774,6 +798,13 @@ const MapTaskListItem = ({
                 icon: mdiPencilOutline,
                 onClick: () => {
                   onEditTask(task);
+                },
+              },
+              {
+                label: 'Abort',
+                icon: mdiStopCircleOutline,
+                onClick: () => {
+                  onAbortTask(task);
                 },
               },
               {

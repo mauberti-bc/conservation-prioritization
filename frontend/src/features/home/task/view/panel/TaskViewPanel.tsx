@@ -85,6 +85,25 @@ export const TaskViewPanel = () => {
     }
   };
 
+  /** Requests cancellation for the displayed task and reloads its server status. */
+  const handleAbortTask = async () => {
+    if (!taskId) {
+      return;
+    }
+
+    try {
+      await conservationApi.task.abortTask(taskId);
+      dialogContext.setSnackbar({ open: true, snackbarMessage: 'Abort requested.' });
+    } catch (error) {
+      console.error('Failed to abort task', error);
+      dialogContext.setSnackbar({ open: true, snackbarMessage: 'Failed to abort task. Please try again.' });
+      return;
+    }
+
+    await taskDataLoader.refresh(taskId);
+    await refreshTasks();
+  };
+
   const handleDeleteTask = () => {
     if (!taskId || !taskDataLoader.data) {
       return;
@@ -232,6 +251,7 @@ export const TaskViewPanel = () => {
                     setInviteError(null);
                     setInviteOpen(true);
                   }}
+                  onAbort={handleAbortTask}
                   onDelete={handleDeleteTask}
                 />
               </Box>
