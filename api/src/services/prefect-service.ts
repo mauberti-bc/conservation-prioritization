@@ -100,6 +100,23 @@ export class PrefectService {
   }
 
   /**
+   * Submits a task-run GeoTIFF export flow.
+   *
+   * @param {string} taskExportId Durable export job ID.
+   * @param {number} attempt Export execution generation.
+   * @returns {Promise<{ deploymentId: string; flowRunId: string }>}
+   */
+  async submitTaskExport(taskExportId: string, attempt: number): Promise<{ deploymentId: string; flowRunId: string }> {
+    const deploymentId = await this.resolveDeploymentId('task_export', 'task-export');
+    const flowRunId = await this.submitFlowRunWithParameters(
+      deploymentId,
+      { task_export_id: taskExportId, attempt },
+      `task-export:${taskExportId}`
+    );
+    return { deploymentId, flowRunId };
+  }
+
+  /**
    * Submits a Prefect flow run with raw parameters.
    *
    * @param {string} deploymentId - Prefect deployment ID.
