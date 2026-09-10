@@ -1,6 +1,7 @@
-import { readFile, stat } from 'node:fs/promises';
+import { open } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import path from 'node:path';
+import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 import { DEFAULT_BASEMAP_ATTRIBUTION, DEFAULT_BASEMAP_URL } from './constants.mjs';
 
@@ -67,9 +68,10 @@ const getConfig = () => {
 
   const objectStoreUrl = process.env.OBJECT_STORE_URL || '';
   const objectStoreBucketName = process.env.OBJECT_STORE_BUCKET_NAME || '';
-  const s3PublicHostUrl = objectStoreUrl && objectStoreBucketName
-    ? ensureProtocol(`${objectStoreUrl}/${objectStoreBucketName}`, 'https://')
-    : '';
+  const s3PublicHostUrl =
+    objectStoreUrl && objectStoreBucketName
+      ? ensureProtocol(`${objectStoreUrl}/${objectStoreBucketName}`, 'https://')
+      : '';
 
   return {
     API_HOST: ensureProtocol(apiHost, 'https://'),
@@ -117,19 +119,28 @@ const resolveStaticPath = (requestPath) => {
  *
  * @param {import('node:http').ServerResponse} response
  * @param {string} filePath
+ * @param {boolean} headOnly Whether to send headers without reading the body.
+ * @returns {Promise<void>}
  */
-const writeStaticFile = async (response, filePath) => {
-  const fileStats = await stat(filePath);
-  if (fileStats.isDirectory()) {
-    throw new Error('Directory path is not directly readable');
+const writeStaticFile = async (response, filePath, headOnly = false) => {
+  const file = await open(filePath);
+  try {
+    const fileStats = await file.stat();
+    if (fileStats.isDirectory()) {
+      throw new Error('Directory path is not directly readable');
+    }
+
+    const extension = path.extname(filePath);
+    const contentType = MIME_TYPES[extension] || 'application/octet-stream';
+    response.writeHead(200, { 'Content-Type': contentType, 'Content-Length': fileStats.size });
+    if (headOnly) {
+      response.end();
+      return;
+    }
+    await pipeline(file.createReadStream({ autoClose: false }), response);
+  } finally {
+    await file.close();
   }
-
-  const extension = path.extname(filePath);
-  const contentType = MIME_TYPES[extension] || 'application/octet-stream';
-  const content = await readFile(filePath);
-
-  response.writeHead(200, { 'Content-Type': contentType });
-  response.end(content);
 };
 
 createServer(async (request, response) => {
@@ -154,13 +165,21 @@ createServer(async (request, response) => {
 
   try {
     const staticPath = resolveStaticPath(url);
-    await writeStaticFile(response, staticPath);
+    await writeStaticFile(response, staticPath, method === 'HEAD');
     return;
   } catch (_error) {
+    if (response.headersSent || response.destroyed) {
+      response.destroy();
+      return;
+    }
     try {
-      await writeStaticFile(response, path.join(staticRoot, 'index.html'));
+      await writeStaticFile(response, path.join(staticRoot, 'index.html'), method === 'HEAD');
       return;
     } catch (_indexError) {
+      if (response.headersSent || response.destroyed) {
+        response.destroy();
+        return;
+      }
       writeJson(response, 500, { error: 'Unable to serve frontend assets' });
       return;
     }
