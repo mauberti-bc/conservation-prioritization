@@ -1,8 +1,9 @@
 import { CircularProgress } from '@mui/material';
 import Box from '@mui/material/Box';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
+import { DEFAULT_BASEMAP_ATTRIBUTION, DEFAULT_BASEMAP_URL } from 'constants/basemap';
 import { TASK_TYPE } from 'hooks/interfaces/useTaskApi.interface';
-import { useMapContext } from 'hooks/useContext';
+import { useConfigContext, useMapContext } from 'hooks/useContext';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { PMTiles } from 'pmtiles';
@@ -11,8 +12,11 @@ import { attachMapContainer, detachMapContainer, getMapCacheEntry, setMapCacheEn
 import { ensurePMTilesProtocol } from 'utils/pmtilesProtocol';
 import { PmtilesLegend } from './PmtilesLegend';
 
-const OPENFREEMAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+const BASEMAP_SOURCE_ID = 'basemap';
+const BASEMAP_LAYER_ID = 'basemap';
 const PMTILES_LAYER_PREFIX = 'pmtiles-layer-';
+const BC_INITIAL_CENTER: [number, number] = [-124.75, 54.5];
+const BC_INITIAL_ZOOM = 4.5;
 
 interface MapContainerProps {
   pmtilesUrls?: string[];
@@ -53,6 +57,7 @@ export const MapContainer = ({
   const DefaultFitBoundsMaxZoom = 14;
   const PmtilesSourcePrefix = 'pmtiles-source-';
   const mapHostRef = useRef<HTMLDivElement | null>(null);
+  const config = useConfigContext();
   const { mapRef: sharedMapRef, setIsMapReady } = useMapContext();
   const localMapRef = useRef<maplibregl.Map | null>(null);
   const mapRef = useSharedContext ? sharedMapRef : localMapRef;
@@ -79,6 +84,9 @@ export const MapContainer = ({
   }, [boundsRefreshKey, normalizedPmtilesUrls]);
   const hasPmtiles = normalizedPmtilesUrls.length > 0;
   const hasRenderedPmtiles = hasAnyPmtilesLayers(mapRef.current, PMTILES_LAYER_PREFIX);
+  const basemapStyle = useMemo(() => {
+    return createBasemapStyle(config.BASEMAP_URL, config.BASEMAP_ATTRIBUTION);
+  }, [config.BASEMAP_ATTRIBUTION, config.BASEMAP_URL]);
 
   const isMapLoading = !isMapInitialized || (waitForPmtiles && hasPmtiles && !areLayersLoaded && !hasRenderedPmtiles);
 
@@ -161,9 +169,9 @@ export const MapContainer = ({
 
     const map = new maplibregl.Map({
       container: innerContainer,
-      style: OPENFREEMAP_STYLE_URL,
-      center: [-125, 50],
-      zoom: 3,
+      style: basemapStyle,
+      center: BC_INITIAL_CENTER,
+      zoom: BC_INITIAL_ZOOM,
       maxZoom: 11,
       interactive,
     });
@@ -218,7 +226,16 @@ export const MapContainer = ({
         setIsMapReady(false);
       }
     };
-  }, [interactive, keepAliveKey, mapRef, setIsMapReady, showBaseLayer, showNavigationControl, useSharedContext]);
+  }, [
+    basemapStyle,
+    interactive,
+    keepAliveKey,
+    mapRef,
+    setIsMapReady,
+    showBaseLayer,
+    showNavigationControl,
+    useSharedContext,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -543,28 +560,46 @@ export const MapContainer = ({
 };
 
 /**
- * Ensure the base OpenFreeMap style layers use the requested visibility.
+ * Ensure the BC basemap layer uses the requested visibility.
+ *
+ * @param {maplibregl.Map} map
+ * @param {boolean} showBaseLayer
+ * @returns {void}
  */
 const ensureBaseLayer = (map: maplibregl.Map, showBaseLayer: boolean): void => {
-  const style = map.getStyle();
-  if (!style || !style.layers) {
+  if (!map.getLayer(BASEMAP_LAYER_ID)) {
     return;
   }
 
-  if (map.getLayer('osm-tiles')) {
-    map.removeLayer('osm-tiles');
-  }
-  if (map.getSource('osm')) {
-    map.removeSource('osm');
-  }
+  map.setLayoutProperty(BASEMAP_LAYER_ID, 'visibility', showBaseLayer ? 'visible' : 'none');
+};
 
-  style.layers.forEach((layer) => {
-    if (layer.id.startsWith(PMTILES_LAYER_PREFIX) || !map.getLayer(layer.id)) {
-      return;
-    }
-
-    map.setLayoutProperty(layer.id, 'visibility', showBaseLayer ? 'visible' : 'none');
-  });
+/**
+ * Creates the MapLibre raster style for the configured BC basemap tile service.
+ *
+ * @param {string} basemapUrl Tile URL template containing MapLibre {z}/{x}/{y} placeholders.
+ * @param {string} attribution Attribution text shown by MapLibre for the raster source.
+ * @returns {maplibregl.StyleSpecification}
+ */
+const createBasemapStyle = (basemapUrl: string, attribution: string): maplibregl.StyleSpecification => {
+  return {
+    version: 8,
+    sources: {
+      [BASEMAP_SOURCE_ID]: {
+        type: 'raster',
+        tiles: [basemapUrl || DEFAULT_BASEMAP_URL],
+        tileSize: 256,
+        attribution: attribution || DEFAULT_BASEMAP_ATTRIBUTION,
+      },
+    },
+    layers: [
+      {
+        id: BASEMAP_LAYER_ID,
+        type: 'raster',
+        source: BASEMAP_SOURCE_ID,
+      },
+    ],
+  };
 };
 
 /**

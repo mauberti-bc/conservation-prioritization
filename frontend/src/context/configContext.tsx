@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { DEFAULT_BASEMAP_ATTRIBUTION, DEFAULT_BASEMAP_URL } from 'constants/basemap';
 import React, { PropsWithChildren, useEffect, useState } from 'react';
 import { ensureProtocol } from 'utils/util';
 
@@ -17,6 +18,8 @@ export interface IConfig {
   MAX_UPLOAD_NUM_FILES: number;
   MAX_UPLOAD_FILE_SIZE: number;
   S3_PUBLIC_HOST_URL: string;
+  BASEMAP_URL: string;
+  BASEMAP_ATTRIBUTION: string;
   /**
    * Used in conjunction with the feature flag guard (FeatureFlagGuard) to disable components.
    *
@@ -98,6 +101,8 @@ const getLocalConfig = (): IConfig => {
     MAX_UPLOAD_NUM_FILES: Number(import.meta.env.VITE_APP_MAX_UPLOAD_NUM_FILES) || 10,
     MAX_UPLOAD_FILE_SIZE: Number(import.meta.env.VITE_APP_MAX_UPLOAD_FILE_SIZE) || 52428800,
     S3_PUBLIC_HOST_URL: ensureProtocol(`${OBJECT_STORE_URL}/${OBJECT_STORE_BUCKET_NAME}`, 'https://'),
+    BASEMAP_URL: import.meta.env.VITE_BASEMAP_URL || DEFAULT_BASEMAP_URL,
+    BASEMAP_ATTRIBUTION: import.meta.env.VITE_BASEMAP_ATTRIBUTION || DEFAULT_BASEMAP_ATTRIBUTION,
     /**
      * Feature flags
      *

@@ -89,7 +89,7 @@ keycloak:
 # ========================
 prefect-server:
   route:
-    enabled: true
+    enabled: false
     name: prefect-server
     serviceName: prefect-server
     targetPort: server-svc-port
@@ -105,7 +105,7 @@ prefect-server:
     name: "prefect-server"
 
   ui:
-    enabled: true
+    enabled: false
     podSecurityContext:
       runAsUser: 1003600000
       fsGroup: null
@@ -451,3 +451,5 @@ env:
   VITE_APP_KEYCLOAK_HOST: ""
   VITE_APP_KEYCLOAK_REALM: ""
   VITE_APP_KEYCLOAK_CLIENT_ID: ""
+  VITE_BASEMAP_URL: "https://maps.gov.bc.ca/arcgis/rest/services/province/roads_wm/MapServer/tile/{z}/{y}/{x}"
+  VITE_BASEMAP_ATTRIBUTION: "© Province of British Columbia"

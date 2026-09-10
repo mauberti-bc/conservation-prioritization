@@ -2,6 +2,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DEFAULT_BASEMAP_ATTRIBUTION, DEFAULT_BASEMAP_URL } from './constants.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -85,6 +86,8 @@ const getConfig = () => {
     MAX_UPLOAD_NUM_FILES: Number(process.env.MAX_UPLOAD_NUM_FILES),
     MAX_UPLOAD_FILE_SIZE: Number(process.env.MAX_UPLOAD_FILE_SIZE),
     S3_PUBLIC_HOST_URL: s3PublicHostUrl,
+    BASEMAP_URL: process.env.BASEMAP_URL || DEFAULT_BASEMAP_URL,
+    BASEMAP_ATTRIBUTION: process.env.BASEMAP_ATTRIBUTION || DEFAULT_BASEMAP_ATTRIBUTION,
     FEATURE_FLAGS: (process.env.FEATURE_FLAGS || '')
       .split(',')
       .map((featureFlag) => featureFlag.trim())
