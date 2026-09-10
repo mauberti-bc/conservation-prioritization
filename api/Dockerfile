@@ -6,7 +6,7 @@
 # Stage 1: Build the dist folder
 #####################################################
 
-FROM node:22 AS stage_1
+FROM node:22-bookworm AS stage_1
 
 USER 0
 
@@ -38,7 +38,7 @@ RUN yarn build
 # Stage 2: Install production dependencies
 #####################################################
 
-FROM node:22 AS stage_2
+FROM node:22-bookworm AS stage_2
 
 USER 0
 
@@ -66,7 +66,7 @@ RUN yarn workspaces focus --all --production
 # Stage 3: Final Image
 #####################################################
 
-FROM node:22 AS stage_3
+FROM node:22-bookworm-slim AS stage_3
 
 USER 0
 
@@ -92,6 +92,7 @@ ENV PATH="${HOME}/node_modules/.bin:${PATH}"
 # Application port
 EXPOSE 6100
 
-USER 1001  # OpenShift arbitrary UID
+# OpenShift arbitrary UID
+USER 1001
 
 CMD ["node", "src/app.js"]

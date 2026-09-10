@@ -18,7 +18,7 @@ const log = getLogger('database/db');
 /**
  * Database pool configuration constants
  */
-const DB_POOL_SIZE = 20;
+const DB_POOL_SIZE = 5;
 const DB_CONNECTION_TIMEOUT = 0;
 const DB_IDLE_TIMEOUT = 10000;
 
@@ -32,13 +32,13 @@ export const DB_CLIENT = 'pg';
  *
  * @return {*}  {pg.PoolConfig}
  */
-const getDbConfig = (): pg.PoolConfig => ({
+export const getDbConfig = (): pg.PoolConfig => ({
   user: process.env.DB_USER_API,
   password: process.env.DB_USER_API_PASS,
   database: process.env.DB_DATABASE,
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT),
-  max: DB_POOL_SIZE,
+  max: z.coerce.number().int().positive().catch(DB_POOL_SIZE).parse(process.env.DB_POOL_SIZE),
   connectionTimeoutMillis: DB_CONNECTION_TIMEOUT,
   idleTimeoutMillis: DB_IDLE_TIMEOUT
 });

@@ -51,5 +51,6 @@ services:
         memory: 128Mi
 
 env:
+  NODE_OPTIONS: "--max-old-space-size=160"
   NODE_ENV: "development"
   FRONTEND_API_HOST: "https://conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"

@@ -35,6 +35,18 @@ spec:
         - name: postgresql
           image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
           imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "Always" }}
+          args:
+            - postgres
+            - -c
+            - {{ printf "shared_buffers=%s" .Values.database.tuning.sharedBuffers | quote }}
+            - -c
+            - {{ printf "work_mem=%s" .Values.database.tuning.workMem | quote }}
+            - -c
+            - {{ printf "maintenance_work_mem=%s" .Values.database.tuning.maintenanceWorkMem | quote }}
+            - -c
+            - {{ printf "autovacuum_work_mem=%s" .Values.database.tuning.autovacuumWorkMem | quote }}
+            - -c
+            - {{ printf "max_connections=%v" .Values.database.tuning.maxConnections | quote }}
           securityContext:
             runAsNonRoot: true
             {{- if .Values.services.db.securityContext.runAsUser }}
@@ -58,8 +70,6 @@ spec:
                   key: DB_ADMIN_PASS
             - name: PGDATA
               value: '{{ .Values.database.pgData | default "/var/lib/postgresql/data" }}'
-            - name: PGOPTIONS
-              value: "-c maintenance_work_mem=128MB"
             - name: PGTZ
               value: '{{ .Values.database.timezone | default "UTC" }}'
           ports:

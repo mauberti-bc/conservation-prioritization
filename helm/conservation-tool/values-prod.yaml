@@ -146,5 +146,6 @@ backgroundServices:
         - ALL
 
 env:
+  NODE_OPTIONS: "--max-old-space-size=64"
   NODE_ENV: "production"
   FRONTEND_API_HOST: "https://conservation-tool-api-fa9440-prod.apps.gold.devops.gov.bc.ca"
