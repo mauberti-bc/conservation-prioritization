@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -15,7 +16,7 @@ from affine import Affine
 from ..utils.object_store import build_object_key, get_object_store_config, put_object
 
 
-PART_SIZE_PIXELS = 4096
+PART_SIZE_PIXELS = 1024
 BLOCK_SIZE_PIXELS = 512
 
 
@@ -44,8 +45,8 @@ def write_geotiff_parts(
     export_id: str,
     canonical_path: Path,
     output_directory: Path,
-) -> list[GeoTiffPart]:
-    """Write deterministic GeoTIFF parts from a canonical Zarr result."""
+) -> Iterator[GeoTiffPart]:
+    """Yield each written part so callers can upload and remove it before advancing."""
     root = zarr.open_group(str(canonical_path), mode="r")
     surface = str(root.attrs.get("surface", "decision"))
     if surface not in root:
@@ -57,7 +58,6 @@ def write_geotiff_parts(
     nodata = 255 if values.dtype == np.dtype("uint8") else np.nan
     output_directory.mkdir(parents=True, exist_ok=True)
 
-    parts: list[GeoTiffPart] = []
     part_index = 0
     for row_offset in range(0, values.shape[0], PART_SIZE_PIXELS):
         for column_offset in range(0, values.shape[1], PART_SIZE_PIXELS):
@@ -67,9 +67,7 @@ def write_geotiff_parts(
                 column_offset,
                 row_offset,
             )
-            filename = (
-                f"{surface}_y{row_offset:06d}_x{column_offset:06d}.tif"
-            )
+            filename = f"{surface}_y{row_offset:06d}_x{column_offset:06d}.tif"
             path = output_directory / filename
             data = np.asarray(
                 values[
@@ -85,29 +83,25 @@ def write_geotiff_parts(
                 nodata=nodata,
             )
             checksum = _sha256(path)
-            object_key = build_object_key(
-                f"task-exports/{export_id}/parts/{filename}"
-            )
-            parts.append(
-                GeoTiffPart(
-                    part_index=part_index,
-                    filename=filename,
-                    path=path,
-                    row_offset=row_offset,
-                    column_offset=column_offset,
-                    width=width,
-                    height=height,
-                    transform=window_transform,
-                    checksum=checksum,
-                    byte_size=path.stat().st_size,
-                    object_key=object_key,
-                    crs=crs,
-                    dtype=str(values.dtype),
-                    nodata=nodata,
-                )
+            object_key = build_object_key(f"task-exports/{export_id}/parts/{filename}")
+            del data
+            yield GeoTiffPart(
+                part_index=part_index,
+                filename=filename,
+                path=path,
+                row_offset=row_offset,
+                column_offset=column_offset,
+                width=width,
+                height=height,
+                transform=window_transform,
+                checksum=checksum,
+                byte_size=path.stat().st_size,
+                object_key=object_key,
+                crs=crs,
+                dtype=str(values.dtype),
+                nodata=nodata,
             )
             part_index += 1
-    return parts
 
 
 def upload_geotiff_part(
@@ -165,10 +159,14 @@ def export_resource_admission(canonical_path: Path) -> dict[str, Any]:
     surface = str(root.attrs.get("surface", "decision"))
     values = root[surface]
     bytes_per_cell = int(np.dtype(values.dtype).itemsize)
-    part_bytes = min(PART_SIZE_PIXELS, values.shape[0]) * min(
-        PART_SIZE_PIXELS,
-        values.shape[1],
-    ) * bytes_per_cell
+    part_bytes = (
+        min(PART_SIZE_PIXELS, values.shape[0])
+        * min(
+            PART_SIZE_PIXELS,
+            values.shape[1],
+        )
+        * bytes_per_cell
+    )
     return {
         "schema_version": 1,
         "status": "accepted",
@@ -178,6 +176,8 @@ def export_resource_admission(canonical_path: Path) -> dict[str, Any]:
         "shape": [int(values.shape[0]), int(values.shape[1])],
         "chunks": [int(values.chunks[0]), int(values.chunks[1])],
         "part_size_pixels": PART_SIZE_PIXELS,
+        "total_files": ((values.shape[0] + PART_SIZE_PIXELS - 1) // PART_SIZE_PIXELS)
+        * ((values.shape[1] + PART_SIZE_PIXELS - 1) // PART_SIZE_PIXELS),
         "estimated_part_array_bytes": int(part_bytes),
     }
 
@@ -207,7 +207,7 @@ def _write_geotiff(
         transform=transform,
         nodata=nodata,
     )
-    with rasterio.Env(GDAL_NUM_THREADS="1", GDAL_CACHEMAX=64):
+    with rasterio.Env(GDAL_NUM_THREADS="1", GDAL_CACHEMAX=8 * 1024 * 1024):
         data_array.rio.to_raster(
             path,
             driver="GTiff",
@@ -216,6 +216,7 @@ def _write_geotiff(
             blockysize=BLOCK_SIZE_PIXELS,
             compress="DEFLATE",
             num_threads="1",
+            windowed=True,
         )
 
 
@@ -230,9 +231,9 @@ def _to_spatial_data_array(
     if not transform.is_rectilinear:
         data_array = xr.DataArray(data, dims=("y", "x"), name="surface")
         return (
-            data_array.rio.write_crs(crs)
-            .rio.write_transform(transform)
-            .rio.write_nodata(nodata)
+            data_array.rio.write_crs(crs, inplace=True)
+            .rio.write_transform(transform, inplace=True)
+            .rio.write_nodata(nodata, inplace=True)
         )
 
     x_coordinates = transform.c + transform.a * (np.arange(data.shape[1]) + 0.5)
@@ -244,9 +245,9 @@ def _to_spatial_data_array(
         name="surface",
     )
     return (
-        data_array.rio.write_crs(crs)
-        .rio.write_transform(transform)
-        .rio.write_nodata(nodata)
+        data_array.rio.write_crs(crs, inplace=True)
+        .rio.write_transform(transform, inplace=True)
+        .rio.write_nodata(nodata, inplace=True)
     )
 
 

@@ -19,6 +19,39 @@ from src.publication.geotiff_export import (
 
 
 class GeoTiffExportTest(unittest.TestCase):
+    def test_parts_are_lazy_and_preserve_float_spatial_values(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = _write_canonical_zarr(Path(directory) / "canonical.zarr")
+            group = zarr.open_group(str(root), mode="a")
+            values = np.arange(15, dtype=np.float64).reshape(3, 5)
+            values[0, 0] = np.nan
+            group.create_dataset("priority", data=values, chunks=(2, 2))
+            group.attrs["surface"] = "priority"
+            output = Path(directory) / "parts"
+            reconstructed = np.empty_like(values)
+            with patch("src.publication.geotiff_export.PART_SIZE_PIXELS", 2):
+                parts = write_geotiff_parts(
+                    export_id="export-1",
+                    canonical_path=root,
+                    output_directory=output,
+                )
+                self.assertFalse(output.exists())
+                count = 0
+                for part in parts:
+                    self.assertEqual([part.path], list(output.glob("*.tif")))
+                    with xr.open_dataarray(part.path, engine="rasterio") as array:
+                        self.assertEqual("EPSG:3005", array.rio.crs.to_string())
+                        self.assertEqual(part.transform, array.rio.transform())
+                        reconstructed[
+                            part.row_offset : part.row_offset + part.height,
+                            part.column_offset : part.column_offset + part.width,
+                        ] = array.values[0]
+                    part.path.unlink()
+                    count += 1
+                self.assertEqual(6, count)
+                self.assertEqual(6, export_resource_admission(root)["total_files"])
+            np.testing.assert_array_equal(values, reconstructed)
+
     def test_write_geotiff_parts_preserves_canonical_surface_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = _write_canonical_zarr(Path(directory) / "canonical.zarr")
@@ -30,6 +63,7 @@ class GeoTiffExportTest(unittest.TestCase):
                 output_directory=output,
             )
 
+            parts = list(parts)
             self.assertEqual(1, len(parts))
             part = parts[0]
             self.assertEqual("decision_y000000_x000000.tif", part.filename)
@@ -55,11 +89,13 @@ class GeoTiffExportTest(unittest.TestCase):
             root = _write_canonical_zarr(Path(directory) / "canonical.zarr")
             output = Path(directory) / "parts"
 
-            part = write_geotiff_parts(
-                export_id="export-1",
-                canonical_path=root,
-                output_directory=output,
-            )[0]
+            part = next(
+                write_geotiff_parts(
+                    export_id="export-1",
+                    canonical_path=root,
+                    output_directory=output,
+                )
+            )
 
             data_array = rioxarray.open_rasterio(part.path)
             try:
@@ -99,11 +135,13 @@ class GeoTiffExportTest(unittest.TestCase):
     def test_upload_geotiff_part_returns_persistable_file_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = _write_canonical_zarr(Path(directory) / "canonical.zarr")
-            part = write_geotiff_parts(
-                export_id="export-1",
-                canonical_path=root,
-                output_directory=Path(directory) / "parts",
-            )[0]
+            part = next(
+                write_geotiff_parts(
+                    export_id="export-1",
+                    canonical_path=root,
+                    output_directory=Path(directory) / "parts",
+                )
+            )
 
             with patch(
                 "src.publication.geotiff_export.get_object_store_config"

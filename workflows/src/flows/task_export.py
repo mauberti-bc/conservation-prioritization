@@ -98,6 +98,7 @@ def task_export(task_export_id: str, attempt: int) -> None:
         )
 
         surface = canonical_surface(canonical_path)
+        completed_files = 0
         parts = write_geotiff_parts(
             export_id=task_export_id,
             canonical_path=canonical_path,
@@ -116,6 +117,7 @@ def task_export(task_export_id: str, attempt: int) -> None:
                 {"attempt": attempt, **metadata},
             )
             part.path.unlink(missing_ok=True)
+            completed_files += 1
             internal_api_request(
                 "POST",
                 f"/internal/export/{task_export_id}/status",
@@ -124,7 +126,7 @@ def task_export(task_export_id: str, attempt: int) -> None:
                     "status": "running",
                     "progress": {
                         "completed_files": part.part_index + 1,
-                        "total_files": len(parts),
+                        "total_files": admission["total_files"],
                     },
                 },
             )
@@ -136,8 +138,8 @@ def task_export(task_export_id: str, attempt: int) -> None:
                 "attempt": attempt,
                 "status": "ready",
                 "progress": {
-                    "completed_files": len(parts),
-                    "total_files": len(parts),
+                    "completed_files": completed_files,
+                    "total_files": admission["total_files"],
                 },
             },
         )
