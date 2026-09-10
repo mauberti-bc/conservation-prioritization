@@ -82,8 +82,10 @@ export const TaskCreateForm = ({
         </Box>
       )}
 
-      <Stack gap={2} flex={0}>
-        <TooltipStack tooltip="Enter the amount of money you have to spend" mb={1}>
+      <Stack gap={1} flex={0}>
+        <TooltipStack
+          tooltip="Constraint layers set limits for the analysis, such as cost, area, or other layer-specific resources. They restrict eligible solutions without adding conservation value."
+          mb={1}>
           <Typography
             color="textSecondary"
             fontWeight={700}
@@ -96,8 +98,10 @@ export const TaskCreateForm = ({
         <TaskConstraintSection isReadOnly={isReadOnly} autoSearchOnMount={autoSearchOnMount} />
       </Stack>
 
-      <Stack gap={2}>
-        <TooltipStack tooltip="Select layers to conserve or avoid" mb={1}>
+      <Stack gap={1}>
+        <TooltipStack
+          tooltip="Objective layers define what the analysis should prioritize. Set each layer's direction and importance to favor conservation values or avoid risks."
+          mb={1}>
           <Typography
             color="textSecondary"
             fontWeight={700}
