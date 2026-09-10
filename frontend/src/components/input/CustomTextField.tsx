@@ -15,6 +15,7 @@ export const CustomTextField = ({ label, width = 300, ...textFieldProps }: Custo
         width,
         '& .MuiInputBase-input': {
           textAlign: 'center',
+          pl: '8px !important',
         },
         '& .MuiInputBase-input::placeholder': {
           textAlign: 'center',

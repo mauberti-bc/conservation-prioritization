@@ -82,7 +82,7 @@ export const TaskCreateForm = ({
         </Box>
       )}
 
-      <Box flex={0}>
+      <Stack gap={2} flex={0}>
         <TooltipStack tooltip="Enter the amount of money you have to spend" mb={1}>
           <Typography
             color="textSecondary"
@@ -94,9 +94,9 @@ export const TaskCreateForm = ({
           </Typography>
         </TooltipStack>
         <TaskConstraintSection isReadOnly={isReadOnly} autoSearchOnMount={autoSearchOnMount} />
-      </Box>
+      </Stack>
 
-      <Box>
+      <Stack gap={2}>
         <TooltipStack tooltip="Select layers to conserve or avoid" mb={1}>
           <Typography
             color="textSecondary"
@@ -108,7 +108,7 @@ export const TaskCreateForm = ({
           </Typography>
         </TooltipStack>
         <TaskObjectiveSection isReadOnly={isReadOnly} autoSearchOnMount={autoSearchOnMount} />
-      </Box>
+      </Stack>
     </Stack>
   );
 };

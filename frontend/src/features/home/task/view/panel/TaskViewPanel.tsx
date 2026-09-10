@@ -1,5 +1,6 @@
 import { Alert, Button, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
+import { TaskViewPanelSkeleton } from 'features/skeleton/TaskViewPanelSkeleton';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { TaskCreateForm, TaskCreateFormValues } from 'features/home/task/create/form/TaskCreateForm';
 import { Formik } from 'formik';
@@ -199,11 +200,7 @@ export const TaskViewPanel = () => {
     <>
       <LoadingGuard
         isLoading={Boolean(taskId) && (taskDataLoader.isLoading || !taskDataLoader.hasLoaded)}
-        isLoadingFallback={
-          <Box p={3}>
-            <Typography>Loading task...</Typography>
-          </Box>
-        }
+        isLoadingFallback={<TaskViewPanelSkeleton />}
         hasNoData={!taskId}
         hasNoDataFallback={
           <Box p={3}>
@@ -236,11 +233,6 @@ export const TaskViewPanel = () => {
                     setInviteOpen(true);
                   }}
                   onDelete={handleDeleteTask}
-                  onDownload={() => {
-                    if (taskDataLoader.data) {
-                      onDownloadTask(taskDataLoader.data);
-                    }
-                  }}
                 />
               </Box>
 
@@ -293,7 +285,28 @@ export const TaskViewPanel = () => {
                     {retryError ?? taskDataLoader.data.latest_run.failure_message ?? 'This run failed.'}
                   </Alert>
                 )}
-                <TaskCreateForm isReadOnly autoSearchOnMount={false} showAreaSection={false} />
+                <TaskCreateForm isReadOnly autoSearchOnMount={false} />
+              </Box>
+
+              <Box
+                sx={{
+                  px: 3,
+                  py: 2,
+                  boxShadow: '0px -2px 25px 0px rgba(0,0,0,0.05)',
+                  backgroundColor: 'white',
+                  flex: '0 0 auto',
+                }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  onClick={() => {
+                    if (taskDataLoader.data) {
+                      onDownloadTask(taskDataLoader.data);
+                    }
+                  }}>
+                  Export
+                </Button>
               </Box>
             </Box>
           </Formik>

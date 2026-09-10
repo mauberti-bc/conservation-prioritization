@@ -9,22 +9,15 @@ describe('TaskViewPanelHeader', () => {
     cleanup();
   });
 
-  it('calls the download handler from the header export button', () => {
-    const onDownload = vi.fn();
+  it('calls the close handler from the header close button', () => {
+    const onClose = vi.fn();
 
     render(
-      <TaskViewPanelHeader
-        title="Task"
-        onClose={vi.fn()}
-        onEdit={vi.fn()}
-        onShare={vi.fn()}
-        onDelete={vi.fn()}
-        onDownload={onDownload}
-      />
+      <TaskViewPanelHeader title="Task" onClose={onClose} onEdit={vi.fn()} onShare={vi.fn()} onDelete={vi.fn()} />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close task' }));
 
-    expect(onDownload).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

@@ -1,17 +1,20 @@
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import { ReactNode } from 'react';
-import { SIDEBAR_FLOAT_BORDER_RADIUS, SIDEBAR_FLOAT_MARGIN_PX } from './sidebar-layout.constants';
+import { SIDEBAR_FLOAT_BORDER_RADIUS, SIDEBAR_FLOAT_MARGIN_PX, SIDEBAR_FLOAT_WIDTH } from './sidebar-layout.constants';
 
 interface FloatingSidebarContainerProps {
   children: ReactNode;
-  width: string | Record<string, string | number>;
-  maxWidth: string | number | Record<string, string | number>;
   zIndex?: number;
 }
 
-/** Floating sidebar shell for map-backed workflows. */
-export const FloatingSidebarContainer = ({ children, width, maxWidth, zIndex = 12 }: FloatingSidebarContainerProps) => {
+/**
+ * Floating sidebar shell for map-backed workflows.
+ *
+ * @param {FloatingSidebarContainerProps} props
+ * @returns {JSX.Element}
+ */
+export const FloatingSidebarContainer = ({ children, zIndex = 12 }: FloatingSidebarContainerProps) => {
   return (
     <Box
       sx={{
@@ -19,8 +22,8 @@ export const FloatingSidebarContainer = ({ children, width, maxWidth, zIndex = 1
         top: SIDEBAR_FLOAT_MARGIN_PX,
         bottom: SIDEBAR_FLOAT_MARGIN_PX,
         left: SIDEBAR_FLOAT_MARGIN_PX,
-        width,
-        maxWidth,
+        width: SIDEBAR_FLOAT_WIDTH,
+        maxWidth: SIDEBAR_FLOAT_WIDTH,
         minWidth: 0,
         display: 'flex',
         flexDirection: 'column',

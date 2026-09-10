@@ -25,7 +25,5 @@ export const TaskStatusChip = ({ status, sx }: TaskStatusChipProps): ReactElemen
     icon = <Icon path={mdiProgressClock} size={0.7} title="Task waiting" />;
   }
 
-  return (
-    <Chip size="small" label={getTaskStatusLabel(status)} color={getTaskViewStatusColor(status)} icon={icon} sx={sx} />
-  );
+  return <Chip label={getTaskStatusLabel(status)} color={getTaskViewStatusColor(status)} icon={icon} sx={sx} />;
 };

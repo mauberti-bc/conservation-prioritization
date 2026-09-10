@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { DrawControls } from './map/draw/DrawControls';
 import { MapContainer } from './map/MapContainer';
 import { FloatingSidebarContainer } from './sidebar/FloatingSidebarContainer';
-import { SIDEBAR_FLOAT_MARGIN_PX, SIDEBAR_FLOAT_WIDTH_PX } from './sidebar/sidebar-layout.constants';
+import { SIDEBAR_STATUS_CHIP_LEFT } from './sidebar/sidebar-layout.constants';
 import { TaskViewPanel } from './task/view/panel/TaskViewPanel';
 
 /**
@@ -20,9 +20,6 @@ export const ViewTaskPage = () => {
   const { taskId, taskDataLoader, hoveredTilesetUri } = useTaskContext();
   const { taskRevisions, taskStatuses, connectionEpoch, markTaskSeen } = useApplicationEventsContext();
   const [isResettingPmtiles, setIsResettingPmtiles] = useState(false);
-  const sidebarWidth = { xs: `calc(100vw - ${SIDEBAR_FLOAT_MARGIN_PX * 2}px)`, md: SIDEBAR_FLOAT_WIDTH_PX };
-  const sidebarMaxWidth = { xs: `calc(100vw - ${SIDEBAR_FLOAT_MARGIN_PX * 2}px)`, md: SIDEBAR_FLOAT_WIDTH_PX };
-  const statusChipLeft = `calc((100% + ${SIDEBAR_FLOAT_MARGIN_PX + SIDEBAR_FLOAT_WIDTH_PX}px) / 2)`;
   const activeTaskData = useMemo(() => {
     if (!taskDataLoader.data || taskDataLoader.data.task_id !== taskId) {
       return null;
@@ -150,7 +147,7 @@ export const ViewTaskPage = () => {
             sx={{
               position: 'absolute',
               top: 16,
-              left: { xs: '50%', md: statusChipLeft },
+              left: { xs: '50%', md: SIDEBAR_STATUS_CHIP_LEFT },
               transform: 'translateX(-50%)',
               zIndex: 10,
             }}>
@@ -181,7 +178,7 @@ export const ViewTaskPage = () => {
         <DrawControls ref={drawControlsRef} />
       </Box>
 
-      <FloatingSidebarContainer width={sidebarWidth} maxWidth={sidebarMaxWidth}>
+      <FloatingSidebarContainer>
         <TaskViewPanel />
       </FloatingSidebarContainer>
     </Box>

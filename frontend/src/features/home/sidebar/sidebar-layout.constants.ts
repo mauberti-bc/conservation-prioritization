@@ -1,3 +1,4 @@
 export const SIDEBAR_FLOAT_MARGIN_PX = 16;
 export const SIDEBAR_FLOAT_BORDER_RADIUS = 2;
-export const SIDEBAR_FLOAT_WIDTH_PX = 608;
+export const SIDEBAR_FLOAT_WIDTH = '40vw';
+export const SIDEBAR_STATUS_CHIP_LEFT = `calc((100% + ${SIDEBAR_FLOAT_MARGIN_PX}px + ${SIDEBAR_FLOAT_WIDTH}) / 2)`;
