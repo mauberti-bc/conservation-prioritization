@@ -31,8 +31,7 @@ describe('TaskExportFormatDialog', () => {
     fireEvent.click(exportButtons[0]);
     fireEvent.click(exportButtons[1]);
 
-    expect(onExport).toHaveBeenCalledOnce();
-    expect(onExport).toHaveBeenCalledWith('geotiff');
+    expect(onExport).toHaveBeenCalledExactlyOnceWith('geotiff');
     expect(onExport).not.toHaveBeenCalledWith('geodatabase');
   });
 
