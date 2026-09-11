@@ -12,6 +12,8 @@ data:
   SITEMINDER_LOGOUT_URL: '{{ .Values.env.VITE_APP_SITEMINDER_LOGOUT_URL | default "" }}'
   MAX_UPLOAD_NUM_FILES: '{{ .Values.env.VITE_APP_MAX_UPLOAD_NUM_FILES | default "10" }}'
   MAX_UPLOAD_FILE_SIZE: '{{ .Values.env.VITE_APP_MAX_UPLOAD_FILE_SIZE | default "52428800" }}'
-  BASEMAP_URL: '{{ .Values.env.VITE_BASEMAP_URL | default "https://maps.gov.bc.ca/arcgis/rest/services/province/roads_wm/MapServer/tile/{z}/{y}/{x}" }}'
-  BASEMAP_ATTRIBUTION: '{{ .Values.env.VITE_BASEMAP_ATTRIBUTION | default "© Province of British Columbia" }}'
+  BASEMAP_URL: {{ .Values.env.VITE_BASEMAP_URL | default "" | quote }}
+  BASEMAP_ATTRIBUTION: {{ .Values.env.VITE_BASEMAP_ATTRIBUTION | default "" | quote }}
+  SATELLITE_BASEMAP_URL: {{ .Values.env.VITE_SATELLITE_BASEMAP_URL | default "" | quote }}
+  SATELLITE_BASEMAP_ATTRIBUTION: {{ .Values.env.VITE_SATELLITE_BASEMAP_ATTRIBUTION | default "" | quote }}
   FEATURE_FLAGS: '{{ .Values.env.VITE_APP_FEATURE_FLAGS | default "" }}'

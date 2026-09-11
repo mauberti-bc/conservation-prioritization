@@ -1,20 +1,20 @@
 import { CircularProgress } from '@mui/material';
 import Box from '@mui/material/Box';
 import { LoadingGuard } from 'components/loading/LoadingGuard';
-import { DEFAULT_BASEMAP_ATTRIBUTION, DEFAULT_BASEMAP_URL } from 'constants/basemap';
+import { BASEMAP } from 'constants/basemap';
 import { TASK_TYPE } from 'hooks/interfaces/useTaskApi.interface';
 import { useConfigContext, useMapContext } from 'hooks/useContext';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { PMTiles } from 'pmtiles';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createBasemapStyle, ensureBaseLayer } from 'utils/basemap';
 import { attachMapContainer, detachMapContainer, getMapCacheEntry, setMapCacheEntry } from 'utils/mapInstanceCache';
 import { ensurePMTilesProtocol } from 'utils/pmtilesProtocol';
 import { GeoJsonBounds } from 'utils/spatial';
+import { BasemapControl } from './BasemapControl';
 import { PmtilesLegend } from './PmtilesLegend';
 
-const BASEMAP_SOURCE_ID = 'basemap';
-const BASEMAP_LAYER_ID = 'basemap';
 const PMTILES_LAYER_PREFIX = 'pmtiles-layer-';
 const HAIDA_GWAII_INITIAL_CENTER: [number, number] = [-132.0, 53.25];
 const HAIDA_GWAII_INITIAL_ZOOM = 4.5;
@@ -38,8 +38,8 @@ interface MapContainerProps {
 /**
  * Map container with optional instance caching to avoid remounting.
  *
- * @param {MapContainerProps} props
- * @returns {JSX.Element}
+ * @param {MapContainerProps} props Component properties.
+ * @returns {JSX.Element} The rendered component.
  */
 export const MapContainer = ({
   pmtilesUrls = [],
@@ -64,6 +64,18 @@ export const MapContainer = ({
   const { mapRef: sharedMapRef, setIsMapReady } = useMapContext();
   const localMapRef = useRef<maplibregl.Map | null>(null);
   const mapRef = useSharedContext ? sharedMapRef : localMapRef;
+  const [layerOpacity, setLayerOpacity] = useState(pmtilesOpacity);
+  const layerOpacityRef = useRef(layerOpacity);
+
+  useEffect(() => {
+    setLayerOpacity(pmtilesOpacity);
+  }, [pmtilesOpacity]);
+
+  useEffect(() => {
+    layerOpacityRef.current = layerOpacity;
+  }, [layerOpacity]);
+
+  const [selectedBasemap, setSelectedBasemap] = useState(BASEMAP.BC_GOV);
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [areLayersLoaded, setAreLayersLoaded] = useState(false);
   const [styleReadyTick, setStyleReadyTick] = useState(0);
@@ -95,8 +107,18 @@ export const MapContainer = ({
   const hasPmtiles = normalizedPmtilesUrls.length > 0;
   const hasRenderedPmtiles = hasAnyPmtilesLayers(mapRef.current, PMTILES_LAYER_PREFIX);
   const basemapStyle = useMemo(() => {
-    return createBasemapStyle(config.BASEMAP_URL, config.BASEMAP_ATTRIBUTION);
-  }, [config.BASEMAP_ATTRIBUTION, config.BASEMAP_URL]);
+    return createBasemapStyle(
+      config.BASEMAP_URL,
+      config.BASEMAP_ATTRIBUTION,
+      config.SATELLITE_BASEMAP_URL,
+      config.SATELLITE_BASEMAP_ATTRIBUTION
+    );
+  }, [
+    config.BASEMAP_ATTRIBUTION,
+    config.BASEMAP_URL,
+    config.SATELLITE_BASEMAP_URL,
+    config.SATELLITE_BASEMAP_ATTRIBUTION,
+  ]);
 
   const isMapLoading = !isMapInitialized || (waitForPmtiles && hasPmtiles && !areLayersLoaded && !hasRenderedPmtiles);
 
@@ -249,12 +271,12 @@ export const MapContainer = ({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !isMapInitialized || !map.isStyleLoaded()) {
+    if (!map || !isMapInitialized) {
       return;
     }
 
-    ensureBaseLayer(map, showBaseLayer);
-  }, [isMapInitialized, mapRef, showBaseLayer]);
+    ensureBaseLayer(map, showBaseLayer, selectedBasemap);
+  }, [isMapInitialized, mapRef, selectedBasemap, showBaseLayer]);
 
   // Resize observer effect
   useEffect(() => {
@@ -364,7 +386,7 @@ export const MapContainer = ({
         await updatePmtilesLayers(
           map,
           normalizedPmtilesUrls,
-          pmtilesOpacity,
+          layerOpacityRef.current,
           PmtilesSourcePrefix,
           PMTILES_LAYER_PREFIX,
           addedLayerIdsRef.current,
@@ -393,7 +415,20 @@ export const MapContainer = ({
     return () => {
       cancelled = true;
     };
-  }, [isMapInitialized, mapRef, normalizedPmtilesUrls, pmtilesOpacity, styleReadyTick]);
+  }, [isMapInitialized, mapRef, normalizedPmtilesUrls, styleReadyTick]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapInitialized) {
+      return;
+    }
+
+    for (const layerId of addedLayerIdsRef.current) {
+      if (map.getLayer(layerId)) {
+        map.setPaintProperty(layerId, 'raster-opacity', layerOpacity);
+      }
+    }
+  }, [isMapInitialized, layerOpacity, mapRef, normalizedPmtilesUrls, styleReadyTick]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -547,8 +582,16 @@ export const MapContainer = ({
   return (
     <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
       <Box ref={mapHostRef} sx={{ position: 'absolute', inset: 0 }} />
+      {interactive && showBaseLayer && config.SATELLITE_BASEMAP_URL ? (
+        <BasemapControl value={selectedBasemap} onChange={setSelectedBasemap} right={showNavigationControl ? 50 : 10} />
+      ) : null}
       {showPmtilesLegend && hasPmtiles ? (
-        <PmtilesLegend pmtilesUrls={normalizedPmtilesUrls} taskType={pmtilesLegendTaskType} />
+        <PmtilesLegend
+          pmtilesUrls={normalizedPmtilesUrls}
+          taskType={pmtilesLegendTaskType}
+          opacity={layerOpacity}
+          onOpacityChange={setLayerOpacity}
+        />
       ) : null}
       <LoadingGuard
         isLoading={isMapLoading}
@@ -574,50 +617,17 @@ export const MapContainer = ({
 };
 
 /**
- * Ensure the BC basemap layer uses the requested visibility.
- *
- * @param {maplibregl.Map} map
- * @param {boolean} showBaseLayer
- * @returns {void}
- */
-const ensureBaseLayer = (map: maplibregl.Map, showBaseLayer: boolean): void => {
-  if (!map.getLayer(BASEMAP_LAYER_ID)) {
-    return;
-  }
-
-  map.setLayoutProperty(BASEMAP_LAYER_ID, 'visibility', showBaseLayer ? 'visible' : 'none');
-};
-
-/**
- * Creates the MapLibre raster style for the configured BC basemap tile service.
- *
- * @param {string} basemapUrl Tile URL template containing MapLibre {z}/{x}/{y} placeholders.
- * @param {string} attribution Attribution text shown by MapLibre for the raster source.
- * @returns {maplibregl.StyleSpecification}
- */
-const createBasemapStyle = (basemapUrl: string, attribution: string): maplibregl.StyleSpecification => {
-  return {
-    version: 8,
-    sources: {
-      [BASEMAP_SOURCE_ID]: {
-        type: 'raster',
-        tiles: [basemapUrl || DEFAULT_BASEMAP_URL],
-        tileSize: 256,
-        attribution: attribution || DEFAULT_BASEMAP_ATTRIBUTION,
-      },
-    },
-    layers: [
-      {
-        id: BASEMAP_LAYER_ID,
-        type: 'raster',
-        source: BASEMAP_SOURCE_ID,
-      },
-    ],
-  };
-};
-
-/**
  * Replace PMTiles layers with the provided list of archive URLs.
+ *
+ * @param {maplibregl.Map} map MapLibre map instance to update.
+ * @param {string[]} pmtilesUrls PMTiles archive URLs to display.
+ * @param {number} pmtilesOpacity Opacity applied to the analysis raster layers.
+ * @param {string} sourcePrefix Prefix used to identify managed map sources.
+ * @param {string} layerPrefix Prefix used to identify managed map layers.
+ * @param {Set<string>} trackedLayerIds Mutable set tracking managed layer identifiers.
+ * @param {Set<string>} trackedSourceIds Mutable set tracking managed source identifiers.
+ * @param {globalThis.Map<string, string>} sourceUrlBySourceId Mutable mapping from source identifiers to their archive URLs.
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 const updatePmtilesLayers = async (
   map: maplibregl.Map,
@@ -692,13 +702,13 @@ const updatePmtilesLayers = async (
 /**
  * Removes PMTiles layers and sources that are no longer desired.
  *
- * @param {maplibregl.Map} map
- * @param {Set<string>} desiredLayerIds
- * @param {Set<string>} desiredSourceIds
- * @param {Set<string>} trackedLayerIds
- * @param {Set<string>} trackedSourceIds
- * @param {Map<string, string>} sourceUrlBySourceId
- * @returns {void}
+ * @param {maplibregl.Map} map MapLibre map instance to update.
+ * @param {Set<string>} desiredLayerIds Layer identifiers that should remain on the map.
+ * @param {Set<string>} desiredSourceIds Source identifiers that should remain on the map.
+ * @param {Set<string>} trackedLayerIds Mutable set tracking managed layer identifiers.
+ * @param {Set<string>} trackedSourceIds Mutable set tracking managed source identifiers.
+ * @param {Map<string, string>} sourceUrlBySourceId Mutable mapping from source identifiers to their archive URLs.
+ * @returns {void} No return value.
  */
 const removeStalePmtilesLayersAndSources = (
   map: maplibregl.Map,
@@ -735,9 +745,9 @@ const removeStalePmtilesLayersAndSources = (
 /**
  * Checks if any PMTiles layer currently exists on the map.
  *
- * @param {maplibregl.Map | null} map
- * @param {string} layerPrefix
- * @returns {boolean}
+ * @param {maplibregl.Map | null} map MapLibre map instance to update.
+ * @param {string} layerPrefix Prefix used to identify managed map layers.
+ * @returns {boolean} Has any pmtiles layers.
  */
 const hasAnyPmtilesLayers = (map: maplibregl.Map | null, layerPrefix: string): boolean => {
   if (!map) {
@@ -761,7 +771,7 @@ const hasAnyPmtilesLayers = (map: maplibregl.Map | null, layerPrefix: string): b
  * @param {maplibregl.LngLatBoundsLike} bounds Bounds in longitude/latitude order.
  * @param {number} padding Padding in screen pixels.
  * @param {number} maxZoom Maximum zoom after fitting.
- * @returns {void}
+ * @returns {void} No return value.
  */
 const fitMapToBounds = (
   map: maplibregl.Map,
@@ -786,8 +796,8 @@ const fitMapToBounds = (
 /**
  * Normalizes PMTiles URLs for stable source/layer identity.
  *
- * @param {string} tilesetUrl
- * @returns {string}
+ * @param {string} tilesetUrl PMTiles archive URL whose stable key is needed.
+ * @returns {string} Stable tileset url key.
  */
 const getStableTilesetUrlKey = (tilesetUrl: string): string => {
   try {
@@ -802,8 +812,8 @@ const getStableTilesetUrlKey = (tilesetUrl: string): string => {
 /**
  * Resolves a PMTiles source URL with the pmtiles protocol prefix.
  *
- * @param {string} url
- * @returns {string}
+ * @param {string} url URL of the resource.
+ * @returns {string} Pmtiles source url.
  */
 const resolvePmtilesSourceUrl = (url: string): string => {
   if (url.startsWith('pmtiles://')) {
@@ -816,8 +826,8 @@ const resolvePmtilesSourceUrl = (url: string): string => {
 /**
  * Converts a string value into a map-safe identifier suffix.
  *
- * @param {string} value
- * @returns {string}
+ * @param {string} value Value to normalize or inspect.
+ * @returns {string} To map identifier.
  */
 const toMapIdentifier = (value: string): string => {
   return value.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -826,13 +836,13 @@ const toMapIdentifier = (value: string): string => {
 /**
  * Rehydrates tracked PMTiles source/layer IDs from the active map style.
  *
- * @param {maplibregl.Map} map
- * @param {string} sourcePrefix
- * @param {string} layerPrefix
- * @param {Set<string>} trackedSourceIds
- * @param {Set<string>} trackedLayerIds
- * @param {Map<string, string>} sourceUrlBySourceId
- * @returns {void}
+ * @param {maplibregl.Map} map MapLibre map instance to update.
+ * @param {string} sourcePrefix Prefix used to identify managed map sources.
+ * @param {string} layerPrefix Prefix used to identify managed map layers.
+ * @param {Set<string>} trackedSourceIds Mutable set tracking managed source identifiers.
+ * @param {Set<string>} trackedLayerIds Mutable set tracking managed layer identifiers.
+ * @param {Map<string, string>} sourceUrlBySourceId Mutable mapping from source identifiers to their archive URLs.
+ * @returns {void} No return value.
  */
 const hydratePmtilesTrackingFromStyle = (
   map: maplibregl.Map,

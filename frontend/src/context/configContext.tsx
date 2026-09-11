@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { DEFAULT_BASEMAP_ATTRIBUTION, DEFAULT_BASEMAP_URL } from 'constants/basemap';
 import React, { PropsWithChildren, useEffect, useState } from 'react';
 import { ensureProtocol } from 'utils/util';
 
@@ -20,6 +19,8 @@ export interface IConfig {
   S3_PUBLIC_HOST_URL: string;
   BASEMAP_URL: string;
   BASEMAP_ATTRIBUTION: string;
+  SATELLITE_BASEMAP_URL: string;
+  SATELLITE_BASEMAP_ATTRIBUTION: string;
   /**
    * Used in conjunction with the feature flag guard (FeatureFlagGuard) to disable components.
    *
@@ -34,8 +35,8 @@ export const ConfigContext = React.createContext<IConfig | undefined>(undefined)
 /**
  * Parses a valid feature flag string into an array of feature flag strings.
  *
- * @param {string} featureFlagsString
- * @return {*}  {string[]}
+ * @param {string} featureFlagsString Comma-separated feature flag names.
+ * @returns {string[]} Feature flags string.
  */
 const parseFeatureFlagsString = (featureFlagsString: string): string[] => {
   if (!featureFlagsString) {
@@ -48,8 +49,8 @@ const parseFeatureFlagsString = (featureFlagsString: string): string[] => {
 /**
  * Returns a browser-safe API host for frontend requests.
  *
- * @param {string | undefined} apiHost
- * @return {*}  {string}
+ * @param {string | undefined} apiHost Configured API hostname or URL.
+ * @returns {string} A browser-safe API host for frontend requests.
  */
 const getBrowserApiHost = (apiHost: string | undefined): string => {
   const normalizedHost = (apiHost || '').trim();
@@ -73,7 +74,7 @@ const getBrowserApiHost = (apiHost: string | undefined): string => {
  * Note: All changes to env vars here must also be reflected in the `frontend/server/index.mjs` file, so that the app has
  * access to the same env vars when running in both local development (via compose.yml) and in OpenShift.
  *
- * @return {*}  {IConfig}
+ * @returns {IConfig} Frontend configuration derived from local environment variables.
  */
 const getLocalConfig = (): IConfig => {
   const API_HOST = getBrowserApiHost(import.meta.env.VITE_APP_API_HOST);
@@ -101,8 +102,10 @@ const getLocalConfig = (): IConfig => {
     MAX_UPLOAD_NUM_FILES: Number(import.meta.env.VITE_APP_MAX_UPLOAD_NUM_FILES) || 10,
     MAX_UPLOAD_FILE_SIZE: Number(import.meta.env.VITE_APP_MAX_UPLOAD_FILE_SIZE) || 52428800,
     S3_PUBLIC_HOST_URL: ensureProtocol(`${OBJECT_STORE_URL}/${OBJECT_STORE_BUCKET_NAME}`, 'https://'),
-    BASEMAP_URL: import.meta.env.VITE_BASEMAP_URL || DEFAULT_BASEMAP_URL,
-    BASEMAP_ATTRIBUTION: import.meta.env.VITE_BASEMAP_ATTRIBUTION || DEFAULT_BASEMAP_ATTRIBUTION,
+    BASEMAP_URL: import.meta.env.VITE_BASEMAP_URL || '',
+    BASEMAP_ATTRIBUTION: import.meta.env.VITE_BASEMAP_ATTRIBUTION || '',
+    SATELLITE_BASEMAP_URL: import.meta.env.VITE_SATELLITE_BASEMAP_URL || '',
+    SATELLITE_BASEMAP_ATTRIBUTION: import.meta.env.VITE_SATELLITE_BASEMAP_ATTRIBUTION || '',
     /**
      * Feature flags
      *
@@ -116,7 +119,7 @@ const getLocalConfig = (): IConfig => {
 /**
  * Return the app config based on a deployed app, running via `frontend/server/index.mjs`
  *
- * @return {*}  {Promise<IConfig>}
+ * @returns {Promise<IConfig>} The app config based on a deployed app, running via `frontend/server/index.mjs`
  */
 const getDeployedConfig = async (): Promise<IConfig> => {
   const { data } = await axios.get<IConfig>('/config');
@@ -127,7 +130,7 @@ const getDeployedConfig = async (): Promise<IConfig> => {
 /**
  * Return true if MODE=development, false otherwise.
  *
- * @return {*}  {boolean}
+ * @returns {boolean} True if MODE=development, false otherwise.
  */
 const isDevelopment = (): boolean => {
   if (import.meta.env.MODE === 'development') {
@@ -143,8 +146,8 @@ const isDevelopment = (): boolean => {
  * This will fetch env vars from either `import.meta.env` if running with MODE=development, or from
  * `frontend/server/index.mjs` if running as a deployed MODE=production build.
  *
- * @param {*} props
- * @return {*}
+ * @param {*} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const ConfigContextProvider = (props: PropsWithChildren) => {
   const [config, setConfig] = useState<IConfig>();

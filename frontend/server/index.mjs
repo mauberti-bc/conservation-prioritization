@@ -3,7 +3,6 @@ import { createServer } from 'node:http';
 import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
-import { DEFAULT_BASEMAP_ATTRIBUTION, DEFAULT_BASEMAP_URL } from './constants.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,9 +29,10 @@ const MIME_TYPES = {
 /**
  * Writes a JSON response.
  *
- * @param {import('node:http').ServerResponse} response
- * @param {number} statusCode
- * @param {unknown} payload
+ * @param {import('node:http').ServerResponse} response HTTP response to write.
+ * @param {number} statusCode HTTP status code for the response.
+ * @param {unknown} payload Request or response payload.
+ * @returns {void} No return value.
  */
 const writeJson = (response, statusCode, payload) => {
   response.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -42,9 +42,9 @@ const writeJson = (response, statusCode, payload) => {
 /**
  * Ensures URL includes a protocol.
  *
- * @param {string} value
- * @param {string} fallbackProtocol
- * @returns {string}
+ * @param {string} value Value to normalize or inspect.
+ * @param {string} fallbackProtocol Protocol prefix used when the URL has none.
+ * @returns {string} Ensure protocol.
  */
 const ensureProtocol = (value, fallbackProtocol) => {
   if (!value) {
@@ -61,7 +61,7 @@ const ensureProtocol = (value, fallbackProtocol) => {
 /**
  * Gets runtime frontend configuration.
  *
- * @returns {Record<string, unknown>}
+ * @returns {Record<string, unknown>} Browser-safe runtime configuration read from the frontend environment.
  */
 const getConfig = () => {
   const apiHost = process.env.API_HOST;
@@ -88,8 +88,10 @@ const getConfig = () => {
     MAX_UPLOAD_NUM_FILES: Number(process.env.MAX_UPLOAD_NUM_FILES),
     MAX_UPLOAD_FILE_SIZE: Number(process.env.MAX_UPLOAD_FILE_SIZE),
     S3_PUBLIC_HOST_URL: s3PublicHostUrl,
-    BASEMAP_URL: process.env.BASEMAP_URL || DEFAULT_BASEMAP_URL,
-    BASEMAP_ATTRIBUTION: process.env.BASEMAP_ATTRIBUTION || DEFAULT_BASEMAP_ATTRIBUTION,
+    BASEMAP_URL: process.env.BASEMAP_URL || '',
+    BASEMAP_ATTRIBUTION: process.env.BASEMAP_ATTRIBUTION || '',
+    SATELLITE_BASEMAP_URL: process.env.SATELLITE_BASEMAP_URL || '',
+    SATELLITE_BASEMAP_ATTRIBUTION: process.env.SATELLITE_BASEMAP_ATTRIBUTION || '',
     FEATURE_FLAGS: (process.env.FEATURE_FLAGS || '')
       .split(',')
       .map((featureFlag) => featureFlag.trim())
@@ -100,8 +102,8 @@ const getConfig = () => {
 /**
  * Resolves a request path to a file under static root.
  *
- * @param {string} requestPath
- * @returns {string}
+ * @param {string} requestPath Requested URL path to resolve under the static directory.
+ * @returns {string} Static path.
  */
 const resolveStaticPath = (requestPath) => {
   const normalizedPath = decodeURIComponent(requestPath.split('?')[0]).replace(/^\/+/, '');
@@ -117,10 +119,11 @@ const resolveStaticPath = (requestPath) => {
 /**
  * Writes a static file response.
  *
- * @param {import('node:http').ServerResponse} response
- * @param {string} filePath
+ * @param {import('node:http').ServerResponse} response HTTP response to write.
+ * @param {string} filePath Filesystem path of the file.
  * @param {boolean} headOnly Whether to send headers without reading the body.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
+ * @throws {Error} Directory path is not directly readable.
  */
 const writeStaticFile = async (response, filePath, headOnly = false) => {
   const file = await open(filePath);

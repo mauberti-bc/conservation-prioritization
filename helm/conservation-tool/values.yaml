@@ -372,6 +372,7 @@ services:
     image:
       stream: "db-setup"
       tag: "dev"
+      pullPolicy: "Always"
     resources:
       requests:
         cpu: 50m
@@ -462,3 +463,5 @@ env:
   VITE_APP_KEYCLOAK_CLIENT_ID: ""
   VITE_BASEMAP_URL: "https://maps.gov.bc.ca/arcgis/rest/services/province/roads_wm/MapServer/tile/{z}/{y}/{x}"
   VITE_BASEMAP_ATTRIBUTION: "© Province of British Columbia"
+  VITE_SATELLITE_BASEMAP_URL: "https://server.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+  VITE_SATELLITE_BASEMAP_ATTRIBUTION: "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community"

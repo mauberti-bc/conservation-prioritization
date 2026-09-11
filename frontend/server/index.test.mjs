@@ -18,18 +18,30 @@ test('streams assets, serves HEAD and SPA fallback, and survives aborted downloa
   try {
     await mkdir(path.join(directory, 'server'));
     await mkdir(path.join(directory, 'build'));
-    for (const filename of ['index.mjs', 'constants.mjs']) {
+    for (const filename of ['index.mjs']) {
       await copyFile(new URL(filename, import.meta.url), path.join(directory, 'server', filename));
     }
     const asset = Buffer.alloc(8 * 1024 * 1024, 65);
     await writeFile(path.join(directory, 'build', 'asset.js'), asset);
     await writeFile(path.join(directory, 'build', 'index.html'), '<html>Map</html>');
     child = spawn(process.execPath, [path.join(directory, 'server', 'index.mjs')], {
-      env: { ...process.env, APP_PORT: String(port) },
+      env: {
+        ...process.env,
+        APP_PORT: String(port),
+        BASEMAP_URL: 'https://roads.example.com/{z}/{y}/{x}',
+        BASEMAP_ATTRIBUTION: 'Roads attribution',
+        SATELLITE_BASEMAP_URL: 'https://imagery.example.com/{z}/{y}/{x}',
+        SATELLITE_BASEMAP_ATTRIBUTION: 'Configured imagery attribution',
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     await once(child.stdout, 'data');
     const url = `http://127.0.0.1:${port}`;
+    const config = await (await fetch(`${url}/config`)).json();
+    assert.equal(config.BASEMAP_URL, 'https://roads.example.com/{z}/{y}/{x}');
+    assert.equal(config.BASEMAP_ATTRIBUTION, 'Roads attribution');
+    assert.equal(config.SATELLITE_BASEMAP_URL, 'https://imagery.example.com/{z}/{y}/{x}');
+    assert.equal(config.SATELLITE_BASEMAP_ATTRIBUTION, 'Configured imagery attribution');
     const response = await fetch(`${url}/asset.js`);
     assert.equal(response.status, 200);
     assert.equal(Number(response.headers.get('content-length')), asset.length);

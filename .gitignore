@@ -139,3 +139,6 @@ workflows/notebooks
 
 # Local architecture study guide
 ARCHITECTURE_TEXTBOOK.md
+
+# Public local basemap defaults; credentials belong in ignored .env.local files.
+!frontend/.env.development
