@@ -1,16 +1,19 @@
 import { Knex } from 'knex';
 
 const tutorialMarkdown = `
-# Tutorial
+# Conservation Prioritization Tutorial
 
 ## Conservation planning workflow
 
-Use this tutorial to submit conservation problems and compare priority areas.
+Use the Conservation Prioritization Tool to submit conservation problems and compare priority areas within British Columbia.
 
-- Define an area of interest
-- Select landscape characteristics and assign weights
-- Submit a conservation problem
-- Review priority areas
+1. Define an area of interest on the map for your conservation problem.
+2. Select landscape characteristics and assign weights to express their relative importance.
+3. Choose the analysis settings and, where applicable, an area budget or other constraint.
+4. Submit the conservation problem and follow its processing status.
+5. Review the priority areas on the map and compare outcomes using different inputs or weights.
+
+Results support conservation planning decisions. They reflect your selected characteristics, weights, area, and constraints; they do not prescribe a final decision.
 `.trim();
 
 /**
