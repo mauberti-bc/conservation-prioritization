@@ -28,26 +28,6 @@ vi.mock('hooks/useContext', () => ({
   useDialogContext: () => mocks.dialogContext,
 }));
 
-vi.mock('@mui/x-data-grid', async () => {
-  const actual = await vi.importActual<any>('@mui/x-data-grid');
-
-  return {
-    ...actual,
-    DataGrid: ({ rows, columns, getRowId, loading }: any) => (
-      <div>
-        {loading && <div role="progressbar" aria-label="Loading Markdown records" />}
-        {rows.map((row: any) => (
-          <div key={getRowId(row)} data-testid={`markdown-row-${row.markdown_id}`}>
-            {columns.map((column: any) => (
-              <div key={column.field}>{column.renderCell ? column.renderCell({ row }) : row[column.field]}</div>
-            ))}
-          </div>
-        ))}
-      </div>
-    ),
-  };
-});
-
 describe('AdminTutorialPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -88,8 +68,13 @@ describe('AdminTutorialPage', () => {
   it('loads Markdown rows and protects the tutorial key from deletion', async () => {
     render(<AdminTutorialPage />);
 
-    await waitFor(() => expect(mocks.markdownApi.getAdminMarkdown).toHaveBeenCalledWith(expect.any(Object)));
+    await waitFor(() =>
+      expect(mocks.markdownApi.getAdminMarkdown).toHaveBeenCalledWith(
+        expect.objectContaining({ sort: 'updatedAt', order: 'desc' })
+      )
+    );
     expect(await screen.findByText('tutorial')).toBeTruthy();
+    expect(screen.getByText('Updated').closest('[role="columnheader"]')?.getAttribute('aria-sort')).toBe('descending');
 
     const deleteButton = screen.getByRole('button', { name: 'Delete' }) as HTMLButtonElement;
     expect(deleteButton.disabled).toBe(true);

@@ -229,7 +229,7 @@ export const AdminTutorialPage = () => {
         sortable: false,
       },
       {
-        field: 'updated_at',
+        field: DEFAULT_SORT,
         headerName: 'Updated',
         flex: 0.8,
         minWidth: 160,
