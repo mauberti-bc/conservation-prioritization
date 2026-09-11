@@ -22,7 +22,7 @@ interface TaskAreaSectionProps {
 export const TaskAreaSection = ({ isReadOnly = false }: TaskAreaSectionProps) => {
   const config = useConfigContext();
   const { values, setFieldValue } = useFormikContext<TaskCreateFormValues>();
-  const { drawControlsRef, mapRef, drawRef } = useMapContext();
+  const { drawControlsRef, mapRef, drawRef, isMapReady } = useMapContext();
   const [isDrawing, setIsDrawing] = useState(false);
   const showUploadDropzone = config.FEATURE_FLAGS.includes(AREA_UPLOAD_FEATURE_FLAG);
 
@@ -31,7 +31,7 @@ export const TaskAreaSection = ({ isReadOnly = false }: TaskAreaSectionProps) =>
       return;
     }
     drawControlsRef.current?.startDrawing();
-    setIsDrawing(true);
+    setIsDrawing(drawRef.current.getMode() === 'draw_polygon');
   }, [drawControlsRef, drawRef, mapRef]);
 
   const finishDrawing = useCallback(() => {
@@ -52,9 +52,39 @@ export const TaskAreaSection = ({ isReadOnly = false }: TaskAreaSectionProps) =>
         mapboxFeatureId: newFeature.id,
       };
       setFieldValue('targetArea', [...values.targetArea, newGeometry]);
-      setIsDrawing(false);
     });
-  }, [drawControlsRef, setFieldValue, values.targetArea]);
+    setIsDrawing(drawRef.current?.getMode() === 'draw_polygon');
+  }, [drawControlsRef, drawRef, setFieldValue, values.targetArea]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady) {
+      setIsDrawing(false);
+      return;
+    }
+
+    /**
+     * Mirrors Draw's mode and saves completed geometry when drawing ends on the map.
+     *
+     * @returns {void} No return value.
+     */
+    const syncDrawingMode = () => {
+      const isMapDrawing = drawRef.current?.getMode() === 'draw_polygon';
+      if (isDrawing && !isMapDrawing) {
+        finishDrawing();
+      }
+      setIsDrawing(isMapDrawing);
+    };
+
+    syncDrawingMode();
+    map.on('draw.modechange', syncDrawingMode);
+    // Public Draw API calls suppress modechange; render also catches those transitions.
+    map.on('draw.render', syncDrawingMode);
+    return () => {
+      map.off('draw.modechange', syncDrawingMode);
+      map.off('draw.render', syncDrawingMode);
+    };
+  }, [drawRef, finishDrawing, isDrawing, isMapReady, mapRef]);
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -70,15 +100,20 @@ export const TaskAreaSection = ({ isReadOnly = false }: TaskAreaSectionProps) =>
     [values.targetArea, setFieldValue, drawRef]
   );
 
-  /** Handle Enter key to finish drawing */
+  /**
+   * Handle Enter key to finish drawing
+   *
+   * @param {KeyboardEvent} e Keyboard event used to handle task-area shortcuts.
+   * @returns {void} No return value.
+   */
   const handleKeydown = useCallback(
     (e: KeyboardEvent) => {
-      if (isDrawing && e.key === 'Enter') {
+      if (isDrawing && e.key === 'Enter' && e.target === mapRef.current?.getCanvas()) {
         e.preventDefault();
         finishDrawing();
       }
     },
-    [isDrawing, finishDrawing]
+    [isDrawing, finishDrawing, mapRef]
   );
 
   useEffect(() => {

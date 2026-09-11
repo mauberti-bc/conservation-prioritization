@@ -17,6 +17,45 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
   const submitCallbackRef = useRef<((features: Feature[]) => void) | null>(null);
   const previousFeatureIdsRef = useRef<Set<string | number>>(new Set());
   const isControlAttachedRef = useRef(false);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    /**
+     * Keeps the drawing cursor during a pan without restarting the active polygon.
+     *
+     * @returns {void} No return value.
+     */
+    const preserveDrawingCursor = () => {
+      if (drawRef.current?.getMode() === 'draw_polygon') {
+        map.getCanvas().style.cursor = 'crosshair';
+      }
+    };
+
+    /**
+     * Clears the drawing cursor when a polygon is completed or cancelled.
+     *
+     * @param {MapboxDraw.DrawModeChangeEvent} event Event to handle or forward.
+     * @returns {void} No return value.
+     */
+    const onModeChange = (event: MapboxDraw.DrawModeChangeEvent) => {
+      map.getCanvas().style.cursor = event.mode === 'draw_polygon' ? 'crosshair' : '';
+    };
+
+    map.on('dragstart', preserveDrawingCursor);
+    map.on('drag', preserveDrawingCursor);
+    map.on('dragend', preserveDrawingCursor);
+    map.on('draw.modechange', onModeChange);
+    return () => {
+      map.off('dragstart', preserveDrawingCursor);
+      map.off('drag', preserveDrawingCursor);
+      map.off('dragend', preserveDrawingCursor);
+      map.off('draw.modechange', onModeChange);
+      map.getCanvas().style.cursor = '';
+    };
+  }, [isMapReady, mapRef, drawRef]);
 
   const hasDrawSources = useCallback(() => {
     const map = mapRef.current;
@@ -77,6 +116,11 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
     });
   }, [mapRef]);
 
+  /**
+   * Starts a polygon while preserving the map's existing pan interaction.
+   *
+   * @returns {void} No return value.
+   */
   const startDrawing = () => {
     const map = mapRef.current;
     const draw = drawRef.current;
@@ -97,6 +141,12 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
       return;
     }
 
+    // Finalize the polygon before reading geometry (Draw removes the trailing preview vertex).
+    if (drawRef.current.getMode() !== 'simple_select') {
+      drawRef.current.changeMode('simple_select');
+    }
+    mapRef.current.getCanvas().style.cursor = '';
+
     // Get all features
     const allFeatures = drawRef.current.getAll().features;
 
@@ -112,16 +162,12 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
         previousFeatureIdsRef.current.add(feature.id);
       }
     });
-
-    // Change back to select mode
-    drawRef.current.changeMode('simple_select');
-    mapRef.current.getCanvas().style.cursor = '';
   };
 
   /**
    * Removes draft geometry and exits drawing mode using the public Draw API.
    *
-   * @returns {void}
+   * @returns {void} No return value.
    */
   const clearDrawing = () => {
     const draw = drawRef.current;
