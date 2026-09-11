@@ -16,9 +16,7 @@ export const HeaderAuthenticated = () => {
   const displayName =
     authContext.auth.user?.profile?.name || authContext.auth.user?.profile?.preferred_username || 'User';
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [adminAnchorEl, setAdminAnchorEl] = useState<null | HTMLElement>(null);
   const isMobileMenuOpen = Boolean(anchorEl);
-  const isAdminMenuOpen = Boolean(adminAnchorEl);
   const isAdmin = profileLoader.data?.role_name === 'admin';
 
   useEffect(() => {
@@ -31,14 +29,6 @@ export const HeaderAuthenticated = () => {
 
   const handleCloseMobileMenu = () => {
     setAnchorEl(null);
-  };
-
-  const handleOpenAdminMenu = (event: MouseEvent<HTMLElement>) => {
-    setAdminAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseAdminMenu = () => {
-    setAdminAnchorEl(null);
   };
 
   const handleLogout = async () => {
@@ -62,6 +52,19 @@ export const HeaderAuthenticated = () => {
         }}>
         <Button
           component={RouterLink}
+          to="/"
+          variant="text"
+          data-testid="menu_home"
+          sx={{
+            color: 'inherit',
+            fontSize: '16px',
+            fontWeight: 700,
+            textTransform: 'none',
+          }}>
+          Home
+        </Button>
+        <Button
+          component={RouterLink}
           to="/tutorial"
           variant="text"
           data-testid="menu_tutorial"
@@ -76,7 +79,8 @@ export const HeaderAuthenticated = () => {
         {isAdmin && (
           <Button
             variant="text"
-            onClick={handleOpenAdminMenu}
+            component={RouterLink}
+            to="/admin/tutorial"
             data-testid="menu_admin"
             sx={{
               color: 'inherit',
@@ -124,22 +128,6 @@ export const HeaderAuthenticated = () => {
         </Button>
       </Box>
 
-      <Menu
-        anchorEl={adminAnchorEl}
-        open={isAdminMenuOpen}
-        onClose={handleCloseAdminMenu}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        PaperProps={{ sx: { minWidth: 200, mt: 1 } }}>
-        <MenuItem
-          component={RouterLink}
-          to="/admin/tutorial"
-          onClick={handleCloseAdminMenu}
-          data-testid="menu_admin_tutorial">
-          Tutorial
-        </MenuItem>
-      </Menu>
-
       <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center' }}>
         <IconButton
           color="inherit"
@@ -171,9 +159,12 @@ export const HeaderAuthenticated = () => {
             to="/admin/tutorial"
             onClick={handleCloseMobileMenu}
             data-testid="collapsed_menu_admin_tutorial">
-            Admin Tutorial
+            Admin
           </MenuItem>
         )}
+        <MenuItem component={RouterLink} to="/" onClick={handleCloseMobileMenu} data-testid="collapsed_menu_home">
+          Home
+        </MenuItem>
         <MenuItem
           component={RouterLink}
           to="/tutorial"
