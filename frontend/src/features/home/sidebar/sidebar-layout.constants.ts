@@ -2,8 +2,8 @@ export const SIDEBAR_FLOAT_MARGIN_PX = 16;
 export const SIDEBAR_FLOAT_BORDER_RADIUS = 2;
 export const SIDEBAR_FLOAT_WIDTH = {
   xs: '60vw',
-  sm: '60vw',
-  md: '50vw',
+  sm: '50vw',
+  md: '45vw',
   lg: '40vw',
 };
 export const SIDEBAR_FLOAT_MIN_WIDTH = 360;
