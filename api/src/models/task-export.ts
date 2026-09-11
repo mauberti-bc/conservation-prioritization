@@ -3,7 +3,9 @@ import { z } from 'zod';
 export const TaskExportStatus = z.enum(['queued', 'running', 'ready', 'failed']);
 export const TaskExportFormat = z.enum(['geotiff', 'geodatabase']);
 
-/** Durable job-level metadata for a task-run export. */
+/**
+ * Durable job-level metadata for a task-run export.
+ */
 export const TaskExport = z.object({
   task_export_id: z.string().uuid(),
   task_run_id: z.string().uuid(),

@@ -39,13 +39,19 @@ type AwsLikeError = {
  * @class LayerService
  */
 export class LayerService {
-  /** Raw Zarr store path */
+  /**
+   * Raw Zarr store path
+   */
   private readonly zarrPath: string;
 
-  /** In-memory cache for parsed Zarr layers */
+  /**
+   * In-memory cache for parsed Zarr layers
+   */
   private static cache: LayerCache | null = null;
 
-  /** Cache TTL in milliseconds (default: 5 minutes) */
+  /**
+   * Cache TTL in milliseconds (default: 5 minutes)
+   */
   private static readonly CACHE_TTL = 5 * 60 * 1000;
 
   /**
@@ -61,6 +67,8 @@ export class LayerService {
    *
    * Bucket and source object-store connection details are resolved by `file-utils`.
    *
+   * @throws {ApiGeneralError} ZARR_STORE_PATH not defined.
+   * @throws {ApiGeneralError} ZARR_STORE_PATH must not be empty.
    * @memberof LayerService
    */
   constructor() {
@@ -128,7 +136,7 @@ export class LayerService {
    *
    * @param {string} prefix Base Zarr path
    * @param {string} key Relative key
-   * @returns {string}
+   * @returns {string} Join object key.
    * @private
    */
   private joinObjectKey(prefix: string, key: string): string {
@@ -142,7 +150,7 @@ export class LayerService {
    * Determine if an object-store error represents a missing object.
    *
    * @param {AwsLikeError} error Error from S3-compatible client
-   * @returns {boolean}
+   * @returns {boolean} Is missing object error.
    * @private
    */
   private isMissingObjectError(error: AwsLikeError): boolean {
@@ -241,7 +249,8 @@ export class LayerService {
    *
    * Uses an in-memory cache to avoid repeated reads of `.zmetadata`.
    *
-   * @returns {Promise<LayerMeta[]>}
+   * @returns {Promise<LayerMeta[]>} Metadata for all layers discovered in the Zarr store.
+   * @throws {ApiGeneralError} Invalid consolidated Zarr metadata payload.
    * @private
    */
   private async loadAllLayers(): Promise<LayerMeta[]> {
@@ -371,7 +380,7 @@ export class LayerService {
    * Fetch all layers with pagination.
    *
    * @param {ApiPaginationOptions} pagination Pagination options
-   * @returns {Promise<{ layers: LayerMeta[]; pagination: ApiPaginationResults }>}
+   * @returns {Promise<{ layers: LayerMeta[]; pagination: ApiPaginationResults }>} The matching page of layer metadata and pagination details.
    * @memberof LayerService
    */
   async listLayers(pagination: ApiPaginationOptions): Promise<{
@@ -395,7 +404,7 @@ export class LayerService {
    *
    * @param {string} searchTerm Optional search term
    * @param {ApiPaginationOptions} pagination Pagination options
-   * @returns {Promise<{ layers: LayerMeta[]; pagination: ApiPaginationResults | null }>}
+   * @returns {Promise<{ layers: LayerMeta[]; pagination: ApiPaginationResults | null }>} Matching layer metadata and pagination details when pagination is requested.
    * @memberof LayerService
    */
   async findLayers(
@@ -439,7 +448,7 @@ export class LayerService {
    * Fetch metadata for a specific layer by its path.
    *
    * @param {string} layerPath Layer path (e.g. "landcover/disturbance/mining")
-   * @returns {Promise<LayerMeta | null>}
+   * @returns {Promise<LayerMeta | null>} Metadata for the matching layer, or null when no layer matches.
    * @memberof LayerService
    */
   async getLayerByPath(layerPath: string): Promise<LayerMeta | null> {

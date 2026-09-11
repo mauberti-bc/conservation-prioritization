@@ -18,7 +18,9 @@ const MARKDOWN_SORT_FIELDS: Record<string, string> = {
   updated_at: 'updated_at'
 };
 
-/** Repository for application-managed Markdown documents. */
+/**
+ * Repository for application-managed Markdown documents.
+ */
 export class MarkdownRepository extends BaseRepository {
   /**
    * Fetches a Markdown document by its stable application key.

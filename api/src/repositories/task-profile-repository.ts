@@ -20,8 +20,9 @@ export class TaskProfileRepository extends BaseRepository {
   /**
    * Create a new task profile association.
    *
-   * @param {CreateTaskProfile} taskProfile
-   * @return {Promise<TaskProfile>}
+   * @param {CreateTaskProfile} taskProfile Task-to-profile association to persist.
+   * @returns {Promise<TaskProfile>} The task profile record.
+   * @throws {ApiExecuteSQLError} Failed to create task profile.
    * @memberof TaskProfileRepository
    */
   async createTaskProfile(taskProfile: CreateTaskProfile): Promise<TaskProfile> {
@@ -46,8 +47,9 @@ export class TaskProfileRepository extends BaseRepository {
   /**
    * Get a task profile by its ID.
    *
-   * @param {string} taskProfileId
-   * @return {Promise<TaskProfile>}
+   * @param {string} taskProfileId Identifier of the task-to-profile association.
+   * @returns {Promise<TaskProfile>} The task profile record.
+   * @throws {ApiExecuteSQLError} Failed to get task profile by ID.
    * @memberof TaskProfileRepository
    */
   async getTaskProfileById(taskProfileId: string): Promise<TaskProfile> {
@@ -73,8 +75,9 @@ export class TaskProfileRepository extends BaseRepository {
   /**
    * Get task profiles by task ID.
    *
-   * @param {string} taskId
-   * @return {Promise<TaskProfileExtended[]>}
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<TaskProfileExtended[]>} Matching task profile extended records.
+   * @throws {ApiExecuteSQLError} Failed to get task profiles by task ID.
    * @memberof TaskProfileRepository
    */
   async getTaskProfilesByTaskId(taskId: string): Promise<TaskProfileExtended[]> {
@@ -104,7 +107,7 @@ export class TaskProfileRepository extends BaseRepository {
   /**
    * Get all task profiles.
    *
-   * @return {Promise<TaskProfile[]>}
+   * @returns {Promise<TaskProfile[]>} Matching task profile records.
    * @memberof TaskProfileRepository
    */
   async getAllTaskProfiles(): Promise<TaskProfile[]> {
@@ -122,9 +125,10 @@ export class TaskProfileRepository extends BaseRepository {
   /**
    * Update an existing task profile.
    *
-   * @param {string} taskProfileId
-   * @param {UpdateTaskProfile} updates
-   * @return {Promise<TaskProfile>}
+   * @param {string} taskProfileId Identifier of the task-to-profile association.
+   * @param {UpdateTaskProfile} updates Fields to update on the existing record.
+   * @returns {Promise<TaskProfile>} The task profile record.
+   * @throws {ApiExecuteSQLError} Failed to update task profile.
    * @memberof TaskProfileRepository
    */
   async updateTaskProfile(taskProfileId: string, updates: UpdateTaskProfile): Promise<TaskProfile> {
@@ -153,8 +157,9 @@ export class TaskProfileRepository extends BaseRepository {
   /**
    * Soft delete a task profile.
    *
-   * @param {DeleteTaskProfile} data
-   * @return {Promise<void>}
+   * @param {DeleteTaskProfile} data Data to persist or process.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {ApiExecuteSQLError} Failed to delete task profile.
    * @memberof TaskProfileRepository
    */
   async deleteTaskProfile(data: DeleteTaskProfile): Promise<void> {
@@ -181,6 +186,7 @@ export class TaskProfileRepository extends BaseRepository {
    * @param {string} taskId - The ID of the task.
    * @param {string} profileId - The ID of the profile.
    * @return {Promise<string | null>} - Returns the role name if found, otherwise null.
+   * @throws {ApiExecuteSQLError} Multiple roles found for the same task-profile combination.
    * @memberof TaskProfileRepository
    */
   // TODO: ensure profileID is being passed correctly. Current passing profile_guid which is incorrect. 

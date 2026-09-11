@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
-/** Durable file metadata for one task export artifact. */
+/**
+ * Durable file metadata for one task export artifact.
+ */
 export const TaskExportFile = z.object({
   task_export_file_id: z.string().uuid(),
   task_export_id: z.string().uuid(),

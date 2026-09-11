@@ -22,7 +22,11 @@ POST.apiDoc = {
   }
 };
 
-/** Dispatches recoverable publication without repeating the global solve. */
+/**
+ * Dispatches recoverable publication without repeating the global solve.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function retryRunPublication(): RequestHandler {
   return async (req, res) => {
     const connection = getDBConnection(req.keycloak_token);

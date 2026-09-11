@@ -14,9 +14,10 @@ const KEYCLOAK_ISSUER = `${process.env.KEYCLOAK_HOST}/realms/${process.env.KEYCL
  *
  * Assign the bearer token to `req.keycloak_token`.
  *
- * @param {Request} req
- * @return {*} {Promise<true>} true if the token is authenticated
+ * @param {Request} req Incoming HTTP request.
+ * @return {Promise<true>} true if the token is authenticated
  * @throws {HTTP401} if the bearer token is missing or invalid
+ * @throws {HTTP401} Access Denied.
  */
 export const authenticateRequest = async function (req: Request): Promise<true> {
   try {
@@ -101,8 +102,8 @@ export const authenticateRequest = async function (req: Request): Promise<true> 
  * Why? This authentication method should be used for endpoints where authentication is optional, but the response is
  * different based on whether or not the request is authenticated.
  *
- * @param {Request} req
- * @return {*} {Promise<true>}
+ * @param {Request} req Incoming HTTP request.
+ * @returns {Promise<true>} The true record.
  */
 export const authenticateRequestOptional = async function (req: Request): Promise<true> {
   return authenticateRequest(req).catch(() => true);

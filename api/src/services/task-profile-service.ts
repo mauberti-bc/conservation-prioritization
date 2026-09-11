@@ -22,7 +22,7 @@ export class TaskProfileService extends DBService {
   /**
    * Creates an instance of TaskProfileService.
    *
-   * @param {IDBConnection} connection
+   * @param {IDBConnection} connection Database connection used for queries and transaction context.
    * @memberof TaskProfileService
    */
   constructor(connection: IDBConnection) {
@@ -33,8 +33,8 @@ export class TaskProfileService extends DBService {
   /**
    * Create a new task profile.
    *
-   * @param {CreateTaskProfile} taskProfile
-   * @return {*}  {Promise<TaskProfile>}
+   * @param {CreateTaskProfile} taskProfile Task-to-profile association to persist.
+   * @returns {Promise<TaskProfile>} The task profile record.
    * @memberof TaskProfileService
    */
   async createTaskProfile(taskProfile: CreateTaskProfile): Promise<TaskProfile> {
@@ -44,8 +44,8 @@ export class TaskProfileService extends DBService {
   /**
    * Get a task profile by ID.
    *
-   * @param {string} taskProfileId
-   * @return {*}  {Promise<TaskProfile>}
+   * @param {string} taskProfileId Identifier of the task-to-profile association.
+   * @returns {Promise<TaskProfile>} The task profile record.
    * @memberof TaskProfileService
    */
   async getTaskProfileById(taskProfileId: string): Promise<TaskProfile> {
@@ -55,8 +55,8 @@ export class TaskProfileService extends DBService {
   /**
    * Get task profiles by task ID
    *
-   * @param {string} taskId
-   * @return {Promise<TaskProfileExtended[]>}
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<TaskProfileExtended[]>} Matching task profile extended records.
    * @memberof TaskProfileService
    */
   async getTaskProfilesByTaskId(taskId: string): Promise<TaskProfileExtended[]> {
@@ -66,7 +66,7 @@ export class TaskProfileService extends DBService {
   /**
    * Get all task profiles.
    *
-   * @return {*}  {Promise<TaskProfile[]>}
+   * @returns {Promise<TaskProfile[]>} Matching task profile records.
    * @memberof TaskProfileService
    */
   async getAllTaskProfiles(): Promise<TaskProfile[]> {
@@ -76,9 +76,9 @@ export class TaskProfileService extends DBService {
   /**
    * Update an existing task profile.
    *
-   * @param {string} taskProfileId
-   * @param {UpdateTaskProfile} updates
-   * @return {*}  {Promise<TaskProfile>}
+   * @param {string} taskProfileId Identifier of the task-to-profile association.
+   * @param {UpdateTaskProfile} updates Fields to update on the existing record.
+   * @returns {Promise<TaskProfile>} The task profile record.
    * @memberof TaskProfileService
    */
   async updateTaskProfile(taskProfileId: string, updates: UpdateTaskProfile): Promise<TaskProfile> {
@@ -88,8 +88,8 @@ export class TaskProfileService extends DBService {
   /**
    * Soft delete a task profile.
    *
-   * @param {DeleteTaskProfile} data
-   * @return {*}  {Promise<void>}
+   * @param {DeleteTaskProfile} data Data to persist or process.
+   * @returns {Promise<void>} Resolves when the operation completes.
    * @memberof TaskProfileService
    */
   async deleteTaskProfile(data: DeleteTaskProfile): Promise<void> {

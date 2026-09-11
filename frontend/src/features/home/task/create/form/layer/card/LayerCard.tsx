@@ -10,7 +10,12 @@ interface LayerCardProps {
   menuOptions?: IconMenuItem[];
 }
 
-/** Shared layer card shell with a title row and optional actions menu. */
+/**
+ * Shared layer card shell with a title row and optional actions menu.
+ *
+ * @param {LayerCardProps} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ */
 export const LayerCard = ({ title, children, menuOptions = [] }: LayerCardProps) => {
   return (
     <Box

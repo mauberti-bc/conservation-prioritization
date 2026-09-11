@@ -5,7 +5,7 @@ import { Profile } from '../models/profile';
 /**
  * Parses out the user's GUID from a Keycloak token.
  *
- * @param {Record<string, any>} keycloakToken
+ * @param {Record<string, any>} keycloakToken Decoded authentication token used to establish the user context.
  * @return {string | null} The user GUID or null if not found.
  */
 export const getUserGuid = (keycloakToken: Record<string, any>): string | null => {
@@ -20,7 +20,7 @@ export const getUserGuid = (keycloakToken: Record<string, any>): string | null =
 /**
  * Parses out the identity source from the Keycloak token.
  *
- * @param {Record<string, any>} keycloakToken
+ * @param {Record<string, any>} keycloakToken Decoded authentication token used to establish the user context.
  * @return {IDENTITY_SOURCE} The identity source value from the token.
  */
 export const getUserIdentitySource = (keycloakToken: Record<string, any>): IDENTITY_SOURCE => {
@@ -54,7 +54,7 @@ export const coerceUserIdentitySource = (identitySource: string | null): IDENTIT
 /**
  * Parses the user's identifier from the Keycloak token.
  *
- * @param {Record<string, any>} keycloakToken
+ * @param {Record<string, any>} keycloakToken Decoded authentication token used to establish the user context.
  * @return {string | null} The user's identifier or null if not found.
  */
 export const getUserIdentifier = (keycloakToken: Record<string, any>): string | null => {
@@ -65,7 +65,7 @@ export const getUserIdentifier = (keycloakToken: Record<string, any>): string | 
 /**
  * Parses out the `sub` field from the Keycloak token and returns a known service client if found.
  *
- * @param {Record<string, any>} keycloakToken
+ * @param {Record<string, any>} keycloakToken Decoded authentication token used to establish the user context.
  * @return {Profile | null} A matching service client system user or null if not found.
  */
 export const getServiceClientProfile = (keycloakToken: Record<string, any>): Profile | null => {
@@ -80,7 +80,7 @@ export const getServiceClientProfile = (keycloakToken: Record<string, any>): Pro
 /**
  * Parses the user's display name from a Keycloak token.
  *
- * @param {Record<string, any>} keycloakToken
+ * @param {Record<string, any>} keycloakToken Decoded authentication token used to establish the user context.
  * @return {string | null} The display name or null if not found.
  */
 export const getDisplayName = (keycloakToken: Record<string, any>): string | null => {
@@ -90,7 +90,7 @@ export const getDisplayName = (keycloakToken: Record<string, any>): string | nul
 /**
  * Parses the user's email from a Keycloak token.
  *
- * @param {Record<string, any>} keycloakToken
+ * @param {Record<string, any>} keycloakToken Decoded authentication token used to establish the user context.
  * @return {string | null} The email address or null if not found.
  */
 export const getEmail = (keycloakToken: Record<string, any>): string | null => {
@@ -100,7 +100,7 @@ export const getEmail = (keycloakToken: Record<string, any>): string | null => {
 /**
  * Parses the user's given name (first name) from a Keycloak token.
  *
- * @param {Record<string, any>} keycloakToken
+ * @param {Record<string, any>} keycloakToken Decoded authentication token used to establish the user context.
  * @return {string | null} The given name or null if not found.
  */
 export const getGivenName = (keycloakToken: Record<string, any>): string | null => {
@@ -110,7 +110,7 @@ export const getGivenName = (keycloakToken: Record<string, any>): string | null 
 /**
  * Parses the user's family name (last name) from a Keycloak token.
  *
- * @param {Record<string, any>} keycloakToken
+ * @param {Record<string, any>} keycloakToken Decoded authentication token used to establish the user context.
  * @return {string | null} The family name or null if not found.
  */
 export const getFamilyName = (keycloakToken: Record<string, any>): string | null => {
@@ -120,7 +120,7 @@ export const getFamilyName = (keycloakToken: Record<string, any>): string | null
 /**
  * Parses the user's agency from a Keycloak token (for BCeID Business users).
  *
- * @param {Record<string, any>} keycloakToken
+ * @param {Record<string, any>} keycloakToken Decoded authentication token used to establish the user context.
  * @return {string | null} The agency name or null if not found.
  */
 export const getAgency = (keycloakToken: Record<string, any>): string | null => {

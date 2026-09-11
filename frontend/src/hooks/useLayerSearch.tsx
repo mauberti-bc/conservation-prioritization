@@ -18,6 +18,9 @@ interface UseLayerSearchProps {
 /**
  * Custom hook for searching layers with debounced API requests.
  * Handles loading state, errors, and caches results.
+ *
+ * @param {UseLayerSearchProps} options Options controlling the operation.
+ * @returns {UseLayerSearchReturn} Use layer search.
  */
 export const useLayerSearch = ({
   debounceMs = 300,

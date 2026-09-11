@@ -69,7 +69,7 @@ POST.apiDoc = {
 /**
  * Express request handler to update a project by its ID.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function updateProject(): RequestHandler {
   return async (req, res) => {
@@ -165,7 +165,7 @@ DELETE.apiDoc = {
 /**
  * Express request handler to soft delete a project by its ID.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function deleteProject(): RequestHandler {
   return async (req, res) => {

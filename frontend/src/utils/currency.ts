@@ -1,7 +1,7 @@
 /**
  *
- * @param {string | number} value
- * @returns
+ * @param {string | number} value Value to normalize or inspect.
+ * @returns Format budget.
  */
 export const formatBudget = (value: string | number) => {
   const clean = String(value).replace(/[^0-9.]/g, '');

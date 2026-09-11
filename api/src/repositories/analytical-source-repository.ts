@@ -2,7 +2,9 @@ import { SQL } from 'sql-template-strings';
 import { AnalyticalSource, PublishAnalyticalSource } from '../models/analytical-source';
 import { BaseRepository } from './base-repository';
 
-/** Repository for published analytical sources. */
+/**
+ * Repository for published analytical sources.
+ */
 export class AnalyticalSourceRepository extends BaseRepository {
   /**
    * Registers an already validated immutable source and atomically promotes it.
@@ -30,7 +32,7 @@ export class AnalyticalSourceRepository extends BaseRepository {
   /**
    * Returns the deployment's default immutable analytical source.
    *
-   * @returns {Promise<AnalyticalSource | null>}
+   * @returns {Promise<AnalyticalSource | null>} The deployment's default immutable analytical source.
    */
   async getDefaultSource(): Promise<AnalyticalSource | null> {
     const response = await this.connection.sql(

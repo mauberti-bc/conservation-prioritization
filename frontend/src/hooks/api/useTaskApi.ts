@@ -28,8 +28,8 @@ export const useTaskApi = (axios: AxiosInstance) => {
   /**
    * Create a new draft task.
    *
-   * @param {CreateDraftTaskRequest} taskData
-   * @return {Promise<GetTaskResponse>}
+   * @param {CreateDraftTaskRequest} taskData Task details to display or transform.
+   * @returns {Promise<GetTaskResponse>} The get task response record.
    */
   const createTask = async (taskData: CreateDraftTaskRequest): Promise<GetTaskResponse> => {
     const { data } = await axios.post<GetTaskResponse>('/api/task', taskData);
@@ -39,8 +39,8 @@ export const useTaskApi = (axios: AxiosInstance) => {
   /**
    * Create a new draft task.
    *
-   * @param {CreateDraftTaskRequest} taskData
-   * @return {Promise<GetTaskResponse>}
+   * @param {CreateDraftTaskRequest} taskData Task details to display or transform.
+   * @returns {Promise<GetTaskResponse>} The newly created draft task.
    */
   const createDraftTask = async (taskData: CreateDraftTaskRequest): Promise<GetTaskResponse> => {
     const { data } = await axios.post<GetTaskResponse>('/api/task', taskData);
@@ -103,34 +103,55 @@ export const useTaskApi = (axios: AxiosInstance) => {
   /**
    * Submit an existing draft task to Prefect with current layer configuration.
    *
-   * @param {string} taskId
-   * @param {SubmitTaskRequest} payload
-   * @return {Promise<GetTaskResponse>}
+   * @param {string} taskId Identifier of the task.
+   * @param {SubmitTaskRequest} payload Request or response payload.
+   * @returns {Promise<GetTaskResponse>} The get task response record.
    */
   const submitTask = async (taskId: string, payload: SubmitTaskRequest): Promise<GetTaskResponse> => {
     const { data } = await axios.post<GetTaskResponse>(`/api/task/${taskId}/submit`, payload);
     return data;
   };
 
-  /** Creates an immutable run for a task. */
+  /**
+   * Creates an immutable run for a task.
+   *
+   * @param {string} taskId Identifier of the task.
+   * @param {SubmitTaskRequest} payload Request or response payload.
+   * @returns {Promise<TaskRunResponse>} The task run response record.
+   */
   const createTaskRun = async (taskId: string, payload: SubmitTaskRequest): Promise<TaskRunResponse> => {
     const { data } = await axios.post<TaskRunResponse>(`/api/task/${taskId}/run`, payload);
     return data;
   };
 
-  /** Lists immutable runs for a task. */
+  /**
+   * Lists immutable runs for a task.
+   *
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<TaskRunResponse[]>} Matching task run response records.
+   */
   const getTaskRuns = async (taskId: string): Promise<TaskRunResponse[]> => {
     const { data } = await axios.get<TaskRunResponse[]>(`/api/task/${taskId}/run`);
     return data;
   };
 
-  /** Gets one immutable run and its authoritative artifacts. */
+  /**
+   * Gets one immutable run and its authoritative artifacts.
+   *
+   * @param {string} runId Identifier of the immutable task run.
+   * @returns {Promise<TaskRunResponse>} The task run response record.
+   */
   const getTaskRun = async (runId: string): Promise<TaskRunResponse> => {
     const { data } = await axios.get<TaskRunResponse>(`/api/run/${runId}`);
     return data;
   };
 
-  /** Retries publication without repeating a completed solve. */
+  /**
+   * Retries publication without repeating a completed solve.
+   *
+   * @param {string} runId Identifier of the immutable task run.
+   * @returns {Promise<TaskRunResponse>} The run returned after requesting another publication attempt.
+   */
   const retryTaskRunPublication = async (runId: string): Promise<TaskRunResponse> => {
     const { data } = await axios.post<TaskRunResponse>(`/api/run/${runId}/retry`);
     return data;
@@ -196,7 +217,7 @@ export const useTaskApi = (axios: AxiosInstance) => {
   /**
    * Retrieve the most recent dashboard for a task.
    *
-   * @param {string} taskId
+   * @param {string} taskId Identifier of the task.
    * @return {Promise<PublishDashboardResponse>} The dashboard response.
    */
   const getTaskDashboard = async (taskId: string): Promise<GetTaskDashboardResponse> => {
@@ -209,7 +230,7 @@ export const useTaskApi = (axios: AxiosInstance) => {
    *
    * @param {string} taskId - The UUID of the task.
    * @param {string[]} projectIds - Project UUIDs to add.
-   * @return {Promise<void>} The created project-task associations.
+   * @returns {Promise<void>} Resolves when the operation completes.
    */
   const addProjectsToTask = async (taskId: string, projectIds: string[]): Promise<any> => {
     const { data } = await axios.post(`/api/task/${taskId}/project`, { projectIds });
@@ -219,9 +240,9 @@ export const useTaskApi = (axios: AxiosInstance) => {
   /**
    * Invite profiles to a task by email.
    *
-   * @param {string} taskId
-   * @param {InviteProfilesRequest} payload
-   * @return {Promise<InviteProfilesResponse>}
+   * @param {string} taskId Identifier of the task.
+   * @param {InviteProfilesRequest} payload Request or response payload.
+   * @returns {Promise<InviteProfilesResponse>} Invitation results identifying added, existing, and unresolved profiles.
    */
   const inviteProfilesToTask = async (
     taskId: string,
@@ -235,7 +256,7 @@ export const useTaskApi = (axios: AxiosInstance) => {
    * Requests cancellation of the task's flow run.
    *
    * @param {string} taskId - UUID of the task to abort.
-   * @returns {Promise<void>} Resolves when the cancellation request is accepted; rejects on API errors.
+   * @returns {Promise<void>} Resolves when the operation completes.
    */
   const abortTask = async (taskId: string): Promise<void> => {
     await axios.post(`/api/task/${taskId}/abort`);
@@ -245,7 +266,7 @@ export const useTaskApi = (axios: AxiosInstance) => {
    * Delete a task by its ID.
    *
    * @param {string} taskId - The UUID of the task to delete.
-   * @return {Promise<void>} Resolves when the task has been successfully deleted.
+   * @returns {Promise<void>} Resolves when the operation completes.
    */
   const deleteTask = async (taskId: string): Promise<void> => {
     const { data } = await axios.delete<void>(`/api/task/${taskId}`);

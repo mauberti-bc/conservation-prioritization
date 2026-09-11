@@ -126,7 +126,7 @@ GET.apiDoc = {
 /**
  * Express request handler to publish a task to a dashboard.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function publishDashboard(): RequestHandler {
   return async (req, res) => {
@@ -174,7 +174,7 @@ export function publishDashboard(): RequestHandler {
 /**
  * Express request handler to fetch the most recent dashboard for a task.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function getLatestDashboard(): RequestHandler {
   return async (req, res) => {

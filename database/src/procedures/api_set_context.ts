@@ -3,9 +3,9 @@ import { Knex } from 'knex';
 /**
  * Creates the `api_set_context` procedure, which is a trigger for updating the `created_*` and `updated_*` fields
  *
+ * @param {Knex} knex Knex connection used to execute the migration.
+ * @returns {Promise<void>} Resolves when the operation completes.
  * @export
- * @param {Knex} knex
- * @return {*}  {Promise<void>}
  */
 export async function seed(knex: Knex): Promise<void> {
   await knex.raw(`

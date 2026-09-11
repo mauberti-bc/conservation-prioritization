@@ -30,7 +30,7 @@ export const DB_CLIENT = 'pg';
 /**
  * Builds the default PostgreSQL pool configuration
  *
- * @return {*}  {pg.PoolConfig}
+ * @returns {pg.PoolConfig} Db config.
  */
 export const getDbConfig = (): pg.PoolConfig => ({
   user: process.env.DB_USER_API,
@@ -64,7 +64,8 @@ let DBPool: pg.Pool | undefined;
 /**
  * Initializes the PostgreSQL connection pool
  *
- * @param {pg.PoolConfig} [config]
+ * @param {pg.PoolConfig} config Configuration settings for this instance.
+ * @returns {void} No return value.
  */
 export const initDBPool = (config?: pg.PoolConfig) => {
   if (DBPool) {
@@ -78,7 +79,8 @@ export const initDBPool = (config?: pg.PoolConfig) => {
 /**
  * Returns the initialized PostgreSQL connection pool
  *
- * @return {*}  {pg.Pool}
+ * @returns {pg.Pool} The initialized PostgreSQL connection pool
+ * @throws {Error} DBPool is not initialized.
  */
 export const getDBPool = (): pg.Pool => {
   if (!DBPool) {
@@ -115,9 +117,14 @@ export interface IDBConnection {
  * @param {{
  *   sub: string;
  *   identity_provider: IDENTITY_SOURCE;
+ * }} params Parameters supplied to the operation.
+ *   sub: string;
+ *   identity_provider: IDENTITY_SOURCE;
  * }} params
- *
- * @return {*}  {IDBConnection}
+ * @param {Record<string, any>} keycloakToken Decoded authentication token used to establish the user context.
+ * @returns {IDBConnection} Dbconnection.
+ * @throws {Error} Keycloak token is undefined.
+ * @throws {Error} User identifier is required.
  */
 export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnection => {
   if (!keycloakToken) {
@@ -138,6 +145,8 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
 
   /**
    * Opens the database connection and starts a transaction
+   *
+   * @returns {Promise<void>} Resolves when the operation completes.
    */
   const open = async () => {
     if (isOpen) {
@@ -154,6 +163,8 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
 
   /**
    * Opens the database connection without starting a transaction
+   *
+   * @returns {Promise<void>} Resolves when the operation completes.
    */
   const openWithoutTransaction = async () => {
     if (isOpen) {
@@ -169,6 +180,8 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
 
   /**
    * Releases the database connection back to the pool
+   *
+   * @returns {void} No return value.
    */
   const release = () => {
     if (!isOpen || isReleased) {
@@ -182,6 +195,9 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
 
   /**
    * Commits the current transaction
+   *
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {Error} DBConnection not open.
    */
   const commit = async () => {
     if (!isOpen) {
@@ -193,6 +209,9 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
 
   /**
    * Rolls back the current transaction
+   *
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {Error} DBConnection not open.
    */
   const rollback = async () => {
     if (!isOpen) {
@@ -206,9 +225,9 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
    * Executes a raw SQL query
    *
    * @template T
-   * @param {string} text
-   * @param {any[]} [values]
-   * @return {*}  {Promise<pg.QueryResult<T>>}
+   * @param {string} text SQL query text with positional placeholders.
+   * @param {any[]} values Values bound to the SQL query placeholders.
+   * @returns {Promise<pg.QueryResult<T>>} PostgreSQL result containing the returned rows and query metadata.
    */
   const query = async <T extends pg.QueryResultRow = any>(text: string, values: any[] = []) => {
     return client.query<T>(text, values);
@@ -218,9 +237,10 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
    * Executes a SQL template string with optional Zod validation
    *
    * @template T
-   * @param {SQLStatement} statement
-   * @param {z.Schema<T[]>} [schema]
-   * @return {*}  {Promise<pg.QueryResult<T>>}
+   * @param {SQLStatement} statement SQL statement and bound parameter values.
+   * @param {z.ZodSchema<T, any, any>} zodSchema Optional Zod schema used to validate query results.
+   * @returns {Promise<pg.QueryResult<T>>} PostgreSQL result, with rows validated against the supplied schema when validation is enabled.
+   * @throws {ApiExecuteSQLError} DB validation failed.
    */
   const sql = async <T extends pg.QueryResultRow = any>(
     statement: SQLStatement,
@@ -252,9 +272,10 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
    * Executes a Knex query builder with optional Zod validation
    *
    * @template T
-   * @param {Knex.QueryBuilder} qb
-   * @param {z.Schema<T[]>} [schema]
-   * @return {*}  {Promise<pg.QueryResult<T>>}
+   * @param {Knex.QueryBuilder} qb Knex query builder to execute.
+   * @param {z.ZodSchema<T, any, any>} zodSchema Optional Zod schema used to validate query results.
+   * @returns {Promise<pg.QueryResult<T>>} PostgreSQL result, with rows validated against the supplied schema when validation is enabled.
+   * @throws {ApiExecuteSQLError} DB validation failed.
    */
   const knexQuery = async <T extends pg.QueryResultRow = any>(
     qb: Knex.QueryBuilder,
@@ -279,6 +300,10 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
 
   /**
    * Sets the database user context using the current identity
+   *
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {ApiGeneralError} Cannot determine user context.
+   * @throws {ApiGeneralError} Failed to set user context.
    */
   const setUserContext = async () => {
     if (!userGuid || !identitySource) {
@@ -298,7 +323,8 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
   /**
    * Returns the system user ID for the current connection
    *
-   * @return {*}  {string}
+   * @returns The system user ID for the current connection
+   * @throws {Error} DBConnection not open.
    */
   const getProfileId = () => {
     if (!isOpen) {
@@ -324,7 +350,7 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
 /**
  * Returns a database connection scoped to the API service account
  *
- * @return {*}  {IDBConnection}
+ * @returns {IDBConnection} A database connection scoped to the API service account
  */
 export const getAPIUserDBConnection = (): IDBConnection => {
   return getDBConnection({
@@ -336,8 +362,8 @@ export const getAPIUserDBConnection = (): IDBConnection => {
 /**
  * Returns a database connection scoped to a system user profile
  *
- * @param {Profile} systemUser
- * @return {*}  {IDBConnection}
+ * @param {Profile} systemUser System-user identity used for the database context.
+ * @returns {IDBConnection} A database connection scoped to a system user profile
  */
 export const getServiceAccountDBConnection = (systemUser: Profile): IDBConnection => {
   return getDBConnection({

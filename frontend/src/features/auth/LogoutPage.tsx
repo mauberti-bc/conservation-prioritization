@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 
 /**
  * Logout page that triggers OIDC sign-out.
+ *
+ * @returns {React.ReactNode} The rendered component.
  */
 export const LogoutPage = () => {
   const authContext = useAuthContext();

@@ -21,7 +21,13 @@ export interface IApplicationEventsContext {
 
 export const ApplicationEventsContext = createContext<IApplicationEventsContext | undefined>(undefined);
 
-/** Maintains the single authenticated application-scoped realtime connection. */
+/**
+ * Maintains the single authenticated application-scoped realtime connection.
+ *
+ * @param {PropsWithChildren} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ * @throws {Error} ApplicationEventsContextProvider requires authentication and configuration contexts.
+ */
 export const ApplicationEventsContextProvider = (props: PropsWithChildren) => {
   const auth = useContext(AuthContext);
   const config = useContext(ConfigContext);

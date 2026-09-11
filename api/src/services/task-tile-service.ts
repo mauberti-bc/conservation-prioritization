@@ -38,8 +38,8 @@ export class TaskTileService extends DBService {
   /**
    * Creates a draft task tile record.
    *
-   * @param {string} taskId
-   * @return {*}  {Promise<TaskTile>}
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<TaskTile>} The task tile record.
    * @memberof TaskTileService
    */
   async createDraftTileRecord(taskId: string): Promise<TaskTile> {
@@ -54,8 +54,9 @@ export class TaskTileService extends DBService {
   /**
    * Creates a draft tile record and submits a Prefect tiling flow.
    *
-   * @param {string} taskId
-   * @return {*}  {Promise<TaskTile>}
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<TaskTile>} The task tile record.
+   * @throws {HTTP400} Task has no canonical task run to publish.
    * @memberof TaskTileService
    */
   async createDraftTileAndSubmit(taskId: string): Promise<TaskTile> {
@@ -86,8 +87,8 @@ export class TaskTileService extends DBService {
   /**
    * Marks a task tile as started.
    *
-   * @param {string} taskTileId
-   * @return {*}  {Promise<TaskTile>}
+   * @param {string} taskTileId Identifier of the task tile.
+   * @returns {Promise<TaskTile>} The task tile record.
    * @memberof TaskTileService
    */
   async markTileStarted(taskTileId: string): Promise<TaskTile> {
@@ -98,10 +99,10 @@ export class TaskTileService extends DBService {
   /**
    * Marks a task tile as completed and updates the task tileset URI.
    *
-   * @param {string} taskTileId
-   * @param {string} uri
-   * @param {string | null} [contentType]
-   * @return {*}  {Promise<TaskTile>}
+   * @param {string} taskTileId Identifier of the task tile.
+   * @param {string} uri Object-store URI identifying the object.
+   * @param {string | null} contentType MIME type of the stored content.
+   * @returns {Promise<TaskTile>} The task tile record.
    * @memberof TaskTileService
    */
   async markTileCompleted(taskTileId: string, uri: string, contentType?: string | null): Promise<TaskTile> {
@@ -121,10 +122,10 @@ export class TaskTileService extends DBService {
   /**
    * Marks a task tile as failed with an optional error message.
    *
-   * @param {string} taskTileId
-   * @param {string | null} [errorCode]
-   * @param {string | null} [errorMessage]
-   * @return {*}  {Promise<TaskTile>}
+   * @param {string} taskTileId Identifier of the task tile.
+   * @param {string | null} errorCode Machine-readable failure code.
+   * @param {string | null} errorMessage Human-readable failure description.
+   * @returns {Promise<TaskTile>} The task tile record.
    * @memberof TaskTileService
    */
   async markTileFailed(taskTileId: string, errorCode?: string | null, errorMessage?: string | null): Promise<TaskTile> {
@@ -139,9 +140,10 @@ export class TaskTileService extends DBService {
   /**
    * Updates a task tile status and handles required fields.
    *
-   * @param {string} taskTileId
-   * @param {{ status: 'STARTED' | 'COMPLETED' | 'FAILED' | 'DRAFT'; pmtiles_uri?: string | null; content_type?: string | null; error_code?: string | null; error_message?: string | null }} updates
-   * @return {*}  {Promise<TaskTile>}
+   * @param {string} taskTileId Identifier of the task tile.
+   * @param {{ status: 'STARTED' | 'COMPLETED' | 'FAILED' | 'DRAFT'; pmtiles_uri?: string | null; content_type?: string | null; error_code?: string | null; error_message?: string | null }} updates Fields to update on the existing record.
+   * @returns {Promise<TaskTile>} The task tile record.
+   * @throws {HTTP400} Tile completion requires a pmtiles_uri.
    * @memberof TaskTileService
    */
   async updateTileStatus(

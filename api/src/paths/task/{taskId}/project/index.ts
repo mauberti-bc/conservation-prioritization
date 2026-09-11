@@ -72,7 +72,7 @@ POST.apiDoc = {
 /**
  * Express request handler to add projects to a task.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function addProjectsToTask(): RequestHandler {
   return async (req, res) => {

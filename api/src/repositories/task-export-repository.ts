@@ -10,13 +10,16 @@ const TASK_EXPORT_COLUMNS = `
   failure_code, failure_message, started_at, completed_at, failed_at
 `;
 
-/** Repository for task export job records. */
+/**
+ * Repository for task export job records.
+ */
 export class TaskExportRepository extends BaseRepository {
   /**
    * Creates a queued export job.
    *
    * @param {CreateTaskExport} taskExport Export job attributes.
-   * @returns {Promise<TaskExport>}
+   * @returns {Promise<TaskExport>} The task export record.
+   * @throws {ApiExecuteSQLError} Failed to create task export.
    */
   async createTaskExport(taskExport: CreateTaskExport): Promise<TaskExport> {
     const response = await this.connection.sql(
@@ -47,7 +50,8 @@ export class TaskExportRepository extends BaseRepository {
    * Fetches an export job by ID.
    *
    * @param {string} taskExportId Export job ID.
-   * @returns {Promise<TaskExport>}
+   * @returns {Promise<TaskExport>} The task export record.
+   * @throws {ApiExecuteSQLError} Failed to fetch task export.
    */
   async getTaskExportById(taskExportId: string): Promise<TaskExport> {
     const response = await this.connection.sql(
@@ -69,7 +73,8 @@ export class TaskExportRepository extends BaseRepository {
    * Locks an export job for dispatch or lifecycle transition.
    *
    * @param {string} taskExportId Export job ID.
-   * @returns {Promise<TaskExport>}
+   * @returns {Promise<TaskExport>} The task export record.
+   * @throws {ApiExecuteSQLError} Failed to lock task export.
    */
   async getTaskExportForUpdate(taskExportId: string): Promise<TaskExport> {
     const response = await this.connection.sql(
@@ -92,7 +97,7 @@ export class TaskExportRepository extends BaseRepository {
    * Returns export jobs for one task run newest first.
    *
    * @param {string} taskRunId Parent task run ID.
-   * @returns {Promise<TaskExport[]>}
+   * @returns {Promise<TaskExport[]>} Export jobs for one task run newest first.
    */
   async getTaskExportsByRunId(taskRunId: string): Promise<TaskExport[]> {
     const response = await this.connection.sql(
@@ -111,7 +116,7 @@ export class TaskExportRepository extends BaseRepository {
    * Returns export jobs for provided task runs newest first within each run.
    *
    * @param {string[]} taskRunIds Parent task run IDs.
-   * @returns {Promise<TaskExport[]>}
+   * @returns {Promise<TaskExport[]>} Export jobs for provided task runs newest first within each run.
    */
   async getTaskExportsByRunIds(taskRunIds: string[]): Promise<TaskExport[]> {
     if (!taskRunIds.length) {
@@ -135,7 +140,8 @@ export class TaskExportRepository extends BaseRepository {
    *
    * @param {string} taskExportId Export job ID.
    * @param {UpdateTaskExport} updates Job updates.
-   * @returns {Promise<TaskExport>}
+   * @returns {Promise<TaskExport>} The task export record.
+   * @throws {ApiExecuteSQLError} Failed to update task export.
    */
   async updateTaskExport(taskExportId: string, updates: UpdateTaskExport): Promise<TaskExport> {
     const statement = SQL`UPDATE task_export SET updated_at = now()`;
@@ -196,7 +202,7 @@ export class TaskExportRepository extends BaseRepository {
    * Deletes one export job and its files.
    *
    * @param {string} taskExportId Export job ID.
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} Resolves when the operation completes.
    */
   async deleteTaskExport(taskExportId: string): Promise<void> {
     await this.connection.sql(SQL`DELETE FROM task_export WHERE task_export_id = ${taskExportId}`);

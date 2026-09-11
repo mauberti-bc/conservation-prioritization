@@ -14,7 +14,7 @@ import { TaskViewPanel } from './task/view/panel/TaskViewPanel';
 /**
  * Task detail view for an existing submitted task.
  *
- * @returns {JSX.Element}
+ * @returns {JSX.Element} The rendered component.
  */
 export const ViewTaskPage = () => {
   const { drawControlsRef } = useMapContext();

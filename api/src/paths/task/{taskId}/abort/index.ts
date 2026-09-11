@@ -20,7 +20,11 @@ POST.apiDoc = {
   }
 };
 
-/** Requests cancellation for an authorized task; propagates database and Prefect failures. */
+/**
+ * Requests cancellation for an authorized task; propagates database and Prefect failures.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function abortTask(): RequestHandler {
   return async (req, res) => {
     const connection = getDBConnection(req.keycloak_token);

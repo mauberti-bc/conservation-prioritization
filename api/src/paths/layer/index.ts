@@ -78,7 +78,7 @@ GET.apiDoc = {
 /**
  * Express request handler to fetch all layers.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function findLayers(): RequestHandler {
   return async (req, res) => {

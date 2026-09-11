@@ -9,8 +9,8 @@ interface LabelledSectionProps extends PropsWithChildren {
 /**
  * Renders a bold label above a section of content.
  *
- * @param {LabelledSectionProps} props
- * @return {*}
+ * @param {LabelledSectionProps} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const LabelledSection = ({ label, children }: LabelledSectionProps) => {
   return (

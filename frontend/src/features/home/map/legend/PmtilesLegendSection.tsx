@@ -11,8 +11,8 @@ interface PmtilesLegendSectionProps {
 /**
  * Renders one titled PMTiles legend definition.
  *
- * @param {PmtilesLegendSectionProps} props
- * @returns {JSX.Element}
+ * @param {PmtilesLegendSectionProps} props Component properties.
+ * @returns {JSX.Element} The rendered component.
  */
 export const PmtilesLegendSection = ({ definition }: PmtilesLegendSectionProps) => {
   return (

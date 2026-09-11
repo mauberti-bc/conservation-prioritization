@@ -15,6 +15,9 @@ export const ProjectContext = createContext<IProjectContext>({
 
 /**
  * Provides project data and refresh helpers.
+ *
+ * @param {PropsWithChildren<Record<never, any>>} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const ProjectContextProvider = (props: PropsWithChildren<Record<never, any>>) => {
   const conservationApi = useConservationApi();

@@ -83,8 +83,10 @@ export class TaskService extends DBService {
    * Sends an abort request to the flow currently associated with a task.
    *
    * @param {string} taskId Task whose Prefect flow should be cancelled.
-   * @returns {Promise<void>} Resolves after accepted cancellation is recorded as aborted.
+   * @returns {Promise<void>} Resolves when the operation completes.
    * @throws {ApiConflictError} If the task is completed or has no dispatched flow.
+   * @throws {ApiConflictError} Completed tasks cannot be aborted.
+   * @throws {ApiConflictError} This task has no dispatched flow to abort.
    */
   async abortTask(taskId: string): Promise<void> {
     const task = await this.taskRepository.getTaskById(taskId);
@@ -108,7 +110,7 @@ export class TaskService extends DBService {
    * Creates a new task.
    *
    * @param {CreateTask} task - The data for the new task (excluding `task_id`).
-   * @return {*} {Promise<Task>} The newly created task.
+   * @return {Promise<Task>} The newly created task.
    * @memberof TaskService
    */
   async createTask(task: CreateTask): Promise<Task> {
@@ -119,7 +121,7 @@ export class TaskService extends DBService {
    * Gets a task by its ID.
    *
    * @param {string} taskId - The UUID of the task.
-   * @return {*} {Promise<Task>} The task with the provided ID.
+   * @return {Promise<Task>} The task with the provided ID.
    * @memberof TaskService
    */
   async getTaskById(taskId: string): Promise<TaskDetails> {
@@ -148,7 +150,7 @@ export class TaskService extends DBService {
   /**
    * Gets all active tasks (where `record_end_date` is `NULL`).
    *
-   * @return {*} {Promise<Task[]>} A list of all active tasks.
+   * @return {Promise<Task[]>} A list of all active tasks.
    * @memberof TaskService
    */
   async getAllTasks(): Promise<TaskDetails[]> {
@@ -175,8 +177,8 @@ export class TaskService extends DBService {
   /**
    * Gets all tasks available to the profile ID.
    *
-   * @param {string} profileId
-   * @return {*}  {Promise<TaskWithLayers[]>}
+   * @param {string} profileId Identifier of the profile whose access or records are used.
+   * @returns {Promise<TaskDetails[]>} Matching task details records.
    * @memberof TaskService
    */
   async getTasksForProfile(profileId: string): Promise<TaskDetails[]> {
@@ -203,9 +205,10 @@ export class TaskService extends DBService {
   /**
    * Gets all tasks available to the profile ID with pagination.
    *
-   * @param {string} profileId
-   * @param {ApiPaginationOptions} pagination
-   * @return {*}  {Promise<{ tasks: TaskWithLayers[]; pagination: ApiPaginationResults }>}
+   * @param {string} profileId Identifier of the profile whose access or records are used.
+   * @param {ApiPaginationOptions} pagination Page, page-size, and sorting options.
+   * @param {string} search Optional search text used to filter matching records.
+   * @returns {Promise<{ tasks: TaskDetails[]; pagination: ApiPaginationResults }>} Tasks visible to the profile, with pagination metadata.
    * @memberof TaskService
    */
   async getTasksForProfilePaginated(
@@ -241,8 +244,8 @@ export class TaskService extends DBService {
   /**
    * Gets all tasks associated with a project.
    *
-   * @param {string} projectId
-   * @return {*}  {Promise<TaskWithLayers[]>}
+   * @param {string} projectId Identifier of the project.
+   * @returns {Promise<TaskDetails[]>} Matching task details records.
    * @memberof TaskService
    */
   async getTasksForProject(projectId: string): Promise<TaskDetails[]> {
@@ -367,8 +370,8 @@ export class TaskService extends DBService {
   /**
    * Build a map of task IDs to project summaries.
    *
-   * @param {string[]} taskIds
-   * @return {*}  {Promise<Map<string, { project_id: string; name: string; description: string | null; colour: string }[]>>}
+   * @param {string[]} taskIds Identifiers of the tasks to process.
+   * @returns {Promise<Map<string, { project_id: string; name: string; description: string | null; colour: string }[]>>} Project summaries grouped by their task identifiers.
    * @memberof TaskService
    */
   private async buildProjectsByTaskId(
@@ -399,7 +402,7 @@ export class TaskService extends DBService {
    *
    * @param {string} taskId - The UUID of the task to update.
    * @param {UpdateTask} updates - The fields to update in the task record.
-   * @return {*} {Promise<Task>} The updated task.
+   * @return {Promise<Task>} The updated task.
    * @memberof TaskService
    */
   async updateTask(taskId: string, updates: UpdateTask): Promise<Task> {
@@ -411,7 +414,7 @@ export class TaskService extends DBService {
    *
    * @param {string} taskId - The UUID of the task to update.
    * @param {UpdateTaskExecution} updates - Execution metadata updates.
-   * @return {*} {Promise<Task>} The updated task.
+   * @return {Promise<Task>} The updated task.
    * @memberof TaskService
    */
   async updateTaskExecution(taskId: string, updates: UpdateTaskExecution): Promise<Task> {
@@ -421,9 +424,9 @@ export class TaskService extends DBService {
   /**
    * Adds the creator of a task as an admin.
    *
-   * @param {string} taskId
-   * @param {string} profileId
-   * @return {*}  {Promise<void>}
+   * @param {string} taskId Identifier of the task.
+   * @param {string} profileId Identifier of the profile whose access or records are used.
+   * @returns {Promise<void>} Resolves when the operation completes.
    * @memberof TaskService
    */
   async addCreatorAsAdmin(taskId: string, profileId: string): Promise<void> {
@@ -444,9 +447,9 @@ export class TaskService extends DBService {
   /**
    * Resets execution metadata for a task and sets a new status.
    *
-   * @param {string} taskId
-   * @param {TaskStatus} status
-   * @return {*}  {Promise<Task>}
+   * @param {string} taskId Identifier of the task.
+   * @param {TaskStatus} status Lifecycle status to apply or inspect.
+   * @returns {Promise<Task>} The task after clearing its previous execution state.
    * @memberof TaskService
    */
   async resetExecutionState(taskId: string, status: TaskStatus): Promise<Task> {
@@ -463,9 +466,9 @@ export class TaskService extends DBService {
   /**
    * Adds existing profiles to a task by email address.
    *
-   * @param {string} taskId
-   * @param {string[]} emails
-   * @return {*}  {Promise<InviteProfilesResult>}
+   * @param {string} taskId Identifier of the task.
+   * @param {string[]} emails Email addresses of the profiles to invite.
+   * @returns {Promise<InviteProfilesResult>} Invitation results identifying added, existing, and unresolved profiles.
    * @memberof TaskService
    */
   async inviteProfilesToTask(taskId: string, emails: string[]): Promise<InviteProfilesResult> {
@@ -526,9 +529,9 @@ export class TaskService extends DBService {
   /**
    * Updates task status from internal workflows and returns the hydrated task.
    *
-   * @param {string} taskId
-   * @param {UpdateTaskExecution} updates
-   * @return {*}  {Promise<TaskWithLayers>}
+   * @param {string} taskId Identifier of the task.
+   * @param {UpdateTaskExecution} updates Fields to update on the existing record.
+   * @returns {Promise<TaskDetails>} The task after applying the lifecycle update.
    * @memberof TaskService
    */
   async updateTaskStatus(taskId: string, updates: UpdateTaskExecution): Promise<TaskDetails> {
@@ -540,9 +543,9 @@ export class TaskService extends DBService {
   /**
    * Submits a tile job when a task reaches COMPLETED, ensuring idempotency.
    *
-   * @param {string} taskId
-   * @param {UpdateTaskExecution} updates
-   * @return {*}  {Promise<void>}
+   * @param {string} taskId Identifier of the task.
+   * @param {UpdateTaskExecution} updates Fields to update on the existing record.
+   * @returns {Promise<void>} Resolves when the operation completes.
    * @memberof TaskService
    */
   async submitTileJobIfCompleted(taskId: string, updates: UpdateTaskExecution): Promise<void> {
@@ -564,7 +567,7 @@ export class TaskService extends DBService {
    * Soft deletes a task.
    *
    * @param {DeleteTask} data - The data for the task to delete.
-   * @return {*} {Promise<void>} Resolves when the task is successfully deleted.
+   * @returns {Promise<void>} Resolves when the operation completes.
    * @memberof TaskService
    */
   async deleteTask(data: DeleteTask): Promise<void> {
@@ -574,8 +577,9 @@ export class TaskService extends DBService {
   /**
    * Fetches a snapshot of task status and tile state for websocket updates.
    *
-   * @param {string} taskId
-   * @return {*}  {Promise<TaskStatusMessage>}
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<TaskStatusMessage>} Current task status, run progress, and publication details.
+   * @throws {Error} Unrecognized task status value.
    * @memberof TaskService
    */
   async getTaskStatusSnapshot(taskId: string): Promise<TaskStatusMessage> {

@@ -4,9 +4,9 @@ import { IDENTITY_SOURCE, SYSTEM_ROLE } from '../constants/profile';
 /**
  * Create core tables for roles, profiles, projects, tasks, and task configuration.
  *
+ * @param {Knex} knex Knex connection used to execute the migration.
+ * @returns {Promise<void>} Resolves when the operation completes.
  * @export
- * @param {Knex} knex
- * @return {*}  {Promise<void>}
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`--sql

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
-/** Published immutable analytical source metadata. */
+/**
+ * Published immutable analytical source metadata.
+ */
 export const AnalyticalSource = z.object({
   analytical_source_id: z.string().uuid(),
   name: z.string(),
@@ -15,7 +17,9 @@ export const AnalyticalSource = z.object({
 
 export type AnalyticalSource = z.infer<typeof AnalyticalSource>;
 
-/** Request used only after a source manifest has been durably committed. */
+/**
+ * Request used only after a source manifest has been durably committed.
+ */
 export interface PublishAnalyticalSource {
   name: string;
   version: string;

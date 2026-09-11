@@ -31,9 +31,10 @@ export const webSocketServer = new WebSocketServer({ noServer: true });
 /**
  * Handles HTTP upgrade requests and dispatches to registered websocket routes.
  *
- * @param {IncomingMessage} req
- * @param {Socket} socket
- * @param {Buffer} head
+ * @param {IncomingMessage} req Incoming HTTP request.
+ * @param {Socket} socket WebSocket or transport socket for the client connection.
+ * @param {Buffer} head Bytes already read from the upgraded HTTP connection.
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export const handleWebSocketUpgrade = async (req: IncomingMessage, socket: Duplex, head: Buffer): Promise<void> => {
   // `server.on('upgrade')` provides a Duplex, but ws expects a net.Socket.

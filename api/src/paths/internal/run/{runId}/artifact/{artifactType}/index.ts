@@ -21,7 +21,11 @@ POST.apiDoc = {
   }
 };
 
-/** Validates the artifact role and applies an internal update. */
+/**
+ * Validates the artifact role and applies an internal update.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function updateRunArtifact(): RequestHandler {
   return async (req, res) => {
     const type = ArtifactType.parse(req.params.artifactType);

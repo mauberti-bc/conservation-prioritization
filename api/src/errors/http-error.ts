@@ -137,7 +137,7 @@ export class HTTP500 extends HTTPError {
  * If `error` is a `Error`, wrap it into an `HTTP500` error and return it.
  * If `error` is none of the above, create a new generic `HTTP500` error and return it.
  *
- * @param {(HTTPError | ApiError | Error | any)} error
+ * @param {(HTTPError | ApiError | Error | any)} error Failure to record or propagate.
  * @return {HTTPError} An instance of `HTTPError`
  */
 export const ensureHTTPError = (error: HTTPError | ApiError | Error | any): HTTPError => {
@@ -177,9 +177,9 @@ export const ensureHTTPError = (error: HTTPError | ApiError | Error | any): HTTP
 /**
  * Checks if an error object is a AJV validation error.
  *
- * @see https://github.com/kogosoftwarellc/open-api/blob/main/packages/openapi-request-validator/index.ts
  * @param {any} error - Error object
- * @returns {boolean}
+ * @returns {boolean} Is ajv error.
+ * @see https://github.com/kogosoftwarellc/open-api/blob/main/packages/openapi-request-validator/index.ts
  */
 export const isAjvError = (error: any): error is { status: number; errors: any[] } => {
   return typeof error === 'object' && 'status' in error && 'errors' in error;

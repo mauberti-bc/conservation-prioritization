@@ -56,14 +56,24 @@ export type ApiPaginationResponseParams = {
  * Components should extend this interface for their props.
  */
 export interface IServerPaginationProps {
-  /** Total number of rows (for server-side pagination) */
+  /**
+   * Total number of rows (for server-side pagination)
+   */
   rowCount: number;
-  /** Current pagination model from parent */
+  /**
+   * Current pagination model from parent
+   */
   paginationModel: import('@mui/x-data-grid').GridPaginationModel;
-  /** Callback when pagination changes */
+  /**
+   * Callback when pagination changes
+   */
   setPaginationModel: (model: import('@mui/x-data-grid').GridPaginationModel) => void;
-  /** Current sort model from parent */
+  /**
+   * Current sort model from parent
+   */
   sortModel: import('@mui/x-data-grid').GridSortModel;
-  /** Callback when sort changes */
+  /**
+   * Callback when sort changes
+   */
   setSortModel: (model: import('@mui/x-data-grid').GridSortModel) => void;
 }

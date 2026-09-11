@@ -12,7 +12,12 @@ interface Props {
   autoSearchOnMount?: boolean;
 }
 
-/** Author aggregate and per-planning-unit constraints independently of objectives. */
+/**
+ * Author aggregate and per-planning-unit constraints independently of objectives.
+ *
+ * @param {Props} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ */
 export const TaskConstraintSection = ({ isReadOnly = false, autoSearchOnMount = false }: Props) => {
   const { values, setFieldValue } = useFormikContext<TaskCreateFormValues>();
 

@@ -1,6 +1,11 @@
 import { Artifact } from '../models/artifact';
 
-/** Returns presentation artifacts that still require publication for a run. */
+/**
+ * Returns presentation artifacts that still require publication for a run.
+ *
+ * @param {Artifact[]} artifacts Artifacts associated with the task run.
+ * @returns {Artifact[]} Presentation artifacts that still require publication for a run.
+ */
 export function getIncompletePublicationArtifacts(artifacts: Artifact[]): Artifact[] {
   return artifacts.filter((artifact) => {
     if (artifact.status === 'ready') {

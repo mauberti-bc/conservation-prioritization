@@ -22,9 +22,9 @@ const UTM_ZONE_WITH_LETTER_FORMAT = RegExp(/^[1-9]\d?[NPQRSTUVWXCDEFGHJKLM]$/i);
  *
  * String format: `"<zone_number><zone_letter> <easting> <northing>"`
  *
+ * @param {string} utm UTM coordinates to convert.
+ * @returns {IUTM | null} Utmstring.
  * @export
- * @param {string} utm
- * @return {*}  {(IUTM | null)}
  */
 export function parseUTMString(utm: string): IUTM | null {
   if (!utm || !UTM_STRING_FORMAT.test(utm)) {
@@ -93,9 +93,9 @@ const LAT_LONG_STRING_FORMAT = RegExp(/^[+-]?(\d*[.])?\d+ [+-]?(\d*[.])?\d+$/i);
 /**
  * Parses a `latitude longitude` string of the form: `49.116906	-122.62887`
  *
+ * @param {string} latLong Longitude/latitude coordinates to convert.
+ * @returns {ILatLong | null} Lat long string.
  * @export
- * @param {string} latLong
- * @return {*}  {(ILatLong | null)}
  */
 export function parseLatLongString(latLong: string): ILatLong | null {
   if (!latLong || !LAT_LONG_STRING_FORMAT.test(latLong)) {
@@ -123,9 +123,9 @@ export function parseLatLongString(latLong: string): ILatLong | null {
 /**
  * Function to generate the SQL for insertion of a geometry collection
  *
+ * @param {(Feature | Feature[])} geometry Geometry to inspect or transform.
+ * @returns {SQLStatement} Generate geometry collection sql.
  * @export
- * @param {(Feature | Feature[])} geometry
- * @return {*}  {SQLStatement}
  */
 export function generateGeometryCollectionSQL(geometry: Feature | Feature[]): SQLStatement {
   if (!Array.isArray(geometry)) {

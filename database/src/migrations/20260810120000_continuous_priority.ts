@@ -4,7 +4,7 @@ import { Knex } from 'knex';
  * Add continuous-priority lifecycle and durable artifact roles.
  *
  * @param {Knex} knex Database connection.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`--sql
@@ -22,7 +22,7 @@ export async function up(knex: Knex): Promise<void> {
  * Retain PostgreSQL enum values because removing them in place is unsafe.
  *
  * @param {Knex} _knex Database connection.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves without changing the schema; the migration is intentionally retained.
  */
 export async function down(_knex: Knex): Promise<void> {
   // PostgreSQL enum values are intentionally retained on rollback.

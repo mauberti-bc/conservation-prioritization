@@ -63,7 +63,6 @@ export type DataLoader<AFArgs extends any[], AFResponse = unknown, AFError = unk
  *
  * Note: This hook will prevent additional calls to `fetchData` if an existing call is in progress.
  *
- * @export
  * @template AFArgs `AsyncFunction` argument types.
  * @template AFResponse `AsyncFunction` response type.
  * @template AFError `AsyncFunction` error type.
@@ -72,7 +71,8 @@ export type DataLoader<AFArgs extends any[], AFResponse = unknown, AFError = unk
  * `fetchData` function throws an error.
  * - If set to `true`, the `fetchData` function will run on initial load, and each time `refresh` is called.
  * - If set to `false` the `fetchData` function will run each time `refresh` is called.
- * @return {*}  {DataLoader<AFArgs, AFResponse, AFError>}
+ * @returns {DataLoader<AFArgs, AFResponse, AFError>} Use data loader.
+ * @export
  */
 export default function useDataLoader<AFArgs extends any[], AFResponse = unknown, AFError = unknown>(
   fetchData: AsyncFunction<AFArgs, AFResponse>,

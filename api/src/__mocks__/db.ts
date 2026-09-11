@@ -8,7 +8,7 @@ import { IDBConnection } from '../database/db';
  * Registers and returns a mock `IDBConnection` with empty methods.
  *
  * @param {Partial<IDBConnection>} [config] Initial method overrides
- * @return {*}  {IDBConnection}
+ * @returns {IDBConnection} Register mock dbconnection.
  */
 export const registerMockDBConnection = (config?: Partial<IDBConnection>): IDBConnection => {
   const mockDBConnection = getMockDBConnection(config);
@@ -22,7 +22,7 @@ export const registerMockDBConnection = (config?: Partial<IDBConnection>): IDBCo
  * Returns a mock `IDBConnection` with empty methods.
  *
  * @param {Partial<IDBConnection>} [config] Initial method overrides
- * @return {*}  {IDBConnection}
+ * @returns {IDBConnection} A mock `IDBConnection` with empty methods.
  */
 export const getMockDBConnection = (config?: Partial<IDBConnection>): IDBConnection => {
   return {
@@ -122,7 +122,7 @@ export class MockRes {
 /**
  * Returns several mocks for testing RequestHandler responses.
  *
- * @return {*}
+ * @returns Several mocks for testing RequestHandler responses.
  */
 export const getRequestHandlerMocks = () => {
   const mockReq = new MockReq() as ExtendedMockReq;

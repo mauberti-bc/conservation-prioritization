@@ -13,7 +13,12 @@ interface TaskObjectiveSectionProps {
   autoSearchOnMount?: boolean;
 }
 
-/** Author objectives explicitly as layer, direction, and nonnegative importance. */
+/**
+ * Author objectives explicitly as layer, direction, and nonnegative importance.
+ *
+ * @param {TaskObjectiveSectionProps} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ */
 export const TaskObjectiveSection = ({ isReadOnly = false, autoSearchOnMount = false }: TaskObjectiveSectionProps) => {
   const { values, setFieldValue } = useFormikContext<TaskCreateFormValues>();
   const selectedOptions = useMemo<TaskLayerOption[]>(

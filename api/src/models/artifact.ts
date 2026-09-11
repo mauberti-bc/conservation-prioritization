@@ -10,7 +10,9 @@ export const ArtifactType = z.enum([
   'pmtiles'
 ]);
 
-/** Durable metadata for a run or reusable analytical artifact. */
+/**
+ * Durable metadata for a run or reusable analytical artifact.
+ */
 export const Artifact = z.object({
   artifact_id: z.string().uuid(),
   task_run_id: z.string().uuid().nullable(),

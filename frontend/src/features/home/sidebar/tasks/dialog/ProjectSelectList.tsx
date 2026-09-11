@@ -10,6 +10,9 @@ interface ProjectSelectListProps {
 
 /**
  * Selectable project list used inside dialogs (no action menu).
+ *
+ * @param {ProjectSelectListProps} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const ProjectSelectList = ({ projects, selectedProjectIds, onToggleProject }: ProjectSelectListProps) => {
   return (

@@ -11,6 +11,8 @@ let DBConstants: DBConstants | undefined;
 
 /**
  * Initializes the singleton DB constants instance used by the API.
+ *
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export const initDBConstants = async (): Promise<void> => {
   // Return early if already initialized
@@ -48,6 +50,8 @@ export const initDBConstants = async (): Promise<void> => {
 
 /**
  * Returns the singleton DB constants instance.
+ *
+ * @returns {DBConstants} The singleton DB constants instance.
  * @throws Will throw an error if DBConstants is not initialized.
  */
 export const getDBConstants = (): DBConstants => {

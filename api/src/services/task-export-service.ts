@@ -19,7 +19,9 @@ const TASK_EXPORT_FORMAT_VERSIONS: Record<TaskExportFormat, string> = {
 };
 const DOWNLOAD_URL_EXPIRY_SECONDS = 300;
 
-/** Coordinates task-run export jobs and durable file metadata. */
+/**
+ * Coordinates task-run export jobs and durable file metadata.
+ */
 export class TaskExportService extends DBService {
   private taskExportRepository: TaskExportRepository;
   private taskExportFileRepository: TaskExportFileRepository;
@@ -46,6 +48,8 @@ export class TaskExportService extends DBService {
    * @param {TaskExportFormat} format Requested output format.
    * @returns {Promise<TaskExportWithFiles>} Queued export awaiting commit and dispatch.
    * @throws {HTTP400} When the format is unsupported or the run has no completed canonical result.
+   * @throws {HTTP400} ESRI geodatabase exports are not implemented yet.
+   * @throws {HTTP400} Only completed task runs can be exported.
    */
   async createQueuedExport(taskRunId: string, format: TaskExportFormat = 'geotiff'): Promise<TaskExportWithFiles> {
     if (format === 'geodatabase') {
@@ -110,7 +114,7 @@ export class TaskExportService extends DBService {
    * Creates an export job record without dispatching Prefect.
    *
    * @param {CreateTaskExport} taskExport Export attributes.
-   * @returns {Promise<TaskExport>}
+   * @returns {Promise<TaskExport>} The task export record.
    */
   async createTaskExport(taskExport: CreateTaskExport): Promise<TaskExport> {
     return this.taskExportRepository.createTaskExport(taskExport);
@@ -120,7 +124,7 @@ export class TaskExportService extends DBService {
    * Returns one export with its files.
    *
    * @param {string} taskExportId Export ID.
-   * @returns {Promise<TaskExportWithFiles>}
+   * @returns {Promise<TaskExportWithFiles>} One export with its files.
    */
   async getTaskExportById(taskExportId: string): Promise<TaskExportWithFiles> {
     return this.withFiles(await this.taskExportRepository.getTaskExportById(taskExportId));
@@ -131,7 +135,8 @@ export class TaskExportService extends DBService {
    *
    * @param {string} taskRunId Parent task run ID.
    * @param {string} taskExportId Export ID.
-   * @returns {Promise<TaskExportWithFiles>}
+   * @returns {Promise<TaskExportWithFiles>} One export after verifying its parent run.
+   * @throws {HTTP400} Export does not belong to the requested run.
    */
   async getTaskExportByRunId(taskRunId: string, taskExportId: string): Promise<TaskExportWithFiles> {
     const taskExport = await this.taskExportRepository.getTaskExportById(taskExportId);
@@ -145,7 +150,7 @@ export class TaskExportService extends DBService {
    * Returns all exports for one run.
    *
    * @param {string} taskRunId Parent task run ID.
-   * @returns {Promise<TaskExportWithFiles[]>}
+   * @returns {Promise<TaskExportWithFiles[]>} All exports for one run.
    */
   async getTaskExportsByRunId(taskRunId: string): Promise<TaskExportWithFiles[]> {
     const exports = await this.taskExportRepository.getTaskExportsByRunId(taskRunId);
@@ -157,7 +162,7 @@ export class TaskExportService extends DBService {
    *
    * @param {string} taskExportId Export ID.
    * @param {UpdateTaskExport} updates Export updates.
-   * @returns {Promise<TaskExport>}
+   * @returns {Promise<TaskExport>} The task export record.
    */
   async updateTaskExport(taskExportId: string, updates: UpdateTaskExport): Promise<TaskExport> {
     return this.taskExportRepository.updateTaskExport(taskExportId, updates);
@@ -167,7 +172,7 @@ export class TaskExportService extends DBService {
    * Deletes one export and its file records.
    *
    * @param {string} taskExportId Export ID.
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} Resolves when the operation completes.
    */
   async deleteTaskExport(taskExportId: string): Promise<void> {
     await this.taskExportRepository.deleteTaskExport(taskExportId);
@@ -179,7 +184,9 @@ export class TaskExportService extends DBService {
    * @param {string} taskExportId Export ID.
    * @param {number} attempt Worker execution generation.
    * @param {UpdateTaskExport} updates Export lifecycle updates.
-   * @returns {Promise<TaskExport>}
+   * @returns {Promise<TaskExport>} The task export record.
+   * @throws {ApiGeneralError} Ignoring stale export callback for a previous attempt.
+   * @throws {ApiGeneralError} An export cannot be ready before at least one file is recorded.
    */
   async updateExportFromWorker(taskExportId: string, attempt: number, updates: UpdateTaskExport): Promise<TaskExport> {
     const current = await this.taskExportRepository.getTaskExportForUpdate(taskExportId);
@@ -214,7 +221,10 @@ export class TaskExportService extends DBService {
    * @param {string} taskExportId Parent export ID.
    * @param {number} attempt Worker execution generation.
    * @param {CreateTaskExportFile} file Durable file metadata.
-   * @returns {Promise<TaskExportFile>}
+   * @returns {Promise<TaskExportFile>} The task export file record.
+   * @throws {ApiGeneralError} Ignoring stale export file callback for a previous attempt.
+   * @throws {ApiGeneralError} Export files can only be recorded while an export is running.
+   * @throws {ApiGeneralError} Export file parent does not match request path.
    */
   async createExportFileFromWorker(
     taskExportId: string,
@@ -241,7 +251,11 @@ export class TaskExportService extends DBService {
    * @param {string} taskRunId Parent task run ID from the request path.
    * @param {string} taskExportId Parent export ID from the request path.
    * @param {string} taskExportFileId Export file ID to sign.
-   * @returns {Promise<TaskExportDownload>}
+   * @returns {Promise<TaskExportDownload>} The task export download record.
+   * @throws {HTTP400} Export does not belong to the requested run.
+   * @throws {HTTP400} Export files are available only after the export is ready.
+   * @throws {HTTP400} Export file does not belong to the requested export.
+   * @throws {ApiGeneralError} Failed to create export file download URL.
    */
   async getDownloadUrl(taskRunId: string, taskExportId: string, taskExportFileId: string): Promise<TaskExportDownload> {
     const taskExport = await this.taskExportRepository.getTaskExportById(taskExportId);

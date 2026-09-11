@@ -17,7 +17,7 @@ import { TaskEditFormValues, TaskSolutionSummaryRow } from './task-view-panel.in
 /**
  * Read-only task sidebar content for viewing an existing task.
  *
- * @returns {JSX.Element}
+ * @returns {JSX.Element} The rendered component.
  */
 export const TaskViewPanel = () => {
   const navigate = useNavigate();
@@ -85,7 +85,11 @@ export const TaskViewPanel = () => {
     }
   };
 
-  /** Requests cancellation for the displayed task and reloads its server status. */
+  /**
+   * Requests cancellation for the displayed task and reloads its server status.
+   *
+   * @returns {Promise<void>} Resolves when the operation completes.
+   */
   const handleAbortTask = async () => {
     if (!taskId) {
       return;
@@ -195,7 +199,11 @@ export const TaskViewPanel = () => {
     return rows;
   }, [solutionSummary]);
 
-  /** Retries only the failed map-publication stage for the current run. */
+  /**
+   * Retries only the failed map-publication stage for the current run.
+   *
+   * @returns {Promise<void>} Resolves when the operation completes.
+   */
   const handleRetryPublication = async () => {
     const runId = taskDataLoader.data?.latest_run?.task_run_id;
     if (!runId) {

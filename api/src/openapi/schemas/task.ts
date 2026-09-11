@@ -67,7 +67,9 @@ const NeighborPenaltySchema: OpenAPIV3.SchemaObject = {
   }
 };
 
-/** Request for creating an empty authoring draft. */
+/**
+ * Request for creating an empty authoring draft.
+ */
 export const CreateTaskDraftSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
   required: ['name'],
@@ -86,7 +88,9 @@ export const CreateTaskDraftSchema: OpenAPIV3.SchemaObject = {
   }
 };
 
-/** Immutable mathematical optimization problem plus execution controls. */
+/**
+ * Immutable mathematical optimization problem plus execution controls.
+ */
 export const SubmitTaskSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
   required: ['target_area', 'objectives', 'constraints'],
@@ -109,7 +113,9 @@ export const SubmitTaskSchema: OpenAPIV3.SchemaObject = {
   }
 };
 
-/** Public task metadata and its latest immutable run. */
+/**
+ * Public task metadata and its latest immutable run.
+ */
 export const GetTaskSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
   required: ['task_id', 'type', 'name', 'status'],
@@ -132,7 +138,9 @@ export const GetTaskSchema: OpenAPIV3.SchemaObject = {
   }
 };
 
-/** Editable task metadata; mathematical content is submitted only as an immutable run. */
+/**
+ * Editable task metadata; mathematical content is submitted only as an immutable run.
+ */
 export const UpdateTaskSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
   additionalProperties: false,
@@ -149,7 +157,9 @@ export const UpdateTaskSchema: OpenAPIV3.SchemaObject = {
   }
 };
 
-/** Internal lifecycle update. */
+/**
+ * Internal lifecycle update.
+ */
 export const TaskStatusUpdateSchema: OpenAPIV3.SchemaObject = {
   type: 'object',
   required: ['status'],

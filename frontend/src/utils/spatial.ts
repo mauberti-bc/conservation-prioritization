@@ -5,6 +5,9 @@ export type GeoJsonBounds = [[number, number], [number, number]];
 /**
  * Checks if a given polygon feature has at least 4 points
  * and is properly closed (first and last point are equal).
+ *
+ * @param {Feature<Geometry, GeoJsonProperties>} feature GeoJSON feature to inspect.
+ * @returns {boolean} Whether the feature has a closed polygon ring with enough coordinates.
  */
 function isValidPolygon(feature: Feature<Geometry, GeoJsonProperties>): boolean {
   if (feature.geometry.type !== 'Polygon') {
@@ -32,6 +35,10 @@ function isValidPolygon(feature: Feature<Geometry, GeoJsonProperties>): boolean 
 
 /**
  * Deep equality for coordinate pairs.
+ *
+ * @param {number[]} a First coordinate array to compare.
+ * @param {number[]} b Second coordinate array to compare.
+ * @returns {boolean} Whether both coordinate arrays contain identical values.
  */
 function arraysEqual(a: number[], b: number[]): boolean {
   return a.length === b.length && a.every((val, i) => val === b[i]);
@@ -42,7 +49,7 @@ function arraysEqual(a: number[], b: number[]): boolean {
  *
  * @param {Position} position GeoJSON coordinate tuple in longitude, latitude order.
  * @param {GeoJsonBounds} bounds Mutable southwest and northeast bounds to update in place.
- * @returns {void}
+ * @returns {void} No return value.
  */
 function extendBoundsFromPosition(position: Position, bounds: GeoJsonBounds): void {
   const [longitude, latitude] = position;
@@ -57,7 +64,7 @@ function extendBoundsFromPosition(position: Position, bounds: GeoJsonBounds): vo
  *
  * @param {unknown} coordinates GeoJSON coordinates from a point, line, polygon, or multi-geometry.
  * @param {GeoJsonBounds} bounds Mutable southwest and northeast bounds to update in place.
- * @returns {void}
+ * @returns {void} No return value.
  */
 function extendBoundsFromCoordinates(coordinates: unknown, bounds: GeoJsonBounds): void {
   if (!Array.isArray(coordinates)) {
@@ -89,7 +96,7 @@ function hasCoordinates(geometry: Geometry): geometry is Exclude<Geometry, Geome
  *
  * @param {Geometry} geometry GeoJSON geometry to inspect.
  * @param {GeoJsonBounds} bounds Mutable southwest and northeast bounds to update in place.
- * @returns {void}
+ * @returns {void} No return value.
  */
 function extendBoundsFromGeometry(geometry: Geometry, bounds: GeoJsonBounds): void {
   if (!hasCoordinates(geometry)) {
@@ -149,6 +156,9 @@ export function getFeaturesBounds(features: Feature<Geometry, GeoJsonProperties>
 /**
  * Validates a list of GeoJSON features.
  * Returns an object with validity and error message if any.
+ *
+ * @param {Feature[]} features GeoJSON features to validate or process.
+ * @returns {{ isValid: boolean; message?: string; }} Validation status and an error message when geometry is invalid.
  */
 export function validateGeometry(features: Feature[]): {
   isValid: boolean;

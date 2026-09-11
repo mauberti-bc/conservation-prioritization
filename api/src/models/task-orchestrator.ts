@@ -1,19 +1,25 @@
 import { Feature, FeatureCollection, Geometry } from 'geojson';
 import { TaskType } from './task';
 
-/** Optional normalized reward for selected rook-adjacent planning-unit pairs. */
+/**
+ * Optional normalized reward for selected rook-adjacent planning-unit pairs.
+ */
 export interface NeighborPenaltyRequest {
   strength: number;
 }
 
-/** One user-facing additive objective over a scientific layer. */
+/**
+ * One user-facing additive objective over a scientific layer.
+ */
 export interface OptimizationObjectiveRequest {
   layer: string;
   direction: 'maximize' | 'minimize';
   importance?: number;
 }
 
-/** One aggregate requirement over the selected solution. */
+/**
+ * One aggregate requirement over the selected solution.
+ */
 export interface AggregateConstraintRequest {
   type: 'aggregate';
   layer: string;
@@ -21,7 +27,9 @@ export interface AggregateConstraintRequest {
   max?: number | null;
 }
 
-/** One per-planning-unit requirement used to define the candidate domain. */
+/**
+ * One per-planning-unit requirement used to define the candidate domain.
+ */
 export interface PlanningUnitConstraintRequest {
   type: 'planning_unit';
   layer: string;
@@ -31,7 +39,9 @@ export interface PlanningUnitConstraintRequest {
 
 export type OptimizationConstraintRequest = AggregateConstraintRequest | PlanningUnitConstraintRequest;
 
-/** GeoJSON target area from which candidate planning units are constructed. */
+/**
+ * GeoJSON target area from which candidate planning units are constructed.
+ */
 export type OptimizationTargetAreaRequest = Feature<Geometry> | FeatureCollection<Geometry>;
 
 /**

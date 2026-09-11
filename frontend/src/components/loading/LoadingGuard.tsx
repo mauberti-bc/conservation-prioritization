@@ -51,6 +51,8 @@ export type ILoadingGuardProps = {
  *
  * The fallback components are typically loading spinners, skeleton loaders, etc.
  *
+ * @param {PropsWithChildren<ILoadingGuardProps>} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  * @example
  * ```tsx
  *   <LoadingGuard
@@ -63,9 +65,6 @@ export type ILoadingGuardProps = {
  *     <MyComponent data={myData}/>
  *   </LoadingGuard>
  * ```
- *
- * @param {PropsWithChildren<ILoadingGuardProps>} props
- * @return {*}
  */
 export const LoadingGuard = (props: PropsWithChildren<ILoadingGuardProps>) => {
   const {

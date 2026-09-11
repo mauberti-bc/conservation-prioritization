@@ -3,9 +3,9 @@ import { Knex } from 'knex';
 /**
  * Create dashboard tables and permissions.
  *
+ * @param {Knex} knex Knex connection used to execute the migration.
+ * @returns {Promise<void>} Resolves when the operation completes.
  * @export
- * @param {Knex} knex
- * @return {*}  {Promise<void>}
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`--sql

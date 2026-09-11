@@ -20,7 +20,11 @@ POST.apiDoc = {
   }
 };
 
-/** Applies a guarded export lifecycle update. */
+/**
+ * Applies a guarded export lifecycle update.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function updateInternalTaskExport(): RequestHandler {
   return async (req, res) => {
     const connection = getAPIUserDBConnection();

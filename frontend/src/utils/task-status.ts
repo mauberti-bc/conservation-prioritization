@@ -3,8 +3,8 @@ import { TaskStatusValue } from 'constants/status';
 /**
  * Maps internal task status values to user-facing labels.
  *
- * @param {TaskStatusValue} status
- * @return {string}
+ * @param {TaskStatusValue} status Lifecycle status to apply or inspect.
+ * @returns {string} Task status label.
  */
 export const getTaskStatusLabel = (status: TaskStatusValue): string => {
   switch (status) {

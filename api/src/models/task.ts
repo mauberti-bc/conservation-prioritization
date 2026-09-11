@@ -16,7 +16,9 @@ export const TaskStatus = z.enum([
 
 export type TaskStatus = z.infer<typeof TaskStatus>;
 
-/** Scientific planning question answered by a task. */
+/**
+ * Scientific planning question answered by a task.
+ */
 export const TaskType = z.preprocess(
   (value) => (value === 'optimization' ? 'discrete_optimization' : value),
   z.enum(['continuous_optimization', 'discrete_optimization', 'priority_ranking'])

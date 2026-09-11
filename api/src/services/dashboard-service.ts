@@ -33,7 +33,7 @@ export class DashboardService extends DBService {
   /**
    * Creates an instance of DashboardService.
    *
-   * @param {IDBConnection} connection
+   * @param {IDBConnection} connection Database connection used for queries and transaction context.
    * @memberof DashboardService
    */
   constructor(connection: IDBConnection) {
@@ -49,9 +49,12 @@ export class DashboardService extends DBService {
   /**
    * Publish a task to a new dashboard with default permissions (Only Me).
    *
-   * @param {string} taskId
-   * @param {string} profileId
-   * @return {*}  {Promise<DashboardResponse>}
+   * @param {string} taskId Identifier of the task.
+   * @param {string} profileId Identifier of the profile whose access or records are used.
+   * @param {string} name Display name for the resource.
+   * @param {'ANYONE_WITH_LINK' | 'MEMBERS_ONLY' | 'NOBODY'} accessScheme Access scheme applied to the published dashboard.
+   * @returns {Promise<DashboardResponse>} The published dashboard and its associated task details.
+   * @throws {HTTP403} Access denied.
    * @memberof DashboardService
    */
   async publishTaskToDashboard(
@@ -97,9 +100,11 @@ export class DashboardService extends DBService {
   /**
    * Fetch the most recent dashboard associated with a task, enforcing access rules.
    *
-   * @param {string} taskId
-   * @param {string} profileId
-   * @return {*}  {Promise<DashboardResponse>}
+   * @param {string} taskId Identifier of the task.
+   * @param {string} profileId Identifier of the profile whose access or records are used.
+   * @returns {Promise<DashboardResponse>} The latest published dashboard for the task.
+   * @throws {HTTP403} Access denied.
+   * @throws {HTTP400} Dashboard not found.
    * @memberof DashboardService
    */
   async getLatestDashboardForTask(taskId: string, profileId: string): Promise<DashboardResponse> {
@@ -121,9 +126,11 @@ export class DashboardService extends DBService {
   /**
    * Fetch a dashboard and its tasks, enforcing access rules.
    *
-   * @param {string} dashboardId
-   * @param {string} profileId
-   * @return {*}  {Promise<DashboardResponse>}
+   * @param {string} dashboardId Identifier of the dashboard.
+   * @param {string} profileId Identifier of the profile whose access or records are used.
+   * @returns {Promise<DashboardResponse>} The dashboard and its visible tasks.
+   * @throws {HTTP400} Dashboard not found.
+   * @throws {HTTP403} Access denied.
    * @memberof DashboardService
    */
   async getDashboardWithTasks(dashboardId: string, profileId?: string | null): Promise<DashboardResponse> {

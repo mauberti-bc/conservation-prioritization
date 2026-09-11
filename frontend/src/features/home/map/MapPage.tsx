@@ -73,8 +73,8 @@ interface MapPageProps {
 /**
  * Full map workspace with one floating sidebar container.
  *
- * @param {MapPageProps} props
- * @returns {JSX.Element}
+ * @param {MapPageProps} props Component properties.
+ * @returns {JSX.Element} The rendered component.
  */
 export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
   const navigate = useNavigate();
@@ -153,7 +153,11 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
     let pollAttempts = 0;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-    /** Refreshes the selected run's exports without overlapping requests or updating a closed dialog. */
+    /**
+     * Refreshes the selected run's exports without overlapping requests or updating a closed dialog.
+     *
+     * @returns {Promise<void>} Resolves when the operation completes.
+     */
     const refreshExports = async (): Promise<void> => {
       let shouldPoll = true;
       try {
@@ -176,7 +180,11 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
       }
     };
 
-    /** Counts each scheduled refresh, including failed requests, toward the polling limit. */
+    /**
+     * Counts each scheduled refresh, including failed requests, toward the polling limit.
+     *
+     * @returns {Promise<void>} Resolves when the operation completes.
+     */
     const pollExports = async (): Promise<void> => {
       pollAttempts += 1;
       await refreshExports();
@@ -263,7 +271,12 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
     setPageSize(nextPageSize);
   };
 
-  /** Requests cancellation for the selected task and refreshes the task list. */
+  /**
+   * Requests cancellation for the selected task and refreshes the task list.
+   *
+   * @param {GetTaskResponse} task Task record containing its latest run and associated metadata.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   */
   const handleAbortTask = async (task: GetTaskResponse) => {
     try {
       await conservationApi.task.abortTask(task.task_id);

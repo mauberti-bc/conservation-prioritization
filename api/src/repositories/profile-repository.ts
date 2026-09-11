@@ -16,10 +16,9 @@ export class ProfileRepository extends BaseRepository {
    *
    * @param {CreateProfile} profile
    *   The profile data to insert (profile_id is excluded).
-   *
-   * @return {*}  {Promise<Profile>}
+   * @return {Promise<Profile>}
    *   The newly created profile.
-   *
+   * @throws {ApiExecuteSQLError} Failed to create profile.
    * @memberof ProfileRepository
    */
   async createProfile(profile: CreateProfile): Promise<Profile> {
@@ -84,10 +83,9 @@ export class ProfileRepository extends BaseRepository {
    *
    * @param {string} profileId
    *   The UUID of the profile.
-   *
-   * @return {*}  {Promise<Profile>}
+   * @return {Promise<Profile>}
    *   The matching profile.
-   *
+   * @throws {ApiExecuteSQLError} Failed to get profile by id.
    * @memberof ProfileRepository
    */
   async getProfileById(profileId: string): Promise<Profile> {
@@ -131,10 +129,8 @@ export class ProfileRepository extends BaseRepository {
    *
    * @param {string} profileGuid
    *   The globally unique identifier for the profile.
-   *
-   * @return {*}  {Promise<Profile>}
+   * @return {Promise<Profile>}
    *   A list of matching profiles.
-   *
    * @memberof ProfileRepository
    */
   async findProfileByGuid(profileGuid: string): Promise<Profile | null> {
@@ -170,9 +166,10 @@ export class ProfileRepository extends BaseRepository {
   /**
    * Fetches an active profile by identity source + profile identifier.
    *
-   * @param {string} identitySource
-   * @param {string} profileIdentifier
-   * @return {*}  {Promise<Profile | null>}
+   * @param {string} identitySource Identity provider associated with the profile.
+   * @param {string} profileIdentifier Identity provider username or profile identifier.
+   * @returns {Promise<Profile | null>} The profile record, or null when no record matches.
+   * @throws {ApiExecuteSQLError} Failed to get profile by identifier.
    * @memberof ProfileRepository
    */
   async findProfileByIdentifier(identitySource: string, profileIdentifier: string): Promise<Profile | null> {
@@ -221,8 +218,8 @@ export class ProfileRepository extends BaseRepository {
   /**
    * Fetches an active profile by email address.
    *
-   * @param {string} email
-   * @return {*}  {Promise<Profile | null>}
+   * @param {string} email Email address used to identify the profile.
+   * @returns {Promise<Profile | null>} The profile record, or null when no record matches.
    * @memberof ProfileRepository
    */
   async findProfileByEmail(email: string): Promise<Profile | null> {
@@ -263,13 +260,11 @@ export class ProfileRepository extends BaseRepository {
    *
    * @param {string} profileId
    *   The UUID of the profile to update.
-   *
    * @param {UpdateProfile} updates
    *   The profile fields to update.
-   *
-   * @return {*}  {Promise<Profile>}
+   * @return {Promise<Profile>}
    *   The updated profile.
-   *
+   * @throws {ApiExecuteSQLError} Failed to update profile.
    * @memberof ProfileRepository
    */
   async updateProfile(profileId: string, updates: UpdateProfile): Promise<Profile> {
@@ -327,9 +322,8 @@ export class ProfileRepository extends BaseRepository {
    *
    * @param {DeleteProfile} data
    *   The data containing the profile_id to delete.
-   *
-   * @return {*}  {Promise<void>}
-   *
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {ApiExecuteSQLError} Failed to delete profile.
    * @memberof ProfileRepository
    */
   async deleteProfile(data: DeleteProfile): Promise<void> {
@@ -356,8 +350,9 @@ export class ProfileRepository extends BaseRepository {
   /**
    * Fetches a role ID by role name.
    *
-   * @param {string} roleName
-   * @return {*}  {Promise<string>}
+   * @param {string} roleName Name of the role to resolve.
+   * @returns {Promise<string>} The identifier of the matching active role.
+   * @throws {ApiExecuteSQLError} Failed to get role by name.
    * @memberof ProfileRepository
    */
   async getRoleIdByName(roleName: string): Promise<string> {
@@ -384,9 +379,10 @@ export class ProfileRepository extends BaseRepository {
   /**
    * Fetches a role ID by role name and scope.
    *
-   * @param {string} roleName
-   * @param {string} roleScope
-   * @return {*}  {Promise<string>}
+   * @param {string} roleName Name of the role to resolve.
+   * @param {string} roleScope Scope in which the role is defined.
+   * @returns {Promise<string>} The identifier of the matching active role.
+   * @throws {ApiExecuteSQLError} Failed to get role by name and scope.
    * @memberof ProfileRepository
    */
   async getRoleIdByNameAndScope(roleName: string, roleScope: string): Promise<string> {

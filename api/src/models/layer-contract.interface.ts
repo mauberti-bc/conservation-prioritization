@@ -1,4 +1,6 @@
-/** Scientific aggregation semantics owned by one immutable source layer version. */
+/**
+ * Scientific aggregation semantics owned by one immutable source layer version.
+ */
 export interface LayerRepresentationContract {
   schema_version: 1;
   layer_id: string;

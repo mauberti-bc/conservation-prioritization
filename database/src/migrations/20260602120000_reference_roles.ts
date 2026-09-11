@@ -47,7 +47,7 @@ const REFERENCE_ROLES = [
  * Insert stable role reference data required by application authorization.
  *
  * @param {Knex} knex - Knex database client.
- * @return {*}  {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`
@@ -76,7 +76,7 @@ export async function up(knex: Knex): Promise<void> {
  * End-date active role reference data inserted by this migration.
  *
  * @param {Knex} knex - Knex database client.
- * @return {*}  {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.raw(`

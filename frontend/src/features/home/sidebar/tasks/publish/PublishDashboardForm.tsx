@@ -10,7 +10,7 @@ export interface PublishDashboardFormValues {
 /**
  * Form fields for publishing a dashboard.
  *
- * @return {*}
+ * @returns {React.ReactNode} The rendered component.
  */
 export const PublishDashboardForm = () => {
   const { values, errors, touched, handleChange } = useFormikContext<PublishDashboardFormValues>();

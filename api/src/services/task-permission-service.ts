@@ -21,7 +21,7 @@ export class TaskPermissionService extends DBService {
   /**
    * Creates an instance of TaskPermissionService.
    *
-   * @param {IDBConnection} connection
+   * @param {IDBConnection} connection Database connection used for queries and transaction context.
    * @memberof TaskPermissionService
    */
   constructor(connection: IDBConnection) {
@@ -32,8 +32,8 @@ export class TaskPermissionService extends DBService {
   /**
    * Create a new task permission.
    *
-   * @param {CreateTaskPermission} permission
-   * @return {*}  {Promise<TaskPermission>}
+   * @param {CreateTaskPermission} permission Permission fields to persist.
+   * @returns {Promise<TaskPermission>} The task permission record.
    * @memberof TaskPermissionService
    */
   async createTaskPermission(permission: CreateTaskPermission): Promise<TaskPermission> {
@@ -43,8 +43,8 @@ export class TaskPermissionService extends DBService {
   /**
    * Get a task permission by ID.
    *
-   * @param {string} taskPermissionId
-   * @return {*}  {Promise<TaskPermission>}
+   * @param {string} taskPermissionId Identifier of the task permission.
+   * @returns {Promise<TaskPermission>} The task permission record.
    * @memberof TaskPermissionService
    */
   async getTaskPermissionById(taskPermissionId: string): Promise<TaskPermission> {
@@ -54,7 +54,7 @@ export class TaskPermissionService extends DBService {
   /**
    * Get all active task permissions.
    *
-   * @return {*}  {Promise<TaskPermission[]>}
+   * @returns {Promise<TaskPermission[]>} Matching task permission records.
    * @memberof TaskPermissionService
    */
   async getAllTaskPermissions(): Promise<TaskPermission[]> {
@@ -64,9 +64,9 @@ export class TaskPermissionService extends DBService {
   /**
    * Update an existing task permission.
    *
-   * @param {string} taskPermissionId
-   * @param {UpdateTaskPermission} updates
-   * @return {*}  {Promise<TaskPermission>}
+   * @param {string} taskPermissionId Identifier of the task permission.
+   * @param {UpdateTaskPermission} updates Fields to update on the existing record.
+   * @returns {Promise<TaskPermission>} The task permission record.
    * @memberof TaskPermissionService
    */
   async updateTaskPermission(taskPermissionId: string, updates: UpdateTaskPermission): Promise<TaskPermission> {
@@ -76,8 +76,8 @@ export class TaskPermissionService extends DBService {
   /**
    * Soft delete a task permission.
    *
-   * @param {DeleteTaskPermission} data
-   * @return {*}  {Promise<void>}
+   * @param {DeleteTaskPermission} data Data to persist or process.
+   * @returns {Promise<void>} Resolves when the operation completes.
    * @memberof TaskPermissionService
    */
   async deleteTaskPermission(data: DeleteTaskPermission): Promise<void> {

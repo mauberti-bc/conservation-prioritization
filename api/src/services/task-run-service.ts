@@ -24,7 +24,9 @@ import { DBService } from './db-service';
 import { PrefectService } from './prefect-service';
 import { TaskService } from './task-service';
 
-/** Coordinates immutable run snapshots and recoverable workflow dispatch. */
+/**
+ * Coordinates immutable run snapshots and recoverable workflow dispatch.
+ */
 export class TaskRunService extends DBService {
   private taskService: TaskService;
   private taskRunRepository: TaskRunRepository;
@@ -52,7 +54,13 @@ export class TaskRunService extends DBService {
    *
    * @param {string} taskId Owning task.
    * @param {SubmitTaskRequest} request Submitted configuration overrides.
-   * @returns {Promise<TaskRunWithArtifacts>}
+   * @returns {Promise<TaskRunWithArtifacts>} The queued run and its initialized artifact metadata.
+   * @throws {ApiGeneralError} No default published analytical source is configured.
+   * @throws {ApiGeneralError} An optimization requires at least one objective.
+   * @throws {ApiGeneralError} Each layer may appear at most once in objectives.
+   * @throws {ApiGeneralError} Objective importance must be a finite nonnegative number.
+   * @throws {ApiGeneralError} Every optimization constraint requires a minimum or maximum.
+   * @throws {ApiGeneralError} Constraint minimum cannot exceed its maximum.
    */
   async createQueuedRun(taskId: string, request: SubmitTaskRequest): Promise<TaskRunWithArtifacts> {
     const task = await this.taskService.getTaskById(taskId);
@@ -280,7 +288,8 @@ export class TaskRunService extends DBService {
    * Dispatches an already committed queued run to Prefect.
    *
    * @param {string} taskRunId Run to dispatch.
-   * @returns {Promise<TaskRun>}
+   * @returns {Promise<TaskRun>} The run after recording the Prefect dispatch outcome.
+   * @throws {ApiGeneralError} Only queued or recoverable failed runs can be dispatched.
    */
   async dispatchRun(taskRunId: string): Promise<TaskRun> {
     const run = await this.taskRunRepository.getTaskRunForDispatch(taskRunId);
@@ -322,7 +331,13 @@ export class TaskRunService extends DBService {
     }
   }
 
-  /** Persists publication state before any external Prefect submission. */
+  /**
+   * Persists publication state before any external Prefect submission.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @returns {Promise<TaskRun>} The run after recording the next publication attempt.
+   * @throws {ApiGeneralError} This run is not eligible for canonical-result publication.
+   */
   async preparePublication(taskRunId: string): Promise<TaskRun> {
     const run = await this.taskRunRepository.getTaskRunById(taskRunId);
     const artifacts = await this.artifactRepository.getArtifactsByRunId(taskRunId);
@@ -351,24 +366,46 @@ export class TaskRunService extends DBService {
     return this.taskRunRepository.getTaskRunById(taskRunId);
   }
 
-  /** Dispatches a previously persisted publishing run to task-tile. */
+  /**
+   * Dispatches a previously persisted publishing run to task-tile.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @param {number} publicationRevision Publication revision used to identify this dispatch attempt.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   */
   async dispatchPreparedPublication(taskRunId: string, publicationRevision: number): Promise<void> {
     await new PrefectService().submitTaskRunTile(taskRunId, publicationRevision);
   }
 
-  /** Compatibility helper for callers already managing their own transaction. */
+  /**
+   * Compatibility helper for callers already managing their own transaction.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @returns {Promise<TaskRun>} The run after preparing and dispatching its publication.
+   */
   async dispatchPublication(taskRunId: string): Promise<TaskRun> {
     const run = await this.preparePublication(taskRunId);
     await this.dispatchPreparedPublication(taskRunId, run.revision);
     return run;
   }
 
-  /** Retries only PMTiles publication without repeating optimization. */
+  /**
+   * Retries only PMTiles publication without repeating optimization.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @returns {Promise<TaskRun>} The run after scheduling another publication attempt.
+   */
   async retryPublication(taskRunId: string): Promise<TaskRun> {
     return this.preparePublication(taskRunId);
   }
 
-  /** Persists a task-tile dispatch or execution failure without changing solver metadata. */
+  /**
+   * Persists a task-tile dispatch or execution failure without changing solver metadata.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @param {unknown} error Failure to record or propagate.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   */
   async failPublication(taskRunId: string, error: unknown): Promise<void> {
     const message = error instanceof Error ? error.message : 'Task-run publication failed.';
     const artifacts = await this.artifactRepository.getArtifactsByRunId(taskRunId);
@@ -426,7 +463,15 @@ export class TaskRunService extends DBService {
     };
   }
 
-  /** Creates or updates normalized solver metadata for one run-local solution. */
+  /**
+   * Creates or updates normalized solver metadata for one run-local solution.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @param {UpsertTaskRunSolution} solution Run-local solution metadata to persist.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {ApiGeneralError} Solutions cannot be changed after a run reaches a terminal state.
+   * @throws {ApiGeneralError} Optimization runs expose exactly one reference solution at index 0.
+   */
   async upsertSolution(taskRunId: string, solution: UpsertTaskRunSolution): Promise<void> {
     const run = await this.taskRunRepository.getTaskRunById(taskRunId);
     if (run.status === 'completed' || run.status === 'cancelled') {
@@ -438,13 +483,26 @@ export class TaskRunService extends DBService {
     await this.solutionRepository.upsertTaskRunSolution(taskRunId, solution);
   }
 
-  /** Returns all runs for a task with artifacts. */
+  /**
+   * Returns all runs for a task with artifacts.
+   *
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<TaskRunWithArtifacts[]>} Task runs ordered newest first, with artifacts when requested by the service.
+   */
   async getTaskRunsByTaskId(taskId: string): Promise<TaskRunWithArtifacts[]> {
     const runs = await this.taskRunRepository.getTaskRunsByTaskId(taskId);
     return Promise.all(runs.map(async (run) => this.getTaskRunById(run.task_run_id)));
   }
 
-  /** Applies an internal workflow lifecycle update. */
+  /**
+   * Applies an internal workflow lifecycle update.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @param {UpdateTaskRun} updates Fields to update on the existing record.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {ApiGeneralError} A run cannot complete before canonical result and PMTiles artifacts are ready.
+   * @throws {ApiGeneralError} An optimization run requires exactly one normalized reference solution.
+   */
   async updateRun(taskRunId: string, updates: UpdateTaskRun): Promise<void> {
     const current = await this.taskRunRepository.getTaskRunById(taskRunId);
     const allowedStatuses: Record<TaskRun['status'], TaskRun['status'][]> = {
@@ -496,7 +554,14 @@ export class TaskRunService extends DBService {
     }
   }
 
-  /** Updates one authoritative run artifact by role. */
+  /**
+   * Updates one authoritative run artifact by role.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @param {ArtifactType} type Artifact role identifying the run output.
+   * @param {UpdateArtifact} updates Fields to update on the existing record.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   */
   async updateArtifact(taskRunId: string, type: ArtifactType, updates: UpdateArtifact): Promise<void> {
     const run = await this.taskRunRepository.getTaskRunById(taskRunId);
     const artifact = await this.artifactRepository.getArtifactByRunAndType(taskRunId, type);
@@ -536,7 +601,12 @@ export class TaskRunService extends DBService {
     return [targetArea];
   }
 
-  /** Returns the immutable engine configuration for the classified formulation. */
+  /**
+   * Returns the immutable engine configuration for the classified formulation.
+   *
+   * @param {'interactive' | 'balanced' | 'exact_audit'} optimizationMode Product mode used to select execution and work-budget settings.
+   * @returns {Record<string, unknown>} Execution settings for the selected optimization mode.
+   */
   private getExecutionConfiguration(
     optimizationMode: 'interactive' | 'balanced' | 'exact_audit' = 'exact_audit'
   ): Record<string, unknown> {
@@ -549,7 +619,12 @@ export class TaskRunService extends DBService {
     };
   }
 
-  /** Returns the immutable, queryable implementation version for an execution method. */
+  /**
+   * Returns the immutable, queryable implementation version for an execution method.
+   *
+   * @param {TaskRunExecutionMethod} executionMethod Execution method selected for the task run.
+   * @returns {string} Version identifier for the selected execution method.
+   */
   private getExecutionMethodVersion(executionMethod: TaskRunExecutionMethod): string {
     if (executionMethod === 'compiled_priority_ranking') {
       return 'highs-csr-priority-ranking-v1';
@@ -557,7 +632,12 @@ export class TaskRunService extends DBService {
     return executionMethod === 'compiled_continuous_optimization' ? 'highs-csr-continuous-v1' : 'highs-csr-discrete-v1';
   }
 
-  /** Returns only artifacts crossed by the selected durable execution path. */
+  /**
+   * Returns only artifacts crossed by the selected durable execution path.
+   *
+   * @param {boolean} exportSelectedParquet Whether selected planning-unit Parquet artifacts are required.
+   * @returns {ArtifactType[]} Artifact roles required by the chosen execution path.
+   */
   private getArtifactTypes(exportSelectedParquet: boolean): ArtifactType[] {
     const common: ArtifactType[] = ['planning_unit_inventory'];
     const outputs: ArtifactType[] = [
@@ -568,7 +648,12 @@ export class TaskRunService extends DBService {
     return [...common, 'compiled_model', 'raw_solver_result', ...outputs];
   }
 
-  /** Returns deterministic latency and refinement controls for the selected product mode. */
+  /**
+   * Returns deterministic latency and refinement controls for the selected product mode.
+   *
+   * @param {'interactive' | 'balanced' | 'exact_audit'} optimizationMode Product mode used to select execution and work-budget settings.
+   * @returns {Record<string, unknown>} Latency and refinement limits for the selected optimization mode.
+   */
   private resolveWorkBudget(optimizationMode: 'interactive' | 'balanced' | 'exact_audit'): Record<string, unknown> {
     if (optimizationMode === 'interactive') {
       return {
@@ -588,7 +673,13 @@ export class TaskRunService extends DBService {
     };
   }
 
-  /** Validate and normalize the optional soft selected-neighbor preference. */
+  /**
+   * Validate and normalize the optional soft selected-neighbor preference.
+   *
+   * @param {SubmitTaskRequest['neighbor_penalty']} request Request containing the input fields to process.
+   * @returns {{ strength: number } | null} Normalized neighbor-penalty strength, or null when no penalty is requested.
+   * @throws {ApiGeneralError} Neighbor-penalty strength must be a finite nonnegative number.
+   */
   private resolveNeighborPenalty(request: SubmitTaskRequest['neighbor_penalty']): { strength: number } | null {
     if (request == null || request.strength === 0) {
       return null;
@@ -599,7 +690,12 @@ export class TaskRunService extends DBService {
     return { strength: request.strength };
   }
 
-  /** Estimates area from a published projected [left,bottom,right,top] extent. */
+  /**
+   * Estimates area from a published projected [left,bottom,right,top] extent.
+   *
+   * @param {unknown} value Value to normalize or inspect.
+   * @returns {number | null} Projected extent area in square metres, or null when the extent is invalid.
+   */
   private estimateGridExtentArea(value: unknown): number | null {
     if (
       !Array.isArray(value) ||

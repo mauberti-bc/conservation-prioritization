@@ -26,7 +26,9 @@ export const TaskRunStage = z.enum([
 ]);
 export type TaskRunStage = z.infer<typeof TaskRunStage>;
 
-/** Immutable execution of a task scenario. */
+/**
+ * Immutable execution of a task scenario.
+ */
 export const TaskRun = z.object({
   task_run_id: z.string().uuid(),
   task_id: z.string().uuid(),

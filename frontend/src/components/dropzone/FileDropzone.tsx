@@ -27,7 +27,9 @@ export const FileDropzone = ({ onFilesSelected, label, accept, showExtensions }:
     accept,
   });
 
-  /** Flatten accepted extensions into readable list (e.g. ".geojson, .json") */
+  /**
+   * Flatten accepted extensions into readable list (e.g. ".geojson, .json")
+   */
   const acceptedExtensions = useMemo(() => {
     if (!accept) {
       return null;

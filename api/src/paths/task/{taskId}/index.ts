@@ -69,7 +69,7 @@ GET.apiDoc = {
 /**
  * Express request handler to fetch a task by its ID.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function getTaskById(): RequestHandler {
   return async (req, res) => {
@@ -162,7 +162,7 @@ PUT.apiDoc = {
 /**
  * Express request handler to update a task by its ID.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function updateTask(): RequestHandler {
   return async (req, res) => {
@@ -277,7 +277,7 @@ DELETE.apiDoc = {
 /**
  * Express request handler to soft delete a task by its ID.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function deleteTask(): RequestHandler {
   return async (req, res) => {

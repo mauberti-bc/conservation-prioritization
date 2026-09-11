@@ -54,7 +54,11 @@ POST.apiDoc = {
   }
 };
 
-/** Lists exports for one authorized task run. */
+/**
+ * Lists exports for one authorized task run.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function getTaskExports(): RequestHandler {
   return async (req, res) => {
     const connection = getDBConnection(req.keycloak_token);
@@ -72,7 +76,11 @@ export function getTaskExports(): RequestHandler {
   };
 }
 
-/** Creates and dispatches one GeoTIFF export. */
+/**
+ * Creates and dispatches one GeoTIFF export.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function createTaskExport(): RequestHandler {
   return async (req, res) => {
     const connection = getDBConnection(req.keycloak_token);

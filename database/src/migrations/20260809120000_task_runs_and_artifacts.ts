@@ -4,7 +4,7 @@ import { Knex } from 'knex';
  * Introduce immutable task runs, published analytical sources, and run artifacts.
  *
  * @param {Knex} knex Database connection.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`--sql
@@ -341,7 +341,7 @@ export async function up(knex: Knex): Promise<void> {
  * Remove task-run architecture tables and enum types.
  *
  * @param {Knex} knex Database connection.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.raw(`--sql

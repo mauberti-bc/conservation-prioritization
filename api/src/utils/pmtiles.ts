@@ -4,8 +4,8 @@ import { getPresignedObjectUrl, parseUri } from './object-store';
 /**
  * Converts a stored tileset URI into a PMTiles URL usable by clients.
  *
- * @param {string | null | undefined} uri
- * @return {*}  {string | null}
+ * @param {string | null | undefined} uri Object-store URI identifying the object.
+ * @returns {string | null} To pmtiles url.
  */
 export const toPmtilesUrl = (uri: string | null | undefined): string | null => {
   if (!uri) {
@@ -39,8 +39,8 @@ export const toPmtilesUrl = (uri: string | null | undefined): string | null => {
 /**
  * Converts a stored tileset URI into a PMTiles URL using a presigned object URL when needed.
  *
- * @param {string | null | undefined} uri
- * @return {*}  {Promise<string | null>}
+ * @param {string | null | undefined} uri Object-store URI identifying the object.
+ * @returns {Promise<string | null>} A PMTiles-compatible URL, with a signed object-store URL where needed, or null when the URI is absent or cannot be signed.
  */
 export const toPresignedPmtilesUrl = async (uri: string | null | undefined): Promise<string | null> => {
   if (!uri) {

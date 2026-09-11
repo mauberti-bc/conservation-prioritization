@@ -21,7 +21,11 @@ POST.apiDoc = {
   }
 };
 
-/** Validates and persists normalized solution metadata from a workflow. */
+/**
+ * Validates and persists normalized solution metadata from a workflow.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function upsertRunSolution(): RequestHandler {
   return async (req, res) => {
     const payload: UpsertTaskRunSolution = {

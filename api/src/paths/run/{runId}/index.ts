@@ -21,7 +21,11 @@ GET.apiDoc = {
   }
 };
 
-/** Returns one authorized run. */
+/**
+ * Returns one authorized run.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function getTaskRun(): RequestHandler {
   return async (req, res) => {
     const connection = getDBConnection(req.keycloak_token);

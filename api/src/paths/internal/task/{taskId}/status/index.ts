@@ -51,7 +51,7 @@ POST.apiDoc = {
 /**
  * Express request handler to update a task status from internal workflows.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function updateTaskStatus(): RequestHandler {
   return async (req, res) => {

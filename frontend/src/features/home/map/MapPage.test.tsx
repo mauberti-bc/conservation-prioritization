@@ -55,7 +55,13 @@ vi.mock('components/list/InteractiveListItemButton', () => ({
   InteractiveListItemButton: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-/** Builds a task with the run fields consumed by the map workspace. */
+/**
+ * Builds a task with the run fields consumed by the map workspace.
+ *
+ * @param status Lifecycle status to apply or inspect.
+ * @param {TaskRunAreaResponse[]} areas Area definitions included in the task fixture.
+ * @returns {GetTaskResponse} Task fixture with the requested status and areas.
+ */
 function buildTask(status = 'completed', areas: TaskRunAreaResponse[] = []): GetTaskResponse {
   return {
     task_id: 'task-1',
@@ -65,12 +71,22 @@ function buildTask(status = 'completed', areas: TaskRunAreaResponse[] = []): Get
   } as unknown as GetTaskResponse;
 }
 
-/** Builds an export with the metadata consumed by the format dialog. */
+/**
+ * Builds an export with the metadata consumed by the format dialog.
+ *
+ * @param {TaskExportResponse['status']} status Lifecycle status to apply or inspect.
+ * @returns {TaskExportResponse} Export fixture with the requested lifecycle status.
+ */
 function buildExport(status: TaskExportResponse['status']): TaskExportResponse {
   return { task_export_id: 'export-1', format: 'geotiff', status, files: [] } as unknown as TaskExportResponse;
 }
 
-/** Mounts the map list with its real loaders and export dialog. */
+/**
+ * Mounts the map list with its real loaders and export dialog.
+ *
+ * @param initialEntry Initial route used when mounting the test workspace.
+ * @returns The rendered map workspace and its Testing Library query helpers.
+ */
 function workspace(initialEntry = '/map') {
   return (
     <MemoryRouter initialEntries={[initialEntry]}>

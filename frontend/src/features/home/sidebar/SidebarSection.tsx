@@ -17,8 +17,8 @@ interface SidebarSectionProps {
 /**
  * Shared sidebar section with a title, search input, and content area.
  *
- * @param {SidebarSectionProps} props
- * @returns {JSX.Element}
+ * @param {SidebarSectionProps} props Component properties.
+ * @returns {JSX.Element} The rendered component.
  */
 export const SidebarSection = ({
   title,

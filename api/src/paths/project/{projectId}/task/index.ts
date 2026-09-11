@@ -123,7 +123,7 @@ POST.apiDoc = {
 /**
  * Express request handler to fetch tasks for a project.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function getProjectTasks(): RequestHandler {
   return async (req, res) => {
@@ -154,7 +154,7 @@ export function getProjectTasks(): RequestHandler {
 /**
  * Express request handler to add tasks to a project.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function addProjectTasks(): RequestHandler {
   return async (req, res) => {

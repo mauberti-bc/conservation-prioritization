@@ -41,7 +41,8 @@ export interface IQueueS3FileKey {
 /**
  * Local getter for retrieving the ClamAV client.
  *
- * @return {*}  {Promise<NodeClam>}
+ * @returns {Promise<NodeClam>} The node clam record.
+ * @throws {Error} ClamAV host and port must be set to enable virus scanning.
  */
 export const _getClamAvScanner = async (): Promise<NodeClam> => {
   if (!process.env.CLAMAV_HOST || !process.env.CLAMAV_PORT) {
@@ -59,7 +60,7 @@ export const _getClamAvScanner = async (): Promise<NodeClam> => {
 /**
  * Local getter for retrieving the S3 client.
  *
- * @return {*}  {S3Client} The S3 client
+ * @return {S3Client} The S3 client
  */
 export const _getS3Client = (): S3Client => {
   return new S3Client({
@@ -76,7 +77,7 @@ export const _getS3Client = (): S3Client => {
 /**
  * Local getter for retrieving the source S3 client used to read the Zarr layer library.
  *
- * @return {*}  {S3Client} The source S3 client
+ * @return {S3Client} The source S3 client
  */
 export const _getSourceS3Client = (): S3Client => {
   return new S3Client({
@@ -93,7 +94,7 @@ export const _getSourceS3Client = (): S3Client => {
 /**
  * Local getter for retrieving the S3 quarantine client.
  *
- * @return {*}  {S3Client} The S3 quarantine client
+ * @return {S3Client} The S3 quarantine client
  */
 export const _getQuarantineS3Client = (): S3Client => {
   return new S3Client({
@@ -110,7 +111,7 @@ export const _getQuarantineS3Client = (): S3Client => {
 /**
  * Local getter for retrieving the S3 object store endpoint.
  *
- * @returns {*} {string} The object store endpoint
+ * @returns {string} The object store endpoint
  */
 export const _getObjectStoreEndpoint = (): string => {
   const url = process.env.OBJECT_STORE_URL || 'https://nrs.objectstore.gov.bc.ca';
@@ -125,7 +126,8 @@ export const _getObjectStoreEndpoint = (): string => {
 /**
  * Local getter for retrieving the source S3 object store endpoint used for Zarr reads.
  *
- * @returns {*} {string} The source object store endpoint
+ * @returns {string} The source object store endpoint
+ * @throws {Error} SOURCE_OBJECT_STORE_URL or SOURCE_OBJECT_STORE_ENDPOINT is not configured.
  */
 export const _getSourceObjectStoreEndpoint = (): string => {
   const url = process.env.SOURCE_OBJECT_STORE_URL || process.env.SOURCE_OBJECT_STORE_ENDPOINT;
@@ -144,7 +146,7 @@ export const _getSourceObjectStoreEndpoint = (): string => {
 /**
  * Local getter for retrieving the object store region.
  *
- * @returns {*} {string} The object store region
+ * @returns {string} The object store region
  */
 export const _getObjectStoreRegion = (): string => {
   return process.env.OBJECT_STORE_REGION || 'ca-central-1';
@@ -153,7 +155,7 @@ export const _getObjectStoreRegion = (): string => {
 /**
  * Local getter for retrieving the source object store region.
  *
- * @returns {*} {string} The source object store region
+ * @returns {string} The source object store region
  */
 export const _getSourceObjectStoreRegion = (): string => {
   return process.env.SOURCE_OBJECT_STORE_REGION || process.env.OBJECT_STORE_REGION || 'ca-central-1';
@@ -162,7 +164,7 @@ export const _getSourceObjectStoreRegion = (): string => {
 /**
  * Local getter for retrieving the object store force path style flag.
  *
- * @returns {*} {boolean} Whether to force path style
+ * @returns {boolean} Whether to force path style
  */
 export const _getObjectStoreForcePathStyle = (): boolean => {
   return String(process.env.OBJECT_STORE_FORCE_PATH_STYLE || '').toLowerCase() === 'true';
@@ -171,7 +173,7 @@ export const _getObjectStoreForcePathStyle = (): boolean => {
 /**
  * Local getter for retrieving the source object store force path style flag.
  *
- * @returns {*} {boolean} Whether to force path style
+ * @returns {boolean} Whether to force path style
  */
 export const _getSourceObjectStoreForcePathStyle = (): boolean => {
   const value = process.env.SOURCE_OBJECT_STORE_FORCE_PATH_STYLE ?? process.env.OBJECT_STORE_FORCE_PATH_STYLE;
@@ -182,7 +184,7 @@ export const _getSourceObjectStoreForcePathStyle = (): boolean => {
 /**
  * Local getter for retrieving the S3 object store bucket name.
  *
- * @returns {*} {string} The object store bucket name
+ * @returns {string} The object store bucket name
  */
 export const _getObjectStoreBucketName = (): string => {
   return process.env.OBJECT_STORE_BUCKET_NAME || '';
@@ -191,7 +193,8 @@ export const _getObjectStoreBucketName = (): string => {
 /**
  * Local getter for retrieving the source S3 object store bucket name used for Zarr reads.
  *
- * @returns {*} {string} The source object store bucket name
+ * @returns {string} The source object store bucket name
+ * @throws {Error} SOURCE_OBJECT_STORE_BUCKET_NAME is not configured.
  */
 export const _getSourceObjectStoreBucketName = (): string => {
   const bucket = process.env.SOURCE_OBJECT_STORE_BUCKET_NAME;
@@ -206,7 +209,7 @@ export const _getSourceObjectStoreBucketName = (): string => {
 /**
  * Local getter for retrieving the S3 quarantine object store bucket name.
  *
- * @returns {*} {string} The quarantine object store bucket name
+ * @returns {string} The quarantine object store bucket name
  */
 export const _getQuarantineObjectStoreBucketName = (): string => {
   return process.env.QUARANTINE_OBJECT_STORE_BUCKET_NAME || '';
@@ -216,9 +219,9 @@ export const _getQuarantineObjectStoreBucketName = (): string => {
  * Returns the S3 host URL. It optionally takes an S3 key as a parameter, which produces
  * a full URL to the given file in S3.
  *
- * @export
  * @param {string} [key] The key to an object in S3
- * @returns {*} {string} The s3 host URL
+ * @returns {string} The s3 host URL
+ * @export
  */
 export const getS3HostUrl = (key?: string): string => {
   // Appends the given S3 object key, trimming between 0 and 2 trailing '/' characters
@@ -231,9 +234,9 @@ export const getS3HostUrl = (key?: string): string => {
  * For potential future reference, for deleting the delete marker of a file in S3:
  * https://docs.aws.amazon.com/AmazonS3/latest/userguide/RemDelMarker.html
  *
- * @export
  * @param {string} key the unique key assigned to the file in S3 when it was originally uploaded
  * @returns {Promise<DeleteObjectCommandOutput>} the response from S3 or null if required parameters are null
+ * @export
  */
 export async function deleteFileFromS3(key: string): Promise<DeleteObjectCommandOutput | null> {
   const s3Client = _getS3Client();
@@ -253,11 +256,11 @@ export async function deleteFileFromS3(key: string): Promise<DeleteObjectCommand
  * Bulk delete files from S3 from a list of keys.
  *
  * For potential future reference:
- * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/s3/command/DeleteObjectsCommand/
  *
- * @export
  * @param {string} keys - List of S3 keys to delete
  * @returns {Promise<DeleteObjectCommandOutput>} the response from S3 or null if required parameters are null
+ * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/s3/command/DeleteObjectsCommand/
+ * @export
  */
 export async function bulkDeleteFilesFromS3(keys: string[]): Promise<DeleteObjectsCommandOutput | null> {
   const s3Client = _getS3Client();
@@ -279,11 +282,11 @@ export async function bulkDeleteFilesFromS3(keys: string[]): Promise<DeleteObjec
 /**
  * Upload a file to S3.
  *
- * @export
  * @param {Express.Multer.File} file an object containing information about a single piece of media
  * @param {string} key the path where S3 will store the file
  * @param {Record<string, string>} [metadata={}] A metadata object to store additional information with the file
  * @returns {Promise<PutObjectCommandOutput>} the response from S3
+ * @export
  */
 export async function uploadFileToS3(
   file: Express.Multer.File,
@@ -306,12 +309,12 @@ export async function uploadFileToS3(
 /**
  * Upload a buffer to S3.
  *
- * @export
  * @param {Buffer} buffer the buffer to upload
  * @param {string} mimetype the mimetype of the buffer
  * @param {string} key the path where S3 will store the file
  * @param {Record<string, string>} [metadata={}] A metadata object to store additional information with the file
  * @returns {Promise<PutObjectCommandOutput>} the response from S3
+ * @export
  */
 export async function uploadBufferToS3(
   buffer: Buffer,
@@ -335,12 +338,12 @@ export async function uploadBufferToS3(
 /**
  * Upload a stream to S3.
  *
- * @export
- * @param {stream} Readable the stream to upload
  * @param {string} mimetype the mimetype of the stream data
  * @param {string} key the path where S3 will store the file
  * @param {Record<string, string>} [metadata={}] A metadata object to store additional information with the file
- * @return {*}  {Promise<CompleteMultipartUploadCommandOutput>} the response from S3
+ * @param {Readable} stream Readable stream containing the upload data.
+ * @return {Promise<CompleteMultipartUploadCommandOutput>} the response from S3
+ * @export
  */
 export async function uploadStreamToS3(
   stream: Readable,
@@ -365,10 +368,10 @@ export async function uploadStreamToS3(
 /**
  * Fetch a file from S3.
  *
- * @export
  * @param {string} key the S3 key of the file to fetch
  * @param {string} [versionId] the S3 version id  of the file to fetch (optional)
- * @return {Promise<GetObjectCommandOutput>}
+ * @returns {Promise<GetObjectCommandOutput>} The get object command output record.
+ * @export
  */
 export async function getFileFromS3(key: string, versionId?: string): Promise<GetObjectCommandOutput> {
   const s3Client = _getS3Client();
@@ -385,10 +388,10 @@ export async function getFileFromS3(key: string, versionId?: string): Promise<Ge
 /**
  * Fetch a file from the source S3 store used for Zarr reads.
  *
- * @export
  * @param {string} key the S3 key of the source file to fetch
  * @param {string} [versionId] the S3 version id of the source file to fetch (optional)
- * @return {Promise<GetObjectCommandOutput>}
+ * @returns {Promise<GetObjectCommandOutput>} The get object command output record.
+ * @export
  */
 export async function getFileFromSourceS3(key: string, versionId?: string): Promise<GetObjectCommandOutput> {
   const s3Client = _getSourceS3Client();
@@ -405,10 +408,10 @@ export async function getFileFromSourceS3(key: string, versionId?: string): Prom
 /**
  * Fetches a list of files in S3 at the given path
  *
- * @export
  * @param {string} path the path (Prefix) of the directory in S3
  * @return {Promise<ListObjectsCommandOutput>} All objects at the given path, also including
  * the directory itself.
+ * @export
  */
 export const listFilesFromS3 = async (path: string): Promise<ListObjectsCommandOutput> => {
   const s3Client = _getS3Client();
@@ -424,9 +427,9 @@ export const listFilesFromS3 = async (path: string): Promise<ListObjectsCommandO
 /**
  * Retrieves all metadata for the given S3 object, including custom HTTP headers.
  *
- * @export
  * @param {string} key the key of the object
- * @returns {Promise<HeadObjectCommandOutput}
+ * @returns {Promise<HeadObjectCommandOutput>} Object metadata and HTTP headers returned by S3.
+ * @export
  */
 export async function getObjectMeta(key: string): Promise<HeadObjectCommandOutput> {
   const s3Client = _getS3Client();
@@ -438,7 +441,7 @@ export async function getObjectMeta(key: string): Promise<HeadObjectCommandOutpu
  * Get an s3 signed url.
  *
  * @param {string} key S3 object key
- * @return {*}  {(Promise<string | null>)} the response from S3 or null if required parameters are null
+ * @return {(Promise<string | null>)} the response from S3 or null if required parameters are null
  */
 export async function getS3SignedURL(key: string): Promise<string | null> {
   const s3Client = _getS3Client();
@@ -462,9 +465,9 @@ export async function getS3SignedURL(key: string): Promise<string | null> {
 /**
  * Get an array of s3 signed urls.
  *
+ * @param {string[]} keys Object-store keys to process.
+ * @returns {Promise<(string | null)[]>} Matching (string) records, or null when no record matches.
  * @export
- * @param {string[]} keys
- * @return {*}  {(Promise<(string | null)[]>)}
  */
 export async function getS3SignedURLs(keys: string[]): Promise<(string | null)[]> {
   return Promise.all(keys.map((key) => getS3SignedURL(key)));
@@ -473,12 +476,11 @@ export async function getS3SignedURLs(keys: string[]): Promise<(string | null)[]
 /**
  * Generate an S3 key for a dataset artifact file.
  *
+ * @param {IArtifactS3FileKey} options Options controlling the operation.
+ * @returns Generate submission feature s3 file key.
  * @example
  * submissions/<submission_id>/features/<submission_feature_id>
- *
  * @export
- * @param {IArtifactS3FileKey} options
- * @return {*}
  */
 export function generateSubmissionFeatureS3FileKey(options: IArtifactS3FileKey) {
   return ['submissions', options.submissionId, 'features', options.submissionFeatureId].filter(Boolean).join('/');
@@ -487,12 +489,11 @@ export function generateSubmissionFeatureS3FileKey(options: IArtifactS3FileKey) 
 /**
  * Generate an S3 key for a submission job queue file.
  *
+ * @param {IQueueS3FileKey} options Options controlling the operation.
+ * @returns Generate queue s3 file key.
  * @example
  * queue/<queue_id>/datasets/<dataset_uuid>/dwca/<file_name>
- *
  * @export
- * @param {IQueueS3FileKey} options
- * @return {*}
  */
 export function generateQueueS3FileKey(options: IQueueS3FileKey) {
   const keyParts: (string | number)[] = [];
@@ -510,12 +511,11 @@ export function generateQueueS3FileKey(options: IQueueS3FileKey) {
 /**
  * Generate an S3 key for a dataset DwCA file.
  *
+ * @param {IDatasetS3FileKey} options Options controlling the operation.
+ * @returns Generate dataset s3 file key.
  * @example
  * datasets/<dataset_uuid>/dwca/<file_name>
- *
  * @export
- * @param {IDatasetS3FileKey} options
- * @return {*}
  */
 export function generateDatasetS3FileKey(options: IDatasetS3FileKey) {
   const keyParts: (string | number)[] = [];
@@ -533,10 +533,10 @@ export function generateDatasetS3FileKey(options: IDatasetS3FileKey) {
  *
  * Note: This depends on the external clamav service being available and configured correctly.
  *
- * @export
- * @param {Express.Multer.File} file
- * @return {*}  {Promise<boolean>} `true` if the file is safe, `false` if the file is a virus or contains malicious
+ * @param {Express.Multer.File} file File to inspect or upload.
+ * @return {Promise<boolean>} `true` if the file is safe, `false` if the file is a virus or contains malicious
  * content.
+ * @export
  */
 export async function scanFileForVirus(file: Express.Multer.File): Promise<boolean> {
   if (process.env.ENABLE_FILE_VIRUS_SCAN !== 'true' || !process.env.CLAMAV_HOST || !process.env.CLAMAV_PORT) {

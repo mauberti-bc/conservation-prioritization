@@ -5,6 +5,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 /**
  * Router for authentication-related routes under /auth.
+ *
+ * @returns {React.ReactNode} The rendered component.
  */
 export const AuthRouter = () => {
   const authContext = useAuthContext();

@@ -22,6 +22,9 @@ interface LayerOptionAutocompleteProps {
 /**
  * Autocomplete component for searching and selecting layers via API.
  * Handles layer search, selection, and expanded dialog view.
+ *
+ * @param {LayerOptionAutocompleteProps} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const LayerOptionAutocomplete = ({
   availableLayers,

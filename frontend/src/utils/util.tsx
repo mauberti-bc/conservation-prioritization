@@ -4,9 +4,9 @@ import { IDENTITY_SOURCE } from 'constants/auth';
  * Checks if a url string starts with an `http[s]://` protocol, and adds `https://` if it does not. If the url
  * begins with `localhost` or `host.docker.internal`, the `http` protocol is used.
  *
- * @param {string} url
+ * @param {string} url URL of the resource.
  * @param {('http://' | 'https://')} [protocol='https://'] The protocol to add, if necessary. Defaults to `https://`.
- * @return {*}  {string} the url which is guaranteed to have an `http(s)://` protocol.
+ * @return {string} the url which is guaranteed to have an `http(s)://` protocol.
  */
 export const ensureProtocol = (url: string, protocol: 'http://' | 'https://' = 'https://'): string => {
   if (url.startsWith('localhost') || url.startsWith('host.docker.internal')) {
@@ -49,7 +49,8 @@ export const buildUrl = (...urlParts: (string | undefined)[]): string => {
 
 /**
  * Converts a string or number into a numeric seed.
- * @param input string | number
+ *
+ * @param {string | number} input string | number
  * @returns number
  */
 const toSeed = (input: string | number): number => {
@@ -68,8 +69,8 @@ const toSeed = (input: string | number): number => {
 /**
  * Generates a random hex color based on a string or number seed.
  *
- * @param {string | number} input
- * @returns {string}
+ * @param {string | number} input Input to parse or validate.
+ * @returns {string} Random hex color.
  */
 export const getRandomHexColor = (input: string | number): string => {
   let seed = toSeed(input);
@@ -89,10 +90,10 @@ export const getRandomHexColor = (input: string | number): string => {
 /**
  * Adds a suffix to a word to make it plural based on the count being > 1
  *
- * @param string
- * @param count
- * @param suffix
- * @returns
+ * @param {string} string String to transform.
+ * @param {number} count Number of items or characters to generate.
+ * @param {string} suffix Suffix appended to the generated value.
+ * @returns Pluralize.
  */
 export const pluralize = (string: string, count: number, suffix: string = 's') => {
   if (count > 1) {
@@ -105,10 +106,9 @@ export const pluralize = (string: string, count: number, suffix: string = 's') =
 /**
  * Returns a human-readible identity source string.
  *
- * @example getFormattedIdentitySource("IDIR"); // => "IDIR"
- *
  * @param {IDENTITY_SOURCE} identitySource The identity source
- * @returns {*} {string} the string representing the identity source
+ * @returns {string} the string representing the identity source
+ * @example getFormattedIdentitySource("IDIR"); // => "IDIR"
  */
 export const getFormattedIdentitySource = (identitySource: IDENTITY_SOURCE): string | null => {
   switch (identitySource) {

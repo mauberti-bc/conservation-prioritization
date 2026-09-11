@@ -5,7 +5,7 @@ import Stack from '@mui/material/Stack';
 /**
  * Loading skeleton that mirrors the task view panel layout.
  *
- * @returns {JSX.Element}
+ * @returns {JSX.Element} The rendered component.
  */
 export const TaskViewPanelSkeleton = () => {
   return (

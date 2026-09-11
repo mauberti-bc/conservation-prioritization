@@ -4,7 +4,7 @@ import { Knex } from 'knex';
  * Persist the exact production solver identity used by a task run.
  *
  * @param {Knex} knex Database connection.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`--sql
@@ -19,7 +19,7 @@ export async function up(knex: Knex): Promise<void> {
  * Remove persisted production solver identity.
  *
  * @param {Knex} knex Database connection.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.raw(`--sql

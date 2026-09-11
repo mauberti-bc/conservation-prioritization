@@ -41,7 +41,14 @@ let listenerClient: pg.PoolClient | null = null;
 let reconnectTimer: NodeJS.Timeout | null = null;
 let heartbeatTimer: NodeJS.Timeout | null = null;
 
-/** Registers one local socket against its profile-visible task scope. */
+/**
+ * Registers one local socket against its profile-visible task scope.
+ *
+ * @param {RealtimeSocket} socket WebSocket or transport socket for the client connection.
+ * @param {string} profileId Identifier of the profile whose access or records are used.
+ * @param {Set<string>} visibleTaskIds Task identifiers this profile is authorized to receive events for.
+ * @returns {() => void} Callback that unregisters this socket and releases its local subscription.
+ */
 export function registerRealtimeSocket(
   socket: RealtimeSocket,
   profileId: string,
@@ -70,7 +77,11 @@ export function registerRealtimeSocket(
   return unregister;
 }
 
-/** Starts one PostgreSQL LISTEN connection for this API replica. */
+/**
+ * Starts one PostgreSQL LISTEN connection for this API replica.
+ *
+ * @returns {Promise<void>} Resolves when the operation completes.
+ */
 export async function initRealtimeEventService(): Promise<void> {
   if (listenerClient) {
     return;
@@ -85,7 +96,11 @@ export async function initRealtimeEventService(): Promise<void> {
   log.info({ label: 'realtime-listener', message: `Listening on ${CHANNEL}` });
 }
 
-/** Stops the replica listener and heartbeat, primarily for controlled shutdown/tests. */
+/**
+ * Stops the replica listener and heartbeat, primarily for controlled shutdown/tests.
+ *
+ * @returns {Promise<void>} Resolves when the operation completes.
+ */
 export async function stopRealtimeEventService(): Promise<void> {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
@@ -141,7 +156,12 @@ function reconnectProfileSockets(profileId: string): void {
   }
 }
 
-/** Forwards a committed event only to authorized sockets on this replica. */
+/**
+ * Forwards a committed event only to authorized sockets on this replica.
+ *
+ * @param {TaskChangedEvent} event Event to handle or forward.
+ * @returns {void} No return value.
+ */
 export function forwardRealtimeEvent(event: TaskChangedEvent): void {
   const payload = JSON.stringify(event);
   for (const profile of connectionsByProfile.values()) {

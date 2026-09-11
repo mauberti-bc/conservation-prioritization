@@ -17,6 +17,9 @@ export const LayerSelectionContext = createContext<ILayerSelectionContext>({
 
 /**
  * Stores the currently selected layers across the UI.
+ *
+ * @param {PropsWithChildren<Record<never, any>>} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const LayerSelectionContextProvider = (props: PropsWithChildren<Record<never, any>>) => {
   const [selectedLayers, setSelectedLayers] = useState<TaskLayerOption[]>([]);

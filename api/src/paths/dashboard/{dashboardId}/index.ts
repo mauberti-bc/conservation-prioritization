@@ -46,7 +46,7 @@ GET.apiDoc = {
 /**
  * Express request handler to fetch a dashboard by ID.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function getDashboard(): RequestHandler {
   return async (req, res) => {

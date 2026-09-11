@@ -18,8 +18,8 @@ import { useCallback, useEffect, useRef } from 'react';
  *   updateState(value)
  * )
  *
+ * @returns {() => boolean} Use is mounted.
  * @export
- * @return {*}  {() => boolean}
  */
 export default function useIsMounted(): () => boolean {
   const ref = useRef(false);

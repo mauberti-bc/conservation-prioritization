@@ -1,7 +1,12 @@
 import { TaskCreateFormValues } from 'features/home/task/create/form/TaskCreateForm';
 import { SubmitTaskRequest } from 'hooks/interfaces/useTaskApi.interface';
 
-/** Build one immutable optimization problem from identically shaped form state. */
+/**
+ * Build one immutable optimization problem from identically shaped form state.
+ *
+ * @param {TaskCreateFormValues} values Input values to convert or validate.
+ * @returns {SubmitTaskRequest} The immutable submission payload constructed from the form values.
+ */
 export function buildTaskSubmission(values: TaskCreateFormValues): SubmitTaskRequest {
   return {
     optimization_mode: values.optimizationMode,

@@ -16,7 +16,11 @@ POST.apiDoc = {
   }
 };
 
-/** Dispatches the independently retryable task-tile deployment. */
+/**
+ * Dispatches the independently retryable task-tile deployment.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function publishTaskRun(): RequestHandler {
   return async (req, res) => {
     const connection = getAPIUserDBConnection();

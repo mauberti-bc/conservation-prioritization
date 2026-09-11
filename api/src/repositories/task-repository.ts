@@ -16,7 +16,8 @@ export class TaskRepository extends BaseRepository {
    * Creates a new task record.
    *
    * @param {CreateTask} task - The data to insert into the task table.
-   * @return {*} {Promise<Task>} The newly created task record.
+   * @return {Promise<Task>} The newly created task record.
+   * @throws {ApiExecuteSQLError} Failed to create task.
    * @memberof TaskRepository
    */
   async createTask(task: CreateTask): Promise<Task> {
@@ -52,7 +53,8 @@ export class TaskRepository extends BaseRepository {
    * Fetches a task by its ID.
    *
    * @param {string} taskId - The UUID of the task.
-   * @return {*} {Promise<Task>} The task with the provided ID.
+   * @return {Promise<Task>} The task with the provided ID.
+   * @throws {ApiExecuteSQLError} Failed to get task by id.
    * @memberof TaskRepository
    */
   async getTaskById(taskId: string): Promise<Task> {
@@ -83,7 +85,7 @@ export class TaskRepository extends BaseRepository {
    * Fetches a task by its ID, returning null if not found.
    *
    * @param {string} taskId - The UUID of the task.
-   * @return {*} {Promise<Task | null>} The task if found, otherwise null.
+   * @return {Promise<Task | null>} The task if found, otherwise null.
    * @memberof TaskRepository
    */
   async findTaskById(taskId: string): Promise<Task | null> {
@@ -110,7 +112,7 @@ export class TaskRepository extends BaseRepository {
   /**
    * Fetches all tasks with a specific `record_end_date` set to `NULL`.
    *
-   * @return {*} {Promise<Task[]>} A list of tasks.
+   * @return {Promise<Task[]>} A list of tasks.
    * @memberof TaskRepository
    */
   async getAllTasks(): Promise<Task[]> {
@@ -131,8 +133,8 @@ export class TaskRepository extends BaseRepository {
   /**
    * Fetches tasks available to a profile ID via task permissions.
    *
-   * @param {string} profileId
-   * @return {*}  {Promise<Task[]>}
+   * @param {string} profileId Identifier of the profile whose access or records are used.
+   * @returns {Promise<Task[]>} Matching task records.
    * @memberof TaskRepository
    */
   async getTasksByProfileId(profileId: string): Promise<Task[]> {
@@ -169,9 +171,10 @@ export class TaskRepository extends BaseRepository {
   /**
    * Fetches tasks available to a profile ID via task permissions with pagination.
    *
-   * @param {string} profileId
-   * @param {ApiPaginationOptions} pagination
-   * @return {*}  {Promise<{ tasks: Task[]; total: number }>}
+   * @param {string} profileId Identifier of the profile whose access or records are used.
+   * @param {ApiPaginationOptions} pagination Page, page-size, and sorting options.
+   * @param {string} search Optional search text used to filter matching records.
+   * @returns {Promise<{ tasks: Task[]; total: number }>} The requested page of tasks and total matching task count.
    * @memberof TaskRepository
    */
   async getTasksByProfileIdPaginated(
@@ -248,8 +251,8 @@ export class TaskRepository extends BaseRepository {
   /**
    * Resolve a safe task sort field from the provided sort key.
    *
-   * @param {string | undefined} sort
-   * @return {*}  {string}
+   * @param {string | undefined} sort Sorting fields and directions.
+   * @returns {string} Task sort field.
    * @memberof TaskRepository
    */
   private resolveTaskSortField(sort?: string): string {
@@ -263,8 +266,8 @@ export class TaskRepository extends BaseRepository {
   /**
    * Fetches tasks associated with a project.
    *
-   * @param {string} projectId
-   * @return {*}  {Promise<Task[]>}
+   * @param {string} projectId Identifier of the project.
+   * @returns {Promise<Task[]>} Matching task records.
    * @memberof TaskRepository
    */
   async getTasksByProjectId(projectId: string): Promise<Task[]> {
@@ -296,7 +299,8 @@ export class TaskRepository extends BaseRepository {
    *
    * @param {string} taskId - The UUID of the task to update.
    * @param {UpdateTask} updates - The fields to update in the task record.
-   * @return {*} {Promise<Task>} The updated task.
+   * @return {Promise<Task>} The updated task.
+   * @throws {ApiExecuteSQLError} Failed to update task.
    * @memberof TaskRepository
    */
   async updateTask(taskId: string, updates: UpdateTask): Promise<Task> {
@@ -328,7 +332,8 @@ export class TaskRepository extends BaseRepository {
    * Soft deletes a task by setting its `record_end_date`.
    *
    * @param {DeleteTask} data - The data for the task to delete.
-   * @return {*} {Promise<void>} Resolves when the task is successfully deleted.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {ApiExecuteSQLError} Failed to delete task.
    * @memberof TaskRepository
    */
   async deleteTask(data: DeleteTask): Promise<void> {
@@ -355,7 +360,9 @@ export class TaskRepository extends BaseRepository {
    *
    * @param {string} taskId - The UUID of the task to update.
    * @param {UpdateTaskExecution} updates - The execution metadata to update.
-   * @return {*} {Promise<Task>} The updated task.
+   * @return {Promise<Task>} The updated task.
+   * @throws {ApiExecuteSQLError} No task execution metadata provided to update.
+   * @throws {ApiExecuteSQLError} Failed to update task execution metadata.
    * @memberof TaskRepository
    */
   async updateTaskExecution(taskId: string, updates: UpdateTaskExecution): Promise<Task> {

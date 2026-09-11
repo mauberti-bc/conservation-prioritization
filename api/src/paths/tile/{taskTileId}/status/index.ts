@@ -51,7 +51,7 @@ POST.apiDoc = {
 /**
  * Express request handler to update task tile status.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function updateTaskTileStatus(): RequestHandler {
   return async (req, res) => {

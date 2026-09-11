@@ -25,7 +25,12 @@ export function estimateGeoJsonAreaSquareMetres(values: unknown[]): number | nul
   return found ? area : null;
 }
 
-/** Extracts a GeoJSON geometry object without assuming a feature wrapper. */
+/**
+ * Extracts a GeoJSON geometry object without assuming a feature wrapper.
+ *
+ * @param {unknown} value Value to normalize or inspect.
+ * @returns {Record<string, unknown> | null} The unwrapped geometry object, or null when no geometry can be extracted.
+ */
 function unwrapGeometry(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
@@ -42,7 +47,12 @@ function unwrapGeometry(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-/** Measures polygonal GeoJSON and ignores unsupported non-area geometries. */
+/**
+ * Measures polygonal GeoJSON and ignores unsupported non-area geometries.
+ *
+ * @param {Record<string, unknown>} geometry Geometry to inspect or transform.
+ * @returns {number | null} Area in square metres, or null for an unsupported geometry.
+ */
 function measureGeometry(geometry: Record<string, unknown>): number | null {
   if (geometry.type === 'FeatureCollection' && Array.isArray(geometry.features)) {
     return geometry.features.reduce<number>((sum, feature) => {
@@ -69,7 +79,12 @@ function measureGeometry(geometry: Record<string, unknown>): number | null {
   return null;
 }
 
-/** Measures an exterior ring minus holes using the spherical trapezoid formula. */
+/**
+ * Measures an exterior ring minus holes using the spherical trapezoid formula.
+ *
+ * @param {unknown[]} coordinates Coordinate arrays describing the polygon or ring.
+ * @returns {number} Polygon area in square metres with interior holes subtracted.
+ */
 function measurePolygon(coordinates: unknown[]): number {
   return coordinates.reduce<number>((sum, ring, index) => {
     if (!Array.isArray(ring)) {
@@ -80,7 +95,12 @@ function measurePolygon(coordinates: unknown[]): number {
   }, 0);
 }
 
-/** Measures one longitude/latitude ring on a sphere. */
+/**
+ * Measures one longitude/latitude ring on a sphere.
+ *
+ * @param {unknown[]} coordinates Coordinate arrays describing the polygon or ring.
+ * @returns {number} Ring area in square metres.
+ */
 function measureRing(coordinates: unknown[]): number {
   let area = 0;
   for (let index = 0; index < coordinates.length; index += 1) {

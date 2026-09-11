@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 
 /**
  * Login page that triggers OIDC sign-in.
+ *
+ * @returns {React.ReactNode} The rendered component.
  */
 export const LoginPage = () => {
   const authContext = useAuthContext();

@@ -1,8 +1,8 @@
 /**
  * Generate a deterministic hex colour from a string seed.
  *
- * @param {string} seed
- * @return {*}  {string}
+ * @param {string} seed Seed used for deterministic generation.
+ * @returns {string} Generate hex colour from seed.
  */
 export const generateHexColourFromSeed = (seed: string): string => {
   let hash = 0;

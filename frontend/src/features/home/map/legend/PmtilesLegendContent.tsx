@@ -9,8 +9,8 @@ interface PmtilesLegendContentProps {
 /**
  * Renders the list of PMTiles legend sections.
  *
- * @param {PmtilesLegendContentProps} props
- * @returns {JSX.Element}
+ * @param {PmtilesLegendContentProps} props Component properties.
+ * @returns {JSX.Element} The rendered component.
  */
 export const PmtilesLegendContent = ({ definitions }: PmtilesLegendContentProps) => {
   return (

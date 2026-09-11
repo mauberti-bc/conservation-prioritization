@@ -8,9 +8,18 @@ const SOLUTION_COLUMNS = `task_run_solution_id, task_run_id, solution_index, rol
   solver_name, solver_version,
   runtime_seconds, metrics`;
 
-/** Repository for normalized run solution metadata. */
+/**
+ * Repository for normalized run solution metadata.
+ */
 export class TaskRunSolutionRepository extends BaseRepository {
-  /** Creates or updates one solution at its stable run-local index. */
+  /**
+   * Creates or updates one solution at its stable run-local index.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @param {UpsertTaskRunSolution} solution Run-local solution metadata to persist.
+   * @returns {Promise<TaskRunSolution>} The persisted run-local solution.
+   * @throws {ApiExecuteSQLError} Failed to upsert task run solution.
+   */
   async upsertTaskRunSolution(taskRunId: string, solution: UpsertTaskRunSolution): Promise<TaskRunSolution> {
     const response = await this.connection.sql(
       SQL`INSERT INTO task_run_solution (
@@ -46,7 +55,12 @@ export class TaskRunSolutionRepository extends BaseRepository {
     return response.rows[0];
   }
 
-  /** Lists solutions in stable run-local order. */
+  /**
+   * Lists solutions in stable run-local order.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @returns {Promise<TaskRunSolution[]>} Solutions ordered by their stable run-local index.
+   */
   async getTaskRunSolutions(taskRunId: string): Promise<TaskRunSolution[]> {
     const response = await this.connection.sql(
       SQL`SELECT `

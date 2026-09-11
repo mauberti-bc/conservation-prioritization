@@ -1,6 +1,11 @@
 import { Knex } from 'knex';
 
-/** Notify clients only when task-level execution state changes. */
+/**
+ * Notify clients only when task-level execution state changes.
+ *
+ * @param {Knex} knex Knex connection used to execute the migration.
+ * @returns {Promise<void>} Resolves when the operation completes.
+ */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`--sql
     SET search_path=conservation,public;
@@ -31,7 +36,12 @@ export async function up(knex: Knex): Promise<void> {
   `);
 }
 
-/** Remove task-level realtime notifications. */
+/**
+ * Remove task-level realtime notifications.
+ *
+ * @param {Knex} knex Knex connection used to execute the migration.
+ * @returns {Promise<void>} Resolves when the operation completes.
+ */
 export async function down(knex: Knex): Promise<void> {
   await knex.raw(`--sql
     SET search_path=conservation,public;

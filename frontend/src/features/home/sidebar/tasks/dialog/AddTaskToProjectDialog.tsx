@@ -15,6 +15,9 @@ interface AddTaskToProjectDialogProps {
 
 /**
  * Dialog for adding tasks to one or more projects.
+ *
+ * @param {AddTaskToProjectDialogProps} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const AddTaskToProjectDialog = ({ open, taskIds, onClose, onSubmit }: AddTaskToProjectDialogProps) => {
   const { projectsDataLoader } = useProjectContext();

@@ -4,7 +4,7 @@ import { Knex } from 'knex';
  * Add formulation-aware routing, admission measurements, and scalable artifacts.
  *
  * @param {Knex} knex Database connection.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`--sql
@@ -77,7 +77,7 @@ export async function up(knex: Knex): Promise<void> {
  * cannot safely remove in place.
  *
  * @param {Knex} knex Database connection.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.raw(`--sql

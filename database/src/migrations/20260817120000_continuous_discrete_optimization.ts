@@ -6,7 +6,7 @@ export const config = { transaction: false };
  * Split optimization into explicit continuous and discrete task/run contracts.
  *
  * @param {Knex} knex Database connection.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`--sql
@@ -53,7 +53,7 @@ export async function up(knex: Knex): Promise<void> {
  * Keep additive enum values on rollback.
  *
  * @param {Knex} _knex Database connection.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves without changing the schema; the migration is intentionally retained.
  */
 export async function down(_knex: Knex): Promise<void> {
   // PostgreSQL enum values are intentionally retained on rollback.

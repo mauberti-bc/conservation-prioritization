@@ -13,8 +13,8 @@ export class DashboardPermissionRepository extends BaseRepository {
   /**
    * Upserts a dashboard permission.
    *
-   * @param {CreateDashboardPermission} permission
-   * @return {*}  {Promise<DashboardPermission | null>}
+   * @param {CreateDashboardPermission} permission Permission fields to persist.
+   * @returns {Promise<DashboardPermission | null>} The dashboard permission record, or null when no record matches.
    * @memberof DashboardPermissionRepository
    */
   async upsertDashboardPermission(permission: CreateDashboardPermission): Promise<DashboardPermission | null> {
@@ -60,9 +60,9 @@ export class DashboardPermissionRepository extends BaseRepository {
   /**
    * Fetches a dashboard permission by dashboard/profile.
    *
-   * @param {string} dashboardId
-   * @param {string} profileId
-   * @return {*}  {Promise<DashboardPermission | null>}
+   * @param {string} dashboardId Identifier of the dashboard.
+   * @param {string} profileId Identifier of the profile whose access or records are used.
+   * @returns {Promise<DashboardPermission | null>} The dashboard permission record, or null when no record matches.
    * @memberof DashboardPermissionRepository
    */
   async getDashboardPermission(dashboardId: string, profileId: string): Promise<DashboardPermission | null> {

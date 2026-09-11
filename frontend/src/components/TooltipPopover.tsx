@@ -10,6 +10,9 @@ interface ITooltipPopoverProps {
 /**
  * Wraps any content and shows a tooltip on hover.
  * Accepts strings, fragments, or full elements.
+ *
+ * @param {PropsWithChildren<ITooltipPopoverProps>} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const TooltipPopover = (props: PropsWithChildren<ITooltipPopoverProps>) => {
   const { tooltip, placement, children } = props;

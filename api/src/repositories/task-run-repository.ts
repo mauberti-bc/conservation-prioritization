@@ -14,13 +14,16 @@ const TASK_RUN_COLUMNS = `
   failure_code, failure_message, started_at, completed_at, failed_at, cancelled_at
 `;
 
-/** Repository for immutable task runs and lifecycle updates. */
+/**
+ * Repository for immutable task runs and lifecycle updates.
+ */
 export class TaskRunRepository extends BaseRepository {
   /**
    * Creates a queued immutable task run.
    *
    * @param {CreateTaskRun} run Run snapshot.
-   * @returns {Promise<TaskRun>}
+   * @returns {Promise<TaskRun>} The task run record.
+   * @throws {ApiExecuteSQLError} Failed to create task run.
    */
   async createTaskRun(run: CreateTaskRun): Promise<TaskRun> {
     const response = await this.connection.sql(
@@ -45,7 +48,13 @@ export class TaskRunRepository extends BaseRepository {
     return response.rows[0];
   }
 
-  /** Returns a run by ID. */
+  /**
+   * Returns a run by ID.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @returns {Promise<TaskRun>} The matching task run.
+   * @throws {ApiExecuteSQLError} Failed to fetch task run.
+   */
   async getTaskRunById(taskRunId: string): Promise<TaskRun> {
     const response = await this.connection.sql(
       SQL`SELECT `.append(TASK_RUN_COLUMNS).append(SQL` FROM task_run WHERE task_run_id = ${taskRunId}`),
@@ -57,7 +66,13 @@ export class TaskRunRepository extends BaseRepository {
     return response.rows[0];
   }
 
-  /** Locks and returns a queued run so concurrent dispatch recovery cannot submit it twice. */
+  /**
+   * Locks and returns a queued run so concurrent dispatch recovery cannot submit it twice.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @returns {Promise<TaskRun>} The queued run locked for the current transaction.
+   * @throws {ApiExecuteSQLError} Failed to lock task run for dispatch.
+   */
   async getTaskRunForDispatch(taskRunId: string): Promise<TaskRun> {
     const response = await this.connection.sql(
       SQL`SELECT `.append(TASK_RUN_COLUMNS).append(SQL` FROM task_run WHERE task_run_id = ${taskRunId} FOR UPDATE`),
@@ -71,7 +86,12 @@ export class TaskRunRepository extends BaseRepository {
     return response.rows[0];
   }
 
-  /** Returns runs for a task newest first. */
+  /**
+   * Returns runs for a task newest first.
+   *
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<TaskRun[]>} Task runs ordered newest first, with artifacts when requested by the service.
+   */
   async getTaskRunsByTaskId(taskId: string): Promise<TaskRun[]> {
     const response = await this.connection.sql(
       SQL`SELECT `
@@ -82,7 +102,12 @@ export class TaskRunRepository extends BaseRepository {
     return response.rows;
   }
 
-  /** Returns the latest run for a task. */
+  /**
+   * Returns the latest run for a task.
+   *
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<TaskRun | null>} The most recent task run, or null when the task has no runs.
+   */
   async getLatestTaskRunByTaskId(taskId: string): Promise<TaskRun | null> {
     const runs = await this.connection.sql(
       SQL`SELECT `.append(TASK_RUN_COLUMNS).append(SQL`
@@ -92,7 +117,14 @@ export class TaskRunRepository extends BaseRepository {
     return runs.rows[0] ?? null;
   }
 
-  /** Applies validated lifecycle and solver metadata updates. */
+  /**
+   * Applies validated lifecycle and solver metadata updates.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @param {UpdateTaskRun} updates Fields to update on the existing record.
+   * @returns {Promise<TaskRun>} The task run after applying the updates.
+   * @throws {ApiExecuteSQLError} Failed to update task run.
+   */
   async updateTaskRun(taskRunId: string, updates: UpdateTaskRun): Promise<TaskRun> {
     const statement = SQL`UPDATE task_run SET revision = revision + 1, updated_at = now()`;
     const fields: SQLStatement[] = [];
@@ -178,7 +210,12 @@ export class TaskRunRepository extends BaseRepository {
     return response.rows[0];
   }
 
-  /** Increments dispatch attempts for recoverable Prefect submission. */
+  /**
+   * Increments dispatch attempts for recoverable Prefect submission.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   */
   async recordDispatchAttempt(taskRunId: string): Promise<void> {
     await this.connection.sql(
       SQL`UPDATE task_run SET dispatch_attempts = dispatch_attempts + 1 WHERE task_run_id = ${taskRunId}`

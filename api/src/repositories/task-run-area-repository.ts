@@ -7,7 +7,9 @@ const TASK_RUN_AREA_COLUMNS = `
   task_run_area_id, task_run_id, area_index, name, description, geojson
 `;
 
-/** Repository for immutable run target-area features. */
+/**
+ * Repository for immutable run target-area features.
+ */
 export class TaskRunAreaRepository extends BaseRepository {
   /**
    * Creates one persisted target-area feature for a task run.
@@ -16,6 +18,7 @@ export class TaskRunAreaRepository extends BaseRepository {
    * @param {CreateTaskRunArea} area Ordered target-area metadata and GeoJSON feature to persist.
    * @returns {Promise<TaskRunArea>} Created target-area row.
    * @throws {ApiExecuteSQLError} When the insert does not create exactly one row.
+   * @throws {ApiExecuteSQLError} Failed to create task run area.
    */
   async createTaskRunArea(taskRunId: string, area: CreateTaskRunArea): Promise<TaskRunArea> {
     const response = await this.connection.sql(

@@ -26,7 +26,7 @@ export class ProjectService extends DBService {
   /**
    * Creates an instance of ProjectService.
    *
-   * @param {IDBConnection} connection
+   * @param {IDBConnection} connection Database connection used for queries and transaction context.
    * @memberof ProjectService
    */
   constructor(connection: IDBConnection) {
@@ -41,8 +41,8 @@ export class ProjectService extends DBService {
   /**
    * Create a new project.
    *
-   * @param {CreateProject} project
-   * @return {*}  {Promise<Project>}
+   * @param {CreateProject} project Project fields to persist.
+   * @returns {Promise<Project>} The project record.
    * @memberof ProjectService
    */
   async createProject(project: CreateProject): Promise<Project> {
@@ -53,9 +53,9 @@ export class ProjectService extends DBService {
   /**
    * Create a new project and optionally assign the creator as an admin.
    *
-   * @param {CreateProject} project
-   * @param {string | null} profileId
-   * @return {*}  {Promise<Project>}
+   * @param {CreateProject} project Project fields to persist.
+   * @param {string | null} profileId Identifier of the profile whose access or records are used.
+   * @returns {Promise<Project>} The project record.
    * @memberof ProjectService
    */
   async createProjectWithCreator(project: CreateProject, profileId?: string | null): Promise<Project> {
@@ -85,9 +85,9 @@ export class ProjectService extends DBService {
   /**
    * Adds existing profiles to a project by email address.
    *
-   * @param {string} projectId
-   * @param {string[]} emails
-   * @return {*}  {Promise<InviteProfilesResult>}
+   * @param {string} projectId Identifier of the project.
+   * @param {string[]} emails Email addresses of the profiles to invite.
+   * @returns {Promise<InviteProfilesResult>} Invitation results identifying added, existing, and unresolved profiles.
    * @memberof ProjectService
    */
   async inviteProfilesToProject(projectId: string, emails: string[]): Promise<InviteProfilesResult> {
@@ -148,8 +148,8 @@ export class ProjectService extends DBService {
   /**
    * Get a project by project ID.
    *
-   * @param {string} projectId
-   * @return {*}  {Promise<Project>}
+   * @param {string} projectId Identifier of the project.
+   * @returns {Promise<Project>} The project record.
    * @memberof ProjectService
    */
   async getProjectById(projectId: string): Promise<Project> {
@@ -159,7 +159,7 @@ export class ProjectService extends DBService {
   /**
    * Get all active projects.
    *
-   * @return {*}  {Promise<Project[]>}
+   * @returns {Promise<Project[]>} Matching project records.
    * @memberof ProjectService
    */
   async getProjects(): Promise<Project[]> {
@@ -169,8 +169,8 @@ export class ProjectService extends DBService {
   /**
    * Get all active projects available to a specific profile GUID.
    *
-   * @param {string} profileGuid
-   * @return {*}  {Promise<Project[]>}
+   * @param {string} profileGuid External identity provider GUID for the profile.
+   * @returns {Promise<Project[]>} Matching project records.
    * @memberof ProjectService
    */
   async getProjectsForProfileGuid(profileGuid: string): Promise<Project[]> {
@@ -180,9 +180,9 @@ export class ProjectService extends DBService {
   /**
    * Update an existing project.
    *
-   * @param {string} projectId
-   * @param {UpdateProject} updates
-   * @return {*}  {Promise<Project>}
+   * @param {string} projectId Identifier of the project.
+   * @param {UpdateProject} updates Fields to update on the existing record.
+   * @returns {Promise<Project>} The project record.
    * @memberof ProjectService
    */
   async updateProject(projectId: string, updates: UpdateProject): Promise<Project> {
@@ -192,8 +192,8 @@ export class ProjectService extends DBService {
   /**
    * Soft delete a project.
    *
-   * @param {DeleteProject} data
-   * @return {*}  {Promise<void>}
+   * @param {DeleteProject} data Data to persist or process.
+   * @returns {Promise<void>} Resolves when the operation completes.
    * @memberof ProjectService
    */
   async deleteProject(data: DeleteProject): Promise<void> {

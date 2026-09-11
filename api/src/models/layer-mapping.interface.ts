@@ -1,4 +1,6 @@
-/** Pre-dispatch classification of one native layer onto a planning grid. */
+/**
+ * Pre-dispatch classification of one native layer onto a planning grid.
+ */
 export interface LayerMappingClassification {
   layer_id: string;
   method: 'direct' | 'nested_aggregate' | 'bounded_reproject' | 'coarse_to_fine_supported' | 'unsupported';

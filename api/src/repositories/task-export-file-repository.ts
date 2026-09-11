@@ -9,13 +9,16 @@ const TASK_EXPORT_FILE_COLUMNS = `
   transform, metadata
 `;
 
-/** Repository for durable task export file records. */
+/**
+ * Repository for durable task export file records.
+ */
 export class TaskExportFileRepository extends BaseRepository {
   /**
    * Creates one export file record.
    *
    * @param {CreateTaskExportFile} file Export file attributes.
-   * @returns {Promise<TaskExportFile>}
+   * @returns {Promise<TaskExportFile>} The task export file record.
+   * @throws {ApiExecuteSQLError} Failed to create task export file.
    */
   async createTaskExportFile(file: CreateTaskExportFile): Promise<TaskExportFile> {
     const response = await this.connection.sql(
@@ -69,7 +72,8 @@ export class TaskExportFileRepository extends BaseRepository {
    * Fetches one export file by ID.
    *
    * @param {string} taskExportFileId Export file ID.
-   * @returns {Promise<TaskExportFile>}
+   * @returns {Promise<TaskExportFile>} The task export file record.
+   * @throws {ApiExecuteSQLError} Failed to fetch task export file.
    */
   async getTaskExportFileById(taskExportFileId: string): Promise<TaskExportFile> {
     const response = await this.connection.sql(
@@ -93,7 +97,7 @@ export class TaskExportFileRepository extends BaseRepository {
    * Returns all files for an export ordered by deterministic part index.
    *
    * @param {string} taskExportId Parent export ID.
-   * @returns {Promise<TaskExportFile[]>}
+   * @returns {Promise<TaskExportFile[]>} All files for an export ordered by deterministic part index.
    */
   async getTaskExportFilesByExportId(taskExportId: string): Promise<TaskExportFile[]> {
     const response = await this.connection.sql(
@@ -112,7 +116,7 @@ export class TaskExportFileRepository extends BaseRepository {
    * Returns all files for the provided exports ordered by export and deterministic part index.
    *
    * @param {string[]} taskExportIds Parent export IDs.
-   * @returns {Promise<TaskExportFile[]>}
+   * @returns {Promise<TaskExportFile[]>} All files for the provided exports ordered by export and deterministic part index.
    */
   async getTaskExportFilesByExportIds(taskExportIds: string[]): Promise<TaskExportFile[]> {
     if (!taskExportIds.length) {
@@ -136,7 +140,9 @@ export class TaskExportFileRepository extends BaseRepository {
    *
    * @param {string} taskExportFileId Export file ID.
    * @param {UpdateTaskExportFile} updates File metadata updates.
-   * @returns {Promise<TaskExportFile>}
+   * @returns {Promise<TaskExportFile>} The task export file record.
+   * @throws {ApiExecuteSQLError} No task export file updates provided.
+   * @throws {ApiExecuteSQLError} Failed to update task export file.
    */
   async updateTaskExportFile(taskExportFileId: string, updates: UpdateTaskExportFile): Promise<TaskExportFile> {
     const statement = SQL`UPDATE task_export_file SET updated_at = now()`;
@@ -202,7 +208,7 @@ export class TaskExportFileRepository extends BaseRepository {
    * Deletes one export file record.
    *
    * @param {string} taskExportFileId Export file ID.
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} Resolves when the operation completes.
    */
   async deleteTaskExportFile(taskExportFileId: string): Promise<void> {
     await this.connection.sql(SQL`DELETE FROM task_export_file WHERE task_export_file_id = ${taskExportFileId}`);

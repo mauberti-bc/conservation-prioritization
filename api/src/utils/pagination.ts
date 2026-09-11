@@ -9,7 +9,7 @@ const toNumber = (value: unknown): number | undefined =>
  * Works with query params or body params.
  *
  * @param {Record<string, unknown>} source - Object containing pagination keys
- * @return {Partial<ApiPaginationOptions>}
+ * @returns {Partial<ApiPaginationOptions>} Make pagination options from source.
  */
 const makePaginationOptionsFromSource = (source: Record<string, unknown>): Partial<ApiPaginationOptions> => {
   const page = toNumber(source.page);
@@ -32,6 +32,9 @@ const makePaginationOptionsFromSource = (source: Record<string, unknown>): Parti
 
 /**
  * Extracts pagination from query parameters
+ *
+ * @param {Request} request Request containing the input fields to process.
+ * @returns {Partial<ApiPaginationOptions>} Make pagination options from request.
  */
 export const makePaginationOptionsFromRequest = (request: Request): Partial<ApiPaginationOptions> => {
   return makePaginationOptionsFromSource(request.query);
@@ -39,6 +42,9 @@ export const makePaginationOptionsFromRequest = (request: Request): Partial<ApiP
 
 /**
  * Extracts pagination from request body
+ *
+ * @param {Request} request Request containing the input fields to process.
+ * @returns {Partial<ApiPaginationOptions>} Make pagination options from body.
  */
 export const makePaginationOptionsFromBody = (request: Request): Partial<ApiPaginationOptions> => {
   return makePaginationOptionsFromSource(request.body.pagination ?? {});
@@ -49,9 +55,9 @@ export const makePaginationOptionsFromBody = (request: Request): Partial<ApiPagi
  *
  * Used in conjunction with a the output of `makePaginationOptionsFromRequest`.
  *
- * @param {number} total
- * @param {Partial<ApiPaginationOptions>} [pagination]
- * @returns
+ * @param {number} total Total number of available records.
+ * @param {Partial<ApiPaginationOptions>} pagination Page, page-size, and sorting options.
+ * @returns {ApiPaginationResults} Make pagination response.
  */
 export const makePaginationResponse = (
   total: number,
@@ -73,8 +79,10 @@ export const makePaginationResponse = (
  *
  * Used in conjunction with the output of `makePaginationOptionsFromRequest`.
  *
- * @param {Partial<ApiPaginationOptions>} pagination
- * @returns {boolean}
+ * @param {Partial<ApiPaginationOptions>} pagination Page, page-size, and sorting options.
+ * @returns {boolean} `ApiPaginationOptions` if the given pagination object contains all of the necessary request params needed to
+ * facilitate pagination, otherwise returns `undefined`.
+ * Used in conjunction with the output of `makePaginationOptionsFromRequest`.
  */
 export const ensureCompletePaginationOptions = (
   pagination: Partial<ApiPaginationOptions>

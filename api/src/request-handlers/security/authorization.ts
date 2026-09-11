@@ -15,10 +15,10 @@ export type AuthorizationSchemeCallback = (req: Request) => AuthorizationScheme;
  *
  * Calls `next()` if the user is authorized.
  *
- * @export
- * @param {AuthorizationSchemeCallback} authorizationSchemeCallback
+ * @param {AuthorizationSchemeCallback} authorizationSchemeCallback Callback that resolves the authorization scheme for the requested resource.
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  * @throws {HTTP403} Access Denied if the user is not authorized.
- * @return {*}  {RequestHandler}
+ * @export
  */
 export function authorizeRequestHandler(authorizationSchemeCallback: AuthorizationSchemeCallback): RequestHandler {
   return async (req, _, next) => {
@@ -42,8 +42,10 @@ export function authorizeRequestHandler(authorizationSchemeCallback: Authorizati
  *
  * Note: System administrators are automatically granted access, regardless of the authorization scheme provided.
  *
- * @param {Request} req
- * @return {*}  {Promise<boolean>}
+ * @param {Request} req Incoming HTTP request.
+ * @returns {Promise<boolean>} `true` if the user is authorized successfully against the `AuthorizationScheme` in
+ * `req['authorization_scheme']`, `false` otherwise.
+ * Note: System administrators are automatically granted access, regardless of the authorization scheme provided.
  */
 export const authorizeRequest = async (req: Request): Promise<boolean> => {
   const connection = getAPIUserDBConnection();

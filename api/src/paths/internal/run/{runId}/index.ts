@@ -17,7 +17,11 @@ GET.apiDoc = {
   }
 };
 
-/** Returns a run to a service-key-authenticated workflow. */
+/**
+ * Returns a run to a service-key-authenticated workflow.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function getInternalRun(): RequestHandler {
   return async (req, res) => {
     const connection = getAPIUserDBConnection();

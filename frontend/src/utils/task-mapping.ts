@@ -7,7 +7,13 @@ import { getLayerDisplayName } from './layer-display';
 const DEFAULT_RESOLUTION = 960;
 const DEFAULT_RESAMPLING: RESAMPLING = 'mode';
 
-/** Map one immutable run problem into editable form state. */
+/**
+ * Map one immutable run problem into editable form state.
+ *
+ * @param {GetTaskResponse} task Task record containing its latest run and associated metadata.
+ * @param {string} name Display name for the resource.
+ * @returns {TaskCreateFormValues} Editable form values populated from the immutable task-run problem.
+ */
 function mapProblem(task: GetTaskResponse, name: string): TaskCreateFormValues {
   const snapshot = task.latest_run?.input_snapshot;
   const runAreas = task.latest_run?.areas ?? [];
@@ -56,12 +62,22 @@ function mapProblem(task: GetTaskResponse, name: string): TaskCreateFormValues {
   };
 }
 
-/** Map a task to values for a copied optimization problem. */
+/**
+ * Map a task to values for a copied optimization problem.
+ *
+ * @param {GetTaskResponse} task Task record containing its latest run and associated metadata.
+ * @returns {TaskCreateFormValues} Map task response to create form values.
+ */
 export const mapTaskResponseToCreateFormValues = (task: GetTaskResponse): TaskCreateFormValues => {
   return mapProblem(task, `Copy of ${task.name}`);
 };
 
-/** Map a task to values for an explicit new immutable submission. */
+/**
+ * Map a task to values for an explicit new immutable submission.
+ *
+ * @param {GetTaskResponse} task Task record containing its latest run and associated metadata.
+ * @returns {TaskCreateFormValues} Map task response to submit form values.
+ */
 export const mapTaskResponseToSubmitFormValues = (task: GetTaskResponse): TaskCreateFormValues => {
   return mapProblem(task, task.name);
 };

@@ -1,4 +1,6 @@
-/** Immutable definition of one level in a regular planning-grid family. */
+/**
+ * Immutable definition of one level in a regular planning-grid family.
+ */
 export interface PlanningGridDefinition {
   [key: string]: unknown;
   type: 'regular_grid';

@@ -68,7 +68,7 @@ POST.apiDoc = {
 /**
  * Express request handler to invite profiles to a project.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function inviteProfilesToProject(): RequestHandler {
   return async (req, res) => {

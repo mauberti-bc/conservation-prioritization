@@ -4,7 +4,7 @@ import { IProfile } from 'hooks/interfaces/useProfileApi.interface';
 /**
  * Returns a set of supported API methods for working with profiles.
  *
- * @param {AxiosInstance} axios
+ * @param {AxiosInstance} axios Axios client used for API requests.
  * @return {*} object whose properties are supported api methods.
  */
 export const useProfileApi = (axios: AxiosInstance) => {

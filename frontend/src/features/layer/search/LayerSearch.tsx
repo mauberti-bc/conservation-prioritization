@@ -37,6 +37,10 @@ interface LayerSearchProps {
 /**
  * Canonical entry point for searching layers.
  * Owns the layer search UI and delegates data fetching to `useLayerSearch`.
+ *
+ * @param {LayerSearchProps} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ * @throws {Error} LayerSearch: onLayerChange is required when variant="select".
  */
 export const LayerSearch = ({
   variant = 'select',

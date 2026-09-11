@@ -3,9 +3,9 @@ import { ensureProtocol } from 'utils/util';
 /**
  * Builds a websocket URL from a base API host and path.
  *
- * @param {string} baseUrl
- * @param {string} path
- * @return {*}  {string}
+ * @param {string} baseUrl Base URL used to construct the resource address.
+ * @param {string} path Resource path to resolve.
+ * @returns {string} Web socket url.
  */
 export const buildWebSocketUrl = (baseUrl: string, path: string): string => {
   const normalizedBase = ensureProtocol(baseUrl, 'http://');

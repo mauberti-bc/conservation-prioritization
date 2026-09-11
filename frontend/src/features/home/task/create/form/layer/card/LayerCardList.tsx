@@ -8,7 +8,12 @@ interface LayerCardListProps {
   emptyLabel?: string;
 }
 
-/** Shared spacing and empty state for selected layer cards. */
+/**
+ * Shared spacing and empty state for selected layer cards.
+ *
+ * @param {LayerCardListProps} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ */
 export const LayerCardList = ({ children, isEmpty = false, emptyLabel }: LayerCardListProps) => {
   if (isEmpty) {
     return emptyLabel ? <Typography color="text.secondary">{emptyLabel}</Typography> : null;

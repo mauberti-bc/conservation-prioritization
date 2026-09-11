@@ -14,8 +14,9 @@ export class TaskTileRepository extends BaseRepository {
   /**
    * Creates a new task tile record.
    *
-   * @param {CreateTaskTile} taskTile
-   * @return {*}  {Promise<TaskTile>}
+   * @param {CreateTaskTile} taskTile Tile metadata to persist.
+   * @returns {Promise<TaskTile>} The task tile record.
+   * @throws {ApiExecuteSQLError} Failed to create task tile.
    * @memberof TaskTileRepository
    */
   async createTaskTile(taskTile: CreateTaskTile): Promise<TaskTile> {
@@ -49,9 +50,11 @@ export class TaskTileRepository extends BaseRepository {
   /**
    * Updates a task tile record.
    *
-   * @param {string} taskTileId
-   * @param {UpdateTaskTile} updates
-   * @return {*}  {Promise<TaskTile>}
+   * @param {string} taskTileId Identifier of the task tile.
+   * @param {UpdateTaskTile} updates Fields to update on the existing record.
+   * @returns {Promise<TaskTile>} The task tile record.
+   * @throws {ApiExecuteSQLError} No task tile updates provided.
+   * @throws {ApiExecuteSQLError} Failed to update task tile.
    * @memberof TaskTileRepository
    */
   async updateTaskTile(taskTileId: string, updates: UpdateTaskTile): Promise<TaskTile> {
@@ -112,8 +115,9 @@ export class TaskTileRepository extends BaseRepository {
   /**
    * Fetches a task tile by its ID.
    *
-   * @param {string} taskTileId
-   * @return {*}  {Promise<TaskTile>}
+   * @param {string} taskTileId Identifier of the task tile.
+   * @returns {Promise<TaskTile>} The task tile record.
+   * @throws {ApiExecuteSQLError} Failed to fetch task tile.
    * @memberof TaskTileRepository
    */
   async getTaskTileById(taskTileId: string): Promise<TaskTile> {
@@ -138,8 +142,8 @@ export class TaskTileRepository extends BaseRepository {
   /**
    * Fetches the most recent task tile for a task.
    *
-   * @param {string} taskId
-   * @return {*}  {Promise<TaskTile | null>}
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<TaskTile | null>} The task tile record, or null when no record matches.
    * @memberof TaskTileRepository
    */
   async getLatestTaskTileByTaskId(taskId: string): Promise<TaskTile | null> {

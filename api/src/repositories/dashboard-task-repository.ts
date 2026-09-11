@@ -13,8 +13,8 @@ export class DashboardTaskRepository extends BaseRepository {
   /**
    * Adds a task to a dashboard.
    *
-   * @param {CreateDashboardTask} dashboardTask
-   * @return {*}  {Promise<DashboardTask>}
+   * @param {CreateDashboardTask} dashboardTask Dashboard-to-task association to persist.
+   * @returns {Promise<DashboardTask>} The dashboard task record.
    * @memberof DashboardTaskRepository
    */
   async addTaskToDashboard(dashboardTask: CreateDashboardTask): Promise<DashboardTask> {
@@ -58,8 +58,8 @@ export class DashboardTaskRepository extends BaseRepository {
   /**
    * Lists task IDs for a dashboard.
    *
-   * @param {string} dashboardId
-   * @return {*}  {Promise<string[]>}
+   * @param {string} dashboardId Identifier of the dashboard.
+   * @returns {Promise<string[]>} Matching string records.
    * @memberof DashboardTaskRepository
    */
   async listTaskIdsForDashboard(dashboardId: string): Promise<string[]> {
@@ -78,8 +78,8 @@ export class DashboardTaskRepository extends BaseRepository {
   /**
    * Fetch the most recent dashboard ID associated with a task.
    *
-   * @param {string} taskId
-   * @return {*}  {Promise<string | null>}
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<string | null>} The latest dashboard ID, or null if the task has no dashboard.
    * @memberof DashboardTaskRepository
    */
   async getLatestDashboardIdForTask(taskId: string): Promise<string | null> {

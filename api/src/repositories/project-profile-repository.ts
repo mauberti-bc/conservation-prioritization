@@ -21,7 +21,8 @@ export class ProjectProfileRepository extends BaseRepository {
    * Creates a new project profile association.
    *
    * @param {CreateProjectProfile} projectProfile - The project profile data to insert.
-   * @return {*}  {Promise<ProjectProfile>} The created project profile association.
+   * @return {Promise<ProjectProfile>} The created project profile association.
+   * @throws {ApiExecuteSQLError} Failed to create project profile.
    * @memberof ProjectProfileRepository
    */
   async createProjectProfile(projectProfile: CreateProjectProfile): Promise<ProjectProfile> {
@@ -52,7 +53,8 @@ export class ProjectProfileRepository extends BaseRepository {
    * Fetches a single active project profile by its ID.
    *
    * @param {string} projectProfileId - The UUID of the project profile.
-   * @return {*}  {Promise<ProjectProfile>} The matching project profile.
+   * @return {Promise<ProjectProfile>} The matching project profile.
+   * @throws {ApiExecuteSQLError} Failed to get project profile by id.
    * @memberof ProjectProfileRepository
    */
   async getProjectProfileById(projectProfileId: string): Promise<ProjectProfile> {
@@ -82,8 +84,9 @@ export class ProjectProfileRepository extends BaseRepository {
   /**
    * Get project profiles by project ID.
    *
-   * @param {string} projectId
-   * @return {Promise<ProjectProfileExtended[]>}
+   * @param {string} projectId Identifier of the project.
+   * @returns {Promise<ProjectProfileExtended[]>} Matching project profile extended records.
+   * @throws {ApiExecuteSQLError} Failed to get project profiles by project ID.
    * @memberof ProjectProfileRepository
    */
   async getProjectProfilesByProjectId(projectId: string): Promise<ProjectProfileExtended[]> {
@@ -115,7 +118,8 @@ export class ProjectProfileRepository extends BaseRepository {
    *
    * @param {string} projectProfileId - The UUID of the project profile to update.
    * @param {UpdateProjectProfile} updates - The fields to update.
-   * @return {*}  {Promise<ProjectProfile>} The updated project profile.
+   * @return {Promise<ProjectProfile>} The updated project profile.
+   * @throws {ApiExecuteSQLError} Failed to update project profile.
    * @memberof ProjectProfileRepository
    */
   async updateProjectProfile(projectProfileId: string, updates: UpdateProjectProfile): Promise<ProjectProfile> {
@@ -147,7 +151,8 @@ export class ProjectProfileRepository extends BaseRepository {
    * Soft deletes a project profile by setting its record end date.
    *
    * @param {DeleteProjectProfile} data - The data containing the project_profile_id to delete.
-   * @return {*}  {Promise<void>} Resolves when the deletion is successful.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {ApiExecuteSQLError} Failed to delete project profile.
    * @memberof ProjectProfileRepository
    */
   async deleteProjectProfile(data: DeleteProjectProfile): Promise<void> {
@@ -177,6 +182,7 @@ export class ProjectProfileRepository extends BaseRepository {
    * @param {string} projectId - The ID of the project.
    * @param {string} profileId - The ID of the profile.
    * @return {Promise<string | null>} - Returns the role name if found, otherwise null.
+   * @throws {ApiExecuteSQLError} Multiple roles found for the same project-profile combination.
    * @memberof ProjectProfileRepository
    */
   async getRoleForProjectProfile(projectId: string, profileId: string): Promise<string | null> {

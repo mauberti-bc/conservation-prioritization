@@ -108,7 +108,7 @@ POST.apiDoc = {
 /**
  * Express request handler to fetch paginated Markdown records.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function getMarkdowns(): RequestHandler {
   return async (req, res) => {
@@ -142,7 +142,7 @@ export function getMarkdowns(): RequestHandler {
 /**
  * Express request handler to create a Markdown record.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function createMarkdown(): RequestHandler {
   return async (req, res) => {

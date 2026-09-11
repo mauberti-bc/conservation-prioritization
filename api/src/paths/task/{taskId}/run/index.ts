@@ -30,7 +30,11 @@ GET.apiDoc = {
   }
 };
 
-/** Returns all runs for the task. */
+/**
+ * Returns all runs for the task.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function listTaskRuns(): RequestHandler {
   return async (req, res) => {
     const connection = getDBConnection(req.keycloak_token);
@@ -65,7 +69,11 @@ POST.apiDoc = {
   }
 };
 
-/** Persists a run, commits it, and then attempts recoverable Prefect dispatch. */
+/**
+ * Persists a run, commits it, and then attempts recoverable Prefect dispatch.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function createTaskRun(): RequestHandler {
   return async (req, res) => {
     const connection = getDBConnection(req.keycloak_token);

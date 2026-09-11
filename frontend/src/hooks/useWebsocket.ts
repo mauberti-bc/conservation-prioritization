@@ -12,17 +12,17 @@ export interface WebsocketClient {
   /**
    * Open a websocket connection and resolve when it is ready.
    *
-   * @param {string} path
-   * @param {WebsocketRequestOptions} options
+   * @param {string} path WebSocket endpoint path relative to the base URL.
+   * @param {WebsocketRequestOptions} options Optional URL, query, and subprotocol settings.
    * @returns {Promise<WebSocket>} A websocket connection once it is open.
    */
   get: (path: string, options?: WebsocketRequestOptions) => Promise<WebSocket>;
   /**
    * Subscribe to a websocket endpoint with automatic reconnect.
    *
-   * @param {string} path
-   * @param {WebsocketRequestOptions | undefined} options
-   * @param {WebsocketSubscriptionHandlers} handlers
+   * @param {string} path WebSocket endpoint path relative to the base URL.
+   * @param {WebsocketRequestOptions | undefined} options Optional URL, query, and subprotocol settings.
+   * @param {WebsocketSubscriptionHandlers} handlers Event callbacks and the policy controlling reconnection.
    * @returns {{ stop: () => void }} Subscription controls.
    */
   subscribe: (
@@ -43,8 +43,8 @@ export interface WebsocketSubscriptionHandlers {
 /**
  * Join URL path segments, preserving a base prefix when provided.
  *
- * @param {string} basePath
- * @param {string} nextPath
+ * @param {string} basePath Base path used to construct navigation targets.
+ * @param {string} nextPath Destination path for the next navigation.
  * @returns {string} A normalized path string.
  */
 const joinPaths = (basePath: string, nextPath: string): string => {
@@ -61,7 +61,7 @@ const joinPaths = (basePath: string, nextPath: string): string => {
 /**
  * Normalize websocket subprotocols into an array.
  *
- * @param {string | string[] | undefined} protocols
+ * @param {string | string[] | undefined} protocols WebSocket subprotocols supplied by the client.
  * @returns {string[]} Normalized protocol list.
  */
 const normalizeProtocols = (protocols?: string | string[]): string[] => {
@@ -79,7 +79,7 @@ const normalizeProtocols = (protocols?: string | string[]): string[] => {
 /**
  * Returns a websocket client that mirrors the axios hook behavior for URL building.
  *
- * @param {string} baseUrl
+ * @param {string} baseUrl Base URL used to construct the resource address.
  * @returns {WebsocketClient} A websocket client with auth-aware URL handling.
  */
 export const useWebsocket = (baseUrl?: string): WebsocketClient => {
@@ -88,8 +88,8 @@ export const useWebsocket = (baseUrl?: string): WebsocketClient => {
   /**
    * Build a websocket URL with auth and query parameters applied.
    *
-   * @param {string} path
-   * @param {WebsocketRequestOptions} options
+   * @param {string} path Resource path to resolve.
+   * @param {WebsocketRequestOptions} options Options controlling the operation.
    * @returns {string} A fully-qualified websocket URL.
    */
   const buildUrl = useCallback(
@@ -121,8 +121,8 @@ export const useWebsocket = (baseUrl?: string): WebsocketClient => {
   /**
    * Open a websocket connection and resolve once the connection is established.
    *
-   * @param {string} path
-   * @param {WebsocketRequestOptions} options
+   * @param {string} path Resource path to resolve.
+   * @param {WebsocketRequestOptions} options Options controlling the operation.
    * @returns {Promise<WebSocket>} A websocket connection once open.
    */
   const get = useCallback(
@@ -234,9 +234,9 @@ export const useWebsocket = (baseUrl?: string): WebsocketClient => {
   /**
    * Subscribe to a websocket endpoint with automatic reconnect.
    *
-   * @param {string} path
-   * @param {WebsocketRequestOptions | undefined} options
-   * @param {WebsocketSubscriptionHandlers} handlers
+   * @param {string} path Resource path to resolve.
+   * @param {WebsocketRequestOptions | undefined} options Options controlling the operation.
+   * @param {WebsocketSubscriptionHandlers} handlers Handlers to register for the supported message types.
    * @returns {{ stop: () => void }} Subscription controls.
    */
   const subscribe = useCallback(

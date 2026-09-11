@@ -3,7 +3,9 @@ import { z } from 'zod';
 export const TaskRunSolutionRole = z.literal('reference');
 export type TaskRunSolutionRole = z.infer<typeof TaskRunSolutionRole>;
 
-/** The immutable reference result belonging to a task run. */
+/**
+ * The immutable reference result belonging to a task run.
+ */
 export const TaskRunSolution = z.object({
   task_run_solution_id: z.string().uuid(),
   task_run_id: z.string().uuid(),

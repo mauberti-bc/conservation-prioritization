@@ -21,6 +21,11 @@ export interface ObjectStoreConfig {
 
 /**
  * Returns the configured object store settings.
+ *
+ * @returns {ObjectStoreConfig} The configured object store settings.
+ * @throws {Error} OBJECT_STORE_URL is not configured.
+ * @throws {Error} Object store credentials are not configured.
+ * @throws {Error} OBJECT_STORE_BUCKET_NAME is not configured.
  */
 export const getObjectStoreConfig = (): ObjectStoreConfig => {
   const endpoint = process.env.OBJECT_STORE_URL;
@@ -52,6 +57,8 @@ export const getObjectStoreConfig = (): ObjectStoreConfig => {
 
 /**
  * Returns the public endpoint used by clients (e.g. localhost for MinIO in dev).
+ *
+ * @returns {string | null} The public endpoint used by clients (e.g. localhost for MinIO in dev).
  */
 export const getObjectStorePublicEndpoint = (): string | null => {
   const endpoint = process.env.OBJECT_STORE_PUBLIC_ENDPOINT;
@@ -65,6 +72,8 @@ export const getObjectStorePublicEndpoint = (): string | null => {
 
 /**
  * Build an S3 client for the configured object store.
+ *
+ * @returns {S3Client} Object store client.
  */
 export const getObjectStoreClient = (): S3Client => {
   const config = getObjectStoreConfig();
@@ -82,6 +91,9 @@ export const getObjectStoreClient = (): S3Client => {
 
 /**
  * Build a normalized object key.
+ *
+ * @param {string} key Object-store key identifying the object.
+ * @returns {string} Object key.
  */
 export const buildObjectKey = (key: string): string => {
   return key.replace(/^\/+/, '');
@@ -89,6 +101,10 @@ export const buildObjectKey = (key: string): string => {
 
 /**
  * Build an S3 URI from a bucket and key.
+ *
+ * @param {string} bucket Object-store bucket name.
+ * @param {string} key Object-store key identifying the object.
+ * @returns {string} Make uri.
  */
 export const makeUri = (bucket: string, key: string): string => {
   return `s3://${bucket}/${key}`;
@@ -96,6 +112,9 @@ export const makeUri = (bucket: string, key: string): string => {
 
 /**
  * Parse an S3 URI into bucket and key components.
+ *
+ * @param {string} uri Object-store URI identifying the object.
+ * @returns {{ bucket: string; key: string }} Uri.
  */
 export const parseUri = (uri: string): { bucket: string; key: string } => {
   if (!uri.startsWith('s3://')) {
@@ -118,10 +137,10 @@ export const parseUri = (uri: string): { bucket: string; key: string } => {
 /**
  * Generate a presigned GET URL for an object in the configured object store.
  *
- * @param {string} bucket
- * @param {string} key
- * @param {number} [expiresInSeconds]
- * @return {*}  {Promise<string | null>}
+ * @param {string} bucket Object-store bucket name.
+ * @param {string} key Object-store key identifying the object.
+ * @param {number} expiresInSeconds Lifetime of the generated URL in seconds.
+ * @returns {Promise<string | null>} The signed download URL, or null when the bucket or key is missing.
  */
 export const getPresignedObjectUrl = async (
   bucket: string,
@@ -159,6 +178,9 @@ export const getPresignedObjectUrl = async (
 
 /**
  * Upload an object to the configured object store.
+ *
+ * @param options Options controlling the operation.
+ * @returns {Promise<{ uri: string; etag?: string }>} The uploaded object URI and its ETag when supplied by the object store.
  */
 export const putObject = async (options: {
   bucket: string;
@@ -186,6 +208,9 @@ export const putObject = async (options: {
 
 /**
  * Retrieve an object from the configured object store.
+ *
+ * @param {{ bucket: string; key: string }} options Options controlling the operation.
+ * @returns {Promise<GetObjectCommandOutput>} The get object command output record.
  */
 export const getObject = async (options: { bucket: string; key: string }): Promise<GetObjectCommandOutput> => {
   const client = getObjectStoreClient();
@@ -199,6 +224,9 @@ export const getObject = async (options: { bucket: string; key: string }): Promi
 
 /**
  * Retrieve object metadata from the configured object store.
+ *
+ * @param {{ bucket: string; key: string }} options Options controlling the operation.
+ * @returns {Promise<HeadObjectCommandOutput>} The head object command output record.
  */
 export const headObject = async (options: { bucket: string; key: string }): Promise<HeadObjectCommandOutput> => {
   const client = getObjectStoreClient();

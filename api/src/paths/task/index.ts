@@ -58,7 +58,7 @@ POST.apiDoc = {
 /**
  * Create a new task in the system.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function createTask(): RequestHandler {
   return async (req, res) => {
@@ -151,7 +151,7 @@ GET.apiDoc = {
 /**
  * Express request handler to fetch all tasks.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function getTasks(): RequestHandler {
   return async (req, res) => {

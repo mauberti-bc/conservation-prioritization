@@ -6,6 +6,7 @@ export type TaskExportAction = 'create' | 'download' | 'preparing' | 'unavailabl
  * Returns the newest export for a task's latest run.
  *
  * @param {GetTaskResponse} task Task response with optional latest run exports.
+ * @param {TaskExportFormat} format Optional export format used to filter the available exports.
  * @returns {TaskExportResponse | null} The newest export, if one exists.
  */
 export const getLatestTaskExport = (task: GetTaskResponse, format?: TaskExportFormat): TaskExportResponse | null => {
@@ -31,6 +32,7 @@ export const isTaskLatestExportReady = (task: GetTaskResponse): boolean => {
  * Resolves the download-button action for a task.
  *
  * @param {GetTaskResponse} task Task response with optional latest run exports.
+ * @param {TaskExportFormat} format Optional export format used to filter the available exports.
  * @returns {TaskExportAction} The action the UI should take when the export button is clicked.
  */
 export const getTaskExportAction = (task: GetTaskResponse, format?: TaskExportFormat): TaskExportAction => {
@@ -55,7 +57,7 @@ export const getTaskExportAction = (task: GetTaskResponse, format?: TaskExportFo
  *
  * @param {string} url Presigned object URL.
  * @param {string} filename Suggested browser download filename.
- * @returns {void}
+ * @returns {void} No return value.
  */
 export const triggerBrowserDownload = (url: string, filename: string): void => {
   const anchor = document.createElement('a');

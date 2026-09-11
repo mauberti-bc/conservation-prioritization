@@ -28,7 +28,11 @@ GET.apiDoc = {
   }
 };
 
-/** Returns a fresh presigned URL for one authorized export file. */
+/**
+ * Returns a fresh presigned URL for one authorized export file.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function getTaskExportFileDownload(): RequestHandler {
   return async (req, res) => {
     const connection = getDBConnection(req.keycloak_token);

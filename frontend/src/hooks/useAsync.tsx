@@ -24,7 +24,7 @@ export type AsyncFunction<AFArgs extends any[], AFResponse> = (...args: AFArgs) 
  * @template AFArgs `AsyncFunction` argument types.
  * @template AFResponse `AsyncFunction` response type.
  * @param {AsyncFunction<AFArgs, AFResponse>} asyncFunction the async function to wrap
- * @return {*}  {AsyncFunction<AFArgs, AFResponse>}
+ * @returns {AsyncFunction<AFArgs, AFResponse>} Use async.
  */
 export const useAsync = <AFArgs extends any[], AFResponse>(
   asyncFunction: AsyncFunction<AFArgs, AFResponse>

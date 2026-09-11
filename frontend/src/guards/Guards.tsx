@@ -16,8 +16,8 @@ interface IGuardProps {
 /**
  * Renders `props.children` only if the user is not authenticated.
  *
- * @param {*} props
- * @return {*}
+ * @param {*} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const UnAuthGuard = (props: PropsWithChildren<IGuardProps>) => {
   const authContext = useAuthContext();
@@ -38,8 +38,8 @@ export const UnAuthGuard = (props: PropsWithChildren<IGuardProps>) => {
 /**
  * Renders `props.children` only if the user is authenticated.
  *
- * @param {*} props
- * @return {*}
+ * @param {*} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const AuthGuard = (props: PropsWithChildren<IGuardProps>) => {
   const authContext = useAuthContext();
@@ -60,8 +60,8 @@ export const AuthGuard = (props: PropsWithChildren<IGuardProps>) => {
 /**
  * Redirects to /login if the user is not authenticated.
  *
- * @param {*} props
- * @return {*}
+ * @param {*} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const AuthRedirectGuard = (props: PropsWithChildren<IGuardProps>) => {
   const authContext = useAuthContext();

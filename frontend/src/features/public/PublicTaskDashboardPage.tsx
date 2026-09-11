@@ -12,6 +12,8 @@ import { MapContainer } from 'features/home/map/MapContainer';
 
 /**
  * Public view-only task dashboard for sharing results.
+ *
+ * @returns {React.ReactNode} The rendered component.
  */
 export const PublicTaskDashboardPage = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>();

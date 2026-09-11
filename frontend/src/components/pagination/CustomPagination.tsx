@@ -19,7 +19,7 @@ interface CustomPaginationProps {
  * Server-side pagination footer with range summary and page-size selection.
  *
  * @param {CustomPaginationProps} props Pagination state and change handlers.
- * @returns {JSX.Element}
+ * @returns {JSX.Element} The rendered component.
  */
 export const CustomPagination = ({
   currentPage,

@@ -42,7 +42,7 @@ export class AuthorizationService extends DBService {
   /**
    * Returns the profile attached to the current request context (if any).
    *
-   * @return {*}  {unknown}
+   * @returns The profile attached to the current request context (if any).
    * @memberof AuthorizationService
    */
   getProfile(): unknown {
@@ -52,7 +52,7 @@ export class AuthorizationService extends DBService {
   /**
    * Returns true if the authenticated user has the system admin role.
    *
-   * @return {*}  {Promise<boolean>}
+   * @returns {Promise<boolean>} True if the authenticated user has the system admin role.
    * @memberof AuthorizationService
    */
   async authorizeSystemAdministrator(): Promise<boolean> {
@@ -100,8 +100,8 @@ export class AuthorizationService extends DBService {
   /**
    * Executes authorization checks based on the provided authorization scheme.
    *
-   * @param {AuthorizationScheme} authorizationScheme
-   * @return {*}  {Promise<boolean>}
+   * @param {AuthorizationScheme} authorizationScheme Access scheme that determines who can use the resource.
+   * @returns {Promise<boolean>} Whether the authorization scheme permits the request.
    * @memberof AuthorizationService
    */
   async executeAuthorizationScheme(authorizationScheme: AuthorizationScheme): Promise<boolean> {

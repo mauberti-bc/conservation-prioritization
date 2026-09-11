@@ -13,7 +13,9 @@ import { MarkdownRepository } from '../repositories/markdown-repository';
 import { makePaginationResponse } from '../utils/pagination';
 import { DBService } from './db-service';
 
-/** Service for administrative Markdown CRUD operations. */
+/**
+ * Service for administrative Markdown CRUD operations.
+ */
 export class AdminMarkdownService extends DBService {
   markdownRepository: MarkdownRepository;
 
@@ -32,7 +34,7 @@ export class AdminMarkdownService extends DBService {
    *
    * @param {ApiPaginationOptions} pagination Pagination and sorting options.
    * @param {string} [search] Optional key/data search term.
-   * @returns {Promise<{ markdown: AdminMarkdownListItem[]; pagination: ApiPaginationResults }>}
+   * @returns {Promise<{ markdown: AdminMarkdownListItem[]; pagination: ApiPaginationResults }>} Paginated Markdown records for administration.
    */
   async getMarkdowns(
     pagination: ApiPaginationOptions,
@@ -52,6 +54,7 @@ export class AdminMarkdownService extends DBService {
    * @param {string} markdownId Markdown UUID.
    * @returns {Promise<AdminMarkdown>} Administrative Markdown detail.
    * @throws {HTTP404} When the record does not exist.
+   * @throws {HTTP404} Markdown document not found.
    */
   async getMarkdown(markdownId: string): Promise<AdminMarkdown> {
     const markdown = await this.markdownRepository.getMarkdownById(markdownId);
@@ -85,6 +88,8 @@ export class AdminMarkdownService extends DBService {
    * @throws {HTTP400} When an application-required key would be renamed.
    * @throws {HTTP404} When the record does not exist.
    * @throws {HTTP409} When the target key already exists.
+   * @throws {HTTP400} The tutorial Markdown key cannot be renamed.
+   * @throws {HTTP404} Markdown document not found.
    */
   async updateMarkdown(markdownId: string, updates: UpdateMarkdown): Promise<AdminMarkdown> {
     const existing = await this.getMarkdown(markdownId);
@@ -110,9 +115,11 @@ export class AdminMarkdownService extends DBService {
    * Deletes a Markdown document when it is not application-required.
    *
    * @param {string} markdownId Markdown UUID.
-   * @returns {Promise<void>} Resolves when deletion succeeds.
+   * @returns {Promise<void>} Resolves when the operation completes.
    * @throws {HTTP400} When deleting an application-required key.
    * @throws {HTTP404} When the record does not exist.
+   * @throws {HTTP400} The tutorial Markdown document cannot be deleted.
+   * @throws {HTTP404} Markdown document not found.
    */
   async deleteMarkdown(markdownId: string): Promise<void> {
     const existing = await this.getMarkdown(markdownId);
@@ -143,8 +150,9 @@ export class AdminMarkdownService extends DBService {
    *
    * @param {MarkdownKey} key Candidate Markdown key.
    * @param {string} [currentMarkdownId] Existing row allowed to keep the key.
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} Resolves when the operation completes.
    * @throws {HTTP409} When another row already uses the key.
+   * @throws {HTTP409} Markdown key already exists.
    */
   private async ensureUniqueKey(key: MarkdownKey, currentMarkdownId?: string): Promise<void> {
     const existing = await this.markdownRepository.getMarkdownByKey(key);

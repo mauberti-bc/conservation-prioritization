@@ -31,7 +31,7 @@ const getLatestExportForFormat = (
  * Prompts the user to select an export format before queueing an export.
  *
  * @param {TaskExportFormatDialogProps} props Dialog state and export submission callbacks.
- * @returns {JSX.Element}
+ * @returns {JSX.Element} The rendered component.
  */
 export const TaskExportFormatDialog = ({
   open,

@@ -10,17 +10,29 @@ import Typography from '@mui/material/Typography';
 import { ReactNode } from 'react';
 
 export interface IOkDialogProps {
-  /** Optional component to render underneath the dialog text. */
+  /**
+   * Optional component to render underneath the dialog text.
+   */
   dialogContent?: ReactNode;
-  /** The dialog window title text. */
+  /**
+   * The dialog window title text.
+   */
   dialogTitle: string;
-  /** The dialog window body text. */
+  /**
+   * The dialog window body text.
+   */
   dialogText?: string;
-  /** Set to `true` to open the dialog, `false` to close the dialog. */
+  /**
+   * Set to `true` to open the dialog, `false` to close the dialog.
+   */
   open: boolean;
-  /** Callback fired if the dialog is closed. */
+  /**
+   * Callback fired if the dialog is closed.
+   */
   onClose: () => void;
-  /** `Dialog` props passthrough. */
+  /**
+   * `Dialog` props passthrough.
+   */
   dialogProps?: Partial<DialogProps>;
 }
 
@@ -28,7 +40,7 @@ export interface IOkDialogProps {
  * A dialog for displaying a title and content with only a close control.
  *
  * @param {IOkDialogProps} props Dialog content and close behavior.
- * @returns {JSX.Element}
+ * @returns {JSX.Element} The rendered component.
  */
 export const OkDialog = (props: IOkDialogProps) => {
   if (!props.open) {

@@ -72,7 +72,7 @@ POST.apiDoc = {
 /**
  * Submit an existing draft task.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function submitTask(): RequestHandler {
   return async (req, res) => {

@@ -50,7 +50,7 @@ GET.apiDoc = {
 /**
  * Express request handler to fetch a task by its ID.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function getTaskById(): RequestHandler {
   return async (req, res) => {

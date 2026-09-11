@@ -9,7 +9,12 @@ interface TaskViewPanelActionsMenuProps {
   onDelete: () => void;
 }
 
-/** Renders the task header actions. */
+/**
+ * Renders the task header actions.
+ *
+ * @param {TaskViewPanelActionsMenuProps} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ */
 export const TaskViewPanelActionsMenu = ({
   showAbort,
   onEdit,

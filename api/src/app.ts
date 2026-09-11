@@ -112,10 +112,12 @@ function getAdditionalMiddleware(): express.RequestHandler[] {
 }
 
 /**
- * Returns an allowed origin for CORS based on configured allowlist.
+ * Parses multipart media uploads and scans each file before continuing the request.
  *
- * @param {string | string[] | undefined} origin
- * @return {*}  {string}
+ * @param {Request} req Incoming HTTP request.
+ * @param {Response} res HTTP response to write.
+ * @param {NextFunction} next Callback that continues middleware processing or forwards an error.
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 
 async function handleMultipart(req: Request, res: Response, next: NextFunction) {

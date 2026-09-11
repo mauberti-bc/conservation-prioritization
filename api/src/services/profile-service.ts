@@ -18,7 +18,7 @@ export class ProfileService extends DBService {
   /**
    * Creates an instance of ProfileService.
    *
-   * @param {IDBConnection} connection
+   * @param {IDBConnection} connection Database connection used for queries and transaction context.
    * @memberof ProfileService
    */
   constructor(connection: IDBConnection) {
@@ -30,8 +30,8 @@ export class ProfileService extends DBService {
   /**
    * Create a new profile.
    *
-   * @param {CreateProfile} profile
-   * @return {Promise<Profile>}
+   * @param {CreateProfile} profile Profile fields to persist.
+   * @returns {Promise<Profile>} The profile record.
    * @memberof ProfileService
    */
   async createProfile(profile: CreateProfile): Promise<Profile> {
@@ -41,8 +41,8 @@ export class ProfileService extends DBService {
   /**
    * Get a profile by profile ID.
    *
-   * @param {string} profileId
-   * @return {Promise<Profile>}
+   * @param {string} profileId Identifier of the profile whose access or records are used.
+   * @returns {Promise<Profile>} The profile record.
    * @memberof ProfileService
    */
   async getProfileById(profileId: string): Promise<Profile> {
@@ -52,8 +52,8 @@ export class ProfileService extends DBService {
   /**
    * Get a profile by profile GUID.
    *
-   * @param {string} profileGuid
-   * @return {Promise<Profile>}
+   * @param {string} profileGuid External identity provider GUID for the profile.
+   * @returns {Promise<Profile>} The profile record.
    * @memberof ProfileService
    */
   async findProfileByGuid(profileGuid: string): Promise<Profile | null> {
@@ -63,9 +63,9 @@ export class ProfileService extends DBService {
   /**
    * Get a profile by identity source + identifier.
    *
-   * @param {string} identitySource
-   * @param {string} profileIdentifier
-   * @return {Promise<Profile | null>}
+   * @param {string} identitySource Identity provider associated with the profile.
+   * @param {string} profileIdentifier Identity provider username or profile identifier.
+   * @returns {Promise<Profile | null>} The profile record, or null when no record matches.
    * @memberof ProfileService
    */
   async getProfileByIdentifier(identitySource: string, profileIdentifier: string): Promise<Profile | null> {
@@ -75,9 +75,9 @@ export class ProfileService extends DBService {
   /**
    * Update an existing profile.
    *
-   * @param {string} profileId
-   * @param {UpdateProfile} updates
-   * @return {Promise<Profile>}
+   * @param {string} profileId Identifier of the profile whose access or records are used.
+   * @param {UpdateProfile} updates Fields to update on the existing record.
+   * @returns {Promise<Profile>} The profile record.
    * @memberof ProfileService
    */
   async updateProfile(profileId: string, updates: UpdateProfile): Promise<Profile> {
@@ -87,8 +87,8 @@ export class ProfileService extends DBService {
   /**
    * Soft delete a profile.
    *
-   * @param {DeleteProfile} data
-   * @return {Promise<void>}
+   * @param {DeleteProfile} data Data to persist or process.
+   * @returns {Promise<void>} Resolves when the operation completes.
    * @memberof ProfileService
    */
   async deleteProfile(data: DeleteProfile): Promise<void> {
@@ -101,8 +101,8 @@ export class ProfileService extends DBService {
    * If the profile exists, it is updated to match the supplied values.
    * If it does not exist, it is created with the MEMBER role.
    *
-   * @param {UpsertProfile} profile
-   * @return {[Promise<Profile>, boolean]}
+   * @param {UpsertProfile} profile Profile fields to persist.
+   * @returns {Promise<[Profile, boolean]>} The persisted profile and whether it was newly created.
    * @memberof ProfileService
    */
   async upsertProfile(profile: UpsertProfile): Promise<[Profile, boolean]> {

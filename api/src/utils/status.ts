@@ -3,8 +3,8 @@ import { TASK_STATUS, TILE_STATUS, TaskStatusValue, TileStatusValue } from '../t
 /**
  * Normalizes a task status string into a canonical value.
  *
- * @param {string | null | undefined} status
- * @return {*}  {TaskStatusValue | null}
+ * @param {string | null | undefined} status Lifecycle status to apply or inspect.
+ * @returns {TaskStatusValue | null} Task status.
  */
 export const normalizeTaskStatus = (status?: string | null): TaskStatusValue | null => {
   if (!status) {
@@ -23,8 +23,8 @@ export const normalizeTaskStatus = (status?: string | null): TaskStatusValue | n
 /**
  * Normalizes a tile status string into a canonical value.
  *
- * @param {string | null | undefined} status
- * @return {*}  {TileStatusValue | null}
+ * @param {string | null | undefined} status Lifecycle status to apply or inspect.
+ * @returns {TileStatusValue | null} Tile status.
  */
 export const normalizeTileStatus = (status?: string | null): TileStatusValue | null => {
   if (!status) {

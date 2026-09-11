@@ -9,9 +9,10 @@ const MAX_PARTS = 10000;
 /**
  * Generate a presigned upload URL that clients can use to write data to S3 directly, bypassing the API
  *
- * @param {MultipartUploadParams} params
+ * @param {MultipartUploadParams} params Parameters supplied to the operation.
+ * @returns {Promise<MultipartUploadResult>} The multipart upload result record.
+ * @throws {Error} Failed to create multipart upload.
  * @export
- * @return {*}
  */
 export async function generateMultipartUploadPresignedUrls(
   params: MultipartUploadParams

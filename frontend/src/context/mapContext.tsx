@@ -19,6 +19,9 @@ interface MapContextProviderProps {
 
 /**
  * Provides mapRef and drawRef to all children components via context.
+ *
+ * @param {MapContextProviderProps} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const MapContextProvider = ({ children }: MapContextProviderProps) => {
   const mapRef = useRef<Map | null>(null);

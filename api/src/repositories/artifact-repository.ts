@@ -7,9 +7,17 @@ const ARTIFACT_COLUMNS = `artifact_id, task_run_id, type, status, uri, content_t
   size_bytes, cache_key, manifest, lineage, failure_code, failure_message,
   started_at, completed_at, failed_at`;
 
-/** Repository for durable artifact metadata and finalization. */
+/**
+ * Repository for durable artifact metadata and finalization.
+ */
 export class ArtifactRepository extends BaseRepository {
-  /** Creates an artifact metadata record. */
+  /**
+   * Creates an artifact metadata record.
+   *
+   * @param {CreateArtifact} artifact Artifact metadata to persist.
+   * @returns {Promise<Artifact>} The persisted artifact metadata.
+   * @throws {ApiExecuteSQLError} Failed to create artifact.
+   */
   async createArtifact(artifact: CreateArtifact): Promise<Artifact> {
     const response = await this.connection.sql(
       SQL`INSERT INTO artifact (task_run_id, type, status, cache_key, lineage)
@@ -24,7 +32,12 @@ export class ArtifactRepository extends BaseRepository {
     return response.rows[0];
   }
 
-  /** Returns all artifacts for a run. */
+  /**
+   * Returns all artifacts for a run.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @returns {Promise<Artifact[]>} Artifacts belonging to the requested task run.
+   */
   async getArtifactsByRunId(taskRunId: string): Promise<Artifact[]> {
     const response = await this.connection.sql(
       SQL`SELECT `
@@ -35,7 +48,14 @@ export class ArtifactRepository extends BaseRepository {
     return response.rows;
   }
 
-  /** Returns a run artifact by its unique role. */
+  /**
+   * Returns a run artifact by its unique role.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @param {Artifact['type']} type Artifact role identifying the run output.
+   * @returns {Promise<Artifact>} The artifact matching the run and role.
+   * @throws {ApiExecuteSQLError} Failed to fetch run artifact.
+   */
   async getArtifactByRunAndType(taskRunId: string, type: Artifact['type']): Promise<Artifact> {
     const response = await this.connection.sql(
       SQL`SELECT `.append(ARTIFACT_COLUMNS).append(
@@ -51,7 +71,15 @@ export class ArtifactRepository extends BaseRepository {
     return response.rows[0];
   }
 
-  /** Updates artifact state; ready artifacts require a committed manifest and checksum. */
+  /**
+   * Updates artifact state; ready artifacts require a committed manifest and checksum.
+   *
+   * @param {string} artifactId Identifier of the artifact.
+   * @param {UpdateArtifact} updates Fields to update on the existing record.
+   * @returns {Promise<Artifact>} The updated artifact metadata.
+   * @throws {ApiExecuteSQLError} Ready artifacts require URI, checksum, and manifest.
+   * @throws {ApiExecuteSQLError} Failed to update artifact.
+   */
   async updateArtifact(artifactId: string, updates: UpdateArtifact): Promise<Artifact> {
     if (updates.status === 'ready' && (!updates.uri || !updates.checksum || !updates.manifest)) {
       throw new ApiExecuteSQLError('Ready artifacts require URI, checksum, and manifest', [

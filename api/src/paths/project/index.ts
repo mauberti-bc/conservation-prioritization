@@ -56,7 +56,7 @@ POST.apiDoc = {
 /**
  * Create a new project in the system.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function createProject(): RequestHandler {
   return async (req, res) => {
@@ -131,7 +131,7 @@ GET.apiDoc = {
 /**
  * Express request handler to fetch all projects available to the authenticated user.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function getProjects(): RequestHandler {
   return async (req, res) => {

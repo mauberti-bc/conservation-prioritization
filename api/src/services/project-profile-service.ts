@@ -22,7 +22,7 @@ export class ProjectProfileService extends DBService {
   /**
    * Creates an instance of ProjectProfileService.
    *
-   * @param {IDBConnection} connection
+   * @param {IDBConnection} connection Database connection used for queries and transaction context.
    * @memberof ProjectProfileService
    */
   constructor(connection: IDBConnection) {
@@ -80,7 +80,7 @@ export class ProjectProfileService extends DBService {
    * Soft deletes a project profile association by setting its record end date.
    *
    * @param {DeleteProjectProfile} data - The data containing the project_profile_id to delete.
-   * @return {Promise<void>} Resolves when the project profile is successfully deleted.
+   * @returns {Promise<void>} Resolves when the operation completes.
    * @memberof ProjectProfileService
    */
   async deleteProjectProfile(data: DeleteProjectProfile): Promise<void> {

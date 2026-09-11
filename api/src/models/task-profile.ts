@@ -20,7 +20,9 @@ export const TaskProfileExtended = TaskProfile.extend({
 
 export type TaskProfileExtended = z.infer<typeof TaskProfileExtended>;
 
-/** Type for creating a new task profile */
+/**
+ * Type for creating a new task profile
+ */
 export const CreateTaskProfile = z.object({
   task_id: z.string().uuid(),
   profile_id: z.string().uuid()
@@ -28,7 +30,9 @@ export const CreateTaskProfile = z.object({
 
 export type CreateTaskProfile = z.infer<typeof CreateTaskProfile>;
 
-/** Type for updating an existing task profile */
+/**
+ * Type for updating an existing task profile
+ */
 export const UpdateTaskProfile = z.object({
   task_id: z.string().uuid().optional(),
   profile_id: z.string().uuid().optional()
@@ -36,7 +40,9 @@ export const UpdateTaskProfile = z.object({
 
 export type UpdateTaskProfile = z.infer<typeof UpdateTaskProfile>;
 
-/** Type for deleting a task profile */
+/**
+ * Type for deleting a task profile
+ */
 export const DeleteTaskProfile = z.object({
   task_profile_id: z.string().uuid()
 });

@@ -57,7 +57,11 @@ POST.apiDoc = {
   }
 };
 
-/** Applies an internal run lifecycle update. */
+/**
+ * Applies an internal run lifecycle update.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function updateInternalRun(): RequestHandler {
   return async (req, res) => {
     const connection = getAPIUserDBConnection();

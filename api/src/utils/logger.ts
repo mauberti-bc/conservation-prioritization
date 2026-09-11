@@ -28,26 +28,18 @@ export type WinstonLogLevel = (typeof WinstonLogLevels)[number];
  *
  * Wraps the winston logger to provide a common interface for logging.
  *
+ * @param {string} logLabel common label for the instance of the logger.
+ * @returns {CustomLogger} Logger.
  * @example
- *
  * Initialization:
- *
  * import { getLogger } from './logger';
- *
  * const defaultLog = getLogger('class-or-file-name');
- *
  * Usage:
- *
  * log.info({ message: 'A basic log message!' })
- *
  * log.info({ label: 'functionName', message: 'A message with a label!' })
- *
  * log.error({ label: 'functionName', message: 'An error message!:', error })
- *
  * log.debug({ label: 'functionName', message: 'A debug message!:', debugInfo1, debugInfo2 })
- *
  * Example Output:
- *
  * {
  *    requestId: '46d544ed-9d70-499a-888c-1a1c67fb095',
  *    timestamp: '2025-02-21 16:54:18',
@@ -60,9 +52,6 @@ export type WinstonLogLevel = (typeof WinstonLogLevels)[number];
  *      id: '123',
  *    }
  * }
- *
- * @param {string} logLabel common label for the instance of the logger.
- * @return {*}  {CustomLogger}
  */
 export const getLogger = (logLabel: string): CustomLogger => {
   const logger = _getOrCreateLoggerSingleton(DEFAULT_LOGGER);
@@ -84,7 +73,7 @@ export const getLogger = (logLabel: string): CustomLogger => {
  *
  * @param {string} logLabel The common label for the logger instance.
  * @param {CustomLoggerParams} params The logger parameters.
- * @return {*}  {[string, CustomLoggerParams]} The normalized logger parameters.
+ * @return {[string, CustomLoggerParams]} The normalized logger parameters.
  */
 export const _getLoggerParameters = (logLabel: string, params: CustomLoggerParams): [string, CustomLoggerParams] => {
   if (params.message) {
@@ -101,7 +90,7 @@ export const _getLoggerParameters = (logLabel: string, params: CustomLoggerParam
 /**
  * Get the transport types to use for the logger.
  *
- * @return {*}  {string[]}
+ * @returns {string[]}  get logger transport types.
  */
 const _getLoggerTransportTypes = (): string[] => {
   const transportTypes = ['console'];
@@ -118,7 +107,7 @@ const _getLoggerTransportTypes = (): string[] => {
 /**
  * Get the log format for the winston logger.
  *
- * @return {*}  {winston.Logform.Format}
+ * @returns {winston.Logform.Format}  get log format.
  */
 export const _getLogFormat = (): winston.Logform.Format => {
   return winston.format.combine(
@@ -147,7 +136,7 @@ export const _getLogFormat = (): winston.Logform.Format => {
  * Get or create a singleton logger instance.
  *
  * @param {string} loggerName The name of the logger instance.
- * @return {*}  {winston.Logger}
+ * @returns {winston.Logger}  get or create logger singleton.
  */
 export const _getOrCreateLoggerSingleton = function (loggerName: string): winston.Logger {
   const hasLogger = winston.loggers.has(loggerName);
@@ -201,7 +190,8 @@ export const _getOrCreateLoggerSingleton = function (loggerName: string): winsto
 /**
  * Set the winston logger log level for the console transport
  *
- * @param {WinstonLogLevel} consoleLogLevel
+ * @param {WinstonLogLevel} consoleLogLevel Minimum severity emitted by the console transport.
+ * @returns {void} No return value.
  */
 export const setLogLevel = (consoleLogLevel: WinstonLogLevel): void => {
   const transportTypes = _getLoggerTransportTypes();
@@ -222,7 +212,8 @@ export const setLogLevel = (consoleLogLevel: WinstonLogLevel): void => {
 /**
  * Set the winston logger log level for the file transport.
  *
- * @param {WinstonLogLevel} fileLogLevel
+ * @param {WinstonLogLevel} fileLogLevel Minimum severity emitted by the file transport.
+ * @returns {void} No return value.
  */
 export const setLogLevelFile = (fileLogLevel: WinstonLogLevel): void => {
   const transportTypes = _getLoggerTransportTypes();

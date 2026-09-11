@@ -1,6 +1,11 @@
 import { Knex } from 'knex';
 
-/** Add task-run GeoTIFF export job and file metadata tables. */
+/**
+ * Add task-run GeoTIFF export job and file metadata tables.
+ *
+ * @param {Knex} knex Knex connection used to execute the migration.
+ * @returns {Promise<void>} Resolves when the operation completes.
+ */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`--sql
     SET search_path=conservation,public;
@@ -145,7 +150,12 @@ export async function up(knex: Knex): Promise<void> {
   `);
 }
 
-/** Remove task-run GeoTIFF export metadata tables. */
+/**
+ * Remove task-run GeoTIFF export metadata tables.
+ *
+ * @param {Knex} knex Knex connection used to execute the migration.
+ * @returns {Promise<void>} Resolves when the operation completes.
+ */
 export async function down(knex: Knex): Promise<void> {
   await knex.raw(`--sql
     SET search_path=conservation,public;

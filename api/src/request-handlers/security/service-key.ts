@@ -6,7 +6,7 @@ const SERVICE_KEY_HEADER = 'x-internal-api-key';
 /**
  * Requires a service key header to authorize non-user requests.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export const requireServiceKey = (): RequestHandler => {
   return (req, _res, next) => {

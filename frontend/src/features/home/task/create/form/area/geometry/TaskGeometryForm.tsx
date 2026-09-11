@@ -54,7 +54,7 @@ export const TaskGeometryForm = ({ geometry, onDelete, isReadOnly = false }: Tas
    * Fits the shared map viewport to one persisted target-area feature.
    *
    * @param {Geometry} g Target-area item selected from the geometry list.
-   * @returns {void}
+   * @returns {void} No return value.
    */
   const handleZoomToGeometry = (g: Geometry): void => {
     const map = mapRef.current;

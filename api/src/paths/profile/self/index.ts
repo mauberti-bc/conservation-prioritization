@@ -81,7 +81,7 @@ PUT.apiDoc = {
 /**
  * Fetch the currently authenticated user profile.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function getSelfProfile(): RequestHandler {
   return async (req, res) => {
@@ -123,7 +123,7 @@ export function getSelfProfile(): RequestHandler {
  * - If profile exists and is active: updates profile fields (returns 200)
  * - If profile exists but is expired: throws 401
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function upsertProfile(): RequestHandler {
   return async (req, res) => {

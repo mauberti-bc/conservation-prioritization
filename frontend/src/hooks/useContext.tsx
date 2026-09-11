@@ -12,7 +12,7 @@ import { useContext } from 'react';
 /**
  * Returns an instance of `IDialogContext` from `DialogContext`.
  *
- * @return {*}  {IDialogContext}
+ * @returns {IDialogContext} An instance of `IDialogContext` from `DialogContext`.
  */
 export const useDialogContext = (): IDialogContext => {
   const context = useContext(DialogContext);
@@ -53,7 +53,7 @@ export const useApplicationEventsContext = (): IApplicationEventsContext => {
 /**
  * Returns an instance of `IConfig` from `ConfigContext`.
  *
- * @return {*}  {IConfig}
+ * @returns {IConfig} An instance of `IConfig` from `ConfigContext`.
  */
 export const useConfigContext = (): IConfig => {
   const context = useContext(ConfigContext);
@@ -70,7 +70,7 @@ export const useConfigContext = (): IConfig => {
 /**
  * Returns an instance of `ITaskContext` from `TaskContext`.
  *
- * @return {*}  {ITaskContext}
+ * @returns {ITaskContext} An instance of `ITaskContext` from `TaskContext`.
  */
 export const useTaskContext = (): ITaskContext => {
   const context = useContext(TaskContext);
@@ -87,7 +87,7 @@ export const useTaskContext = (): ITaskContext => {
 /**
  * Returns an instance of `IProjectContext` from `ProjectContext`.
  *
- * @return {*}  {IProjectContext}
+ * @returns {IProjectContext} An instance of `IProjectContext` from `ProjectContext`.
  */
 export const useProjectContext = (): IProjectContext => {
   const context = useContext(ProjectContext);
@@ -104,7 +104,7 @@ export const useProjectContext = (): IProjectContext => {
 /**
  * Returns an instance of `ILayerSelectionContext` from `LayerSelectionContext`.
  *
- * @return {*}  {ILayerSelectionContext}
+ * @returns {ILayerSelectionContext} An instance of `ILayerSelectionContext` from `LayerSelectionContext`.
  */
 export const useLayerSelectionContext = (): ILayerSelectionContext => {
   const context = useContext(LayerSelectionContext);
@@ -121,7 +121,7 @@ export const useLayerSelectionContext = (): ILayerSelectionContext => {
 /**
  * Returns an instance of `ISidebarUIContext` from `SidebarUIContext`.
  *
- * @return {*}  {ISidebarUIContext}
+ * @returns {ISidebarUIContext} An instance of `ISidebarUIContext` from `SidebarUIContext`.
  */
 export const useSidebarUIContext = (): ISidebarUIContext => {
   const context = useContext(SidebarUIContext);

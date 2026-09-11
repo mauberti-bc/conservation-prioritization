@@ -79,8 +79,8 @@ export const DialogContext = createContext<IDialogContext>({
 /**
  * Wraps the provided children in a context that provides various modal dialogs/popups.
  *
- * @param {*} props
- * @return {*}
+ * @param {*} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const DialogContextProvider: React.FC<React.PropsWithChildren> = (props) => {
   const [snackbarProps, setSnackbarProps] = useState<ISnackbarProps>(defaultSnackbarProps);

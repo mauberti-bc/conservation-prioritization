@@ -28,7 +28,7 @@ export const getTaskViewStatusColor = (status: TaskStatusValue): TaskViewStatusC
 /**
  * Converts a user-entered hex body (with or without leading #) to canonical API format.
  *
- * @param {string | null | undefined} value
+ * @param {string | null | undefined} value Value to normalize or inspect.
  * @return {string | undefined} A #RRGGBB value or undefined when empty.
  */
 export const toApiHexColour = (value: string | null | undefined): string | undefined => {
@@ -45,8 +45,8 @@ export const toApiHexColour = (value: string | null | undefined): string | undef
 /**
  * Converts API hex values to the form field body value (without leading #).
  *
- * @param {string | null | undefined} value
- * @return {string}
+ * @param {string | null | undefined} value Value to normalize or inspect.
+ * @returns {string} To hex body.
  */
 export const toHexBody = (value: string | null | undefined): string => {
   if (!value) {
@@ -59,7 +59,7 @@ export const toHexBody = (value: string | null | undefined): string => {
 /**
  * Generates a random hex colour in #RRGGBB format.
  *
- * @return {string}
+ * @returns {string} Random hex.
  */
 export const getRandomHex = (): string => {
   const value = Math.floor(Math.random() * 0xffffff);
@@ -69,7 +69,7 @@ export const getRandomHex = (): string => {
 /**
  * Generates a random hex colour body in RRGGBB format.
  *
- * @return {string}
+ * @returns {string} Random hex body.
  */
 export const getRandomHexBody = (): string => {
   return getRandomHex().slice(1);

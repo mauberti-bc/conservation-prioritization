@@ -60,7 +60,7 @@ export const useProjectApi = (axios: AxiosInstance) => {
    *
    * @param {string} projectId - The project UUID.
    * @param {string[]} taskIds - Task UUIDs to attach to the project.
-   * @return {Promise<void>} Resolves when the tasks are added.
+   * @returns {Promise<void>} Resolves when the operation completes.
    */
   const addTasksToProject = async (projectId: string, taskIds: string[]): Promise<void> => {
     await axios.post(`/api/project/${projectId}/task`, { taskIds });
@@ -96,7 +96,7 @@ export const useProjectApi = (axios: AxiosInstance) => {
    * Delete a project by its ID.
    *
    * @param {string} projectId - The UUID of the project to delete.
-   * @return {Promise<void>} Resolves when the project has been successfully deleted.
+   * @returns {Promise<void>} Resolves when the operation completes.
    */
   const deleteProject = async (projectId: string): Promise<void> => {
     const { data } = await axios.delete<void>(`/api/project/${projectId}`);
@@ -106,9 +106,9 @@ export const useProjectApi = (axios: AxiosInstance) => {
   /**
    * Invite profiles to a project by email.
    *
-   * @param {string} projectId
-   * @param {InviteProfilesRequest} payload
-   * @return {Promise<InviteProfilesResponse>}
+   * @param {string} projectId Identifier of the project.
+   * @param {InviteProfilesRequest} payload Request or response payload.
+   * @returns {Promise<InviteProfilesResponse>} Invitation results identifying added, existing, and unresolved profiles.
    */
   const inviteProfilesToProject = async (
     projectId: string,

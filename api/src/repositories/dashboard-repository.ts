@@ -14,8 +14,9 @@ export class DashboardRepository extends BaseRepository {
   /**
    * Creates a new dashboard record.
    *
-   * @param {CreateDashboard} dashboard
-   * @return {*}  {Promise<Dashboard>}
+   * @param {CreateDashboard} dashboard Dashboard fields to persist.
+   * @returns {Promise<Dashboard>} The dashboard record.
+   * @throws {ApiExecuteSQLError} Failed to create dashboard.
    * @memberof DashboardRepository
    */
   async createDashboard(dashboard: CreateDashboard): Promise<Dashboard> {
@@ -47,8 +48,9 @@ export class DashboardRepository extends BaseRepository {
   /**
    * Fetches a single active dashboard by its ID.
    *
-   * @param {string} dashboardId
-   * @return {*}  {Promise<Dashboard>}
+   * @param {string} dashboardId Identifier of the dashboard.
+   * @returns {Promise<Dashboard>} The dashboard record.
+   * @throws {ApiExecuteSQLError} Failed to get dashboard by id.
    * @memberof DashboardRepository
    */
   async getDashboardById(dashboardId: string): Promise<Dashboard> {
@@ -83,8 +85,8 @@ export class DashboardRepository extends BaseRepository {
   /**
    * Fetches a single active dashboard by its ID, returning null if not found.
    *
-   * @param {string} dashboardId
-   * @return {*}  {Promise<Dashboard | null>}
+   * @param {string} dashboardId Identifier of the dashboard.
+   * @returns {Promise<Dashboard | null>} The dashboard record, or null when no record matches.
    * @memberof DashboardRepository
    */
   async findDashboardById(dashboardId: string): Promise<Dashboard | null> {
@@ -116,8 +118,8 @@ export class DashboardRepository extends BaseRepository {
   /**
    * Fetches the access scheme for a dashboard without returning metadata.
    *
-   * @param {string} dashboardId
-   * @return {*}  {Promise<string | null>}
+   * @param {string} dashboardId Identifier of the dashboard.
+   * @returns {Promise<string | null>} The access scheme, or null if the dashboard does not exist.
    * @memberof DashboardRepository
    */
   async findDashboardAccessScheme(dashboardId: string): Promise<string | null> {

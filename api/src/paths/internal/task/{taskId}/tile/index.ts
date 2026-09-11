@@ -42,7 +42,7 @@ POST.apiDoc = {
 /**
  * Express request handler to create a draft task tile record.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function createTaskTile(): RequestHandler {
   return async (req, res) => {

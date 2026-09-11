@@ -17,7 +17,12 @@ interface TaskViewPanelHeaderProps {
   onDelete: () => void;
 }
 
-/** Renders the task header actions. */
+/**
+ * Renders the task header actions.
+ *
+ * @param {TaskViewPanelHeaderProps} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ */
 export const TaskViewPanelHeader = ({
   title,
   status,

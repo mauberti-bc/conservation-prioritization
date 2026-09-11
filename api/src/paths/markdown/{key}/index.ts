@@ -65,7 +65,7 @@ GET.apiDoc = {
 /**
  * Express request handler to fetch a Markdown document.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function getMarkdown(): RequestHandler {
   return async (req, res) => {

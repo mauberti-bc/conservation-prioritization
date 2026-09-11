@@ -4,11 +4,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 /**
  * A hook that provides methods for reading and writing URL search params.
  *
+ * @returns Helpers for reading and updating URL search parameters.
  * @example
  * const { searchParams, setSearchParams } = useSearchParams<HomeQueryParams>();
  * searchParams.set(QUERY_PARAM.VIEW, 'tasks');
  * setSearchParams(searchParams);
- *
  * @example
  * type MyType = { [QUERY_PARAM.VIEW]?: 'tasks' }
  * const { searchParams, setSearchParams } = useSearchParams<MyType>();

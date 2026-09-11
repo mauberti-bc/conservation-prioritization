@@ -26,12 +26,11 @@ export const AsyncRequestStorage = new AsyncLocalStorage<RequestStore>();
  * Specifically, this should be the first middleware in the middleware stack.
  * ie: Inside the openapi 'x-express-openapi-additional-middleware' array.
  *
+ * @param {Request} req Incoming HTTP request.
+ * @param {Response} _res HTTP response supplied by the middleware pipeline.
+ * @param {NextFunction} next Callback that continues middleware processing or forwards an error.
+ * @returns {void} No return value.
  * @see https://nodejs.org/api/async_context.html#class-asynclocalstorage
- *
- * @param {Request} req
- * @param {Response} _res
- * @param {NextFunction} next
- * @return {*} {void}
  */
 export function initRequestStorage(req: Request, _res: Response, next: NextFunction) {
   const requestStore: RequestStore = new Map();
@@ -65,7 +64,7 @@ export function initRequestStorage(req: Request, _res: Response, next: NextFunct
  *
  * @param {RequestStoreKey} key - The request store key to get the value for
  * @param {string} defaultValue - The default value to return if the key is not found
- * @return {*} {string}
+ * @returns {string}  get request store value.
  */
 export function _getRequestStoreValue(key: RequestStoreKey, defaultValue: string): string {
   const requestStore = AsyncRequestStorage.getStore();
@@ -83,8 +82,8 @@ export function _getRequestStoreValue(key: RequestStoreKey, defaultValue: string
  *
  * Note: Falls back to 'SYSTEM' if the request store is not initialized.
  *
+ * @returns {string} Request id.
  * @example 'd3d3b4d3-7b3d-4b3d-8b3d-3d3b4d3b3d3b'
- * @return {*} {string}
  */
 export function getRequestId(): string {
   return _getRequestStoreValue('requestId', DEFAULT_REQUEST_STORE_VALUE);
@@ -95,8 +94,8 @@ export function getRequestId(): string {
  *
  * Note: Falls back to 'SYSTEM' if the request store is not initialized.
  *
+ * @returns {string} Request user.
  * @example 'SBRULE'
- * @return {*} {string}
  */
 export function getRequestUser(): string {
   return _getRequestStoreValue('username', DEFAULT_REQUEST_STORE_VALUE);

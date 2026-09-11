@@ -71,7 +71,7 @@ PUT.apiDoc = {
 /**
  * Express request handler to retry a task.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} The task after resetting its status for a new submission.
  */
 export function retryTask(): RequestHandler {
   return async (req, res) => {

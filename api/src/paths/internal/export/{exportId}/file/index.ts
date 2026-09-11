@@ -20,7 +20,11 @@ POST.apiDoc = {
   }
 };
 
-/** Records one durable export file after upload. */
+/**
+ * Records one durable export file after upload.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function createInternalTaskExportFile(): RequestHandler {
   return async (req, res) => {
     const connection = getAPIUserDBConnection();

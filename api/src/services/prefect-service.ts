@@ -27,6 +27,7 @@ export class PrefectService {
   /**
    * Creates an instance of PrefectService.
    *
+   * @throws {ApiGeneralError} PREFECT_API_URL is not set.
    * @memberof PrefectService
    */
   constructor() {
@@ -46,8 +47,10 @@ export class PrefectService {
    * Requests worker cancellation without forcing a terminal state.
    *
    * @param {string} flowRunId Prefect flow run associated with the task.
-   * @returns {Promise<void>} Resolves for accepted or already requested cancellation.
+   * @returns {Promise<void>} Resolves when the operation completes.
    * @throws {ApiGeneralError} If Prefect is unavailable or refuses cancellation.
+   * @throws {ApiGeneralError} Prefect did not accept the cancellation request.
+   * @throws {ApiGeneralError} Failed to cancel Prefect flow run.
    */
   async cancelFlowRun(flowRunId: string): Promise<void> {
     try {
@@ -73,7 +76,8 @@ export class PrefectService {
    *
    * @param {string} flowName - Prefect flow name.
    * @param {string} deploymentName - Prefect deployment name.
-   * @return {*} {Promise<string>} Prefect deployment ID.
+   * @return {Promise<string>} Prefect deployment ID.
+   * @throws {ApiGeneralError} Failed to resolve Prefect deployment ID.
    * @memberof PrefectService
    */
   async resolveDeploymentId(flowName: string, deploymentName: string): Promise<string> {
@@ -93,7 +97,10 @@ export class PrefectService {
    * Submits the run-scoped optimization pipeline. The workflow resolves all large inputs by run ID.
    *
    * @param {string} taskRunId Immutable task run ID.
-   * @returns {Promise<{ deploymentId: string; flowRunId: string }>}
+   * @param {TaskType} taskType Scientific analysis type associated with the task.
+   * @param {TaskRunExecutionMethod} executionMethod Execution method selected for the task run.
+   * @param dispatchAttempt Attempt number used to distinguish workflow dispatches.
+   * @returns {Promise<{ deploymentId: string; flowRunId: string }>} Identifiers of the selected Prefect deployment and submitted flow run.
    */
   async submitTaskRun(
     taskRunId: string,
@@ -112,7 +119,13 @@ export class PrefectService {
     return { deploymentId, flowRunId };
   }
 
-  /** Dispatches presentation publication from a canonical task-run result. */
+  /**
+   * Dispatches presentation publication from a canonical task-run result.
+   *
+   * @param {string} taskRunId Identifier of the immutable task run.
+   * @param {number} publicationRevision Publication revision used to identify this dispatch attempt.
+   * @returns {Promise<{ deploymentId: string; flowRunId: string }>} Prefect deployment and flow-run identifiers for the publication attempt.
+   */
   async submitTaskRunTile(
     taskRunId: string,
     publicationRevision: number
@@ -131,7 +144,7 @@ export class PrefectService {
    *
    * @param {string} taskExportId Durable export job ID.
    * @param {number} attempt Export execution generation.
-   * @returns {Promise<{ deploymentId: string; flowRunId: string }>}
+   * @returns {Promise<{ deploymentId: string; flowRunId: string }>} Identifiers of the selected Prefect deployment and submitted flow run.
    */
   async submitTaskExport(taskExportId: string, attempt: number): Promise<{ deploymentId: string; flowRunId: string }> {
     const deploymentId = await this.resolveDeploymentId('task_export', 'task-export');
@@ -148,7 +161,9 @@ export class PrefectService {
    *
    * @param {string} deploymentId - Prefect deployment ID.
    * @param {Record<string, unknown>} parameters - Raw parameters for the run.
-   * @return {*} {Promise<string>} Prefect flow run ID.
+   * @param {string} idempotencyKey Optional key used to deduplicate repeated submissions.
+   * @return {Promise<string>} Prefect flow run ID.
+   * @throws {ApiGeneralError} Failed to submit Prefect flow run.
    * @memberof PrefectService
    */
   private async submitFlowRunWithParameters(

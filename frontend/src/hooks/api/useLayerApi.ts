@@ -4,7 +4,7 @@ import { FindLayersResponse } from 'hooks/interfaces/useLayerApi.interface';
 /**
  * Returns a set of supported API methods for working with layers.
  *
- * @param {AxiosInstance} axios
+ * @param {AxiosInstance} axios Axios client used for API requests.
  * @return {*} Object whose properties are supported API methods for layers.
  */
 export const useLayersApi = (axios: AxiosInstance) => {

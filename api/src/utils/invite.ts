@@ -1,7 +1,7 @@
 /**
  * Normalize and deduplicate email addresses for invite workflows.
  *
- * @param {string[]} emails
+ * @param {string[]} emails Email addresses of the profiles to invite.
  * @returns {string[]} Normalized, unique email addresses.
  */
 export const normalizeInviteEmails = (emails: string[]): string[] => {

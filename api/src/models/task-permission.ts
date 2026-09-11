@@ -12,7 +12,9 @@ export const TaskPermission = z.object({
 
 export type TaskPermission = z.infer<typeof TaskPermission>;
 
-/** Type for creating a new task permission */
+/**
+ * Type for creating a new task permission
+ */
 export const CreateTaskPermission = z.object({
   task_id: z.string().uuid(),
   profile_id: z.string().uuid(),
@@ -21,7 +23,9 @@ export const CreateTaskPermission = z.object({
 
 export type CreateTaskPermission = z.infer<typeof CreateTaskPermission>;
 
-/** Type for updating an existing task permission */
+/**
+ * Type for updating an existing task permission
+ */
 export const UpdateTaskPermission = z.object({
   task_id: z.string().uuid().optional(),
   profile_id: z.string().uuid().optional(),
@@ -30,7 +34,9 @@ export const UpdateTaskPermission = z.object({
 
 export type UpdateTaskPermission = z.infer<typeof UpdateTaskPermission>;
 
-/** Type for deleting a task permission */
+/**
+ * Type for deleting a task permission
+ */
 export const DeleteTaskPermission = z.object({
   task_permission_id: z.string().uuid()
 });

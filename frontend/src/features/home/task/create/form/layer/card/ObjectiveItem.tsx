@@ -25,7 +25,12 @@ const getTrackColor = (value: number) => {
   return value < 0 ? appTheme.palette.error.light : appTheme.palette.success.light;
 };
 
-/** Edit one objective as a simple signed influence slider. */
+/**
+ * Edit one objective as a simple signed influence slider.
+ *
+ * @param {Props} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ */
 export const ObjectiveItem = ({ objective, onChange, onDelete, isReadOnly = false }: Props) => {
   const [localImportance, setLocalImportance] = useState(getSignedImportance(objective));
   const menuItems: IconMenuItem[] = [

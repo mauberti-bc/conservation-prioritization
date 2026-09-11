@@ -17,10 +17,9 @@ export class ProjectRepository extends BaseRepository {
    *
    * @param {CreateProject} project
    *   The project data to insert.
-   *
-   * @return {*}  {Promise<Project>}
+   * @return {Promise<Project>}
    *   The newly created project.
-   *
+   * @throws {ApiExecuteSQLError} Failed to create project.
    * @memberof ProjectRepository
    */
   async createProject(project: CreateProject): Promise<Project> {
@@ -54,10 +53,9 @@ export class ProjectRepository extends BaseRepository {
    *
    * @param {string} projectId
    *   The UUID of the project.
-   *
-   * @return {*}  {Promise<Project>}
+   * @return {Promise<Project>}
    *   The matching project.
-   *
+   * @throws {ApiExecuteSQLError} Failed to get project by id.
    * @memberof ProjectRepository
    */
   async getProjectById(projectId: string): Promise<Project> {
@@ -87,9 +85,8 @@ export class ProjectRepository extends BaseRepository {
   /**
    * Fetches all active projects.
    *
-   * @return {*}  {Promise<Project[]>}
+   * @return {Promise<Project[]>}
    *   A list of active projects.
-   *
    * @memberof ProjectRepository
    */
   async getProjects(): Promise<Project[]> {
@@ -121,8 +118,8 @@ export class ProjectRepository extends BaseRepository {
   /**
    * Fetches projects available to a profile GUID via project permissions.
    *
-   * @param {string} profileGuid
-   * @return {*}  {Promise<Project[]>}
+   * @param {string} profileGuid External identity provider GUID for the profile.
+   * @returns {Promise<Project[]>} Matching project records.
    * @memberof ProjectRepository
    */
   async getProjectsByProfileGuid(profileGuid: string): Promise<Project[]> {
@@ -165,13 +162,12 @@ export class ProjectRepository extends BaseRepository {
    *
    * @param {string} projectId
    *   The UUID of the project to update.
-   *
    * @param {UpdateProject} updates
    *   The project fields to update.
-   *
-   * @return {*}  {Promise<Project>}
+   * @return {Promise<Project>}
    *   The updated project.
-   *
+   * @throws {ApiExecuteSQLError} No project updates provided.
+   * @throws {ApiExecuteSQLError} Failed to update project.
    * @memberof ProjectRepository
    */
   async updateProject(projectId: string, updates: UpdateProject): Promise<Project> {
@@ -229,9 +225,8 @@ export class ProjectRepository extends BaseRepository {
    *
    * @param {DeleteProject} data
    *   The project identifier.
-   *
-   * @return {*}  {Promise<void>}
-   *
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {ApiExecuteSQLError} Failed to delete project.
    * @memberof ProjectRepository
    */
   async deleteProject(data: DeleteProject): Promise<void> {
@@ -258,8 +253,8 @@ export class ProjectRepository extends BaseRepository {
   /**
    * Fetch projects associated with the provided task IDs.
    *
-   * @param {string[]} taskIds
-   * @return {*}  {Promise<TaskProjectSummary[]>}
+   * @param {string[]} taskIds Identifiers of the tasks to process.
+   * @returns {Promise<TaskProjectSummary[]>} Matching task project summary records.
    * @memberof ProjectRepository
    */
   async getProjectsByTaskIds(taskIds: string[]): Promise<TaskProjectSummary[]> {

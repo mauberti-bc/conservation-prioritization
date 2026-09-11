@@ -18,10 +18,18 @@ export const TaskFormToolbar = () => {
     setLocalName(values.name || '');
   }, [values.name]);
 
-  /** Reset → restores initialValues */
+  /**
+   * Reset → restores initialValues
+   *
+   * @returns Handle reset.
+   */
   const handleReset = () => resetForm();
 
-  /** Sync local value to Formik */
+  /**
+   * Sync local value to Formik
+   *
+   * @returns {void} No return value.
+   */
   const handleBlur = () => {
     setFieldValue('name', localName);
   };

@@ -103,8 +103,8 @@ export interface IYesNoDialogProps {
  * A dialog for displaying a title + message (typically a question), and giving the user the option to say
  * `Yes` or `No`.
  *
- * @param {*} props
- * @return {*}
+ * @param {*} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 const YesNoDialog: React.FC<IYesNoDialogProps> = (props) => {
   if (!props.open) {

@@ -16,6 +16,9 @@ export const SidebarUIContext = createContext<ISidebarUIContext>({
 
 /**
  * Provides sidebar view state backed by query params.
+ *
+ * @param {PropsWithChildren<Record<never, any>>} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
  */
 export const SidebarUIContextProvider = (props: PropsWithChildren<Record<never, any>>) => {
   const { searchParams, setSearchParams } = useSearchParams<HomeQueryParams>();

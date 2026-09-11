@@ -9,8 +9,8 @@ interface PmtilesLegendRowProps {
 /**
  * Renders one PMTiles legend swatch row with optional range labels.
  *
- * @param {PmtilesLegendRowProps} props
- * @returns {JSX.Element}
+ * @param {PmtilesLegendRowProps} props Component properties.
+ * @returns {JSX.Element} The rendered component.
  */
 export const PmtilesLegendRow = ({ row }: PmtilesLegendRowProps) => {
   return (

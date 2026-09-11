@@ -3,8 +3,8 @@ import { Knex } from 'knex';
 /**
  * Add colour column to project table.
  *
- * @param {Knex} knex
- * @return {*}  {Promise<void>}
+ * @param {Knex} knex Knex connection used to execute the migration.
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`
@@ -17,8 +17,8 @@ export async function up(knex: Knex): Promise<void> {
 /**
  * Remove colour column from project table.
  *
- * @param {Knex} knex
- * @return {*}  {Promise<void>}
+ * @param {Knex} knex Knex connection used to execute the migration.
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.raw(`

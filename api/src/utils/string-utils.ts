@@ -5,10 +5,10 @@ import { isString } from 'lodash';
  *
  * If the value is not a string, then the original unaltered value will be returned.
  *
- * @export
  * @template T
- * @param {T} value
- * @return {*}  {T}
+ * @param {T} value Value to normalize or inspect.
+ * @returns {T} Safe to lower case.
+ * @export
  */
 export function safeToLowerCase<T>(value: T): T {
   if (isString(value)) {
@@ -23,10 +23,10 @@ export function safeToLowerCase<T>(value: T): T {
  *
  * If the value is not a string, then the original unaltered value will be returned.
  *
- * @export
  * @template T
- * @param {T} value
- * @return {*}  {T}
+ * @param {T} value Value to normalize or inspect.
+ * @returns {T} Safe trim.
+ * @export
  */
 export function safeTrim<T>(value: T): T {
   if (isString(value)) {
@@ -54,9 +54,9 @@ export const makeLoginUrl = (host: string, redirectTo?: string) => {
 /**
  * Pretty-prints a phone number.
  *
- * @example formatPhoneNumber(12505551234); // => "+1 (250) 555-1234"
  * @param {string} phoneNumber The phone number to format
  * @returns {string} The formatted phonenumber
+ * @example formatPhoneNumber(12505551234); // => "+1 (250) 555-1234"
  */
 export const formatPhoneNumber = (phoneNumber: string) => {
   const fullNumeric = phoneNumber.replace(/\D/g, '');

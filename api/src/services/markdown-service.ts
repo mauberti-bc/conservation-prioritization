@@ -4,7 +4,9 @@ import { ApiMarkdown, MarkdownKey } from '../models/markdown';
 import { MarkdownRepository } from '../repositories/markdown-repository';
 import { DBService } from './db-service';
 
-/** Service for retrieving application-managed Markdown documents. */
+/**
+ * Service for retrieving application-managed Markdown documents.
+ */
 export class MarkdownService extends DBService {
   markdownRepository: MarkdownRepository;
 
@@ -24,6 +26,7 @@ export class MarkdownService extends DBService {
    * @param {MarkdownKey} key Stable Markdown slug.
    * @returns {Promise<ApiMarkdown>} Public Markdown document fields.
    * @throws {HTTP404} When the requested Markdown document has not been seeded.
+   * @throws {HTTP404} Markdown document not found.
    */
   async getMarkdown(key: MarkdownKey): Promise<ApiMarkdown> {
     const markdown = await this.markdownRepository.getMarkdownByKey(key);

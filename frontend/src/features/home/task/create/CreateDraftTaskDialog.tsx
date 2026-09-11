@@ -20,8 +20,8 @@ const validationSchema = Yup.object({
 /**
  * Dialog for creating a task before map-based submission.
  *
- * @param {CreateDraftTaskDialogProps} props
- * @returns {JSX.Element}
+ * @param {CreateDraftTaskDialogProps} props Component properties.
+ * @returns {JSX.Element} The rendered component.
  */
 export const CreateDraftTaskDialog = ({ open, onClose }: CreateDraftTaskDialogProps) => {
   const conservationApi = useConservationApi();

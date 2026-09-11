@@ -19,8 +19,8 @@ interface InviteDialogProps {
 /**
  * Dialog for inviting profiles by email address.
  *
- * @param {InviteDialogProps} props
- * @returns {JSX.Element | null}
+ * @param {InviteDialogProps} props Component properties.
+ * @returns {JSX.Element | null} The rendered component.
  */
 export const InviteDialog = ({
   open,

@@ -4,7 +4,7 @@ import { Knex } from 'knex';
  * Add product task types, immutable run method identity, and normalized run solutions.
  *
  * @param {Knex} knex Database connection.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.raw(`--sql
@@ -135,7 +135,7 @@ export async function up(knex: Knex): Promise<void> {
  * Remove product task type and solution schema while retaining additive enum values.
  *
  * @param {Knex} knex Database connection.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when the operation completes.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.raw(`--sql

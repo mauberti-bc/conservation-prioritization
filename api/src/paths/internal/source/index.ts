@@ -36,7 +36,11 @@ POST.apiDoc = {
   }
 };
 
-/** Registers only complete source manifests with explicit layer contracts. */
+/**
+ * Registers only complete source manifests with explicit layer contracts.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function publishAnalyticalSource(): RequestHandler {
   return async (req, res) => {
     const request = req.body as PublishAnalyticalSource;
@@ -77,7 +81,12 @@ export function publishAnalyticalSource(): RequestHandler {
   };
 }
 
-/** Validates the spatial fields required to map one authoritative native array. */
+/**
+ * Validates the spatial fields required to map one authoritative native array.
+ *
+ * @param {unknown} candidate Candidate native-array descriptor to validate.
+ * @returns {boolean} Whether the descriptor contains all required native-array spatial fields.
+ */
 function isCompleteNativeDescriptor(candidate: unknown): boolean {
   if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
     return false;

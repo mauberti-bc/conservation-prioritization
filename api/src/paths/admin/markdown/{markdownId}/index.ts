@@ -115,7 +115,7 @@ DELETE.apiDoc = {
 /**
  * Express request handler to fetch a Markdown record for administration.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function getMarkdown(): RequestHandler {
   return async (req, res) => {
@@ -143,7 +143,7 @@ export function getMarkdown(): RequestHandler {
 /**
  * Express request handler to update a Markdown record.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function updateMarkdown(): RequestHandler {
   return async (req, res) => {
@@ -177,7 +177,7 @@ export function updateMarkdown(): RequestHandler {
 /**
  * Express request handler to delete a Markdown record.
  *
- * @returns {RequestHandler}
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
  */
 export function deleteMarkdown(): RequestHandler {
   return async (req, res) => {

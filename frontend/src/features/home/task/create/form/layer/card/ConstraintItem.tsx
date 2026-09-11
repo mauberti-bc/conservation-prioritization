@@ -13,7 +13,12 @@ interface Props {
   isReadOnly?: boolean;
 }
 
-/** Edit one constraint as type and optional numeric bounds. */
+/**
+ * Edit one constraint as type and optional numeric bounds.
+ *
+ * @param {Props} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ */
 export const ConstraintItem = ({ constraint, onChange, onDelete, isReadOnly = false }: Props) => {
   const menuItems: IconMenuItem[] = [
     {

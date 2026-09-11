@@ -14,8 +14,9 @@ export class ProjectTaskRepository extends BaseRepository {
   /**
    * Create a new project-task association.
    *
-   * @param {CreateProjectTask} projectTask
-   * @return {*}  {Promise<ProjectTask>}
+   * @param {CreateProjectTask} projectTask Project-to-task association to persist.
+   * @returns {Promise<ProjectTask>} The project task record.
+   * @throws {ApiExecuteSQLError} Failed to create project-task association.
    * @memberof ProjectTaskRepository
    */
   async createProjectTask(projectTask: CreateProjectTask): Promise<ProjectTask> {
@@ -40,9 +41,9 @@ export class ProjectTaskRepository extends BaseRepository {
   /**
    * Create multiple project-task associations.
    *
-   * @param {string} projectId
-   * @param {string[]} taskIds
-   * @return {*}  {Promise<ProjectTask[]>}
+   * @param {string} projectId Identifier of the project.
+   * @param {string[]} taskIds Identifiers of the tasks to process.
+   * @returns {Promise<ProjectTask[]>} Matching project task records.
    * @memberof ProjectTaskRepository
    */
   async createProjectTasks(projectId: string, taskIds: string[]): Promise<ProjectTask[]> {
@@ -65,9 +66,9 @@ export class ProjectTaskRepository extends BaseRepository {
   /**
    * Create multiple project-task associations for a task.
    *
-   * @param {string} taskId
-   * @param {string[]} projectIds
-   * @return {*}  {Promise<ProjectTask[]>}
+   * @param {string} taskId Identifier of the task.
+   * @param {string[]} projectIds Identifiers of the projects.
+   * @returns {Promise<ProjectTask[]>} Matching project task records.
    * @memberof ProjectTaskRepository
    */
   async createTaskProjects(taskId: string, projectIds: string[]): Promise<ProjectTask[]> {
@@ -90,8 +91,9 @@ export class ProjectTaskRepository extends BaseRepository {
   /**
    * Fetch a project-task association by its ID.
    *
-   * @param {string} projectTaskId
-   * @return {*}  {Promise<ProjectTask>}
+   * @param {string} projectTaskId Identifier of the project-to-task association.
+   * @returns {Promise<ProjectTask>} The project task record.
+   * @throws {ApiExecuteSQLError} Failed to fetch project-task association.
    * @memberof ProjectTaskRepository
    */
   async getProjectTaskById(projectTaskId: string): Promise<ProjectTask> {
@@ -116,8 +118,8 @@ export class ProjectTaskRepository extends BaseRepository {
   /**
    * Fetch all project-task associations for a given project ID.
    *
-   * @param {string} projectId
-   * @return {*}  {Promise<ProjectTask[]>}
+   * @param {string} projectId Identifier of the project.
+   * @returns {Promise<ProjectTask[]>} Matching project task records.
    * @memberof ProjectTaskRepository
    */
   async getProjectTasksByProjectId(projectId: string): Promise<ProjectTask[]> {
@@ -135,8 +137,9 @@ export class ProjectTaskRepository extends BaseRepository {
   /**
    * Delete a project-task association.
    *
-   * @param {DeleteProjectTask} data
-   * @return {*}  {Promise<void>}
+   * @param {DeleteProjectTask} data Data to persist or process.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {ApiExecuteSQLError} Failed to delete project-task association.
    * @memberof ProjectTaskRepository
    */
   async deleteProjectTask(data: DeleteProjectTask): Promise<void> {

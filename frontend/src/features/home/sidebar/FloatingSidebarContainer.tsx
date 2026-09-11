@@ -16,8 +16,8 @@ interface FloatingSidebarContainerProps {
 /**
  * Floating sidebar shell for map-backed workflows.
  *
- * @param {FloatingSidebarContainerProps} props
- * @returns {JSX.Element}
+ * @param {FloatingSidebarContainerProps} props Component properties.
+ * @returns {JSX.Element} The rendered component.
  */
 export const FloatingSidebarContainer = ({ children, zIndex = 12 }: FloatingSidebarContainerProps) => {
   return (

@@ -17,7 +17,11 @@ GET.apiDoc = {
   }
 };
 
-/** Returns export execution context for internal workers. */
+/**
+ * Returns export execution context for internal workers.
+ *
+ * @returns {RequestHandler} Express handler that processes the request and sends the response.
+ */
 export function getInternalTaskExport(): RequestHandler {
   return async (req, res) => {
     const connection = getAPIUserDBConnection();

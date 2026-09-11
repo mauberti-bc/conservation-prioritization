@@ -77,7 +77,7 @@ export const AuthContextProvider = (props: PropsWithChildren) => {
      * Logs a silent renewal failure reported by the authentication provider.
      *
      * @param {Error} [error] The renewal error supplied by the authentication event.
-     * @returns {void}
+     * @returns {void} No return value.
      */
     const handleSilentRenewError = (error?: Error) => {
       console.error('Silent renew error', error);
@@ -109,7 +109,7 @@ export const AuthContextProvider = (props: PropsWithChildren) => {
     /**
      * Registers or updates the signed-in profile using the access token captured by this effect.
      *
-     * @returns {Promise<void>} Resolves when the API confirms profile registration.
+     * @returns {Promise<void>} Resolves when the operation completes.
      * @throws {Error} Rejects if the registration request fails.
      */
     const registerProfile = async (): Promise<void> => {
@@ -135,7 +135,7 @@ export const AuthContextProvider = (props: PropsWithChildren) => {
      * Ignores results after effect cleanup. Active-session failures are logged and enable a retry
      * without rejecting this promise.
      *
-     * @returns {Promise<void>} Resolves after registration succeeds or its failure has been handled.
+     * @returns {Promise<void>} Resolves when the operation completes.
      */
     const finishRegistration = async (): Promise<void> => {
       try {

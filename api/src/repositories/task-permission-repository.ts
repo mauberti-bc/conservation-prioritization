@@ -19,8 +19,9 @@ export class TaskPermissionRepository extends BaseRepository {
   /**
    * Create a new task permission scoped to a task and role.
    *
-   * @param {CreateTaskPermission} permission
-   * @return {*}  {Promise<TaskPermission>}
+   * @param {CreateTaskPermission} permission Permission fields to persist.
+   * @returns {Promise<TaskPermission>} The task permission record.
+   * @throws {ApiExecuteSQLError} Failed to create task permission.
    * @memberof TaskPermissionRepository
    */
   async createTaskPermission(permission: CreateTaskPermission): Promise<TaskPermission> {
@@ -45,8 +46,9 @@ export class TaskPermissionRepository extends BaseRepository {
   /**
    * Get a task permission by its ID.
    *
-   * @param {string} taskPermissionId
-   * @return {*}  {Promise<TaskPermission>}
+   * @param {string} taskPermissionId Identifier of the task permission.
+   * @returns {Promise<TaskPermission>} The task permission record.
+   * @throws {ApiExecuteSQLError} Failed to get task permission by ID.
    * @memberof TaskPermissionRepository
    */
   async getTaskPermissionById(taskPermissionId: string): Promise<TaskPermission> {
@@ -72,7 +74,7 @@ export class TaskPermissionRepository extends BaseRepository {
   /**
    * Get all active task permissions.
    *
-   * @return {*}  {Promise<TaskPermission[]>}
+   * @returns {Promise<TaskPermission[]>} Matching task permission records.
    * @memberof TaskPermissionRepository
    */
   async getAllTaskPermissions(): Promise<TaskPermission[]> {
@@ -90,9 +92,10 @@ export class TaskPermissionRepository extends BaseRepository {
   /**
    * Update an existing task permission.
    *
-   * @param {string} taskPermissionId
-   * @param {UpdateTaskPermission} updates
-   * @return {*}  {Promise<TaskPermission>}
+   * @param {string} taskPermissionId Identifier of the task permission.
+   * @param {UpdateTaskPermission} updates Fields to update on the existing record.
+   * @returns {Promise<TaskPermission>} The task permission record.
+   * @throws {ApiExecuteSQLError} Failed to update task permission.
    * @memberof TaskPermissionRepository
    */
   async updateTaskPermission(taskPermissionId: string, updates: UpdateTaskPermission): Promise<TaskPermission> {
@@ -122,8 +125,9 @@ export class TaskPermissionRepository extends BaseRepository {
   /**
    * Soft delete a task permission.
    *
-   * @param {DeleteTaskPermission} data
-   * @return {*}  {Promise<void>}
+   * @param {DeleteTaskPermission} data Data to persist or process.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {ApiExecuteSQLError} Failed to delete task permission.
    * @memberof TaskPermissionRepository
    */
   async deleteTaskPermission(data: DeleteTaskPermission): Promise<void> {

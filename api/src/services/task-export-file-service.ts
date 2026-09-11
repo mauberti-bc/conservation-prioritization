@@ -3,7 +3,9 @@ import { CreateTaskExportFile, TaskExportFile, UpdateTaskExportFile } from '../m
 import { TaskExportFileRepository } from '../repositories/task-export-file-repository';
 import { DBService } from './db-service';
 
-/** Service for managing task export file metadata. */
+/**
+ * Service for managing task export file metadata.
+ */
 export class TaskExportFileService extends DBService {
   private taskExportFileRepository: TaskExportFileRepository;
 
@@ -21,7 +23,7 @@ export class TaskExportFileService extends DBService {
    * Creates or replaces one deterministic export file record.
    *
    * @param {CreateTaskExportFile} file Durable file metadata.
-   * @returns {Promise<TaskExportFile>}
+   * @returns {Promise<TaskExportFile>} The task export file record.
    */
   async createTaskExportFile(file: CreateTaskExportFile): Promise<TaskExportFile> {
     return this.taskExportFileRepository.createTaskExportFile(file);
@@ -31,7 +33,7 @@ export class TaskExportFileService extends DBService {
    * Returns one export file by ID.
    *
    * @param {string} taskExportFileId Export file ID.
-   * @returns {Promise<TaskExportFile>}
+   * @returns {Promise<TaskExportFile>} One export file by ID.
    */
   async getTaskExportFileById(taskExportFileId: string): Promise<TaskExportFile> {
     return this.taskExportFileRepository.getTaskExportFileById(taskExportFileId);
@@ -41,7 +43,7 @@ export class TaskExportFileService extends DBService {
    * Returns export files for one parent export.
    *
    * @param {string} taskExportId Parent export ID.
-   * @returns {Promise<TaskExportFile[]>}
+   * @returns {Promise<TaskExportFile[]>} Export files for one parent export.
    */
   async getTaskExportFilesByExportId(taskExportId: string): Promise<TaskExportFile[]> {
     return this.taskExportFileRepository.getTaskExportFilesByExportId(taskExportId);
@@ -52,7 +54,7 @@ export class TaskExportFileService extends DBService {
    *
    * @param {string} taskExportFileId Export file ID.
    * @param {UpdateTaskExportFile} updates File metadata updates.
-   * @returns {Promise<TaskExportFile>}
+   * @returns {Promise<TaskExportFile>} The task export file record.
    */
   async updateTaskExportFile(taskExportFileId: string, updates: UpdateTaskExportFile): Promise<TaskExportFile> {
     return this.taskExportFileRepository.updateTaskExportFile(taskExportFileId, updates);
@@ -62,7 +64,7 @@ export class TaskExportFileService extends DBService {
    * Deletes one export file record.
    *
    * @param {string} taskExportFileId Export file ID.
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} Resolves when the operation completes.
    */
   async deleteTaskExportFile(taskExportFileId: string): Promise<void> {
     await this.taskExportFileRepository.deleteTaskExportFile(taskExportFileId);
