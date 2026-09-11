@@ -84,7 +84,7 @@
     "@typescript-eslint/eslint-plugin": "~7.6.0",
     "@typescript-eslint/parser": "~7.6.0",
     "chai": "^4.3.4",
-    "del": "~6.0.0",
+    "del": "~6.1.0",
     "eslint": "~8.56.0",
     "eslint-config-prettier": "~8.10.0",
     "eslint-plugin-prettier": "~4.2.1",
