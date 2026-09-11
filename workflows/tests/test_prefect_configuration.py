@@ -40,11 +40,12 @@ class PrefectConfigurationTest(unittest.TestCase):
                         int(resource[resource_type]["memory"].removesuffix("Mi"))
                         for resource in hook_resources
                     )
-                    if resource_type == "requests" or environment != "prod":
+                    if resource_type == "requests":
                         self.assertLessEqual(running_mib + hook_mib, budget_mib)
                     else:
-                        # Production retains its existing 128Mi worker burst allowance.
-                        self.assertLessEqual(running_mib + hook_mib, budget_mib + 128)
+                        # Quotas govern requests; service limits may use
+                        # the full budget while requests reserve deployment headroom.
+                        self.assertLessEqual(running_mib, budget_mib)
 
                 worker_bytes = int(profile["resources"]["limits"]["memory"].removesuffix("Mi")) * 1024**2
                 dask_bytes = int(profile["daskWorkerMemory"].removesuffix("MiB")) * 1024**2

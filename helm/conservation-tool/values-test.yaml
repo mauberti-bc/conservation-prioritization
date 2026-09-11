@@ -2,8 +2,8 @@ environment:
   id: "test"
   name: "test"
 
-# Memory requests and limits: 2560Mi for running services + 512Mi for deployment hooks = 3Gi.
-# Allocate 1408Mi to the worker, 448Mi to Prefect server, 320Mi each to API/Postgres, and 64Mi to frontend.
+# Memory requests: 2560Mi for running services + 512Mi for deployment hooks = 3Gi.
+# The quota applies to requests. Running service limits total 3Gi, with 1920Mi for the worker.
 prefect-server:
   ingress:
     host:
@@ -88,17 +88,17 @@ services:
         fsGroup: 1003620000
       profiles:
         sparse-solver:
-          executionProfile: test-1408mi
+          executionProfile: test-1920mi
           # Leave 320Mi of the pod limit for Prefect and orchestration overhead.
-          daskWorkerMemory: 1088MiB
-          maxPeakMemoryBytes: 1140850688
+          daskWorkerMemory: 1600MiB
+          maxPeakMemoryBytes: 1677721600
           resources:
             requests:
               cpu: 100m
               memory: 1408Mi
             limits:
               cpu: "2"
-              memory: 1408Mi
+              memory: 1920Mi
 
     deploy:
       image:
