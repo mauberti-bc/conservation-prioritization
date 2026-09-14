@@ -22,7 +22,7 @@ import { InteractiveListItemButton } from 'components/list/InteractiveListItemBu
 import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { SkeletonList } from 'components/loading/SkeletonLoaders';
 import { CustomPagination } from 'components/pagination/CustomPagination';
-import { TASK_STATUS } from 'constants/status';
+import { TASK_STATUS, TERMINAL_STATUSES } from 'constants/status';
 import { TaskContext } from 'context/taskContext';
 import { GetTaskResponse, TaskExportFormat, TaskExportResponse } from 'hooks/interfaces/useTaskApi.interface';
 import { useConservationApi } from 'hooks/useConservationApi';
@@ -512,30 +512,14 @@ export const MapPage = ({ mode = 'tasks' }: MapPageProps) => {
 
   const showStatusChip = useMemo(() => {
     const activeStatus = activeTaskData?.status;
-    const hasPmtilesUri = Boolean(activeTaskData?.tileset_uri);
-    if (!activeStatus) {
+    if (!activeStatus || activeStatus === TASK_STATUS.DRAFT) {
       return false;
     }
 
-    if (activeStatus === TASK_STATUS.DRAFT) {
-      return false;
-    }
-
-    if (activeStatus === TASK_STATUS.COMPLETED) {
-      return !hasPmtilesUri;
-    }
-
-    return true;
+    return !TERMINAL_STATUSES.includes(activeStatus);
   }, [activeTaskData]);
 
   const statusChipLabel = useMemo(() => {
-    const activeStatus = activeTaskData?.status;
-    const hasPmtilesUri = Boolean(activeTaskData?.tileset_uri);
-
-    if (activeStatus === TASK_STATUS.COMPLETED && !hasPmtilesUri) {
-      return 'Building map';
-    }
-
     const stage = activeTaskData?.latest_run?.stage;
     if (stage === 'counting') {
       return 'Counting planning units';

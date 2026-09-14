@@ -13,6 +13,17 @@ export const TASK_STATUS = {
 
 export type TaskStatusValue = (typeof TASK_STATUS)[keyof typeof TASK_STATUS];
 
+/**
+ * Task outcomes that no longer represent active processing.
+ */
+export const TERMINAL_STATUSES: readonly TaskStatusValue[] = [
+  TASK_STATUS.COMPLETED,
+  TASK_STATUS.ABORTED,
+  TASK_STATUS.INFEASIBLE,
+  TASK_STATUS.FAILED,
+  TASK_STATUS.FAILED_TO_SUBMIT,
+];
+
 export const TILE_STATUS = {
   DRAFT: 'draft',
   STARTED: 'started',

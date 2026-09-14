@@ -129,6 +129,39 @@ describe('MapPage task and export refresh', () => {
     expect(screen.queryByRole('button', { name: 'Abort' })).toBeNull();
   });
 
+  it.each(['completed', 'aborted', 'infeasible', 'failed', 'failed_to_submit'] as const)(
+    'hides the map chip for terminal status %s despite the retained solving stage',
+    async (status) => {
+      const task = buildTask(status);
+      task.latest_run!.stage = 'solving';
+      mocks.taskApi.getTaskById.mockResolvedValue(task);
+      const { container } = render(workspace('/map/task-1'));
+
+      await waitFor(() => expect(mocks.taskApi.getTaskById).toHaveBeenCalledWith('task-1'));
+      expect(container.querySelector('.MuiChip-root')).toBeNull();
+      expect(screen.queryByRole('progressbar')).toBeNull();
+    }
+  );
+
+  it.each(['completed', 'aborted', 'infeasible', 'failed', 'failed_to_submit'] as const)(
+    'removes the optimizing map chip when terminal status %s arrives',
+    async (status) => {
+      const task = buildTask('running');
+      task.latest_run!.stage = 'solving';
+      mocks.taskApi.getTaskById.mockResolvedValue(task);
+      const view = render(workspace('/map/task-1'));
+      expect(await screen.findByText('Optimizing')).toBeTruthy();
+      expect(screen.getByRole('progressbar')).toBeTruthy();
+
+      mocks.events = { ...mocks.events, taskStatuses: { 'task-1': status } };
+      view.rerender(workspace('/map/task-1'));
+
+      expect(view.container.querySelector('.MuiChip-root')).toBeNull();
+      expect(screen.queryByText('Optimizing')).toBeNull();
+      expect(screen.queryByRole('progressbar')).toBeNull();
+    }
+  );
+
   it('requests abort for the selected task and refreshes the list', async () => {
     mocks.taskApi.getAllTasks.mockResolvedValue({
       tasks: [buildTask('running')],
