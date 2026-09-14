@@ -9,6 +9,7 @@ metadata:
     {{- include "conservation-tool.labels" $root | nindent 4 }}
     conservation-tool/workload-profile: {{ $profileName }}
 spec:
+  progressDeadlineSeconds: 1200
   replicas: {{ $profile.replicas | default $root.Values.services.workflows.worker.replicas }}
   strategy:
     type: Recreate
@@ -23,6 +24,7 @@ spec:
       annotations:
         conservation-tool/release-revision: {{ $root.Release.Revision | quote }}
     spec:
+      terminationGracePeriodSeconds: 120
       serviceAccountName: deployer
       securityContext:
         runAsNonRoot: true
@@ -34,40 +36,16 @@ spec:
         {{- end }}
         seccompProfile:
           type: RuntimeDefault
-      initContainers:
-        - name: sync-prefect-deployments
-          image: "{{ $root.Values.registry }}/{{ $root.Values.services.workflows.worker.image.stream }}:{{ $root.Values.services.workflows.worker.image.tag }}"
-          imagePullPolicy: {{ $root.Values.services.workflows.worker.image.pullPolicy | default "Always" }}
-          command:
-            - bash
-            - src/setup.sh
-          env:
-            - name: HOME
-              value: "/home/app"
-            - name: PREFECT_HOME
-              value: {{ printf "%s/.prefect" ($profile.scratchRoot | default "/workflow-scratch") | quote }}
-            - name: TMPDIR
-              value: {{ $profile.scratchRoot | default "/workflow-scratch" | quote }}
-            - name: PREFECT_API_URL
-              value: "{{ $root.Values.env.PREFECT_API_URL }}"
-            - name: ZARR_STORE_PATH
-              value: "{{ $root.Values.env.ZARR_STORE_PATH }}"
-            - name: WORKFLOW_SCRATCH_ROOT
-              value: {{ $profile.scratchRoot | default "/workflow-scratch" | quote }}
-            - name: WORKFLOW_SCRATCH_LIMIT_BYTES
-              value: {{ $profile.maxScratchBytes | default 536870912 | quote }}
-          volumeMounts:
-            - name: workflow-scratch
-              mountPath: {{ $profile.scratchMountPath | default "/workflow-scratch" | quote }}
       containers:
         - name: prefect-worker
           image: "{{ $root.Values.registry }}/{{ $root.Values.services.workflows.worker.image.stream }}:{{ $root.Values.services.workflows.worker.image.tag }}"
           imagePullPolicy: {{ $root.Values.services.workflows.worker.image.pullPolicy | default "Always" }}
+          # Keep the container running while Prefect becomes available so Helm
+          # can run the post-install migration and registration hooks.
+          command:
+            - bash
+            - src/start_worker.sh
           args:
-            - prefect
-            - worker
-            - start
-            - --pool
             - "{{ $profile.pool }}"
           ports:
             - containerPort: {{ $root.Values.ports.prefect_worker_api | default 4202 }}

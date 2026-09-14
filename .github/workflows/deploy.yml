@@ -44,7 +44,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     environment: ${{ inputs.environment || github.event.inputs.environment || 'dev' }}
     concurrency:
       group: deploy-${{ inputs.environment || github.event.inputs.environment || 'dev' }}
@@ -229,6 +229,12 @@ jobs:
           echo "Building Helm dependencies..."
           helm dependency build
 
+      - name: Validate rendered deployment chart
+        working-directory: helm/conservation-tool
+        run: |
+          helm lint . --values "${{ steps.values-file.outputs.values_file }}"
+          helm template conservation-tool . --values "${{ steps.values-file.outputs.values_file }}" >/dev/null
+
       - name: Promote image tags for target environment
         if: ${{ inputs.source_tag != '' && inputs.target_tag != '' }}
         run: |
@@ -313,7 +319,7 @@ jobs:
             --set-string services.workflows.deploy.image.tag="${IMAGE_TAG}" \
             --namespace "${OPENSHIFT_NAMESPACE}" \
             --wait \
-            --timeout=10m \
+            --timeout=20m \
             --debug
 
       - name: Verify deployment
@@ -333,8 +339,7 @@ jobs:
           done
 
       - name: Diagnose deployment failure
+        timeout-minutes: 5
         if: ${{ failure() }}
         run: |
-          helm history conservation-tool --namespace "$OPENSHIFT_NAMESPACE" --max 5 || true
-          oc get deployments,pods,jobs --namespace "$OPENSHIFT_NAMESPACE" --request-timeout=15s || true
-          oc get events --namespace "$OPENSHIFT_NAMESPACE" --field-selector type=Warning --sort-by=.lastTimestamp --request-timeout=15s || true
+          bash helm/scripts/diagnose-deployment.sh "$OPENSHIFT_NAMESPACE"

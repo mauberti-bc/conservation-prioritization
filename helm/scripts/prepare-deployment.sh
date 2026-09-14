@@ -39,6 +39,7 @@ for image in "${images[@]}"; do
   fi
 done
 
+echo "Checking the existing PostgreSQL Deployment before migrations."
 database="$(retry_preflight oc get deployment conservation-tool-db --namespace "$namespace" --ignore-not-found --output json --request-timeout=15s)"
 if [[ -z "$database" ]]; then
   if [[ "$release_status" != absent ]]; then
@@ -62,4 +63,4 @@ if [[ "$ready_replicas" == 0 ]]; then
 fi
 
 echo "Waiting for PostgreSQL readiness before Prefect migrations."
-oc rollout status deployment/conservation-tool-db --namespace "$namespace" --timeout=5m
+oc rollout status deployment/conservation-tool-db --namespace "$namespace" --timeout=15m --request-timeout=30s

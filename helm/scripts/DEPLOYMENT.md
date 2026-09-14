@@ -22,7 +22,7 @@ production promotions continue to use the existing `dev` → `test` → `prod` f
    with `ErrImagePull` or `ImagePullBackOff`, set only its image to the verified
    release image. The deployment's storage, environment, and resource settings are
    retained. A healthy database is left for the normal Helm upgrade to update.
-4. Wait up to five minutes for the database rollout before running Helm. Prefect's
+4. Wait up to fifteen minutes for the database rollout before running Helm. Prefect's
    pre-upgrade migration needs the existing database, so Helm cannot repair a
    missing database image on its own.
 
@@ -72,3 +72,33 @@ bash -n helm/scripts/prepare-deployment.sh helm/scripts/utils/retry.sh
 
 The tests run the preflight script against fake cluster and registry clients.
 They require Python 3, Bash, and `jq`, and do not access a live cluster.
+
+## PVC handoff and worker startup
+
+The database and worker Deployments use `Recreate`, with two minutes for graceful
+shutdown and a twenty-minute progress deadline. Helm waits up to twenty minutes
+per operation. This allows time for a ReadWriteOnce volume to detach from its old
+node and attach to the replacement. Persistent attachment failures still require
+platform storage investigation; the pipeline never force-detaches or deletes PVCs.
+For immutable Git SHA image tags, the database no longer restarts solely because
+the Helm release revision changes; image or pod configuration changes still roll
+it out. Mutable tags such as dev/test/prod retain the revision annotation so a
+promotion still pulls the new database image.
+
+The worker container waits up to ten minutes for a read-only work-pool query to
+succeed, proving both the Prefect API and database schema are ready, and ensures
+its work pool exists before starting. It does not register deployments or recovery
+automations. Those operations run once in the Prefect registration hook after
+migrations. The readiness wait runs inside the main container, allowing Helm to
+reach post-install hooks on a fresh installation. Pod readiness during this wait
+means the container is running, not that the worker is already polling Prefect.
+The registration hook additionally requires a new online-worker heartbeat from
+every configured pool within three minutes. A stopped worker's older heartbeat
+cannot satisfy this check. Hook success is required for the Helm operation to succeed.
+
+Successful application setup Jobs are deleted by Helm. Failed setup and registration
+Jobs retain logs and expire after one day; registration has a fifteen-minute deadline
+and two retries. Existing historical setup Jobs are unaffected by the new policy.
+CI failure diagnostics include pod node placement, PVCs, warning events, and current
+and previous logs for waiting, failed, or restarted application containers, including
+init containers. These diagnostics are collected without cluster-admin access.

@@ -8,6 +8,7 @@ metadata:
     template.alpha.openshift.io/wait-for-ready: 'true'
     {{- include "conservation-tool.annotations" . | nindent 4 }}
 spec:
+  progressDeadlineSeconds: 1200
   replicas: {{ .Values.services.db.replicas | default 1 }}
   selector:
     matchLabels:
@@ -19,9 +20,13 @@ spec:
       labels:
         app: {{ include "conservation-tool.fullname.db" . | quote }}
         role: db
+      {{- if not (regexMatch "^[0-9a-f]{40}$" .Values.services.db.image.tag) }}
       annotations:
+        # Mutable environment tags must be pulled again after a promotion.
         conservation-tool/release-revision: {{ .Release.Revision | quote }}
+      {{- end }}
     spec:
+      terminationGracePeriodSeconds: 120
       # pod-level security context
       securityContext:
         runAsNonRoot: true

@@ -10,6 +10,9 @@ metadata:
     "helm.sh/hook-weight": "10"
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 86400
   template:
     metadata:
       labels:
@@ -44,7 +47,12 @@ spec:
               type: RuntimeDefault
           command:
             - bash
-            - src/setup.sh
+            - -c
+          args:
+            - |
+              set -euo pipefail
+              bash src/setup.sh
+              python -m src.utils.wait_for_prefect_workers {{ range .Values.services.workflows.worker.profiles }}{{ .pool | quote }} {{ end }}
           ports:
             - containerPort: {{ .Values.ports.prefect_server_api | default 4201 }}
           env:

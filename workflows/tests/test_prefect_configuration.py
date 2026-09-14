@@ -1,3 +1,5 @@
+import shutil
+import subprocess
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -12,6 +14,69 @@ from src.utils.task_run_concurrency import (
 
 
 class PrefectConfigurationTest(unittest.TestCase):
+    @unittest.skipUnless(
+        shutil.which("helm"), "Helm is required to render rollout manifests"
+    )
+    def test_rendered_rollout_and_hook_safeguards(self) -> None:
+        """Retain mutable-tag upgrades while bounding storage and worker startup."""
+        chart = Path(__file__).resolve().parents[2] / "helm" / "conservation-tool"
+        for tag in ("dev", "a" * 40):
+            with self.subTest(tag=tag):
+                rendered = subprocess.check_output(
+                    [
+                        "helm",
+                        "template",
+                        "conservation-tool",
+                        str(chart),
+                        "--values",
+                        str(chart / "values-dev.yaml"),
+                        "--set-string",
+                        f"services.db.image.tag={tag}",
+                    ],
+                    text=True,
+                )
+                resources = {
+                    item["metadata"]["name"]: item
+                    for item in yaml.safe_load_all(rendered)
+                    if item and item["kind"] in ("Deployment", "Job")
+                }
+                database = resources["conservation-tool-db"]
+                worker = resources["conservation-tool-prefect-worker-sparse-solver"]
+                registration = resources["conservation-tool-prefect-deploy"]
+                setup = resources["conservation-tool-db-setup-1"]
+                annotations = database["spec"]["template"]["metadata"].get(
+                    "annotations", {}
+                )
+                self.assertEqual(
+                    "conservation-tool/release-revision" in annotations, tag == "dev"
+                )
+                for workload in (database, worker):
+                    self.assertEqual(workload["spec"]["strategy"]["type"], "Recreate")
+                    self.assertEqual(workload["spec"]["progressDeadlineSeconds"], 1200)
+                    self.assertEqual(
+                        workload["spec"]["template"]["spec"][
+                            "terminationGracePeriodSeconds"
+                        ],
+                        120,
+                    )
+                self.assertNotIn("initContainers", worker["spec"]["template"]["spec"])
+                command = registration["spec"]["template"]["spec"]["containers"][0][
+                    "args"
+                ][0]
+                self.assertIn("wait_for_prefect_workers", command)
+                self.assertIn('"sparse-solver"', command)
+                self.assertLess(
+                    command.index("src/setup.sh"),
+                    command.index("wait_for_prefect_workers"),
+                )
+                for job in (registration, setup):
+                    self.assertEqual(job["spec"]["activeDeadlineSeconds"], 900)
+                    self.assertEqual(job["spec"]["ttlSecondsAfterFinished"], 86400)
+                    self.assertNotIn(
+                        "hook-failed",
+                        job["metadata"]["annotations"]["helm.sh/hook-delete-policy"],
+                    )
+
     def test_environment_memory_budgets_include_deployment_headroom(self) -> None:
         """Keep services and deployment headroom within each environment's quota."""
         repository = Path(__file__).resolve().parents[2]
@@ -20,12 +85,17 @@ class PrefectConfigurationTest(unittest.TestCase):
         budgets_mib = {"dev": 3072, "test": 3072, "prod": 2048}
         for environment, budget_mib in budgets_mib.items():
             with self.subTest(environment=environment):
-                values = yaml.safe_load((chart / f"values-{environment}.yaml").read_text(encoding="utf-8"))
+                values = yaml.safe_load(
+                    (chart / f"values-{environment}.yaml").read_text(encoding="utf-8")
+                )
                 services = values["services"]
                 profile = services["workflows"]["worker"]["profiles"]["sparse-solver"]
                 resources = [
                     services[name]["resources"] for name in ("api", "db", "frontend")
-                ] + [profile["resources"], values["prefect-server"]["server"]["resources"]]
+                ] + [
+                    profile["resources"],
+                    values["prefect-server"]["server"]["resources"],
+                ]
                 hook_resources = [
                     base["services"]["workflows"]["deploy"]["resources"],
                     base["services"]["dbSetup"]["resources"],
@@ -47,8 +117,13 @@ class PrefectConfigurationTest(unittest.TestCase):
                         # the full budget while requests reserve deployment headroom.
                         self.assertLessEqual(running_mib, budget_mib)
 
-                worker_bytes = int(profile["resources"]["limits"]["memory"].removesuffix("Mi")) * 1024**2
-                dask_bytes = int(profile["daskWorkerMemory"].removesuffix("MiB")) * 1024**2
+                worker_bytes = (
+                    int(profile["resources"]["limits"]["memory"].removesuffix("Mi"))
+                    * 1024**2
+                )
+                dask_bytes = (
+                    int(profile["daskWorkerMemory"].removesuffix("MiB")) * 1024**2
+                )
                 self.assertLess(dask_bytes, worker_bytes)
                 self.assertLess(profile["maxPeakMemoryBytes"], worker_bytes)
 
@@ -145,7 +220,7 @@ class PrefectConfigurationTest(unittest.TestCase):
         self.assertIn('@task(name="solve_compiled_model")', optimization_flow_source)
         self.assertIn("with acquire_task_run_slot():", optimization_flow_source)
 
-    def test_worker_init_syncs_prefect_deployments(self) -> None:
+    def test_worker_startup_does_not_depend_on_registration_hooks(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         worker_deployment = (
             repository
@@ -156,9 +231,15 @@ class PrefectConfigurationTest(unittest.TestCase):
             / "worker-deployment.yaml"
         ).read_text(encoding="utf-8")
 
-        self.assertIn("sync-prefect-deployments", worker_deployment)
-        self.assertIn("- src/setup.sh", worker_deployment)
-        self.assertNotIn("- src/ensure_work_pool.sh", worker_deployment)
+        self.assertNotIn("initContainers:", worker_deployment)
+        self.assertIn("- src/start_worker.sh", worker_deployment)
+        self.assertNotIn("- src/setup.sh", worker_deployment)
+        startup_script = (
+            repository / "workflows" / "src" / "start_worker.sh"
+        ).read_text()
+        self.assertIn("src.utils.wait_for_prefect", startup_script)
+        self.assertIn("exec prefect worker start", startup_script)
+        self.assertNotIn("src/setup.sh", startup_script)
         self.assertIn("WORKFLOW_SCRATCH_ROOT", worker_deployment)
         self.assertIn("WORKFLOW_SCRATCH_LIMIT_BYTES", worker_deployment)
         self.assertIn("mountPath:", worker_deployment)
@@ -179,12 +260,9 @@ class PrefectConfigurationTest(unittest.TestCase):
         for values_file, namespace_id in expected_ids.items():
             with self.subTest(values_file=values_file):
                 helm_values = yaml.safe_load(
-                    (
-                        repository
-                        / "helm"
-                        / "conservation-tool"
-                        / values_file
-                    ).read_text(encoding="utf-8")
+                    (repository / "helm" / "conservation-tool" / values_file).read_text(
+                        encoding="utf-8"
+                    )
                 )
                 worker_context = helm_values["services"]["workflows"]["worker"][
                     "securityContext"
@@ -211,18 +289,12 @@ class PrefectConfigurationTest(unittest.TestCase):
             self.assertIn(f'name="compile_task_run_{domain}_optimization"', flow_source)
             self.assertIn(f'@flow(name="task_run_{domain}_optimization")', flow_source)
             self.assertIn('os.getenv("SPATIAL_DASK_WORKERS", "1")', flow_source)
-            self.assertIn(
-                'os.getenv("SPATIAL_DASK_WORKER_MEMORY", "4GB")', flow_source
-            )
+            self.assertIn('os.getenv("SPATIAL_DASK_WORKER_MEMORY", "4GB")', flow_source)
             self.assertIn(
                 f"compile_run=compile_task_run_{domain}_optimization", flow_source
             )
         priority_flow_source = (
-            repository
-            / "workflows"
-            / "src"
-            / "flows"
-            / "task_run_priority_ranking.py"
+            repository / "workflows" / "src" / "flows" / "task_run_priority_ranking.py"
         ).read_text(encoding="utf-8")
 
         self.assertIn('name="compile_task_run_priority_ranking"', priority_flow_source)
