@@ -502,16 +502,17 @@ export class TaskRunService extends DBService {
    * @returns {Promise<void>} Resolves when the operation completes.
    * @throws {ApiGeneralError} A run cannot complete before canonical result and PMTiles artifacts are ready.
    * @throws {ApiGeneralError} An optimization run requires exactly one normalized reference solution.
-   * @throws {ApiGeneralError} An infeasible outcome requires solver evidence of infeasibility.
+   * @throws {ApiGeneralError} An infeasible outcome requires solver evidence of an infeasible or empty model.
    */
   async updateRun(taskRunId: string, updates: UpdateTaskRun): Promise<void> {
     const current = await this.taskRunRepository.getTaskRunById(taskRunId);
-    const hasNoSolution = (updates.solver_status ?? current.solver_status) === 'infeasible';
+    const solverStatus = updates.solver_status ?? current.solver_status;
+    const hasNoSolution = solverStatus === 'infeasible' || solverStatus === 'empty';
     if (updates.status === 'completed' && hasNoSolution) {
       updates = { ...updates, status: 'infeasible' };
     }
     if (updates.status === 'infeasible' && !hasNoSolution) {
-      throw new ApiGeneralError('An infeasible run requires solver evidence of infeasibility.', []);
+      throw new ApiGeneralError('An infeasible run requires solver evidence of an infeasible or empty model.', []);
     }
     const allowedStatuses: Record<TaskRun['status'], TaskRun['status'][]> = {
       queued: ['queued', 'running', 'failed', 'cancelled'],
@@ -559,7 +560,12 @@ export class TaskRunService extends DBService {
     if (updates.status === 'completed' || updates.status === 'infeasible') {
       await this.taskService.updateTaskExecution(current.task_id, {
         status: updates.status,
-        status_message: hasNoSolution ? 'No feasible solution satisfies the selected constraints.' : null
+        status_message:
+          solverStatus === 'empty'
+            ? 'No selectable planning units remain after preprocessing.'
+            : hasNoSolution
+            ? 'No feasible solution satisfies the selected constraints.'
+            : null
       });
     }
     if (updates.status === 'failed') {

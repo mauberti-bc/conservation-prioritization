@@ -293,8 +293,10 @@ export const TaskViewPanel = () => {
                 }}>
                 {taskDataLoader.data?.latest_run?.status === 'infeasible' && (
                   <Alert severity="info" sx={{ mb: 2 }}>
-                    No feasible solution satisfies the selected constraints. Adjust the constraints and run the analysis
-                    again.
+                    {taskDataLoader.data.latest_run.solver_status === 'empty'
+                      ? 'No selectable planning units remain after preprocessing.'
+                      : 'No feasible solution satisfies the selected constraints.'}{' '}
+                    Adjust the inputs or constraints and run the analysis again.
                   </Alert>
                 )}
                 {taskDataLoader.data?.latest_run?.status === 'failed' && (

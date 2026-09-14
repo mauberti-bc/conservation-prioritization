@@ -71,9 +71,10 @@ def _sha256(path: Path) -> str:
 
 @dataclass(frozen=True)
 class InfeasibleRunOutcome:
-    """A proven infeasible solve that completed without publishable results."""
+    """An infeasible or empty solve that completed without publishable results."""
 
     runtime_seconds: float
+    solver_status: str = "infeasible"
 
 
 @dataclass(frozen=True)
@@ -462,7 +463,7 @@ def _solve_compiled_model(
     try:
         require_acceptable_result(result, configuration, artifact.model)
     except NoFeasibleSolutionError as error:
-        return InfeasibleRunOutcome(error.result.runtime_seconds)
+        return InfeasibleRunOutcome(error.result.runtime_seconds, error.result.status)
     validation = validate_result(result)
     source_decisions = _reconstruct_source_decisions(
         result,
@@ -983,7 +984,7 @@ def execute_optimization_run(
                 task_run_id,
                 status="infeasible",
                 stage="solving",
-                solver_status="infeasible",
+                solver_status=solver_status.solver_status,
                 runtime_seconds=solver_status.runtime_seconds,
                 failure_code=None,
                 failure_message=None,
@@ -1117,7 +1118,7 @@ def _solve_priority_ranking_model(
                 progress_callback=report_progress,
             )
     except NoFeasibleSolutionError as error:
-        return InfeasibleRunOutcome(error.result.runtime_seconds)
+        return InfeasibleRunOutcome(error.result.runtime_seconds, error.result.status)
     final_source = _reconstruct_source_decisions(
         ranking.final_result,
         artifact,
@@ -1333,7 +1334,7 @@ def execute_priority_ranking_run(
                 task_run_id,
                 status="infeasible",
                 stage="solving",
-                solver_status="infeasible",
+                solver_status=solver_status.solver_status,
                 runtime_seconds=solver_status.runtime_seconds,
                 failure_code=None,
                 failure_message=None,

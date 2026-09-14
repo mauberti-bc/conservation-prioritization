@@ -123,40 +123,46 @@ class NoSolutionTests(unittest.TestCase):
 
     def test_solve_tasks_return_infeasibility_without_raising(self):
         module = "src.flows.optimization_execution"
-        result = SimpleNamespace(status="infeasible", runtime_seconds=1.0)
-        for solve_task in (_solve_compiled_model, _solve_priority_ranking_model):
-            with self.subTest(task=solve_task.name), TemporaryDirectory() as directory:
-                artifact = MagicMock()
-                artifact.manifest.fixed_in_count = 0
-                artifact.manifest.fixed_out_count = 0
+        for status in ("infeasible", "empty"):
+            result = SimpleNamespace(status=status, runtime_seconds=1.0)
+            for solve_task in (_solve_compiled_model, _solve_priority_ranking_model):
                 with (
-                    patch(f"{module}.get_run_logger"),
-                    patch(f"{module}.load_compiled_artifact", return_value=artifact),
-                    patch(f"{module}.acquire_task_run_slot"),
-                    patch(f"{module}.solve_with_highs", return_value=result),
-                    patch(
-                        f"{module}.solve_priority_ranking",
-                        side_effect=NoFeasibleSolutionError(result),
-                    ),
-                    patch(f"{module}._reconstruct_source_decisions") as reconstruct,
+                    self.subTest(task=solve_task.name, status=status),
+                    TemporaryDirectory() as directory,
                 ):
-                    kwargs = (
-                        {"decision_domain": "discrete"}
-                        if solve_task is _solve_compiled_model
-                        else {}
-                    )
-                    outcome = solve_task.fn(
-                        "run-id",
-                        {},
-                        {},
-                        Path(directory),
-                        Path(directory),
-                        Path(directory),
-                        {},
-                        **kwargs,
-                    )
-                self.assertEqual(outcome, InfeasibleRunOutcome(1.0))
-                reconstruct.assert_not_called()
+                    artifact = MagicMock()
+                    artifact.manifest.fixed_in_count = 0
+                    artifact.manifest.fixed_out_count = 0
+                    with (
+                        patch(f"{module}.get_run_logger"),
+                        patch(
+                            f"{module}.load_compiled_artifact", return_value=artifact
+                        ),
+                        patch(f"{module}.acquire_task_run_slot"),
+                        patch(f"{module}.solve_with_highs", return_value=result),
+                        patch(
+                            f"{module}.solve_priority_ranking",
+                            side_effect=NoFeasibleSolutionError(result),
+                        ),
+                        patch(f"{module}._reconstruct_source_decisions") as reconstruct,
+                    ):
+                        kwargs = (
+                            {"decision_domain": "discrete"}
+                            if solve_task is _solve_compiled_model
+                            else {}
+                        )
+                        outcome = solve_task.fn(
+                            "run-id",
+                            {},
+                            {},
+                            Path(directory),
+                            Path(directory),
+                            Path(directory),
+                            {},
+                            **kwargs,
+                        )
+                    self.assertEqual(outcome, InfeasibleRunOutcome(1.0, status))
+                    reconstruct.assert_not_called()
 
     def test_real_solver_infeasibility_reaches_terminal_outcome_for_every_flow(self):
         """Exercise actual HiGHS solves through task bodies and flow orchestration."""

@@ -298,7 +298,8 @@ def compile_spatial_optimization(
         if retained_indices.size == 0:
             if adjusted_lower <= 0 <= adjusted_upper:
                 return
-            raise ValueError(f"Compiled constant row is infeasible: {name}.")
+            # Keep contradictory constant rows so the solver adapter reports
+            # proven infeasibility through the normal run-outcome path.
         compiled_rows.append(
             (
                 retained_indices,

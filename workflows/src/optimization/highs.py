@@ -513,6 +513,22 @@ class HighsModelSession:
         best_bound = (
             float(info.mip_dual_bound) if np.isfinite(info.mip_dual_bound) else None
         )
+        if status == "empty":
+            # Preserve HiGHS' raw Empty outcome. The run policy treats a model
+            # with no selectable variables as Infeasible, without publishing it.
+            current_model = solver.getLp()
+            if (
+                self._model.variable_count != 0
+                or current_model.num_col_ != 0
+                or current_model.num_row_ != self._model.constraint_count
+                or native_columns.size != 0
+            ):
+                raise RuntimeError(
+                    "HiGHS returned Empty for a nonempty or incomplete model."
+                )
+            objective = np.nan
+            gap = None
+            best_bound = None
         absolute_gap = (
             abs(objective - best_bound)
             if np.isfinite(objective) and best_bound is not None
@@ -646,11 +662,16 @@ class HighsModelSession:
 
 
 class NoFeasibleSolutionError(RuntimeError):
-    """Signal a completed solve that proved the constraints infeasible."""
+    """Signal an infeasible or empty solve with no publishable solution."""
 
     def __init__(self, result: SolverResult) -> None:
         """Preserve the solver outcome for the run completion update."""
-        super().__init__("No feasible solution satisfies the selected constraints.")
+        message = (
+            "No selectable planning units remain after preprocessing."
+            if result.status == "empty"
+            else "No feasible solution satisfies the selected constraints."
+        )
+        super().__init__(message)
         self.result = result
 
 
@@ -663,9 +684,10 @@ def require_acceptable_result(
 
     Standard solves accept either a proven optimum or an independently feasible
     incumbent. Exact audits accept only HiGHS' proven-optimal status and a
-    numerically zero certified gap.
+    numerically zero certified gap. Empty models use the no-solution outcome
+    regardless of whether their constant constraints are feasible.
     """
-    if result.status == "infeasible":
+    if result.status in {"infeasible", "empty"}:
         raise NoFeasibleSolutionError(result)
     if configuration.mode == "exact_audit":
         if model is not None and not np.any(np.asarray(model.integrality) != 0):

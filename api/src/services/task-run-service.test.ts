@@ -118,4 +118,29 @@ describe('TaskRunService completion', () => {
     }
     expect(updateRun.calledOnce).to.equal(true);
   });
+  for (const status of ['completed', 'infeasible'] as const) {
+    it(`maps an empty solver result reported as ${status} to Infeasible`, async () => {
+      sinon.stub(TaskRunRepository.prototype, 'getTaskRunById').resolves({
+        task_id: 'task-id',
+        status: 'running',
+        solver_status: null
+      } as TaskRun);
+      sinon
+        .stub(ArtifactRepository.prototype, 'getArtifactsByRunId')
+        .resolves([{ artifact_id: 'map', status: 'pending' }] as Artifact[]);
+      const updateArtifact = sinon.stub(ArtifactRepository.prototype, 'updateArtifact').resolves();
+      const updateRun = sinon.stub(TaskRunRepository.prototype, 'updateTaskRun').resolves();
+      const updateTask = sinon.stub(TaskService.prototype, 'updateTaskExecution').resolves();
+      await new TaskRunService(getMockDBConnection()).updateRun('run-id', {
+        status,
+        solver_status: 'empty'
+      });
+      expect(updateRun.firstCall.args[1]).to.deep.equal({ status: 'infeasible', solver_status: 'empty' });
+      expect(updateArtifact.firstCall.args).to.deep.equal(['map', { status: 'skipped' }]);
+      expect(updateTask.firstCall.args[1]).to.deep.equal({
+        status: 'infeasible',
+        status_message: 'No selectable planning units remain after preprocessing.'
+      });
+    });
+  }
 });
