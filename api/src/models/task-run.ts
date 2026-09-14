@@ -6,7 +6,7 @@ export type TaskRunExecutionMethod =
   | 'compiled_discrete_optimization'
   | 'compiled_priority_ranking';
 
-export const TaskRunStatus = z.enum(['queued', 'running', 'completed', 'failed', 'cancelled']);
+export const TaskRunStatus = z.enum(['queued', 'running', 'completed', 'infeasible', 'failed', 'cancelled']);
 export type TaskRunStatus = z.infer<typeof TaskRunStatus>;
 
 export const TaskRunExecutionMethodSchema = z.preprocess(

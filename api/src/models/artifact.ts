@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const ArtifactStatus = z.enum(['pending', 'building', 'ready', 'failed']);
+export const ArtifactStatus = z.enum(['pending', 'building', 'ready', 'failed', 'skipped']);
 export const ArtifactType = z.enum([
   'planning_unit_inventory',
   'compiled_model',

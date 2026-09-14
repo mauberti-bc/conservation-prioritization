@@ -784,7 +784,10 @@ const MapTaskListItem = ({
   onEditTask,
   onDownloadTask,
 }: MapTaskListItemProps) => {
-  const showAbort = task.status !== TASK_STATUS.COMPLETED && task.status !== TASK_STATUS.ABORTED;
+  const showAbort =
+    task.status !== TASK_STATUS.COMPLETED &&
+    task.status !== TASK_STATUS.ABORTED &&
+    task.status !== TASK_STATUS.INFEASIBLE;
 
   return (
     <ListItem key={task.task_id} disablePadding>

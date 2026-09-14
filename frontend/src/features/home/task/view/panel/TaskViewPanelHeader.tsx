@@ -42,7 +42,9 @@ export const TaskViewPanelHeader = ({
       </Typography>
       {status && <TaskStatusChip status={status} sx={{ flex: '0 0 auto' }} />}
       <TaskViewPanelActionsMenu
-        showAbort={status !== TASK_STATUS.COMPLETED && status !== TASK_STATUS.ABORTED}
+        showAbort={
+          status !== TASK_STATUS.COMPLETED && status !== TASK_STATUS.ABORTED && status !== TASK_STATUS.INFEASIBLE
+        }
         onEdit={onEdit}
         onShare={onShare}
         onAbort={onAbort}

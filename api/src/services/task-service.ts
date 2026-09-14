@@ -85,7 +85,7 @@ export class TaskService extends DBService {
    * @param {string} taskId Task whose Prefect flow should be cancelled.
    * @returns {Promise<void>} Resolves when the operation completes.
    * @throws {ApiConflictError} If the task is completed or has no dispatched flow.
-   * @throws {ApiConflictError} Completed tasks cannot be aborted.
+   * @throws {ApiConflictError} Completed or infeasible tasks cannot be aborted.
    * @throws {ApiConflictError} This task has no dispatched flow to abort.
    */
   async abortTask(taskId: string): Promise<void> {
@@ -93,8 +93,8 @@ export class TaskService extends DBService {
     if (task.status === TASK_STATUS.ABORTED) {
       return;
     }
-    if (task.status === TASK_STATUS.COMPLETED) {
-      throw new ApiConflictError('Completed tasks cannot be aborted.');
+    if (task.status === TASK_STATUS.COMPLETED || task.status === TASK_STATUS.INFEASIBLE) {
+      throw new ApiConflictError('Completed or infeasible tasks cannot be aborted.');
     }
     if (!task.prefect_flow_run_id) {
       throw new ApiConflictError('This task has no dispatched flow to abort.');

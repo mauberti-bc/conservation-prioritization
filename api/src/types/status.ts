@@ -5,6 +5,7 @@ export const TASK_STATUS = {
   RUNNING: 'running',
   COMPLETED: 'completed',
   ABORTED: 'aborted',
+  INFEASIBLE: 'infeasible',
   FAILED: 'failed',
   FAILED_TO_SUBMIT: 'failed_to_submit'
 } as const;

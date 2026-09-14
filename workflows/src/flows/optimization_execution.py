@@ -70,6 +70,13 @@ def _sha256(path: Path) -> str:
 
 
 @dataclass(frozen=True)
+class InfeasibleRunOutcome:
+    """A proven infeasible solve that completed without publishable results."""
+
+    runtime_seconds: float
+
+
+@dataclass(frozen=True)
 class CompiledRunPreparation:
     """File-backed compilation outputs retained after the Dask child flow exits."""
 
@@ -382,7 +389,7 @@ def _solve_compiled_model(
     canonical_path: Path,
     grid_definition: Dict[str, Any],
     decision_domain: DecisionDomain,
-) -> str:
+) -> str | InfeasibleRunOutcome:
     """Solve, validate, reconstruct, and materialize one reference solution."""
     logger = get_run_logger()
     work_budget = snapshot.get("work_budget", {})
@@ -452,7 +459,10 @@ def _solve_compiled_model(
             configuration=configuration,
             progress_callback=report_progress,
         )
-    require_acceptable_result(result, configuration, artifact.model)
+    try:
+        require_acceptable_result(result, configuration, artifact.model)
+    except NoFeasibleSolutionError as error:
+        return InfeasibleRunOutcome(error.result.runtime_seconds)
     validation = validate_result(result)
     source_decisions = _reconstruct_source_decisions(
         result,
@@ -968,6 +978,18 @@ def execute_optimization_run(
             grid_definition,
             decision_domain,
         )
+        if isinstance(solver_status, InfeasibleRunOutcome):
+            update_run(
+                task_run_id,
+                status="infeasible",
+                stage="solving",
+                solver_status="infeasible",
+                runtime_seconds=solver_status.runtime_seconds,
+                failure_code=None,
+                failure_message=None,
+            )
+            logger.info("Task run is infeasible: %s", task_run_id)
+            return
         active_artifacts.remove("raw_solver_result")
         active_artifacts.append("canonical_result")
         update_artifact(task_run_id, "canonical_result", status="building")
@@ -995,25 +1017,6 @@ def execute_optimization_run(
         logger.info(
             "Optimization run solved; task-tile publication dispatched: %s",
             task_run_id,
-        )
-    except NoFeasibleSolutionError as error:
-        logger.info("Task run completed without a feasible solution: %s", task_run_id)
-        for artifact_type in active_artifacts:
-            update_artifact(
-                task_run_id,
-                artifact_type,
-                status="failed",
-                failure_code="no_feasible_solution",
-                failure_message=str(error),
-            )
-        update_run(
-            task_run_id,
-            status="completed",
-            stage="solving",
-            solver_status=error.result.status,
-            runtime_seconds=error.result.runtime_seconds,
-            failure_code=None,
-            failure_message=None,
         )
     except Exception as error:
         logger.error("Task run failed: %s", error)
@@ -1052,7 +1055,7 @@ def _solve_priority_ranking_model(
     output_dir: Path,
     canonical_path: Path,
     grid_definition: Dict[str, Any],
-) -> str:
+) -> str | InfeasibleRunOutcome:
     """Solve nested continuous allocation increments and materialize priority."""
     logger = get_run_logger()
     work_budget = snapshot.get("work_budget", {})
@@ -1104,14 +1107,17 @@ def _solve_priority_ranking_model(
         )
         update_run(task_run_id, stage="solving", progress=progress)
 
-    with acquire_task_run_slot():
-        ranking = solve_priority_ranking(
-            artifact.model,
-            configuration=configuration,
-            work_directory=output_dir / "priority-increments",
-            budget_fractions=PRIORITY_BUDGET_FRACTIONS,
-            progress_callback=report_progress,
-        )
+    try:
+        with acquire_task_run_slot():
+            ranking = solve_priority_ranking(
+                artifact.model,
+                configuration=configuration,
+                work_directory=output_dir / "priority-increments",
+                budget_fractions=PRIORITY_BUDGET_FRACTIONS,
+                progress_callback=report_progress,
+            )
+    except NoFeasibleSolutionError as error:
+        return InfeasibleRunOutcome(error.result.runtime_seconds)
     final_source = _reconstruct_source_decisions(
         ranking.final_result,
         artifact,
@@ -1322,6 +1328,18 @@ def execute_priority_ranking_run(
             canonical_path,
             run["planning_unit_definition"],
         )
+        if isinstance(solver_status, InfeasibleRunOutcome):
+            update_run(
+                task_run_id,
+                status="infeasible",
+                stage="solving",
+                solver_status="infeasible",
+                runtime_seconds=solver_status.runtime_seconds,
+                failure_code=None,
+                failure_message=None,
+            )
+            logger.info("Task run is infeasible: %s", task_run_id)
+            return
         active_artifacts.remove("raw_solver_result")
         active_artifacts.append("canonical_result")
         update_artifact(task_run_id, "canonical_result", status="building")
@@ -1334,25 +1352,6 @@ def execute_priority_ranking_run(
         logger.info(
             "Priority ranking run solved; task-tile publication dispatched: %s",
             task_run_id,
-        )
-    except NoFeasibleSolutionError as error:
-        logger.info("Task run completed without a feasible solution: %s", task_run_id)
-        for artifact_type in active_artifacts:
-            update_artifact(
-                task_run_id,
-                artifact_type,
-                status="failed",
-                failure_code="no_feasible_solution",
-                failure_message=str(error),
-            )
-        update_run(
-            task_run_id,
-            status="completed",
-            stage="solving",
-            solver_status=error.result.status,
-            runtime_seconds=error.result.runtime_seconds,
-            failure_code=None,
-            failure_message=None,
         )
     except Exception as error:
         logger.error("Priority ranking run failed: %s", error)

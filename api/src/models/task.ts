@@ -10,6 +10,7 @@ export const TaskStatus = z.enum([
   'running',
   'completed',
   'aborted',
+  'infeasible',
   'failed',
   'failed_to_submit'
 ]);

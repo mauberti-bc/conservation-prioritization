@@ -176,10 +176,11 @@ export class TaskRunRepository extends BaseRepository {
     if (updates.prefect_deployment_id !== undefined) {
       fields.push(SQL`prefect_deployment_id = ${updates.prefect_deployment_id}`);
     }
-    if (updates.failure_code !== undefined) {
+    const clearsFailure = ['running', 'completed', 'infeasible'].includes(updates.status ?? '');
+    if (updates.failure_code !== undefined && !clearsFailure) {
       fields.push(SQL`failure_code = ${updates.failure_code}`);
     }
-    if (updates.failure_message !== undefined) {
+    if (updates.failure_message !== undefined && !clearsFailure) {
       fields.push(SQL`failure_message = ${updates.failure_message}`);
     }
 
@@ -192,7 +193,7 @@ export class TaskRunRepository extends BaseRepository {
         SQL`, started_at = COALESCE(started_at, now()), failed_at = NULL, failure_code = NULL, failure_message = NULL`
       );
     }
-    if (updates.status === 'completed') {
+    if (updates.status === 'completed' || updates.status === 'infeasible') {
       statement.append(SQL`, completed_at = now(), failed_at = NULL, failure_code = NULL, failure_message = NULL`);
     }
     if (updates.status === 'failed') {

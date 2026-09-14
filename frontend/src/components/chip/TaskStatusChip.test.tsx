@@ -32,4 +32,11 @@ describe('TaskStatusChip', () => {
     expect(container.querySelector('.MuiChip-colorSuccess')).toBeTruthy();
     expect(container.querySelector('.MuiChip-icon')).toBeNull();
   });
+  it('shows infeasible as a neutral terminal outcome', () => {
+    const { container } = render(<TaskStatusChip status="infeasible" />);
+    expect(screen.getByText('Infeasible')).toBeTruthy();
+    expect(screen.queryByRole('progressbar')).toBeNull();
+    expect(container.querySelector('.MuiChip-colorError')).toBeNull();
+    expect(container.querySelector('.MuiChip-colorSuccess')).toBeNull();
+  });
 });

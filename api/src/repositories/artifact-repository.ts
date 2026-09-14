@@ -124,7 +124,7 @@ export class ArtifactRepository extends BaseRepository {
         SQL`, started_at = COALESCE(started_at, now()), failed_at = NULL, failure_code = NULL, failure_message = NULL`
       );
     }
-    if (updates.status === 'ready') {
+    if (updates.status === 'ready' || updates.status === 'skipped') {
       statement.append(SQL`, completed_at = now(), failed_at = NULL, failure_code = NULL, failure_message = NULL`);
     }
     if (updates.status === 'failed') {

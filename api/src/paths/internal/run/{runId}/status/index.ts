@@ -17,7 +17,7 @@ POST.apiDoc = {
         schema: {
           type: 'object',
           properties: {
-            status: { type: 'string', enum: ['queued', 'running', 'completed', 'failed', 'cancelled'] },
+            status: { type: 'string', enum: ['queued', 'running', 'completed', 'infeasible', 'failed', 'cancelled'] },
             stage: {
               type: 'string',
               enum: [

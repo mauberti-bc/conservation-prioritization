@@ -474,7 +474,7 @@ export class TaskRunService extends DBService {
    */
   async upsertSolution(taskRunId: string, solution: UpsertTaskRunSolution): Promise<void> {
     const run = await this.taskRunRepository.getTaskRunById(taskRunId);
-    if (run.status === 'completed' || run.status === 'cancelled') {
+    if (run.status === 'completed' || run.status === 'infeasible' || run.status === 'cancelled') {
       throw new ApiGeneralError('Solutions cannot be changed after a run reaches a terminal state.', []);
     }
     if (solution.solution_index !== 0 || solution.role !== 'reference') {
@@ -495,19 +495,28 @@ export class TaskRunService extends DBService {
   }
 
   /**
-   * Applies an internal workflow lifecycle update.
+   * Applies an internal workflow lifecycle update, preserving infeasibility as a terminal outcome.
    *
    * @param {string} taskRunId Identifier of the immutable task run.
    * @param {UpdateTaskRun} updates Fields to update on the existing record.
    * @returns {Promise<void>} Resolves when the operation completes.
    * @throws {ApiGeneralError} A run cannot complete before canonical result and PMTiles artifacts are ready.
    * @throws {ApiGeneralError} An optimization run requires exactly one normalized reference solution.
+   * @throws {ApiGeneralError} An infeasible outcome requires solver evidence of infeasibility.
    */
   async updateRun(taskRunId: string, updates: UpdateTaskRun): Promise<void> {
     const current = await this.taskRunRepository.getTaskRunById(taskRunId);
+    const hasNoSolution = (updates.solver_status ?? current.solver_status) === 'infeasible';
+    if (updates.status === 'completed' && hasNoSolution) {
+      updates = { ...updates, status: 'infeasible' };
+    }
+    if (updates.status === 'infeasible' && !hasNoSolution) {
+      throw new ApiGeneralError('An infeasible run requires solver evidence of infeasibility.', []);
+    }
     const allowedStatuses: Record<TaskRun['status'], TaskRun['status'][]> = {
       queued: ['queued', 'running', 'failed', 'cancelled'],
-      running: ['running', 'completed', 'failed', 'cancelled'],
+      running: ['running', 'completed', 'infeasible', 'failed', 'cancelled'],
+      infeasible: ['infeasible'],
       completed: ['completed'],
       failed: ['failed', 'running', 'cancelled'],
       cancelled: ['cancelled']
@@ -515,8 +524,7 @@ export class TaskRunService extends DBService {
     if (updates.status && !allowedStatuses[current.status].includes(updates.status)) {
       throw new ApiGeneralError(`Invalid run status transition from ${current.status} to ${updates.status}.`, []);
     }
-    const hasNoSolution = (updates.solver_status ?? current.solver_status) === 'infeasible';
-    if (updates.status === 'completed' && !hasNoSolution) {
+    if (updates.status === 'completed') {
       const artifacts = await this.artifactRepository.getArtifactsByRunId(taskRunId);
       const requiredTypes = ['canonical_result', 'pmtiles'];
       const requiredReady = requiredTypes.every((type) =>
@@ -533,6 +541,14 @@ export class TaskRunService extends DBService {
         throw new ApiGeneralError('An optimization run requires exactly one normalized reference solution.', []);
       }
     }
+    if (updates.status === 'infeasible') {
+      const artifacts = await this.artifactRepository.getArtifactsByRunId(taskRunId);
+      for (const artifact of artifacts) {
+        if (artifact.status === 'pending' || artifact.status === 'building') {
+          await this.artifactRepository.updateArtifact(artifact.artifact_id, { status: 'skipped' });
+        }
+      }
+    }
     await this.taskRunRepository.updateTaskRun(taskRunId, updates);
     if (updates.status === 'cancelled') {
       await this.taskService.updateTaskExecution(current.task_id, { status: 'aborted', status_message: null });
@@ -540,9 +556,9 @@ export class TaskRunService extends DBService {
     if (updates.status === 'running') {
       await this.taskService.updateTaskExecution(current.task_id, { status: 'running', status_message: null });
     }
-    if (updates.status === 'completed') {
+    if (updates.status === 'completed' || updates.status === 'infeasible') {
       await this.taskService.updateTaskExecution(current.task_id, {
-        status: 'completed',
+        status: updates.status,
         status_message: hasNoSolution ? 'No feasible solution satisfies the selected constraints.' : null
       });
     }
@@ -566,8 +582,9 @@ export class TaskRunService extends DBService {
     const run = await this.taskRunRepository.getTaskRunById(taskRunId);
     const artifact = await this.artifactRepository.getArtifactByRunAndType(taskRunId, type);
     const allowedStatuses: Record<typeof artifact.status, (typeof artifact.status)[]> = {
-      pending: ['pending', 'building', 'failed'],
-      building: ['building', 'ready', 'failed'],
+      pending: ['pending', 'building', 'failed', 'skipped'],
+      building: ['building', 'ready', 'failed', 'skipped'],
+      skipped: ['skipped'],
       ready: ['ready'],
       failed: ['failed', 'building']
     };

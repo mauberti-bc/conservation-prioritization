@@ -50,23 +50,26 @@ describe('TaskViewPanelHeader', () => {
     ]);
   });
 
-  it.each([TASK_STATUS.COMPLETED, TASK_STATUS.ABORTED])('does not render abort for %s tasks', (status) => {
-    render(
-      <TaskViewPanelHeader
-        title="Task"
-        status={status}
-        onClose={vi.fn()}
-        onEdit={vi.fn()}
-        onShare={vi.fn()}
-        onDelete={vi.fn()}
-        onAbort={vi.fn()}
-      />
-    );
+  it.each([TASK_STATUS.COMPLETED, TASK_STATUS.ABORTED, TASK_STATUS.INFEASIBLE])(
+    'does not render abort for %s tasks',
+    (status) => {
+      render(
+        <TaskViewPanelHeader
+          title="Task"
+          status={status}
+          onClose={vi.fn()}
+          onEdit={vi.fn()}
+          onShare={vi.fn()}
+          onDelete={vi.fn()}
+          onAbort={vi.fn()}
+        />
+      );
 
-    fireEvent.click(screen.getByRole('button', { name: 'menu options' }));
+      fireEvent.click(screen.getByRole('button', { name: 'menu options' }));
 
-    expect(screen.queryByRole('menuitem', { name: 'Abort' })).toBeNull();
-  });
+      expect(screen.queryByRole('menuitem', { name: 'Abort' })).toBeNull();
+    }
+  );
 
   it('calls the close handler from the header close button', () => {
     const onClose = vi.fn();

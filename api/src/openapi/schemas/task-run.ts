@@ -42,7 +42,7 @@ export const TaskRunSchema: OpenAPIV3.SchemaObject = {
       enum: ['compiled_continuous_optimization', 'compiled_discrete_optimization', 'compiled_priority_ranking']
     },
     execution_method_version: { type: 'string' },
-    status: { type: 'string', enum: ['queued', 'running', 'completed', 'failed', 'cancelled'] },
+    status: { type: 'string', enum: ['queued', 'running', 'completed', 'infeasible', 'failed', 'cancelled'] },
     stage: {
       type: 'string',
       enum: ['counting', 'preparing', 'admitting', 'compiling', 'solving', 'materializing', 'exporting', 'publishing'],

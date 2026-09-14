@@ -100,17 +100,19 @@ describe('TaskService export hydration', () => {
     expect(update).not.to.have.been.called;
   });
 
-  it('rejects abort for completed tasks', async () => {
-    sinon.stub(TaskRepository.prototype, 'getTaskById').resolves({ ...buildTask(), status: 'completed' });
-    const cancel = sinon.stub(PrefectService.prototype, 'cancelFlowRun').resolves();
-    try {
-      await new TaskService(getMockDBConnection()).abortTask(TASK_ID);
-      expect.fail('Expected completed task conflict');
-    } catch (error) {
-      expect((error as Error).message).to.equal('Completed tasks cannot be aborted.');
-    }
-    expect(cancel).not.to.have.been.called;
-  });
+  for (const status of ['completed', 'infeasible'] as const) {
+    it(`rejects abort for ${status} tasks`, async () => {
+      sinon.stub(TaskRepository.prototype, 'getTaskById').resolves({ ...buildTask(), status });
+      const cancel = sinon.stub(PrefectService.prototype, 'cancelFlowRun').resolves();
+      try {
+        await new TaskService(getMockDBConnection()).abortTask(TASK_ID);
+        expect.fail('Expected completed task conflict');
+      } catch (error) {
+        expect((error as Error).message).to.equal('Completed or infeasible tasks cannot be aborted.');
+      }
+      expect(cancel).not.to.have.been.called;
+    });
+  }
 
   it('treats repeated abort requests as a no-op', async () => {
     sinon.stub(TaskRepository.prototype, 'getTaskById').resolves({ ...buildTask(), status: 'aborted' });

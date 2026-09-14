@@ -106,7 +106,7 @@ export interface TaskRunResponse {
   task_type: TASK_TYPE;
   execution_method: 'compiled_continuous_optimization' | 'compiled_discrete_optimization' | 'compiled_priority_ranking';
   execution_method_version: string;
-  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status: 'queued' | 'running' | 'completed' | 'infeasible' | 'failed' | 'cancelled';
   stage:
     | 'counting'
     | 'preparing'
@@ -243,7 +243,7 @@ export interface TaskRunSnapshotLayer {
 export interface TaskRunArtifactResponse {
   artifact_id: string;
   type: string;
-  status: 'pending' | 'building' | 'ready' | 'failed';
+  status: 'pending' | 'building' | 'ready' | 'failed' | 'skipped';
   uri?: string | null;
   content_type?: string | null;
   checksum?: string | null;
