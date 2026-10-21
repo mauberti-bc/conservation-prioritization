@@ -94,11 +94,6 @@ keycloak:
 # Prefect Server & Workers
 # ========================
 prefect-server:
-  route:
-    enabled: true
-    name: prefect-server
-    serviceName: prefect-server
-    targetPort: server-svc-port
   postgresql:
     enabled: false
   secret:

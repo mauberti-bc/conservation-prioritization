@@ -32,13 +32,6 @@ App suffix
 {{- end }}
 
 {{- /*
-Prefect server fullname
-*/ -}}
-{{- define "conservation-tool.fullname.prefect-server" -}}
-{{ include "conservation-tool.fullname" . }}-prefect-server
-{{- end }}
-
-{{- /*
 Prefect worker fullname
 */ -}}
 {{- define "conservation-tool.fullname.prefect-worker" -}}

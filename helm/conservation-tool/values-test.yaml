@@ -2,12 +2,9 @@ environment:
   id: "test"
   name: "test"
 
-# Memory requests: 2560Mi for running services + 512Mi for deployment hooks = 3Gi.
-# The quota applies to requests. Running service limits total 3Gi, with 1920Mi for the worker.
+# Memory requests: 3584Mi for running services + 512Mi for deployment hooks = 4Gi.
+# The quota applies to requests. Running service limits total 4Gi, with 2912Mi for the worker.
 prefect-server:
-  ingress:
-    host:
-      hostname: "conservation-tool-prefect-server-fa9440-test.apps.gold.devops.gov.bc.ca"
   ui:
     podSecurityContext:
       runAsUser: 1003620000
@@ -22,8 +19,6 @@ prefect-server:
           - ALL
 
   server:
-    uiConfig:
-      prefectUiApiUrl: "https://conservation-tool-prefect-server-fa9440-test.apps.gold.devops.gov.bc.ca/api"
     resources:
       requests:
         cpu: 50m
@@ -70,9 +65,9 @@ services:
   frontend:
     resources:
       requests:
-        memory: 64Mi
+        memory: 96Mi
       limits:
-        memory: 64Mi
+        memory: 96Mi
     image:
       tag: "test"
     securityContext:
@@ -88,17 +83,17 @@ services:
         fsGroup: 1003620000
       profiles:
         sparse-solver:
-          executionProfile: test-1920mi
+          executionProfile: test-2912mi
           # Leave 320Mi of the pod limit for Prefect and orchestration overhead.
-          daskWorkerMemory: 1600MiB
-          maxPeakMemoryBytes: 1677721600
+          daskWorkerMemory: 2592MiB
+          maxPeakMemoryBytes: 2717908992
           resources:
             requests:
               cpu: 100m
-              memory: 1408Mi
+              memory: 2400Mi
             limits:
               cpu: "2"
-              memory: 1920Mi
+              memory: 2912Mi
 
     deploy:
       image:
