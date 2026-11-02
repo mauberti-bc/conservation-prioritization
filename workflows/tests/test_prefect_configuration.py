@@ -82,7 +82,8 @@ class PrefectConfigurationTest(unittest.TestCase):
         repository = Path(__file__).resolve().parents[2]
         chart = repository / "helm" / "conservation-tool"
         base = yaml.safe_load((chart / "values.yaml").read_text(encoding="utf-8"))
-        budgets_mib = {"dev": 3072, "test": 3072, "prod": 2048}
+        # Namespace memory quotas, as documented at the top of each values-<env>.yaml.
+        budgets_mib = {"dev": 3072, "test": 4096, "prod": 3072}
         for environment, budget_mib in budgets_mib.items():
             with self.subTest(environment=environment):
                 values = yaml.safe_load(
