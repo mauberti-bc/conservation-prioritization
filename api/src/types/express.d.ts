@@ -16,7 +16,7 @@ declare module 'express-serve-static-core' {
     keycloak_token?: KeycloakUserInformation;
 
     /**
-     * SIMS system user details object.
+     * Authenticated user profile details object.
      */
     profile?: ProfileWithRoles;
 

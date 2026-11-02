@@ -241,14 +241,14 @@ describe('db', () => {
       const systemUser: Profile = {
         profile_id: '1',
         identity_source: 'IDIR',
-        profile_identifier: 'sims-svc-4464',
-        profile_guid: 'service-account-sims-svc-4464'
+        profile_identifier: 'conservation-svc-4464',
+        profile_guid: 'service-account-conservation-svc-4464'
       };
 
       getServiceAccountDBConnection(systemUser);
 
       expect(stub).to.have.been.calledWith({
-        preferred_username: 'service-account-sims-svc-4464',
+        preferred_username: 'service-account-conservation-svc-4464',
         identity_provider: IDENTITY_SOURCE.SYSTEM
       });
 
