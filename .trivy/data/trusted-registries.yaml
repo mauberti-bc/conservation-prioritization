@@ -1,0 +1,7 @@
+# Trusted container registries for Trivy check KSV-0125.
+# Every image this project deploys is built by CI and pushed to the BC Gov
+# OpenShift (Gold cluster) internal registry; see `registry` in
+# helm/conservation-tool/values.yaml.
+ksv0125:
+  trusted_registries:
+    - "image-registry.apps.gold.devops.gov.bc.ca"

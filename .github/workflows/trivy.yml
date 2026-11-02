@@ -51,18 +51,28 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.0
+
+      # The Helm chart can only be rendered, and therefore scanned, once its
+      # dependency charts are present. See the note in trivy.yaml.
+      - name: Download Helm chart dependencies
+        run: helm dependency build helm/conservation-tool
+
       - name: Run Trivy filesystem scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: ${{ env.TRIVY_VERSION }}
+          trivy-config: trivy.yaml
           scan-type: fs
           scan-ref: .
           scanners: vuln,misconfig
-          skip-dirs: node_modules
           severity: CRITICAL,HIGH,MEDIUM
           limit-severities-for-sarif: true
           ignore-unfixed: true
-          trivyignores: .trivyignore
+          trivyignores: .trivyignore.yaml
           format: sarif
           output: trivy-repository.sarif
           exit-code: "0"
@@ -122,13 +132,14 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: ${{ env.TRIVY_VERSION }}
+          trivy-config: trivy.yaml
           scan-type: image
           image-ref: trivy-scan/${{ matrix.image.name }}:${{ github.sha }}
           scanners: vuln
           severity: CRITICAL,HIGH,MEDIUM
           limit-severities-for-sarif: true
           ignore-unfixed: true
-          trivyignores: .trivyignore
+          trivyignores: .trivyignore.yaml
           format: sarif
           output: trivy-${{ matrix.image.name }}.sarif
           exit-code: "0"
