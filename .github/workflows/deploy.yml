@@ -308,6 +308,11 @@ jobs:
           echo "Deploy namespace: ${OPENSHIFT_NAMESPACE}"
           echo "Values file: ${{ steps.values-file.outputs.values_file }}"
 
+          # No --wait: with it, Helm holds post-install/post-upgrade hooks until every
+          # workload is ready. The db-setup hook creates the API and Prefect database
+          # users, so on a fresh database the API and Prefect server could never become
+          # ready and the install deadlocked. Helm still waits for the hook Jobs (db-setup
+          # waits for PostgreSQL itself); "Verify deployment" then waits for rollouts.
           helm upgrade --install conservation-tool . \
             --values values.yaml \
             --values "${{ steps.values-file.outputs.values_file }}" \
@@ -318,13 +323,15 @@ jobs:
             --set-string services.workflows.worker.image.tag="${IMAGE_TAG}" \
             --set-string services.workflows.deploy.image.tag="${IMAGE_TAG}" \
             --namespace "${OPENSHIFT_NAMESPACE}" \
-            --wait \
             --timeout=20m \
             --debug
 
       - name: Verify deployment
         run: |
-          echo "Verifying deployment..."
+          echo "Waiting for every deployment to finish rolling out..."
+          for deployment in $(oc get deployments -n "${OPENSHIFT_NAMESPACE}" -o name); do
+            oc rollout status "$deployment" -n "${OPENSHIFT_NAMESPACE}" --timeout=10m
+          done
           oc get deployments -n "${OPENSHIFT_NAMESPACE}"
           oc get pods -n "${OPENSHIFT_NAMESPACE}"
 

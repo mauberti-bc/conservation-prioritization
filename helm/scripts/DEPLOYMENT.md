@@ -27,9 +27,15 @@ production promotions continue to use the existing `dev` → `test` → `prod` f
    post-upgrade setup job also needs the existing database, so Helm cannot repair a
    missing database image on its own.
 
-On a first installation, Helm creates the database, the Prefect server migrates it on
-startup, and the app's setup job runs post-install. If an existing release's database Deployment was deleted, preflight
-fails and requires it to be restored. Database crashes, incompatible database
+On a first installation, Helm creates the database and the app's setup job runs
+post-install. That job creates the API and Prefect database users, then the Prefect
+server migrates its schema on startup. Helm therefore runs without `--wait`: waiting
+for workloads before hooks would deadlock, because the API and Prefect server cannot
+become ready until the setup job has run. Helm still waits for the hook Jobs, and the
+"Verify deployment" step then waits for every Deployment to finish rolling out.
+
+If an existing release's database Deployment was deleted, preflight fails and requires
+it to be restored. Database crashes, incompatible database
 versions, and storage failures do not trigger automatic image replacement.
 
 Read-only API and image checks retry three times for transient failures. Helm's
