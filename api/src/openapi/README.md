@@ -25,7 +25,7 @@ JSON-Schema is designed to define a JSON object
 
 For a detailed breakdown of the ven-diagram like relationship these 2 schemas have, see: https://swagger.io/docs/specification/data-models/keywords/
 
-## How are OpenAPI and JSON-Schema being used in BioHub?
+## How are OpenAPI and JSON-Schema being used in this API?
 
 ### OpenAPI
 
@@ -35,8 +35,4 @@ The entire API is defined using the OpenAPI specification.
 
 ### JSON-Schema
 
-Only specific parts of specific endpoints/requests are being defined using JSON-Schema.
-
-Specifically, certain forms/surveys are defined in JSON-Schema (called a 'template' in biohub). These templates are then leveraged by the Frontend to render forms (using [RJSF](react-jsonschema-form.readthedocs.io)).
-
-- Note: This only describes the biohub template concept for specific form/survey data capture. This has nothing to do with the template related API endpoints, which handle creating and fetching templates, and is defined in OpenAPI.
+Request and response bodies are described with JSON-Schema inside the OpenAPI definitions. `express-openapi` uses these schemas to validate incoming requests before they reach the route handlers.

@@ -2,8 +2,8 @@ export const rootAPIDoc = {
   openapi: '3.0.0',
   info: {
     version: '0.0.0',
-    title: 'biohub-api',
-    description: 'API for BioHub',
+    title: 'conservation-prioritization-api',
+    description: 'API for the BC Conservation Prioritization Tool',
     license: {
       name: 'Apache 2.0',
       url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
@@ -11,26 +11,26 @@ export const rootAPIDoc = {
   },
   servers: [
     {
-      url: 'http://localhost:6100/api',
+      url: 'http://localhost:5200',
       description: 'local api via docker'
     },
     {
-      url: 'https://api-dev-biohubbc-platform.apps.silver.devops.gov.bc.ca',
+      url: 'https://conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca',
       description: 'deployed api in dev environment'
     },
     {
-      url: 'https://api-test-biohubbc-platform.apps.silver.devops.gov.bc.ca',
+      url: 'https://conservation-tool-api-fa9440-test.apps.gold.devops.gov.bc.ca',
       description: 'deployed api in test environment'
     },
     {
-      url: 'https://api-biohubbc-platform.apps.silver.devops.gov.bc.ca',
+      url: 'https://conservation-tool-api-fa9440-prod.apps.gold.devops.gov.bc.ca',
       description: 'deployed api in prod environment'
     }
   ],
   tags: [],
   externalDocs: {
     description: 'Visit GitHub to find out more about this API',
-    url: 'https://github.com/bcgov/biohubbc-platform.git'
+    url: 'https://github.com/mauberti-bc/conservation-prioritization'
   },
   paths: {},
   components: {
@@ -150,42 +150,6 @@ export const rootAPIDoc = {
             }
           }
         }
-      },
-      SubmissionFeature: {
-        title: 'BioHub Data Submission Feature',
-        description:
-          'The submission feature object is a self-referencing recursive structure designed to support different classes of biotic data, in a hierarchical structure.',
-        type: 'object',
-        required: ['type', 'properties', 'child_features'],
-        properties: {
-          id: {
-            title: 'Unique identifer.',
-            description:
-              'The unique identifier for the submission feature as supplied by the source system. May not be unique globally or within BioHub.',
-            type: 'string',
-            maxLength: 200
-          },
-          type: {
-            title: 'Feature type.',
-            description: 'The type of the feature. Must match a supported feature type.',
-            type: 'string'
-          },
-          properties: {
-            title: 'Feature properties.',
-            description: 'The properties of the feature, which are specific to the feature type.',
-            type: 'object',
-            properties: {}
-          },
-          child_features: {
-            title: 'Child features.',
-            description: 'Child features of the current feature.',
-            type: 'array',
-            items: {
-              $ref: '#/components/schemas/SubmissionFeature'
-            }
-          }
-        },
-        additionalProperties: false
       }
     }
   }
