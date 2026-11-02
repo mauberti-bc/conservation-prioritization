@@ -1797,9 +1797,9 @@ __metadata:
   linkType: hard
 
 "@types/qs@npm:^6":
-  version: 6.15.0
-  resolution: "@types/qs@npm:6.15.0"
-  checksum: 10/871162881f1c83e61d0c8c243c65549be5dddf33a6911f3324edeebd4087207b1174644da9a3afaa20cf494c5288d2a1ece09e10e4822f755339f14a05c339ea
+  version: 6.15.1
+  resolution: "@types/qs@npm:6.15.1"
+  checksum: 10/fd04a36c683dbb1ec5819c01773905259955bfd84d7294af178ad609990a9b8d75d458629ca3bf97b151fe2934eb12ade7fdeb98f2e3ad40d138f0a7d195ac7c
   languageName: node
   linkType: hard
 
