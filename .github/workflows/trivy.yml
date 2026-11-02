@@ -41,7 +41,7 @@ env:
 jobs:
   scan-repository:
     name: Scan repository (dependencies & config)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       security-events: write
@@ -89,7 +89,7 @@ jobs:
 
   scan-images:
     name: Scan image (${{ matrix.image.name }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       security-events: write

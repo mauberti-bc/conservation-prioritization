@@ -1,0 +1,31 @@
+name: Install OpenShift CLI
+description: >-
+  Download a pinned oc client for linux/amd64 from the OpenShift mirror, verify
+  it against a checksum committed here, and add it to PATH.
+
+# To upgrade, set OC_VERSION and OC_SHA256 together. The checksum for
+# openshift-client-linux.tar.gz is listed in
+# https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/<version>/sha256sum.txt
+
+runs:
+  using: composite
+  steps:
+    - name: Download and verify oc
+      shell: bash
+      env:
+        OC_VERSION: "4.16.74"
+        OC_SHA256: "e56521a5b7a7a66c3f7f064e66fb8d303716e55f8c12701bdd2b96e747bcd5ff"
+      run: |
+        set -euo pipefail
+        archive="$RUNNER_TEMP/openshift-client-linux.tar.gz"
+        install_dir="$RUNNER_TEMP/oc-bin"
+
+        curl -fsSL --retry 3 -o "$archive" \
+          "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/${OC_VERSION}/openshift-client-linux.tar.gz"
+        echo "${OC_SHA256}  ${archive}" | sha256sum --check --strict
+
+        mkdir -p "$install_dir"
+        tar -xzf "$archive" -C "$install_dir" oc
+        rm -f "$archive"
+        echo "$install_dir" >> "$GITHUB_PATH"
+        "$install_dir/oc" version --client

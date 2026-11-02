@@ -43,7 +43,7 @@ env:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     environment: ${{ inputs.environment || github.event.inputs.environment || 'dev' }}
     concurrency:
@@ -74,7 +74,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Validate deployment safeguards
         run: python3 -m unittest discover -s helm/scripts/tests
@@ -85,20 +85,20 @@ jobs:
           ENVIRONMENT="${DEPLOY_ENVIRONMENT}"
 
           if [ "${ENVIRONMENT}" = "prod" ]; then
-            echo "values_file=values-prod.yaml" >> $GITHUB_OUTPUT
+            echo "values_file=values-prod.yaml" >> "$GITHUB_OUTPUT"
           elif [ "${ENVIRONMENT}" = "test" ]; then
-            echo "values_file=values-test.yaml" >> $GITHUB_OUTPUT
+            echo "values_file=values-test.yaml" >> "$GITHUB_OUTPUT"
           else
-            echo "values_file=values-dev.yaml" >> $GITHUB_OUTPUT
+            echo "values_file=values-dev.yaml" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Install OpenShift CLI
-        uses: redhat-actions/openshift-tools-installer@v1
-        with:
-          oc: "4.16"
+        uses: ./.github/actions/install-oc
 
       - name: Install Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v3.22.1
 
       - name: Validate required GitHub secrets
         run: |
