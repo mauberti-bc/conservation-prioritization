@@ -3,7 +3,8 @@ import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { blue } from '@mui/material/colors';
 import { Feature } from 'geojson';
 import { useMapContext } from 'hooks/useContext';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+import { addDrawEventListener, removeDrawEventListener } from 'utils/draw-events';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 
 export interface DrawControlsProps {
@@ -47,12 +48,12 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
     map.on('dragstart', preserveDrawingCursor);
     map.on('drag', preserveDrawingCursor);
     map.on('dragend', preserveDrawingCursor);
-    map.on('draw.modechange', onModeChange);
+    addDrawEventListener(map, 'draw.modechange', onModeChange);
     return () => {
       map.off('dragstart', preserveDrawingCursor);
       map.off('drag', preserveDrawingCursor);
       map.off('dragend', preserveDrawingCursor);
-      map.off('draw.modechange', onModeChange);
+      removeDrawEventListener(map, 'draw.modechange', onModeChange);
       map.getCanvas().style.cursor = '';
     };
   }, [isMapReady, mapRef, drawRef]);
@@ -269,13 +270,13 @@ export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
       // Ensure draw layers stay on top when new sources/layers are added
       map.on('sourcedata', onMapSourceData);
       map.on('styledata', ensureDrawLayersOnTop);
-      map.on('draw.render', onDrawRender);
+      addDrawEventListener(map, 'draw.render', onDrawRender);
 
       // Cleanup event listeners
       return () => {
         map.off('sourcedata', onMapSourceData);
         map.off('styledata', ensureDrawLayersOnTop);
-        map.off('draw.render', onDrawRender);
+        removeDrawEventListener(map, 'draw.render', onDrawRender);
         const isRemoved = Boolean((map as maplibregl.Map & { _removed?: boolean })._removed);
         if (isControlAttachedRef.current && !isRemoved) {
           try {

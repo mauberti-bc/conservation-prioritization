@@ -7,6 +7,7 @@ import { TooltipPopover } from 'components/TooltipPopover';
 import { useFormikContext } from 'formik';
 import { useConfigContext, useMapContext } from 'hooks/useContext';
 import { useCallback, useEffect, useState } from 'react';
+import { addDrawEventListener, removeDrawEventListener } from 'utils/draw-events';
 import { createPortal } from 'react-dom';
 import { validateGeometry } from 'utils/spatial';
 import { v4 } from 'uuid';
@@ -77,12 +78,12 @@ export const TaskAreaSection = ({ isReadOnly = false }: TaskAreaSectionProps) =>
     };
 
     syncDrawingMode();
-    map.on('draw.modechange', syncDrawingMode);
+    addDrawEventListener(map, 'draw.modechange', syncDrawingMode);
     // Public Draw API calls suppress modechange; render also catches those transitions.
-    map.on('draw.render', syncDrawingMode);
+    addDrawEventListener(map, 'draw.render', syncDrawingMode);
     return () => {
-      map.off('draw.modechange', syncDrawingMode);
-      map.off('draw.render', syncDrawingMode);
+      removeDrawEventListener(map, 'draw.modechange', syncDrawingMode);
+      removeDrawEventListener(map, 'draw.render', syncDrawingMode);
     };
   }, [drawRef, finishDrawing, isDrawing, isMapReady, mapRef]);
 

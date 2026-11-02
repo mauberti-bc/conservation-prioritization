@@ -4,7 +4,7 @@ import { LoadingGuard } from 'components/loading/LoadingGuard';
 import { BASEMAP } from 'constants/basemap';
 import { TASK_TYPE } from 'hooks/interfaces/useTaskApi.interface';
 import { useConfigContext, useMapContext } from 'hooks/useContext';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { PMTiles } from 'pmtiles';
 import { useEffect, useMemo, useRef, useState } from 'react';

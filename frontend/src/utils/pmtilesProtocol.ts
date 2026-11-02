@@ -1,4 +1,4 @@
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import * as pmtiles from 'pmtiles';
 
 let protocol: pmtiles.Protocol | null = null;
