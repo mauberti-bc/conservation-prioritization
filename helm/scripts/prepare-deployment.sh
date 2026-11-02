@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Validate a complete image set and prepare an existing database before Helm's pre-upgrade hook.
+# Validate a complete image set and prepare an existing database before the Helm upgrade.
 # Usage: bash helm/scripts/prepare-deployment.sh <namespace> <registry/project> <image-tag>
 # Fails before Helm on missing images, pending releases, or a database that cannot become ready.
 set -euo pipefail
@@ -43,7 +43,7 @@ echo "Checking the existing PostgreSQL Deployment before migrations."
 database="$(retry_preflight oc get deployment conservation-tool-db --namespace "$namespace" --ignore-not-found --output json --request-timeout=15s)"
 if [[ -z "$database" ]]; then
   if [[ "$release_status" != absent ]]; then
-    echo "Existing release is missing its database Deployment. Restore it before running the pre-upgrade migrations." >&2
+    echo "Existing release is missing its database Deployment. Restore it before running database migrations." >&2
     exit 1
   fi
   echo "First installation: Helm will create PostgreSQL before its post-install migrations."

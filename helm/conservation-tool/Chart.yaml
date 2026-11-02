@@ -8,5 +8,5 @@ icon: https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.p
 
 dependencies:
   - name: prefect-server
-    version: "2025.9.5145513"
+    version: "2026.10.6163015"
     repository: "https://prefecthq.github.io/prefect-helm"

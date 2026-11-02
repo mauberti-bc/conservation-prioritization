@@ -16,7 +16,9 @@ dependencies = [
     "pip>=25.1.1",
     "pillow>=13.0.0",
     "pmtiles>=3.4.1",
-    "prefect[dask]>=3.4.8",
+    # Keep in sync with the prefect-server chart appVersion pinned in
+    # helm/conservation-tool/Chart.yaml (chart 2026.10.6163015 = Prefect 3.8.8).
+    "prefect[dask]==3.8.8",
     "psutil>=7.0.0",
     "pyarrow>=20.0.0",
     "pyogrio>=0.11.0",

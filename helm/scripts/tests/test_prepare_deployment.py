@@ -214,7 +214,7 @@ class PrepareDeploymentTest(unittest.TestCase):
         self.assertFalse(any(call[1] in ("set", "rollout") for call in self.calls))
 
     def test_missing_database_in_existing_release_blocks_migrations(self) -> None:
-        """A deleted Deployment requires recovery rather than a doomed pre-upgrade hook."""
+        """A deleted Deployment requires recovery rather than a doomed upgrade."""
         self.state["database"] = None
         result = self.run_preflight()
         self.assertNotEqual(0, result.returncode)

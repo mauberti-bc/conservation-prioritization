@@ -22,12 +22,13 @@ production promotions continue to use the existing `dev` → `test` → `prod` f
    with `ErrImagePull` or `ImagePullBackOff`, set only its image to the verified
    release image. The deployment's storage, environment, and resource settings are
    retained. A healthy database is left for the normal Helm upgrade to update.
-4. Wait up to fifteen minutes for the database rollout before running Helm. Prefect's
-   pre-upgrade migration needs the existing database, so Helm cannot repair a
+4. Wait up to fifteen minutes for the database rollout before running Helm. The
+   Prefect server runs its database migrations when it starts, and the app's
+   post-upgrade setup job also needs the existing database, so Helm cannot repair a
    missing database image on its own.
 
-On a first installation, Helm creates the database and the chart uses post-install
-migrations. If an existing release's database Deployment was deleted, preflight
+On a first installation, Helm creates the database, the Prefect server migrates it on
+startup, and the app's setup job runs post-install. If an existing release's database Deployment was deleted, preflight
 fails and requires it to be restored. Database crashes, incompatible database
 versions, and storage failures do not trigger automatic image replacement.
 
