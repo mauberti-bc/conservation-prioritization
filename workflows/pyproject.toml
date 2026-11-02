@@ -6,14 +6,11 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.36.0",
-    "bokeh>=3.8.2",
     "dask>=2025.5.1",
-    "fiona>=1.10.1",
     "geopandas>=1.1.1",
     "highspy>=1.11.0",
     "matplotlib>=3.10.3",
     "morecantile>=6.2.0",
-    "pip>=25.1.1",
     "pillow>=13.0.0",
     "pmtiles>=3.4.1",
     # Keep in sync with the prefect-server chart appVersion pinned in
@@ -22,16 +19,11 @@ dependencies = [
     "psutil>=7.0.0",
     "pyarrow>=20.0.0",
     "pyogrio>=0.11.0",
-    "pyzmq>=27.0.0",
     "rasterio>=1.4.3",
-    "rio-tiler>=7.8.1",
     "rioxarray>=0.19.0",
     "requests>=2.32.3",
     "s3fs>=2025.7.0",
-    "scikit-learn>=1.7.0",
     "scipy>=1.16.0",
-    "tornado>=6.5.1",
-    "tqdm>=4.67.1",
     "zarr<3.0",
 ]
 

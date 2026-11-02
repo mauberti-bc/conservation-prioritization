@@ -26,9 +26,6 @@ COPY --chown=node:node .yarn/ .yarn/
 # Install all dependencies (including dev)
 RUN yarn install --immutable
 
-# Install `tsx` as a dev dependency
-RUN yarn add -D tsx
-
 # Ensure Yarn/Node binaries are in PATH
 ENV PATH="${HOME}/node_modules/.bin:${PATH}"
 
