@@ -59,7 +59,10 @@ jobs:
       # The Helm chart can only be rendered, and therefore scanned, once its
       # dependency charts are present. See the note in trivy.yaml.
       - name: Download Helm chart dependencies
-        run: helm dependency build helm/conservation-tool
+        run: |
+          helm repo add prefecthq https://prefecthq.github.io/prefect-helm
+          helm repo update
+          helm dependency build helm/conservation-tool
 
       - name: Run Trivy filesystem scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
