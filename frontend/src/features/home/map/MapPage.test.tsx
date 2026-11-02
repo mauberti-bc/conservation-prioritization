@@ -211,10 +211,12 @@ describe('MapPage task and export refresh', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10_000);
     });
-    const buttons = within(screen.getByRole('dialog')).getAllByRole('button', {
+    // Only the GeoTIFF export changes state; the Geodatabase button is always disabled.
+    const geotiffRow = within(screen.getByRole('dialog')).getByText('GeoTIFF').parentElement as HTMLElement;
+    const geotiffButton = within(geotiffRow).getByRole('button', {
       name: status === 'ready' ? 'Download' : 'Export',
     });
-    expect(buttons.every((button) => !button.hasAttribute('disabled'))).toBe(true);
+    expect(geotiffButton.hasAttribute('disabled')).toBe(false);
     const requests = mocks.taskApi.getTaskExports.mock.calls.length;
     await act(async () => {
       await vi.advanceTimersByTimeAsync(100_000);
