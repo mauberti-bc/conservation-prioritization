@@ -85,8 +85,6 @@ const getConfig = () => {
       clientId: process.env.KEYCLOAK_CLIENT_ID,
     },
     SITEMINDER_LOGOUT_URL: process.env.SITEMINDER_LOGOUT_URL,
-    MAX_UPLOAD_NUM_FILES: Number(process.env.MAX_UPLOAD_NUM_FILES),
-    MAX_UPLOAD_FILE_SIZE: Number(process.env.MAX_UPLOAD_FILE_SIZE),
     S3_PUBLIC_HOST_URL: s3PublicHostUrl,
     BASEMAP_URL: process.env.BASEMAP_URL || '',
     BASEMAP_ATTRIBUTION: process.env.BASEMAP_ATTRIBUTION || '',

@@ -14,8 +14,6 @@ export interface IConfig {
     clientId: string;
   };
   SITEMINDER_LOGOUT_URL: string;
-  MAX_UPLOAD_NUM_FILES: number;
-  MAX_UPLOAD_FILE_SIZE: number;
   S3_PUBLIC_HOST_URL: string;
   BASEMAP_URL: string;
   BASEMAP_ATTRIBUTION: string;
@@ -96,11 +94,6 @@ const getLocalConfig = (): IConfig => {
       clientId: import.meta.env.VITE_APP_KEYCLOAK_CLIENT_ID || '',
     },
     SITEMINDER_LOGOUT_URL: import.meta.env.VITE_APP_SITEMINDER_LOGOUT_URL || '',
-    /**
-     * File upload settings
-     */
-    MAX_UPLOAD_NUM_FILES: Number(import.meta.env.VITE_APP_MAX_UPLOAD_NUM_FILES) || 10,
-    MAX_UPLOAD_FILE_SIZE: Number(import.meta.env.VITE_APP_MAX_UPLOAD_FILE_SIZE) || 52428800,
     S3_PUBLIC_HOST_URL: ensureProtocol(`${OBJECT_STORE_URL}/${OBJECT_STORE_BUCKET_NAME}`, 'https://'),
     BASEMAP_URL: import.meta.env.VITE_BASEMAP_URL || '',
     BASEMAP_ATTRIBUTION: import.meta.env.VITE_BASEMAP_ATTRIBUTION || '',
