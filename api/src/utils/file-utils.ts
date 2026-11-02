@@ -16,11 +16,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import NodeClam from 'clamscan';
 import { Readable } from 'stream';
-import { getLogger } from './logger';
-
-const defaultLog = getLogger('/api/src/utils/file-utils');
 
 export interface IDatasetS3FileKey {
   datasetUUID: string;
@@ -37,25 +33,6 @@ export interface IQueueS3FileKey {
   datasetUUID: string;
   fileName: string;
 }
-
-/**
- * Local getter for retrieving the ClamAV client.
- *
- * @returns {Promise<NodeClam>} The node clam record.
- * @throws {Error} ClamAV host and port must be set to enable virus scanning.
- */
-export const _getClamAvScanner = async (): Promise<NodeClam> => {
-  if (!process.env.CLAMAV_HOST || !process.env.CLAMAV_PORT) {
-    throw new Error('ClamAV host and port must be set to enable virus scanning');
-  }
-
-  return new NodeClam().init({
-    clamdscan: {
-      host: process.env.CLAMAV_HOST,
-      port: Number(process.env.CLAMAV_PORT)
-    }
-  });
-};
 
 /**
  * Local getter for retrieving the S3 client.
@@ -280,33 +257,6 @@ export async function bulkDeleteFilesFromS3(keys: string[]): Promise<DeleteObjec
 }
 
 /**
- * Upload a file to S3.
- *
- * @param {Express.Multer.File} file an object containing information about a single piece of media
- * @param {string} key the path where S3 will store the file
- * @param {Record<string, string>} [metadata={}] A metadata object to store additional information with the file
- * @returns {Promise<PutObjectCommandOutput>} the response from S3
- * @export
- */
-export async function uploadFileToS3(
-  file: Express.Multer.File,
-  key: string,
-  metadata: Record<string, string> = {}
-): Promise<PutObjectCommandOutput> {
-  const s3Client = _getS3Client();
-
-  return s3Client.send(
-    new PutObjectCommand({
-      Bucket: _getObjectStoreBucketName(),
-      Body: file.buffer,
-      ContentType: file.mimetype,
-      Key: key,
-      Metadata: metadata
-    })
-  );
-}
-
-/**
  * Upload a buffer to S3.
  *
  * @param {Buffer} buffer the buffer to upload
@@ -526,47 +476,4 @@ export function generateDatasetS3FileKey(options: IDatasetS3FileKey) {
   keyParts.push(options.fileName);
 
   return keyParts.filter(Boolean).join('/');
-}
-
-/**
- * Execute a clamav virus scan against the given file.
- *
- * Note: This depends on the external clamav service being available and configured correctly.
- *
- * @param {Express.Multer.File} file File to inspect or upload.
- * @return {Promise<boolean>} `true` if the file is safe, `false` if the file is a virus or contains malicious
- * content.
- * @export
- */
-export async function scanFileForVirus(file: Express.Multer.File): Promise<boolean> {
-  if (process.env.ENABLE_FILE_VIRUS_SCAN !== 'true' || !process.env.CLAMAV_HOST || !process.env.CLAMAV_PORT) {
-    // Virus scanning is not enabled or necessary environment variables are not set
-    return true;
-  }
-
-  const ClamAVScanner = await _getClamAvScanner();
-
-  // if virus scan is not to be performed/cannot be performed
-  if (!ClamAVScanner) {
-    return true;
-  }
-
-  const fileStream = Readable.from(file.buffer);
-
-  const clamavScanResult = await ClamAVScanner.scanStream(fileStream);
-
-  // if virus found in file
-  if (clamavScanResult.isInfected) {
-    defaultLog.warn({
-      label: 'scanFileForVirus',
-      message: 'Malicious content detected',
-      file: file.originalname,
-      clamavScanResult
-    });
-
-    return false;
-  }
-
-  // no virus found in file
-  return true;
 }

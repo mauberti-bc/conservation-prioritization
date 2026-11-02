@@ -28,8 +28,6 @@ prefect: | build-prefect run-prefect
 
 db-setup: | check-env build-db-setup run-db-setup
 
-clamav: | check-env build-clamav run-clamav
-
 minio: | check-env run-minio
 
 fix: | lint-fix format-fix

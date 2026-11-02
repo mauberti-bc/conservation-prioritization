@@ -1,16 +1,14 @@
 import express, { NextFunction, Request, Response } from 'express';
 import { initialize } from 'express-openapi';
 import http from 'http';
-import multer from 'multer';
 import { OpenAPIV3 } from 'openapi-types';
 import swaggerUIExpress from 'swagger-ui-express';
 import { defaultPoolConfig, initDBPool } from './database/db';
 import { initDBConstants } from './database/db-constants';
-import { ensureHTTPError, HTTP400, HTTP500 } from './errors/http-error';
+import { ensureHTTPError, HTTP500 } from './errors/http-error';
 import { rootAPIDoc } from './openapi/root-api-doc';
 import { authenticateRequest, authenticateRequestOptional } from './request-handlers/security/authentication';
 import { initRequestStorage } from './utils/async-request-storage';
-import { scanFileForVirus } from './utils/file-utils';
 import { getLogger } from './utils/logger';
 import { initRealtimeEventService } from './websocket/realtime-event-service';
 import { handleWebSocketUpgrade } from './websocket/ws-server';
@@ -21,8 +19,6 @@ const HOST = process.env.API_HOST;
 const PORT = Number(process.env.API_PORT);
 
 const MAX_REQ_BODY_SIZE = Number(process.env.MAX_REQ_BODY_SIZE) || 50 * 1024 * 1024;
-const MAX_UPLOAD_NUM_FILES = Number(process.env.MAX_UPLOAD_NUM_FILES) || 10;
-const MAX_UPLOAD_FILE_SIZE = Number(process.env.MAX_UPLOAD_FILE_SIZE) || 50 * 1024 * 1024;
 
 const app = express();
 const server = http.createServer(app);
@@ -58,8 +54,7 @@ const openAPIFramework = initialize({
   docsPath: '/raw-api-docs',
   consumesMiddleware: {
     'application/json': express.json({ limit: MAX_REQ_BODY_SIZE }),
-    'application/x-www-form-urlencoded': express.urlencoded({ limit: MAX_REQ_BODY_SIZE, extended: true }),
-    'multipart/form-data': (req, res, next) => handleMultipart(req, res, next)
+    'application/x-www-form-urlencoded': express.urlencoded({ limit: MAX_REQ_BODY_SIZE, extended: true })
   },
   securityHandlers: {
     Bearer: async (req) => {
@@ -109,47 +104,6 @@ function getAdditionalMiddleware(): express.RequestHandler[] {
   }
 
   return middleware;
-}
-
-/**
- * Parses multipart media uploads and scans each file before continuing the request.
- *
- * @param {Request} req Incoming HTTP request.
- * @param {Response} res HTTP response to write.
- * @param {NextFunction} next Callback that continues middleware processing or forwards an error.
- * @returns {Promise<void>} Resolves when the operation completes.
- */
-
-async function handleMultipart(req: Request, res: Response, next: NextFunction) {
-  const multerHandler = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: MAX_UPLOAD_FILE_SIZE }
-  }).array('media', MAX_UPLOAD_NUM_FILES);
-
-  // Wrap in promise to allow async/await
-  multerHandler(req as any, res as any, async (err?: any) => {
-    if (err) {
-      next(err);
-      return;
-    }
-
-    const files = (req.files as Express.Multer.File[]) || [];
-    try {
-      await Promise.all(
-        files.map(async (file) => {
-          const isSafe = await scanFileForVirus(file);
-          if (!isSafe) {
-            throw new HTTP400('Malicious file content detected.', [{ file_name: file.originalname }]);
-          }
-        })
-      );
-      req.files = files;
-      req.body = { ...req.body, media: files };
-      next();
-    } catch (error) {
-      next(error);
-    }
-  });
 }
 
 function handleErrorMiddleware(error: any, req: Request, res: Response, _next: NextFunction) {

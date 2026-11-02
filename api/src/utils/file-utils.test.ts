@@ -8,7 +8,6 @@ import {
   generateQueueS3FileKey,
   getS3HostUrl,
   getS3SignedURL,
-  _getClamAvScanner,
   _getObjectStoreBucketName,
   _getObjectStoreEndpoint,
   _getS3Client,
@@ -89,27 +88,6 @@ describe('_getS3Client', () => {
 
     const result = _getS3Client();
     expect(result).to.be.instanceOf(S3Client);
-  });
-});
-
-describe('_getClamAvScanner', () => {
-  const ENABLE_FILE_VIRUS_SCAN = process.env.ENABLE_FILE_VIRUS_SCAN;
-  const CLAMAV_HOST = process.env.CLAMAV_HOST;
-  const CLAMAV_PORT = process.env.CLAMAV_PORT;
-
-  afterEach(() => {
-    process.env.ENABLE_FILE_VIRUS_SCAN = ENABLE_FILE_VIRUS_SCAN;
-    process.env.CLAMAV_HOST = CLAMAV_HOST;
-    process.env.CLAMAV_PORT = CLAMAV_PORT;
-  });
-
-  it('should return a clamAv scanner client', () => {
-    process.env.ENABLE_FILE_VIRUS_SCAN = 'true';
-    process.env.CLAMAV_HOST = 'host';
-    process.env.CLAMAV_PORT = '1111';
-
-    const result = _getClamAvScanner();
-    expect(result).to.not.be.null;
   });
 });
 
