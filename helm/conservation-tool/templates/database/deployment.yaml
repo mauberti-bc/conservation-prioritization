@@ -57,6 +57,7 @@ spec:
             {{- if .Values.services.db.securityContext.runAsUser }}
             runAsUser: {{ .Values.services.db.securityContext.runAsUser | int64 }}
             {{- end }}
+            readOnlyRootFilesystem: true
           env:
             - name: POSTGRES_DB
               valueFrom:
@@ -115,9 +116,18 @@ spec:
           volumeMounts:
             - name: {{ include "conservation-tool.fullname.db" . }}-data
               mountPath: /var/lib/postgresql/data
+            # Writable scratch paths, since the root filesystem is read-only.
+            - name: run-postgresql
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
       restartPolicy: Always
       dnsPolicy: ClusterFirst
       volumes:
         - name: {{ include "conservation-tool.fullname.db" . }}-data
           persistentVolumeClaim:
             claimName: {{ .Values.database.persistence.existingClaim | default (include "conservation-tool.fullname.db" .) }}
+        - name: run-postgresql
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}

@@ -40,7 +40,7 @@ spec:
             runAsUser: {{ .Values.services.api.securityContext.runAsUser | int64 }}
             {{- end }}
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -53,6 +53,9 @@ spec:
               value: {{ .Values.env.NODE_OPTIONS | quote }}
             - name: API_HOST
               value: {{ .Values.env.API_HOST | quote }}
+            # The root filesystem is read-only, so rotating file logs go to the /tmp volume.
+            - name: LOG_FILE_DIR
+              value: /tmp/logs
             - name: API_PORT
               value: {{ .Values.env.API_PORT | quote }}
             - name: APP_HOST
@@ -227,3 +230,10 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.services.api.resources | nindent 12 }}
+          # The root filesystem is read-only; /tmp is the only writable path.
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -51,4 +51,7 @@ RUN mkdir -p /tmp && chmod -R 777 /tmp && \
 
 EXPOSE 7070
 
+# Run as the node image's built-in non-root user.
+USER node
+
 CMD ["node", "/app/server/index.mjs"]

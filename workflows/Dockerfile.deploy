@@ -68,3 +68,7 @@ import rioxarray
 import xarray as xr
 print("✓ imports ok")
 EOF
+
+# Run as a non-root user. Writable paths above are world-writable for OpenShift's
+# arbitrary UIDs.
+USER 1001

@@ -40,6 +40,12 @@ spec:
         - name: prefect-worker
           image: "{{ $root.Values.registry }}/{{ $root.Values.services.workflows.worker.image.stream }}:{{ $root.Values.services.workflows.worker.image.tag }}"
           imagePullPolicy: {{ $root.Values.services.workflows.worker.image.pullPolicy | default "Always" }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           # Keep the container running while Prefect becomes available so Helm
           # can run the post-install migration and registration hooks.
           command:
@@ -59,6 +65,9 @@ spec:
               value: {{ printf "%s/.prefect" ($profile.scratchRoot | default "/workflow-scratch") | quote }}
             - name: TMPDIR
               value: {{ $profile.scratchRoot | default "/workflow-scratch" | quote }}
+            # HOME is on the read-only root filesystem, so keep Matplotlib's cache on scratch.
+            - name: MPLCONFIGDIR
+              value: {{ printf "%s/.config/matplotlib" ($profile.scratchRoot | default "/workflow-scratch") | quote }}
             - name: PREFECT_API_URL
               value: "{{ $root.Values.env.PREFECT_API_URL }}"
             - name: ZARR_STORE_PATH
@@ -151,9 +160,18 @@ spec:
           volumeMounts:
             - name: workflow-scratch
               mountPath: {{ $profile.scratchMountPath | default "/workflow-scratch" | quote }}
+            # Writable paths, since the root filesystem is read-only.
+            - name: boundary-data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: workflow-scratch
           persistentVolumeClaim:
             claimName: {{ $root.Values.services.workflows.worker.persistence.existingClaim | default (include "conservation-tool.fullname.workflow-scratch" $root) }}
+        - name: boundary-data
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
 ---
 {{- end }}
