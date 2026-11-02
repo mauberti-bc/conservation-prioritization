@@ -23,5 +23,10 @@
     "strict": true,
     "typeRoots": ["node_modules/@types", "src/types"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "ts-node": {
+    // Tests compile through TypeScript's CommonJS emit so Sinon can stub module
+    // exports; type checking is done by `yarn build` and `yarn lint`.
+    "transpileOnly": true
+  }
 }

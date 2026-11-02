@@ -40,7 +40,7 @@ test: ## Run all API, frontend, workflow, and deployment tests
 	@$(MAKE) --keep-going test-api test-frontend test-frontend-server test-workflows test-deployment
 
 test-api: ## Run TypeScript API tests with Mocha
-	@cd api && node --import tsx node_modules/mocha/bin/mocha.js 'src/**/*.test.ts'
+	@cd api && node_modules/.bin/mocha
 
 test-frontend: ## Run frontend application tests with Vitest
 	@cd frontend && node_modules/.bin/vitest run src

@@ -11,9 +11,28 @@ import {
   _getObjectStoreBucketName,
   _getObjectStoreEndpoint,
   _getS3Client,
-  _getSourceObjectStoreEndpoint,
-  _getSourceObjectStoreBucketName
+  _getSourceObjectStoreBucketName,
+  _getSourceObjectStoreEndpoint
 } from './file-utils';
+
+/**
+ * Sets or clears environment variables for a test.
+ *
+ * Assigning `undefined` to a `process.env` key stores the string "undefined", so
+ * `undefined` values are deleted instead.
+ *
+ * @param {Record<string, string | undefined>} values Variables to set, or `undefined` to clear.
+ * @returns {void} No return value.
+ */
+const setEnv = (values: Record<string, string | undefined>): void => {
+  for (const [key, value] of Object.entries(values)) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+};
 
 describe('deleteFileFromS3', () => {
   it('returns null when no key specified', async () => {
@@ -44,12 +63,12 @@ describe('getS3HostUrl', () => {
   const OBJECT_STORE_BUCKET_NAME = process.env.OBJECT_STORE_BUCKET_NAME;
 
   afterEach(() => {
-    process.env.OBJECT_STORE_URL = OBJECT_STORE_URL;
-    process.env.OBJECT_STORE_BUCKET_NAME = OBJECT_STORE_BUCKET_NAME;
+    setEnv({ OBJECT_STORE_URL });
+    setEnv({ OBJECT_STORE_BUCKET_NAME });
   });
 
   it('should yield a default S3 host url', () => {
-    Object.assign(process.env, { OBJECT_STORE_URL: undefined, OBJECT_STORE_BUCKET_NAME: undefined });
+    setEnv({ OBJECT_STORE_URL: undefined, OBJECT_STORE_BUCKET_NAME: undefined });
 
     const result = getS3HostUrl();
 
@@ -79,7 +98,7 @@ describe('_getS3Client', () => {
   const OBJECT_STORE_ACCESS_KEY_ID = process.env.OBJECT_STORE_ACCESS_KEY_ID;
 
   afterEach(() => {
-    process.env.OBJECT_STORE_ACCESS_KEY_ID = OBJECT_STORE_ACCESS_KEY_ID;
+    setEnv({ OBJECT_STORE_ACCESS_KEY_ID });
   });
 
   it('should return an S3 client', () => {
@@ -95,7 +114,7 @@ describe('_getObjectStoreBucketName', () => {
   const OBJECT_STORE_BUCKET_NAME = process.env.OBJECT_STORE_BUCKET_NAME;
 
   afterEach(() => {
-    process.env.OBJECT_STORE_BUCKET_NAME = OBJECT_STORE_BUCKET_NAME;
+    setEnv({ OBJECT_STORE_BUCKET_NAME });
   });
 
   it('should return an object store bucket name', () => {
@@ -106,7 +125,7 @@ describe('_getObjectStoreBucketName', () => {
   });
 
   it('should return its default value', () => {
-    Object.assign(process.env, { OBJECT_STORE_BUCKET_NAME: undefined });
+    setEnv({ OBJECT_STORE_BUCKET_NAME: undefined });
 
     const result = _getObjectStoreBucketName();
     expect(result).to.equal('');
@@ -118,8 +137,8 @@ describe('_getSourceObjectStoreBucketName', () => {
   const SOURCE_OBJECT_STORE_BUCKET_NAME = process.env.SOURCE_OBJECT_STORE_BUCKET_NAME;
 
   afterEach(() => {
-    process.env.OBJECT_STORE_BUCKET_NAME = OBJECT_STORE_BUCKET_NAME;
-    process.env.SOURCE_OBJECT_STORE_BUCKET_NAME = SOURCE_OBJECT_STORE_BUCKET_NAME;
+    setEnv({ OBJECT_STORE_BUCKET_NAME });
+    setEnv({ SOURCE_OBJECT_STORE_BUCKET_NAME });
   });
 
   it('should return a source object store bucket name', () => {
@@ -131,7 +150,7 @@ describe('_getSourceObjectStoreBucketName', () => {
   });
 
   it('should not fall back to the writable object store bucket name', () => {
-    Object.assign(process.env, { SOURCE_OBJECT_STORE_BUCKET_NAME: undefined });
+    setEnv({ SOURCE_OBJECT_STORE_BUCKET_NAME: undefined });
     process.env.OBJECT_STORE_BUCKET_NAME = 'write-bucket';
 
     expect(() => _getSourceObjectStoreBucketName()).to.throw('SOURCE_OBJECT_STORE_BUCKET_NAME is not configured.');
@@ -142,7 +161,7 @@ describe('_getObjectStoreEndpoint', () => {
   const OBJECT_STORE_URL = process.env.OBJECT_STORE_URL;
 
   afterEach(() => {
-    process.env.OBJECT_STORE_URL = OBJECT_STORE_URL;
+    setEnv({ OBJECT_STORE_URL });
   });
 
   it('should return an object store bucket name that http protocol', () => {
@@ -167,7 +186,7 @@ describe('_getObjectStoreEndpoint', () => {
   });
 
   it('should return its default value', () => {
-    Object.assign(process.env, { OBJECT_STORE_ENDPOINT: undefined, OBJECT_STORE_URL: undefined });
+    setEnv({ OBJECT_STORE_ENDPOINT: undefined, OBJECT_STORE_URL: undefined });
 
     const result = _getObjectStoreEndpoint();
     expect(result).to.equal('https://nrs.objectstore.gov.bc.ca');
@@ -181,10 +200,10 @@ describe('_getSourceObjectStoreEndpoint', () => {
   const SOURCE_OBJECT_STORE_URL = process.env.SOURCE_OBJECT_STORE_URL;
 
   afterEach(() => {
-    process.env.OBJECT_STORE_ENDPOINT = OBJECT_STORE_ENDPOINT;
-    process.env.OBJECT_STORE_URL = OBJECT_STORE_URL;
-    process.env.SOURCE_OBJECT_STORE_ENDPOINT = SOURCE_OBJECT_STORE_ENDPOINT;
-    process.env.SOURCE_OBJECT_STORE_URL = SOURCE_OBJECT_STORE_URL;
+    setEnv({ OBJECT_STORE_ENDPOINT });
+    setEnv({ OBJECT_STORE_URL });
+    setEnv({ SOURCE_OBJECT_STORE_ENDPOINT });
+    setEnv({ SOURCE_OBJECT_STORE_URL });
   });
 
   it('should return a source object store endpoint', () => {
@@ -195,7 +214,7 @@ describe('_getSourceObjectStoreEndpoint', () => {
   });
 
   it('should not fall back to the writable object store endpoint', () => {
-    Object.assign(process.env, { SOURCE_OBJECT_STORE_ENDPOINT: undefined, SOURCE_OBJECT_STORE_URL: undefined });
+    setEnv({ SOURCE_OBJECT_STORE_ENDPOINT: undefined, SOURCE_OBJECT_STORE_URL: undefined });
     process.env.OBJECT_STORE_ENDPOINT = 'write.s3.host.example.com';
     process.env.OBJECT_STORE_URL = 'write.s3.host.example.com';
 

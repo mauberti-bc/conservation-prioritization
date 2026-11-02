@@ -228,8 +228,13 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
    * @param {string} text SQL query text with positional placeholders.
    * @param {any[]} values Values bound to the SQL query placeholders.
    * @returns {Promise<pg.QueryResult<T>>} PostgreSQL result containing the returned rows and query metadata.
+   * @throws {Error} DBConnection not open.
    */
   const query = async <T extends pg.QueryResultRow = any>(text: string, values: any[] = []) => {
+    if (!isOpen) {
+      throw new Error('DBConnection not open');
+    }
+
     return client.query<T>(text, values);
   };
 

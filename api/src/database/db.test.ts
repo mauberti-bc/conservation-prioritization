@@ -5,25 +5,37 @@ import Sinon, { SinonSandbox, SinonStub } from 'sinon';
 import SQL from 'sql-template-strings';
 import { IDENTITY_SOURCE } from '../constants/database';
 import { Profile } from '../models/profile';
+import { setProfileContextSQL } from '../queries/database/user-context-queries';
 import { getMockDBConnection } from '../__mocks__/db';
 import * as db from './db';
 import {
-  DB_CLIENT,
   getAPIUserDBConnection,
   getDBConnection,
   getDBPool,
-  getKnex,
-  getKnexQueryBuilder,
   getServiceAccountDBConnection,
   IDBConnection,
   initDBPool
 } from './db';
 
 describe('db', () => {
+  afterEach(() => {
+    Sinon.restore();
+  });
+
   describe('getDBPool', () => {
-    it('returns undefined if pool not initialized', () => {
-      const pool = getDBPool();
-      expect(pool).to.be.undefined;
+    it('throws if pool not initialized', async () => {
+      // The pool is a module-level singleton that other test files may already have
+      // initialized, so load a fresh copy of the module for this assertion.
+      const modulePath = require.resolve('./db');
+      const cachedModule = require.cache[modulePath];
+      delete require.cache[modulePath];
+
+      try {
+        const freshDb = await import('./db');
+        expect(() => freshDb.getDBPool()).to.throw('DBPool is not initialized');
+      } finally {
+        require.cache[modulePath] = cachedModule;
+      }
     });
 
     it('returns defined pool if initialized', () => {
@@ -38,8 +50,15 @@ describe('db', () => {
       expect(() => getDBConnection(null as unknown as object)).to.throw('Keycloak token is undefined');
     });
 
+    it('throws error if the token has no user identifier', () => {
+      expect(() => getDBConnection({})).to.throw('User identifier is required');
+    });
+
     it('returns a database connection instance', () => {
-      const connection = getDBConnection({});
+      const connection = getDBConnection({
+        preferred_username: 'testguid@idir',
+        identity_provider: IDENTITY_SOURCE.IDIR
+      });
       expect(connection).not.to.be.null;
     });
 
@@ -80,7 +99,7 @@ describe('db', () => {
 
           await connection.open();
 
-          const expectedSQL = SQL`select api_set_context(${'testguid'}, ${IDENTITY_SOURCE.IDIR});`;
+          const expectedSQL = setProfileContextSQL('testguid', IDENTITY_SOURCE.IDIR);
 
           expect(queryStub).to.have.been.calledWith(expectedSQL.text, expectedSQL.values);
           expect(queryStub).to.have.been.calledWith('BEGIN');
@@ -100,7 +119,7 @@ describe('db', () => {
         });
 
         it('throws error if pool not initialized', async () => {
-          sinonSandbox.stub(db, 'getDBPool').returns(undefined);
+          sinonSandbox.stub(db, 'getDBPool').throws(new Error('DBPool is not initialized'));
 
           let error: any;
           try {
@@ -152,7 +171,7 @@ describe('db', () => {
           } catch (err) {
             error = err;
           }
-          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBConnection is not open' });
+          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBConnection not open' });
         });
       });
 
@@ -171,7 +190,7 @@ describe('db', () => {
           } catch (err) {
             error = err;
           }
-          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBConnection is not open' });
+          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBConnection not open' });
         });
       });
 
@@ -190,7 +209,7 @@ describe('db', () => {
           } catch (err) {
             error = err;
           }
-          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBConnection is not open' });
+          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBConnection not open' });
         });
       });
 
@@ -211,7 +230,7 @@ describe('db', () => {
           } catch (err) {
             error = err;
           }
-          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBConnection is not open' });
+          expect(error.errors[0]).to.eql({ name: 'Error', message: 'DBConnection not open' });
         });
       });
     });
@@ -228,8 +247,6 @@ describe('db', () => {
         preferred_username: `${process.env.DB_USER_API}@${IDENTITY_SOURCE.DATABASE}`,
         identity_provider: IDENTITY_SOURCE.DATABASE
       });
-
-      stub.restore();
     });
   });
 
@@ -248,25 +265,9 @@ describe('db', () => {
       getServiceAccountDBConnection(systemUser);
 
       expect(stub).to.have.been.calledWith({
-        preferred_username: 'service-account-conservation-svc-4464',
+        preferred_username: `service-account-conservation-svc-4464@${IDENTITY_SOURCE.SYSTEM}`,
         identity_provider: IDENTITY_SOURCE.SYSTEM
       });
-
-      stub.restore();
-    });
-  });
-
-  describe('getKnexQueryBuilder', () => {
-    it('returns a Knex query builder', () => {
-      const queryBuilder = getKnexQueryBuilder();
-      expect(queryBuilder.client.config).to.eql({ client: DB_CLIENT });
-    });
-  });
-
-  describe('getKnex', () => {
-    it('returns a Knex instance', () => {
-      const knex = getKnex();
-      expect(knex.client.config).to.eql({ client: DB_CLIENT });
     });
   });
 });

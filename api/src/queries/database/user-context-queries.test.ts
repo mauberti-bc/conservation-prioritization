@@ -4,10 +4,14 @@ import { IDENTITY_SOURCE } from '../../constants/database';
 import { setProfileContextSQL } from './user-context-queries';
 
 describe('setProfileContextSQL', () => {
-  it('has empty userIdentifier', () => {
-    const response = setProfileContextSQL('', IDENTITY_SOURCE.IDIR);
+  it('throws when the user identifier is empty', () => {
+    expect(() => setProfileContextSQL('', IDENTITY_SOURCE.IDIR)).to.throw('setProfileContextSQL: userGuid is required');
+  });
 
-    expect(response).to.be.null;
+  it('throws when the identity source is missing', () => {
+    expect(() => setProfileContextSQL('idir-user', undefined as unknown as IDENTITY_SOURCE)).to.throw(
+      'setProfileContextSQL: systemUserType is required'
+    );
   });
 
   it('identifies an IDIR user', () => {
@@ -16,14 +20,8 @@ describe('setProfileContextSQL', () => {
     expect(response).not.to.be.null;
   });
 
-  it('identifies a BCEID basic user', () => {
-    const response = setProfileContextSQL('bceid-basic-user', IDENTITY_SOURCE.BCEID_BASIC);
-
-    expect(response).not.to.be.null;
-  });
-
-  it('identifies a BCEID business user', () => {
-    const response = setProfileContextSQL('bceid-business-user', IDENTITY_SOURCE.BCEID_BUSINESS);
+  it('identifies an Azure IDIR user', () => {
+    const response = setProfileContextSQL('azure-idir-user', IDENTITY_SOURCE.AZURE_IDIR);
 
     expect(response).not.to.be.null;
   });
