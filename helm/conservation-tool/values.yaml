@@ -136,6 +136,8 @@ prefect-server:
         mountPath: /tmp/prefect
 
   server:
+    # The Prefect server does not use the Kubernetes API, so do not mount a token.
+    automountServiceAccountToken: false
     # for dev 
     debug: true
     loggingLevel: DEBUG

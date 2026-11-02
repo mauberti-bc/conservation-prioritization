@@ -57,7 +57,13 @@ spec:
             {{- if .Values.services.db.securityContext.runAsUser }}
             runAsUser: {{ .Values.services.db.securityContext.runAsUser | int64 }}
             {{- end }}
+            allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
           env:
             - name: POSTGRES_DB
               valueFrom:
