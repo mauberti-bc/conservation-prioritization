@@ -1,0 +1,6 @@
+# Trivy ignore list.
+# Add one CVE or misconfiguration ID per line once it has been reviewed and
+# accepted. Include a short reason and a review date so entries can be
+# revisited, for example:
+#
+# CVE-2024-12345  # not reachable: affected codepath unused (reviewed 2026-11-02)

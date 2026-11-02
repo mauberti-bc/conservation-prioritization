@@ -1,0 +1,141 @@
+name: Trivy Security Scan
+
+# Scans repository dependencies, infrastructure config, and every container
+# image the project ships. Results are uploaded as SARIF to the GitHub
+# Security tab (Code scanning alerts).
+#
+# Sensitive-data safeguards:
+# - No repository secrets are referenced; images are built locally and never
+#   pushed, so no registry or OpenShift credentials are needed.
+# - Trivy's secret scanner is disabled. Secret findings would publish the
+#   location of a leaked credential in a public repository. Use GitHub's
+#   native secret scanning and push protection for that instead.
+# - Checkout does not persist the GitHub token into the workspace.
+# - SARIF uploads are skipped for pull requests from forks, which only get a
+#   read-only token.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Weekly re-scan picks up newly published CVEs for unchanged code.
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: trivy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TRIVY_VERSION: v0.76.1
+  # Do not print the vulnerability DB download progress bar into logs.
+  TRIVY_NO_PROGRESS: "true"
+
+jobs:
+  scan-repository:
+    name: Scan repository (dependencies & config)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig
+          skip-dirs: node_modules
+          severity: CRITICAL,HIGH,MEDIUM
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          format: sarif
+          output: trivy-repository.sarif
+          exit-code: "0"
+
+      - name: Upload results to GitHub Security tab
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: trivy-repository.sarif
+          category: trivy-repository
+
+  scan-images:
+    name: Scan image (${{ matrix.image.name }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # Mirrors the images built and pushed in build.dev.yml.
+        image:
+          - name: frontend
+            context: frontend
+            dockerfile: Dockerfile
+          - name: api
+            context: api
+            dockerfile: Dockerfile
+          - name: database
+            context: database
+            dockerfile: Dockerfile
+          - name: db-setup
+            context: database
+            dockerfile: .docker/db/Dockerfile.setup
+          - name: prefect-worker
+            context: workflows
+            dockerfile: Dockerfile.worker
+          - name: prefect-deploy
+            context: workflows
+            dockerfile: Dockerfile.deploy
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Frontend VITE_* build args are intentionally omitted. They only set
+      # runtime config values and do not change which packages are installed.
+      - name: Build image locally (not pushed)
+        working-directory: ${{ matrix.image.context }}
+        run: |
+          docker build \
+            -t "trivy-scan/${{ matrix.image.name }}:${{ github.sha }}" \
+            -f "${{ matrix.image.dockerfile }}" .
+
+      - name: Run Trivy image scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          scan-type: image
+          image-ref: trivy-scan/${{ matrix.image.name }}:${{ github.sha }}
+          scanners: vuln
+          severity: CRITICAL,HIGH,MEDIUM
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          format: sarif
+          output: trivy-${{ matrix.image.name }}.sarif
+          exit-code: "0"
+
+      - name: Upload results to GitHub Security tab
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: trivy-${{ matrix.image.name }}.sarif
+          category: trivy-image-${{ matrix.image.name }}
