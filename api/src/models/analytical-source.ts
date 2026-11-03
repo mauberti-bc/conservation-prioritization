@@ -10,7 +10,7 @@ export const AnalyticalSource = z.object({
   uri: z.string(),
   checksum: z.string().nullable(),
   format: z.string(),
-  schema_metadata: z.record(z.unknown()),
+  schema_metadata: z.record(z.string(), z.unknown()),
   published_at: z.string().nullable(),
   is_default: z.boolean()
 });

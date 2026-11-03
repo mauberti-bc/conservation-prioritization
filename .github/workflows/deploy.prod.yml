@@ -13,6 +13,9 @@ concurrency:
   group: promote-to-prod
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     if: ${{ inputs.confirm }}

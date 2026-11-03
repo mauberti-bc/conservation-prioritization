@@ -150,7 +150,7 @@ export function updateMarkdown(): RequestHandler {
     const parsedBody = UpdateMarkdown.safeParse(req.body);
 
     if (!parsedBody.success) {
-      throw new HTTP400('Invalid Markdown document.', parsedBody.error.errors);
+      throw new HTTP400('Invalid Markdown document.', parsedBody.error.issues);
     }
 
     const connection = getDBConnection(req.keycloak_token);
