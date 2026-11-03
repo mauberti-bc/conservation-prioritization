@@ -45,7 +45,8 @@ export default [
       // Root TypeScript rules
       ...typescriptEslint.configs.recommended.rules,
       // Root React Hooks rules
-      ...eslintPluginReactHooks.configs.recommended.rules,
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       // Root Prettier rules
       ...eslintConfigPrettier.rules,
       // Root Vitest rules

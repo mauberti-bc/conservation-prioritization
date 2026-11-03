@@ -16,10 +16,10 @@
     "migrate-latest": "node -r ts-node/register/transpile-only node_modules/knex/bin/cli.js migrate:latest --knexfile ./src/knexfile.ts",
     "migrate-rollback": "node -r ts-node/register/transpile-only node_modules/knex/bin/cli.js migrate:rollback --knexfile ./src/knexfile.ts",
     "seed": "node -r ts-node/register/transpile-only node_modules/knex/bin/cli.js seed:run --knexfile ./src/knexfile.ts",
-    "lint": "eslint src/ --ext .js,.ts",
+    "lint": "eslint src/",
     "lint-fix": "npm run lint -- --fix",
-    "format": "prettier --loglevel=warn --check \"./src/**/*.{js,jsx,ts,tsx,css,scss}\"",
-    "format-fix": "prettier --loglevel=warn --write \"./src/**/*.{js,jsx,ts,tsx,json,css,scss}\"",
+    "format": "prettier --log-level=warn --check \"./src/**/*.{js,jsx,ts,tsx,css,scss}\"",
+    "format-fix": "prettier --log-level=warn --write \"./src/**/*.{js,jsx,ts,tsx,json,css,scss}\"",
     "fix": "npm-run-all -l -s lint-fix format-fix"
   },
   "dependencies": {
@@ -29,20 +29,23 @@
     "typescript": "^4.2.4"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.11.4",
-    "@typescript-eslint/eslint-plugin": "~7.6.0",
-    "@typescript-eslint/parser": "~7.6.0",
-    "eslint": "~8.56.0",
-    "eslint-config-prettier": "~8.10.0",
-    "eslint-plugin-prettier": "~4.2.1",
-    "npm-run-all": "^4.1.5",
-    "prettier": "^2.8.8",
-    "prettier-plugin-organize-imports": "^3.2.4",
-    "ts-node": "^10.9.2"
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.7",
+    "globals": "^17.14.0",
+    "npm-run-all2": "^8.0.4",
+    "prettier": "^3.6.2",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "ts-node": "^10.9.2",
+    "typescript-eslint": "^8.72.1"
   },
   "packageManager": "yarn@4.11.0",
   "resolutions": {
-    "minimatch@npm:^9.0.4": "^11.0.4"
+    "minimatch@npm:^10.2.4": "^11.0.4",
+    "minimatch@npm:^10.2.6": "^11.0.4",
+    "minimatch@npm:^10.2.2": "^11.0.4"
   }
 }

@@ -66,9 +66,9 @@ export const formatPhoneNumber = (phoneNumber: string) => {
   }
 
   let countryCode = '';
-  let areaCode = '';
-  let exchangeCode = '';
-  let subscriberCode = '';
+  let areaCode: string;
+  let exchangeCode: string;
+  let subscriberCode: string;
 
   if (fullNumeric.startsWith('1')) {
     countryCode = '+1';

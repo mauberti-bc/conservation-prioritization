@@ -1,5 +1,4 @@
 import eslintJs from '@eslint/js';
-import vitestEslintPlugin from '@vitest/eslint-plugin';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import eslintPluginPrettier from 'eslint-plugin-prettier';
 import globals from 'globals';
@@ -27,15 +26,13 @@ export default [
         sourceType: 'module'
       },
       globals: {
-        ...globals.node,
-        ...vitestEslintPlugin.configs.env.languageOptions.globals
+        ...globals.node
       }
     },
 
     plugins: {
       '@typescript-eslint': typescriptEslint.plugin,
-      prettier: eslintPluginPrettier,
-      vitest: vitestEslintPlugin
+      prettier: eslintPluginPrettier
     },
 
     rules: {
@@ -44,9 +41,6 @@ export default [
 
       // TypeScript rules
       ...typescriptEslint.configs.recommended.rules,
-
-      // Vitest recommended rules
-      ...vitestEslintPlugin.configs.recommended.rules,
 
       // Disable formatting rules (Prettier manages formatting)
       ...eslintConfigPrettier.rules,

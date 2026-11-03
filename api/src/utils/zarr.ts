@@ -22,7 +22,7 @@ const parseMetadataValue = <T>(value: unknown): T | null => {
   if (typeof value === 'string') {
     try {
       return JSON.parse(value) as T;
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }

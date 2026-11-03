@@ -1,24 +1,44 @@
 import { IDENTITY_SOURCE } from 'constants/auth';
 
 /**
- * Checks if a url string starts with an `http[s]://` protocol, and adds `https://` if it does not. If the url
- * begins with `localhost` or `host.docker.internal`, the `http` protocol is used.
+ * Hostnames of local development services that are reached over plain `http`.
+ */
+const LOCAL_DEVELOPMENT_HOSTNAMES = ['localhost', 'host.docker.internal'];
+
+/**
+ * Checks whether a url, with or without an `http://` protocol, points exactly at a local development host.
+ *
+ * The hostname is parsed and compared exactly, so urls such as `localhost.example.com` or
+ * `host.docker.internal.example.com` are not treated as local.
+ *
+ * @param {string} url URL of the resource, optionally prefixed with `http://`.
+ * @returns {boolean} `true` if the url's hostname is a local development host, otherwise `false`.
+ */
+const isLocalDevelopmentUrl = (url: string): boolean => {
+  const urlWithProtocol = url.startsWith('http://') ? url : `http://${url}`;
+
+  try {
+    return LOCAL_DEVELOPMENT_HOSTNAMES.includes(new URL(urlWithProtocol).hostname);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Checks if a url string starts with an `http[s]://` protocol, and adds `https://` if it does not. If the url's
+ * hostname is `localhost` or `host.docker.internal`, the `http` protocol is used.
  *
  * @param {string} url URL of the resource.
  * @param {('http://' | 'https://')} [protocol='https://'] The protocol to add, if necessary. Defaults to `https://`.
  * @return {string} the url which is guaranteed to have an `http(s)://` protocol.
  */
 export const ensureProtocol = (url: string, protocol: 'http://' | 'https://' = 'https://'): string => {
-  if (url.startsWith('localhost') || url.startsWith('host.docker.internal')) {
-    return `${'http://'}${url}`;
+  if (url.startsWith('https://')) {
+    return url;
   }
 
-  if (
-    url.startsWith('https://') ||
-    url.startsWith('http://localhost') ||
-    url.startsWith('http://host.docker.internal')
-  ) {
-    return url;
+  if (isLocalDevelopmentUrl(url)) {
+    return url.startsWith('http://') ? url : `http://${url}`;
   }
 
   if (url.startsWith('http://')) {
@@ -26,6 +46,8 @@ export const ensureProtocol = (url: string, protocol: 'http://' | 'https://' = '
     if (protocol === 'https://') {
       return `${'https://'}${url.slice(7)}`;
     }
+
+    return url;
   }
 
   return `${protocol}${url}`;

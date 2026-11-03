@@ -35,7 +35,7 @@ export function parseUTMString(utm: string): IUTM | null {
   const utmParts = utm.split(' ');
 
   let zone_letter = undefined;
-  let zone_number = undefined;
+  let zone_number: number;
 
   const hasZoneLetter = UTM_ZONE_WITH_LETTER_FORMAT.test(utmParts[0]);
 
