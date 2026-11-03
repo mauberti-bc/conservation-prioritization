@@ -72,7 +72,7 @@ export function getMarkdown(): RequestHandler {
     const parsedKey = MarkdownKey.safeParse(req.params.key);
 
     if (!parsedKey.success) {
-      throw new HTTP400('Invalid Markdown document key.', parsedKey.error.errors);
+      throw new HTTP400('Invalid Markdown document key.', parsedKey.error.issues);
     }
 
     const key = parsedKey.data;

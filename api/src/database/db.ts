@@ -267,7 +267,7 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
 
     const parsed = z.array(zodSchema).safeParse(result.rows);
     if (!parsed.success) {
-      throw new ApiExecuteSQLError('DB validation failed', parsed.error.errors);
+      throw new ApiExecuteSQLError('DB validation failed', parsed.error.issues);
     }
 
     return result;
@@ -297,7 +297,7 @@ export const getDBConnection = (keycloakToken: Record<string, any>): IDBConnecti
 
     const parsed = z.array(zodSchema).safeParse(result.rows);
     if (!parsed.success) {
-      throw new ApiExecuteSQLError('DB validation failed', parsed.error.errors);
+      throw new ApiExecuteSQLError('DB validation failed', parsed.error.issues);
     }
 
     return result;

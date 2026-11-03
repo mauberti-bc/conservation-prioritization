@@ -16,8 +16,8 @@ export const TaskExportFile = z.object({
   column_offset: z.coerce.number().int(),
   width: z.coerce.number().int(),
   height: z.coerce.number().int(),
-  transform: z.record(z.unknown()),
-  metadata: z.record(z.unknown())
+  transform: z.record(z.string(), z.unknown()),
+  metadata: z.record(z.string(), z.unknown())
 });
 
 export type TaskExportFile = z.infer<typeof TaskExportFile>;
