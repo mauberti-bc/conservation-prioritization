@@ -1,0 +1,99 @@
+import { PropsWithChildren, ReactElement } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuthContext } from 'hooks/useContext';
+
+interface IGuardProps {
+  /**
+   * An optional backup ReactElement to render if the guard fails.
+   *
+   * @type {ReactElement}
+   * @memberof IGuardProps
+   */
+  fallback?: ReactElement;
+  redirectTo?: string;
+}
+
+/**
+ * Renders `props.children` only if the user is not authenticated.
+ *
+ * @param {*} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ */
+export const UnAuthGuard = (props: PropsWithChildren<IGuardProps>) => {
+  const authContext = useAuthContext();
+  const isLoggedIn =
+    authContext.auth.isAuthenticated || Boolean(authContext.auth.user && !authContext.auth.user.expired);
+
+  if (isLoggedIn) {
+    if (props.fallback) {
+      return <>{props.fallback}</>;
+    }
+
+    return <></>;
+  }
+
+  return <>{props.children}</>;
+};
+
+/**
+ * Renders `props.children` only if the user is authenticated.
+ *
+ * @param {*} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ */
+export const AuthGuard = (props: PropsWithChildren<IGuardProps>) => {
+  const authContext = useAuthContext();
+  const isLoggedIn =
+    authContext.auth.isAuthenticated || Boolean(authContext.auth.user && !authContext.auth.user.expired);
+
+  if (!isLoggedIn) {
+    if (props.fallback) {
+      return <>{props.fallback}</>;
+    }
+
+    return <></>;
+  }
+
+  return <>{props.children}</>;
+};
+
+/**
+ * Redirects to /login if the user is not authenticated.
+ *
+ * @param {*} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ */
+export const AuthRedirectGuard = (props: PropsWithChildren<IGuardProps>) => {
+  const authContext = useAuthContext();
+  const location = useLocation();
+  const isLoggedIn =
+    authContext.auth.isAuthenticated || Boolean(authContext.auth.user && !authContext.auth.user.expired);
+
+  if (authContext.auth.isLoading) {
+    return props.fallback ?? <></>;
+  }
+
+  if (!isLoggedIn) {
+    if (props.fallback) {
+      return <>{props.fallback}</>;
+    }
+
+    const redirectTarget = props.redirectTo ?? '/auth/login';
+    return <Navigate to={redirectTarget} replace state={{ from: location.pathname }} />;
+  }
+
+  return <>{props.children}</>;
+};
+
+/**
+ * Renders admin children after authentication.
+ *
+ * Backend admin endpoints enforce system administrator authorization. This guard intentionally avoids
+ * making a client-side role decision because the profile API returns role names without role scope.
+ *
+ * @param {PropsWithChildren<IGuardProps>} props Guard props.
+ * @returns {JSX.Element} Guarded children.
+ */
+export const AdminRedirectGuard = (props: PropsWithChildren<IGuardProps>) => {
+  return <>{props.children}</>;
+};

@@ -1,0 +1,6 @@
+dependencies:
+- name: prefect-server
+  repository: https://prefecthq.github.io/prefect-helm
+  version: 2026.10.6163015
+digest: sha256:bbf1c84fbc42979d61625865a8fab8f2b352fbf7d34ed9a07aa3f9035e372d14
+generated: "2026-11-02T14:06:10.29545-07:00"

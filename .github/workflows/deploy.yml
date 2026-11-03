@@ -1,0 +1,352 @@
+name: Deploy Conservation Tool
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - test
+          - prod
+      image_tag:
+        description: "Image tag to deploy"
+        required: false
+        default: dev
+        type: string
+
+  workflow_call:
+    inputs:
+      image_tag:
+        required: false
+        type: string
+        default: ""
+      source_tag:
+        required: false
+        type: string
+      target_tag:
+        required: false
+        type: string
+      environment:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
+  IMAGE_REGISTRY: image-registry.apps.gold.devops.gov.bc.ca
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    environment: ${{ inputs.environment || github.event.inputs.environment || 'dev' }}
+    concurrency:
+      group: deploy-${{ inputs.environment || github.event.inputs.environment || 'dev' }}
+      cancel-in-progress: false
+
+    env:
+      # Environment-specific deploy token:
+      # dev/test/prod GitHub Environment Secret.
+      SA_TOKEN: ${{ secrets.SA_TOKEN }}
+
+      # Shared tools token:
+      # usually a GitHub Repository Secret.
+      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}
+
+      # Environment-specific namespace:
+      # dev/test/prod GitHub Environment Secret.
+      OPENSHIFT_NAMESPACE: ${{ secrets.OPENSHIFT_NAMESPACE }}
+
+      # Shared tools namespace:
+      # usually a GitHub Repository Secret or shared Environment/Repo variable.
+      TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
+
+      IMAGE_TAG: ${{ inputs.image_tag || inputs.target_tag || github.event.inputs.image_tag || 'dev' }}
+      DEPLOY_ENVIRONMENT: ${{ inputs.environment || github.event.inputs.environment || 'dev' }}
+      SOURCE_TAG: ${{ inputs.source_tag }}
+      TARGET_TAG: ${{ inputs.target_tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate deployment safeguards
+        run: python3 -m unittest discover -s helm/scripts/tests
+
+      - name: Resolve values file
+        id: values-file
+        run: |
+          ENVIRONMENT="${DEPLOY_ENVIRONMENT}"
+
+          if [ "${ENVIRONMENT}" = "prod" ]; then
+            echo "values_file=values-prod.yaml" >> "$GITHUB_OUTPUT"
+          elif [ "${ENVIRONMENT}" = "test" ]; then
+            echo "values_file=values-test.yaml" >> "$GITHUB_OUTPUT"
+          else
+            echo "values_file=values-dev.yaml" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install OpenShift CLI
+        uses: ./.github/actions/install-oc
+
+      - name: Install Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v3.22.1
+
+      - name: Validate required GitHub secrets
+        run: |
+          required_vars=(
+            SA_TOKEN
+            OPENSHIFT_NAMESPACE
+            TOOLS_NAMESPACE
+          )
+
+          if [ "$SOURCE_TAG" != "" ] || [ "$TARGET_TAG" != "" ] || [ "$DEPLOY_ENVIRONMENT" = "dev" ]; then
+            required_vars+=(TOOLS_SA_TOKEN)
+          fi
+
+          for var in "${required_vars[@]}"; do
+            if [ -z "${!var}" ]; then
+              echo "Error: required variable ${var} is not set."
+              exit 1
+            fi
+          done
+
+      - name: Log in to target OpenShift environment
+        run: |
+          for i in 1 2 3; do
+            echo "Attempt $i: Logging into OpenShift target namespace..."
+            if oc login --token="$SA_TOKEN" --server="$OPENSHIFT_SERVER"; then
+              echo "Login succeeded"
+              break
+            elif [ "$i" -lt 3 ]; then
+              echo "Login failed. Retrying in 15 seconds..."
+              sleep 15
+            else
+              echo "Login failed after 3 attempts."
+              exit 1
+            fi
+          done
+
+          oc project "$OPENSHIFT_NAMESPACE"
+
+          echo "Authenticated as:"
+          oc whoami
+          echo "Current project:"
+          oc project -q
+
+      - name: Validate required OpenShift secrets
+        run: |
+          check_secret_key() {
+            local secret_name="$1"
+            local key_name="$2"
+            local value
+
+            value="$(oc get secret "${secret_name}" -n "${OPENSHIFT_NAMESPACE}" -o "jsonpath={.data.${key_name}}" 2>/dev/null || true)"
+            if [ -z "${value}" ]; then
+              echo "Missing secret/key: ${secret_name}.${key_name}"
+              exit 1
+            fi
+          }
+
+          check_secret_decoded_prefix() {
+            local secret_name="$1"
+            local key_name="$2"
+            local required_prefix="$3"
+            local encoded_value
+            local decoded_value
+
+            encoded_value="$(oc get secret "${secret_name}" -n "${OPENSHIFT_NAMESPACE}" -o "jsonpath={.data.${key_name}}" 2>/dev/null || true)"
+            if [ -z "${encoded_value}" ]; then
+              echo "Missing secret/key: ${secret_name}.${key_name}"
+              exit 1
+            fi
+
+            decoded_value="$(printf '%s' "${encoded_value}" | base64 -d 2>/dev/null || true)"
+            if [ -z "${decoded_value}" ]; then
+              echo "Secret/key is not valid base64 or decodes empty: ${secret_name}.${key_name}"
+              exit 1
+            fi
+
+            if [[ "${decoded_value}" != ${required_prefix}* ]]; then
+              echo "Secret/key has invalid format: ${secret_name}.${key_name}. Expected prefix: ${required_prefix}"
+              exit 1
+            fi
+          }
+
+          check_secret_key "conservation-tool-db" "DB_DATABASE"
+          check_secret_key "conservation-tool-db" "DB_SCHEMA"
+          check_secret_key "conservation-tool-db" "DB_USER_API"
+          check_secret_key "conservation-tool-db" "DB_USER_API_PASS"
+          check_secret_key "conservation-tool-db" "DB_USER_PREFECT"
+          check_secret_key "conservation-tool-db" "DB_USER_PREFECT_PASS"
+          check_secret_key "conservation-tool-db" "DB_ADMIN"
+          check_secret_key "conservation-tool-db" "DB_ADMIN_PASS"
+
+          check_secret_key "conservation-tool-prefect-db" "connection-string"
+          check_secret_decoded_prefix "conservation-tool-prefect-db" "connection-string" "postgresql+asyncpg://"
+
+          check_secret_key "conservation-tool-object-storage" "OBJECT_STORE_URL"
+          check_secret_key "conservation-tool-object-storage" "OBJECT_STORE_ACCESS_KEY_ID"
+          check_secret_key "conservation-tool-object-storage" "OBJECT_STORE_SECRET_KEY_ID"
+          check_secret_key "conservation-tool-object-storage" "OBJECT_STORE_BUCKET_NAME"
+
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_URL"
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_ENDPOINT"
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_REGION"
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_BUCKET_NAME"
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_FORCE_PATH_STYLE"
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_ACCESS_KEY_ID"
+          check_secret_key "conservation-tool-source-object-storage" "SOURCE_OBJECT_STORE_SECRET_KEY_ID"
+
+          check_secret_key "conservation-tool-api" "INTERNAL_API_KEY"
+
+          check_secret_key "conservation-tool-keycloak" "KEYCLOAK_HOST"
+          check_secret_key "conservation-tool-keycloak" "KEYCLOAK_REALM"
+          check_secret_key "conservation-tool-keycloak" "KEYCLOAK_ADMIN_USERNAME"
+          check_secret_key "conservation-tool-keycloak" "KEYCLOAK_ADMIN_PASSWORD"
+          check_secret_key "conservation-tool-keycloak" "KEYCLOAK_API_TOKEN_URL"
+          check_secret_key "conservation-tool-keycloak" "KEYCLOAK_CLIENT_ID"
+          check_secret_key "conservation-tool-keycloak" "KEYCLOAK_API_CLIENT_ID"
+          check_secret_key "conservation-tool-keycloak" "KEYCLOAK_API_CLIENT_SECRET"
+          check_secret_key "conservation-tool-keycloak" "KEYCLOAK_API_HOST"
+          check_secret_key "conservation-tool-keycloak" "KEYCLOAK_API_ENVIRONMENT"
+
+      - name: Build Helm dependencies
+        working-directory: helm/conservation-tool
+        run: |
+          echo "Adding required Helm repos..."
+          helm repo add prefecthq https://prefecthq.github.io/prefect-helm
+          helm repo update
+
+          echo "Building Helm dependencies..."
+          helm dependency build
+
+      - name: Validate rendered deployment chart
+        working-directory: helm/conservation-tool
+        run: |
+          helm lint . --values "${{ steps.values-file.outputs.values_file }}"
+          helm template conservation-tool . --values "${{ steps.values-file.outputs.values_file }}" >/dev/null
+
+      - name: Promote image tags for target environment
+        if: ${{ inputs.source_tag != '' && inputs.target_tag != '' }}
+        run: |
+          echo "Logging into OpenShift with tools token for image promotion..."
+
+          for i in 1 2 3; do
+            echo "Attempt $i: Logging into OpenShift tools namespace..."
+            if oc login --token="$TOOLS_SA_TOKEN" --server="$OPENSHIFT_SERVER"; then
+              echo "Tools login succeeded"
+              break
+            elif [ "$i" -lt 3 ]; then
+              echo "Tools login failed. Retrying in 15 seconds..."
+              sleep 15
+            else
+              echo "Tools login failed after 3 attempts."
+              exit 1
+            fi
+          done
+
+          oc project "$TOOLS_NAMESPACE"
+
+          echo "Authenticated as:"
+          oc whoami
+          echo "Current project:"
+          oc project -q
+
+          echo "Promoting image tags from '${SOURCE_TAG}' to '${TARGET_TAG}' in namespace ${TOOLS_NAMESPACE}"
+
+          images=(frontend api database db-setup prefect-worker prefect-deploy)
+
+          for image in "${images[@]}"; do
+            echo "Tagging ${image}:${SOURCE_TAG} -> ${image}:${TARGET_TAG}"
+            oc tag "${TOOLS_NAMESPACE}/${image}:${SOURCE_TAG}" "${TOOLS_NAMESPACE}/${image}:${TARGET_TAG}"
+          done
+
+      - name: Re-login to target OpenShift environment
+        if: ${{ inputs.source_tag != '' && inputs.target_tag != '' }}
+        run: |
+          echo "Logging back into OpenShift with target environment token..."
+
+          for i in 1 2 3; do
+            echo "Attempt $i: Logging into OpenShift target namespace..."
+            if oc login --token="$SA_TOKEN" --server="$OPENSHIFT_SERVER"; then
+              echo "Target login succeeded"
+              break
+            elif [ "$i" -lt 3 ]; then
+              echo "Target login failed. Retrying in 15 seconds..."
+              sleep 15
+            else
+              echo "Target login failed after 3 attempts."
+              exit 1
+            fi
+          done
+
+          oc project "$OPENSHIFT_NAMESPACE"
+
+          echo "Authenticated as:"
+          oc whoami
+          echo "Current project:"
+          oc project -q
+
+      - name: Validate images and prepare PostgreSQL
+        run: |
+          bash helm/scripts/prepare-deployment.sh \
+            "$OPENSHIFT_NAMESPACE" "$IMAGE_REGISTRY/$TOOLS_NAMESPACE" "$IMAGE_TAG"
+
+      - name: Deploy via Helm
+        working-directory: helm/conservation-tool
+        run: |
+          echo "Deploying image tag: ${IMAGE_TAG}"
+          echo "Deploy namespace: ${OPENSHIFT_NAMESPACE}"
+          echo "Values file: ${{ steps.values-file.outputs.values_file }}"
+
+          # No --wait: with it, Helm holds post-install/post-upgrade hooks until every
+          # workload is ready. The db-setup hook creates the API and Prefect database
+          # users, so on a fresh database the API and Prefect server could never become
+          # ready and the install deadlocked. Helm still waits for the hook Jobs (db-setup
+          # waits for PostgreSQL itself); "Verify deployment" then waits for rollouts.
+          helm upgrade --install conservation-tool . \
+            --values values.yaml \
+            --values "${{ steps.values-file.outputs.values_file }}" \
+            --set-string services.frontend.image.tag="${IMAGE_TAG}" \
+            --set-string services.api.image.tag="${IMAGE_TAG}" \
+            --set-string services.db.image.tag="${IMAGE_TAG}" \
+            --set-string services.dbSetup.image.tag="${IMAGE_TAG}" \
+            --set-string services.workflows.worker.image.tag="${IMAGE_TAG}" \
+            --set-string services.workflows.deploy.image.tag="${IMAGE_TAG}" \
+            --namespace "${OPENSHIFT_NAMESPACE}" \
+            --timeout=20m \
+            --debug
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting for every deployment to finish rolling out..."
+          for deployment in $(oc get deployments -n "${OPENSHIFT_NAMESPACE}" -o name); do
+            oc rollout status "$deployment" -n "${OPENSHIFT_NAMESPACE}" --timeout=10m
+          done
+          oc get deployments -n "${OPENSHIFT_NAMESPACE}"
+          oc get pods -n "${OPENSHIFT_NAMESPACE}"
+
+      - name: Publish successful dev image tags
+        if: ${{ env.DEPLOY_ENVIRONMENT == 'dev' && env.SOURCE_TAG == '' && env.IMAGE_TAG != 'dev' }}
+        run: |
+          source helm/scripts/utils/retry.sh
+          retry_preflight oc login --token="$TOOLS_SA_TOKEN" --server="$OPENSHIFT_SERVER"
+          images=(frontend api database db-setup prefect-worker prefect-deploy)
+          for image in "${images[@]}"; do
+            oc tag "${TOOLS_NAMESPACE}/${image}:${IMAGE_TAG}" "${TOOLS_NAMESPACE}/${image}:dev"
+          done
+
+      - name: Diagnose deployment failure
+        timeout-minutes: 5
+        if: ${{ failure() }}
+        run: |
+          bash helm/scripts/diagnose-deployment.sh "$OPENSHIFT_NAMESPACE"

@@ -1,0 +1,139 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "conservation-tool.fullname.db" . }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}
+  annotations:
+    template.alpha.openshift.io/wait-for-ready: 'true'
+    {{- include "conservation-tool.annotations" . | nindent 4 }}
+spec:
+  progressDeadlineSeconds: 1200
+  replicas: {{ .Values.services.db.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ include "conservation-tool.fullname.db" . | quote }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{ include "conservation-tool.fullname.db" . | quote }}
+        role: db
+      {{- if not (regexMatch "^[0-9a-f]{40}$" .Values.services.db.image.tag) }}
+      annotations:
+        # Mutable environment tags must be pulled again after a promotion.
+        conservation-tool/release-revision: {{ .Release.Revision | quote }}
+      {{- end }}
+    spec:
+      terminationGracePeriodSeconds: 120
+      # pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        {{- if .Values.services.db.securityContext.runAsUser }}
+        runAsUser: {{ .Values.services.db.securityContext.runAsUser | int64 }}
+        {{- end }}
+        {{- if .Values.services.db.securityContext.fsGroup }}
+        fsGroup: {{ .Values.services.db.securityContext.fsGroup | int64 }}
+        {{- end }}
+      containers:
+        - name: postgresql
+          image: "{{ .Values.registry }}/{{ .Values.services.db.image.stream }}:{{ .Values.services.db.image.tag }}"
+          imagePullPolicy: {{ .Values.services.db.image.pullPolicy | default "Always" }}
+          args:
+            - postgres
+            - -c
+            - {{ printf "shared_buffers=%s" .Values.database.tuning.sharedBuffers | quote }}
+            - -c
+            - {{ printf "work_mem=%s" .Values.database.tuning.workMem | quote }}
+            - -c
+            - {{ printf "maintenance_work_mem=%s" .Values.database.tuning.maintenanceWorkMem | quote }}
+            - -c
+            - {{ printf "autovacuum_work_mem=%s" .Values.database.tuning.autovacuumWorkMem | quote }}
+            - -c
+            - {{ printf "max_connections=%v" .Values.database.tuning.maxConnections | quote }}
+          securityContext:
+            runAsNonRoot: true
+            {{- if .Values.services.db.securityContext.runAsUser }}
+            runAsUser: {{ .Values.services.db.securityContext.runAsUser | int64 }}
+            {{- end }}
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_DATABASE
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_ADMIN
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-db
+                  key: DB_ADMIN_PASS
+            - name: PGDATA
+              value: '{{ .Values.database.pgData | default "/var/lib/postgresql/data" }}'
+            - name: PGTZ
+              value: '{{ .Values.database.timezone | default "UTC" }}'
+          ports:
+            - containerPort: {{ .Values.services.db.service.port | default 5432 }}
+              protocol: TCP
+          startupProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.services.db.service.port | default 5432 }}
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.services.db.resources | nindent 12 }}
+          volumeMounts:
+            - name: {{ include "conservation-tool.fullname.db" . }}-data
+              mountPath: /var/lib/postgresql/data
+            # Writable scratch paths, since the root filesystem is read-only.
+            - name: run-postgresql
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      volumes:
+        - name: {{ include "conservation-tool.fullname.db" . }}-data
+          persistentVolumeClaim:
+            claimName: {{ .Values.database.persistence.existingClaim | default (include "conservation-tool.fullname.db" .) }}
+        - name: run-postgresql
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}

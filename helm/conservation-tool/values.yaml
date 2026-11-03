@@ -1,0 +1,464 @@
+# ========================
+# Global Configuration
+# ========================
+autoscaling:
+  enabled: false
+  maxReplicas: 1
+  minReplicas: 1
+
+gitRepo: "https://github.com/bcgov/conservation-prioritization.git"
+gitRef: "main"
+registry: "image-registry.apps.gold.devops.gov.bc.ca/fa9440-tools"
+objectStorageUrl: "https://nrs.objectstore.gov.bc.ca:443/"
+
+environment:
+  id: "dev"
+  name: "dev"
+  ts: "20260112-01"
+  licensePlate: "fa9440"
+  changeId: "001"
+
+# ========================
+# Ports Configuration
+# ========================
+ports:
+  frontend: 7070
+  api: 5200
+  prefect_server_api: 4200
+  prefect_worker_api: 8081
+  db: 5432
+
+# ========================
+# Database Configuration (Structured for Helm templates)
+# ========================
+database:
+  tuning:
+    sharedBuffers: 32MB
+    workMem: 1MB
+    maintenanceWorkMem: 16MB
+    autovacuumWorkMem: 8MB
+    maxConnections: 40
+  port: 5432
+  userApi: ""  # Set via --set by workflow
+  userApiPassword: ""  # Set via --set by workflow
+  userPrefect: ""  # Set via --set by workflow
+  userPrefectPassword: ""  # Set via --set by workflow
+  admin: ""  # Set via --set by workflow - - do we need to pull this from openshift secrets?
+  adminPassword: ""  # Set via --set by workflow - do we need to pull this from openshift secrets? 
+  schema: "public"
+  pgData: "/var/lib/postgresql/data/pgdata"
+  timezone: "UTC"
+  postgresql:
+    primary:
+      podSecurityContext:
+        runAsUser: 1003600000
+        fsGroup: 1003600000
+      containerSecurityContext:
+        runAsUser: 1003600000
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: false
+        capabilities:
+          drop:
+            - ALL
+  persistence:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 0.5Gi
+    existingClaim: ""
+
+# ========================
+# Object Storage Configuration (Structured for Helm templates)
+# ========================
+objectStorage:
+  url: ""  # Set via --set by workflow
+  accessKeyId: ""  # Set via --set by workflow
+  secretKeyId: ""  # Set via --set by workflow
+  bucketName: ""  # Set via --set by workflow
+
+# ========================
+# Keycloak Configuration (Structured for Helm templates)
+# ========================
+keycloak:
+  host: ""  # Set via --set by workflow
+  realm: ""  # Set via --set by workflow
+  adminUsername: ""  # Set via --set by workflow
+  adminPassword: ""  # Set via --set by workflow
+  apiTokenUrl: ""  # Set via --set by workflow
+  apiClientId: ""  # Set via --set by workflow
+  apiClientSecret: ""  # Set via --set by workflow
+  apiHost: ""  # Set via --set by workflow
+  apiEnvironment: ""  # Set via --set by workflow
+
+# ========================
+# Prefect Server & Workers
+# ========================
+prefect-server:
+  postgresql:
+    enabled: false
+  secret:
+    create: false
+    name: conservation-tool-prefect-db
+
+  serviceAccount:
+    # why not create a service account? if we're not creating one, why name it? 
+    create: false
+    name: "prefect-server"
+
+  ui:
+    enabled: true
+    podSecurityContext:
+      runAsUser: 1003600000
+      fsGroup: null
+    containerSecurityContext:
+      runAsUser: 1003600000
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 50m
+        memory: 128Mi
+    env:
+      - name: PREFECT_HOME
+        value: /tmp/prefect
+    extraVolumes:
+      - name: prefect-tmp
+        emptyDir: {}
+    extraVolumeMounts:
+      - name: prefect-tmp
+        mountPath: /tmp/prefect
+
+  server:
+    # The Prefect server does not use the Kubernetes API, so do not mount a token.
+    automountServiceAccountToken: false
+    # for dev 
+    debug: true
+    loggingLevel: DEBUG
+    podSecurityContext:
+      runAsUser: 1003600000
+      fsGroup: null
+    containerSecurityContext:
+      runAsUser: 1003600000
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 100m
+        memory: 512Mi
+    env:
+      - name: PREFECT_UI_ENABLED
+        value: "true"
+      - name: PREFECT_HOME
+        value: /tmp/prefect
+    extraVolumes:
+      - name: prefect-tmp
+        emptyDir: {}
+    extraVolumeMounts:
+      - name: prefect-tmp
+        mountPath: /tmp/prefect
+
+  migrations:
+    enabled: true
+    backoffLimit: 4
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    securityContext:
+      runAsUser: 1003600000
+      runAsNonRoot: true
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities: {}
+    extraVolumes:
+    - name: prefect-tmp
+      emptyDir: {}
+    extraVolumeMounts:
+      - name: prefect-tmp
+        mountPath: /tmp/prefect
+
+  ingress:
+    enabled: false
+    host:
+      hostname: ""
+      path: "/"
+    className: "openshift-default"
+
+# ========================
+# Services Configuration
+# ========================
+services:
+  frontend:
+    replicas: 1
+    image:
+      stream: "frontend"
+      tag: "dev"
+      pullPolicy: "Always"
+    config:
+      port: 7100
+      resources:
+        requests:
+          cpu: 25m
+          memory: 64Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+      env: []
+    service:
+      type: ClusterIP
+      port: 7070
+      targetPort: 7070
+    route:
+      host: ""
+    securityContext:
+      runAsUser: 1003600000
+      fsGroup: 1003600000
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+    livenessProbe:
+      enabled: false
+      path: "/health"
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readinessProbe:
+      enabled: false
+      path: "/health"
+      initialDelaySeconds: 5
+      periodSeconds: 5
+    extraVolumeMounts: []
+    extraVolumes: []
+
+  workflows:
+    worker:
+      replicas: 1
+      image:
+        stream: "prefect-worker"
+        tag: "dev"
+        pullPolicy: "Always"
+      resources:
+        limits:
+          cpu: 100m
+          memory: 1Gi
+        requests:
+          cpu: 50m
+          memory: 1Gi
+      service:
+        type: ClusterIP
+        port: 80
+        targetPort: 8081
+      securityContext:
+        runAsUser: 1003600000
+        fsGroup: 1003600000
+      persistence:
+        enabled: true
+        accessMode: ReadWriteOnce
+        size: 512Mi
+        existingClaim: ""
+      profiles:
+        sparse-solver:
+          pool: sparse-solver
+          scratchMountPath: /workflow-scratch
+          scratchRoot: /workflow-scratch
+          daskWorkers: 1
+          daskWorkerMemory: 16Gi
+          tileSize: 1024
+          tileSubmissionWave: 32
+          pmtilesMetatileSize: 3
+          pmtilesPngCompressLevel: 3
+          pmtilesMaximumSourceWindow: 2048
+          pmtilesMergeFanIn: 64
+          executionProfile: sparse-16g
+          maxPeakMemoryBytes: 12884901888
+          maxScratchBytes: 536870912
+          replicas: 1
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 16Gi
+
+    deploy:
+      replicas: 0
+      image:
+        stream: "prefect-deploy"
+        tag: "dev"
+        pullPolicy: "Always"
+      resources:
+        requests:
+          cpu: 50m
+          memory: 512Mi
+        limits:
+          cpu: 100m
+          # memory: 1024Mi
+          memory: 512Mi
+      securityContext:
+        runAsUser: 1003600000
+        fsGroup: 1003600000
+
+  api:
+    replicas: 1
+    image:
+      stream: "api"
+      tag: "dev"
+      pullPolicy: "Always"
+    service:
+      type: ClusterIP
+      port: 5200
+      targetPort: 5200
+    route:
+      host: ""
+    securityContext:
+      runAsUser: 1003600000
+      fsGroup: 1003600000
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 100m
+        memory: 512Mi
+
+  db:
+    image:
+      stream: "database"
+      tag: "dev"
+    service:
+      type: ClusterIP
+      port: 5432
+      targetPort: 5432
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 100m
+        memory: 512Mi
+    securityContext:
+      runAsUser: 1003600000
+      fsGroup: 1003600000
+    persistence:
+      enabled: true
+      size: 0.5Gi
+      accessMode: ReadWriteOnce
+
+  dbSetup:
+    image:
+      stream: "db-setup"
+      tag: "dev"
+      pullPolicy: "Always"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+# ========================
+# Background Services
+# ========================
+backgroundServices:
+  podSecurityContext:
+    runAsUser: 1003600000
+    fsGroup: 1003600000
+  containerSecurityContext:
+    runAsUser: 1003600000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+# ========================
+# Global Environment Variables (Flat structure for runtime injection)
+# ========================
+env:
+  # Node / General
+  NODE_ENV: "development"
+  # Leave room for buffers, native allocations, and young-generation memory.
+  NODE_OPTIONS: "--max-old-space-size=256"
+  TZ: "UTC"
+  ZARR_STORE_PATH: "/data/output_1000.zarr"
+  CORS_ALLOWED_ORIGINS: "*"
+
+  # Database
+  DB_HOST: "" # Usually resolved in Helm templates to the in-cluster DB service name.
+  DB_POOL_SIZE: "5"
+  DB_CONNECTION_MAX_USES: "7200"
+  DB_CONNECTION_TIMEOUT: "30000"
+  DB_IDLE_TIMEOUT: "30000"
+
+  # Prefect
+  PREFECT_API_URL: "http://prefect-server:4200/api"
+  PREFECT_SERVER_API_HOST: "0.0.0.0"
+  PREFECT_UI_API_URL: "http://localhost:4200/api"
+  CONSERVATION_API_URL: "http://conservation-tool-api:5200/api"
+
+  # Object Storage - non-secret config
+  OBJECT_STORE_URL: "https://nrs.objectstore.gov.bc.ca:443/"
+  OBJECT_STORE_ENDPOINT: "https://nrs.objectstore.gov.bc.ca:443/"
+  OBJECT_STORE_PUBLIC_ENDPOINT: "https://nrs.objectstore.gov.bc.ca:443/"
+  OBJECT_STORE_REGION: "us-east-1"
+  OBJECT_STORE_BUCKET_NAME: ""
+  OBJECT_STORE_FORCE_PATH_STYLE: "true"
+  # Source object storage is read-only runtime configuration for the Zarr layer library.
+  SOURCE_OBJECT_STORE_URL: "https://nrs.objectstore.gov.bc.ca:443/"
+  SOURCE_OBJECT_STORE_ENDPOINT: "https://nrs.objectstore.gov.bc.ca:443/"
+  SOURCE_OBJECT_STORE_REGION: "us-east-1"
+  SOURCE_OBJECT_STORE_FORCE_PATH_STYLE: "true"
+  SOURCE_BC_BOUNDARY_PATH: "data/british_columbia.gdb"
+
+  # Keycloak - non-secret config
+  KEYCLOAK_HOST: ""
+  KEYCLOAK_REALM: ""
+  KEYCLOAK_API_TOKEN_URL: ""
+  KEYCLOAK_CLIENT_ID: ""
+  KEYCLOAK_API_CLIENT_ID: ""
+  KEYCLOAK_API_HOST: ""
+  KEYCLOAK_API_ENVIRONMENT: ""
+
+  # API
+  API_HOST: "0.0.0.0"
+  API_PORT: "5200"
+  APP_HOST: ""
+  FRONTEND_API_HOST: ""
+
+  # Frontend / Vite
+  VITE_PORT: "7070"
+  VITE_PREFECT_API_URL: ""
+  VITE_ZARR_STORE_PATH: "/data/output_1000.zarr"
+  VITE_APP_API_HOST: ""
+  VITE_APP_API_PORT: "5200"
+  VITE_APP_SITEMINDER_LOGOUT_URL: ""
+  VITE_APP_KEYCLOAK_HOST: ""
+  VITE_APP_KEYCLOAK_REALM: ""
+  VITE_APP_KEYCLOAK_CLIENT_ID: ""
+  VITE_BASEMAP_URL: "https://maps.gov.bc.ca/arcgis/rest/services/province/roads_wm/MapServer/tile/{z}/{y}/{x}"
+  VITE_BASEMAP_ATTRIBUTION: "© Province of British Columbia"
+  VITE_SATELLITE_BASEMAP_URL: "https://server.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+  VITE_SATELLITE_BASEMAP_ATTRIBUTION: "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community"

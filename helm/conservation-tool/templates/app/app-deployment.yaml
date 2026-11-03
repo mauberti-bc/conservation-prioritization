@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "conservation-tool.fullname.frontend" . }}
+  labels:
+    app: {{ include "conservation-tool.fullname.frontend" . }}
+spec:
+  replicas: {{ .Values.services.frontend.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ include "conservation-tool.fullname.frontend" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "conservation-tool.fullname.frontend" . }}
+      annotations:
+        conservation-tool/release-revision: {{ .Release.Revision | quote }}
+    spec:
+      serviceAccountName: {{ .Values.services.frontend.serviceAccountName | default "deployer" }}
+      securityContext:
+        runAsNonRoot: true
+        {{- if .Values.services.frontend.securityContext.runAsUser }}
+        runAsUser: {{ .Values.services.frontend.securityContext.runAsUser | int64 }}
+        {{- end }}
+        {{- if .Values.services.frontend.securityContext.fsGroup }}
+        fsGroup: {{ .Values.services.frontend.securityContext.fsGroup | int64 }}
+        {{- end }}
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: frontend
+          image: "{{ .Values.registry }}/{{ .Values.services.frontend.image.stream }}:{{ .Values.services.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.services.frontend.image.pullPolicy | default "Always" }}
+          ports:
+            - containerPort: {{ .Values.ports.frontend }}
+          securityContext:
+            runAsNonRoot: true
+            {{- if .Values.services.frontend.securityContext.runAsUser }}
+            runAsUser: {{ .Values.services.frontend.securityContext.runAsUser | int64 }}
+            {{- end }}
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: PORT
+              value: {{ .Values.ports.frontend | quote }}
+            - name: KEYCLOAK_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_HOST
+            - name: KEYCLOAK_REALM
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_REALM
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-keycloak
+                  key: KEYCLOAK_CLIENT_ID
+            - name: OBJECT_STORE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: OBJECT_STORE_URL
+            - name: OBJECT_STORE_BUCKET_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: OBJECT_STORE_BUCKET_NAME
+            {{- if .Values.services.frontend.config.env }}
+            {{- toYaml .Values.services.frontend.config.env | nindent 12 }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "conservation-tool.fullname" . }}-config
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.services.frontend.extraVolumeMounts }}
+            {{- toYaml .Values.services.frontend.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.services.frontend.resources | nindent 12 }}
+          {{- if .Values.services.frontend.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.services.frontend.livenessProbe.path }}
+              port: {{ .Values.ports.frontend }}
+            initialDelaySeconds: {{ .Values.services.frontend.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.frontend.livenessProbe.periodSeconds }}
+          {{- end }}
+          {{- if .Values.services.frontend.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.services.frontend.readinessProbe.path }}
+              port: {{ .Values.ports.frontend }}
+            initialDelaySeconds: {{ .Values.services.frontend.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.services.frontend.readinessProbe.periodSeconds }}
+          {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.services.frontend.extraVolumes }}
+        {{- toYaml .Values.services.frontend.extraVolumes | nindent 8 }}
+        {{- end }}

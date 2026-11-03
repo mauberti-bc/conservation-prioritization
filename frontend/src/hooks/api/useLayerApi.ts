@@ -1,0 +1,27 @@
+import { AxiosInstance } from 'axios';
+import { FindLayersResponse } from 'hooks/interfaces/useLayerApi.interface';
+
+/**
+ * Returns a set of supported API methods for working with layers.
+ *
+ * @param {AxiosInstance} axios Axios client used for API requests.
+ * @return {*} Object whose properties are supported API methods for layers.
+ */
+export const useLayersApi = (axios: AxiosInstance) => {
+  /**
+   * Find layers based on the search keyword.
+   *
+   * @param {string} [keyword] - The keyword to search for in layer names.
+   * @return {Promise<FindLayersResponse>} A list of layers that match the search term.
+   */
+  const findLayers = async (keyword?: string): Promise<FindLayersResponse> => {
+    const { data } = await axios.get<FindLayersResponse>('/api/layer', {
+      params: keyword !== undefined ? { keyword } : undefined,
+    });
+    return data;
+  };
+
+  return {
+    findLayers,
+  };
+};

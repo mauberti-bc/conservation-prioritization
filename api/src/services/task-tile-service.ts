@@ -1,0 +1,176 @@
+import { SQL } from 'sql-template-strings';
+import { IDBConnection } from '../database/db';
+import { HTTP400 } from '../errors/http-error';
+import { TaskTile } from '../models/task-tile';
+import { TaskRepository } from '../repositories/task-repository';
+import { TaskRunRepository } from '../repositories/task-run-repository';
+import { TaskTileRepository } from '../repositories/task-tile-repository';
+import { TILE_STATUS } from '../types/status';
+import { normalizeTileStatus } from '../utils/status';
+import { DBService } from './db-service';
+import { TaskRunService } from './task-run-service';
+
+/**
+ * Service for managing task tile records.
+ *
+ * @export
+ * @class TaskTileService
+ * @extends {DBService}
+ */
+export class TaskTileService extends DBService {
+  private taskTileRepository: TaskTileRepository;
+  private taskRepository: TaskRepository;
+  private taskRunRepository: TaskRunRepository;
+
+  /**
+   * Creates an instance of TaskTileService.
+   *
+   * @param {IDBConnection} connection - The database connection object.
+   * @memberof TaskTileService
+   */
+  constructor(connection: IDBConnection) {
+    super(connection);
+    this.taskTileRepository = new TaskTileRepository(connection);
+    this.taskRepository = new TaskRepository(connection);
+    this.taskRunRepository = new TaskRunRepository(connection);
+  }
+
+  /**
+   * Creates a draft task tile record.
+   *
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<TaskTile>} The task tile record.
+   * @memberof TaskTileService
+   */
+  async createDraftTileRecord(taskId: string): Promise<TaskTile> {
+    return this.taskTileRepository.createTaskTile({
+      task_id: taskId,
+      status: 'DRAFT',
+      pmtiles_uri: null,
+      content_type: null
+    });
+  }
+
+  /**
+   * Creates a draft tile record and submits a Prefect tiling flow.
+   *
+   * @param {string} taskId Identifier of the task.
+   * @returns {Promise<TaskTile>} The task tile record.
+   * @throws {HTTP400} Task has no canonical task run to publish.
+   * @memberof TaskTileService
+   */
+  async createDraftTileAndSubmit(taskId: string): Promise<TaskTile> {
+    const existingTile = await this.taskTileRepository.getLatestTaskTileByTaskId(taskId);
+    const normalizedStatus = normalizeTileStatus(existingTile?.status ?? null);
+
+    // if (existingTile && normalizedStatus && [TILE_STATUS.DRAFT, TILE_STATUS.STARTED].includes(normalizedStatus)) {
+    //   return existingTile;
+    // }
+    if (
+      existingTile &&
+      normalizedStatus &&
+      (normalizedStatus === TILE_STATUS.DRAFT || normalizedStatus === TILE_STATUS.STARTED)
+    ) {
+      return existingTile;
+    }
+
+    const draftTile = await this.createDraftTileRecord(taskId);
+    const latestRun = await this.taskRunRepository.getLatestTaskRunByTaskId(taskId);
+    if (!latestRun) {
+      throw new HTTP400('Task has no canonical task run to publish.');
+    }
+    await new TaskRunService(this.connection).dispatchPublication(latestRun.task_run_id);
+
+    return draftTile;
+  }
+
+  /**
+   * Marks a task tile as started.
+   *
+   * @param {string} taskTileId Identifier of the task tile.
+   * @returns {Promise<TaskTile>} The task tile record.
+   * @memberof TaskTileService
+   */
+  async markTileStarted(taskTileId: string): Promise<TaskTile> {
+    await this.connection.sql(SQL`UPDATE task_tile SET started_at = now() WHERE task_tile_id = ${taskTileId}`);
+    return this.taskTileRepository.updateTaskTile(taskTileId, { status: 'STARTED' });
+  }
+
+  /**
+   * Marks a task tile as completed and updates the task tileset URI.
+   *
+   * @param {string} taskTileId Identifier of the task tile.
+   * @param {string} uri Object-store URI identifying the object.
+   * @param {string | null} contentType MIME type of the stored content.
+   * @returns {Promise<TaskTile>} The task tile record.
+   * @memberof TaskTileService
+   */
+  async markTileCompleted(taskTileId: string, uri: string, contentType?: string | null): Promise<TaskTile> {
+    await this.connection.sql(SQL`UPDATE task_tile SET completed_at = now() WHERE task_tile_id = ${taskTileId}`);
+
+    const updatedTile = await this.taskTileRepository.updateTaskTile(taskTileId, {
+      status: 'COMPLETED',
+      pmtiles_uri: uri,
+      content_type: contentType ?? null
+    });
+
+    await this.taskRepository.updateTaskExecution(updatedTile.task_id, { tileset_uri: uri });
+
+    return updatedTile;
+  }
+
+  /**
+   * Marks a task tile as failed with an optional error message.
+   *
+   * @param {string} taskTileId Identifier of the task tile.
+   * @param {string | null} errorCode Machine-readable failure code.
+   * @param {string | null} errorMessage Human-readable failure description.
+   * @returns {Promise<TaskTile>} The task tile record.
+   * @memberof TaskTileService
+   */
+  async markTileFailed(taskTileId: string, errorCode?: string | null, errorMessage?: string | null): Promise<TaskTile> {
+    await this.connection.sql(SQL`UPDATE task_tile SET failed_at = now() WHERE task_tile_id = ${taskTileId}`);
+    return this.taskTileRepository.updateTaskTile(taskTileId, {
+      status: 'FAILED',
+      error_code: errorCode ?? null,
+      error_message: errorMessage ?? null
+    });
+  }
+
+  /**
+   * Updates a task tile status and handles required fields.
+   *
+   * @param {string} taskTileId Identifier of the task tile.
+   * @param {{ status: 'STARTED' | 'COMPLETED' | 'FAILED' | 'DRAFT'; pmtiles_uri?: string | null; content_type?: string | null; error_code?: string | null; error_message?: string | null }} updates Fields to update on the existing record.
+   * @returns {Promise<TaskTile>} The task tile record.
+   * @throws {HTTP400} Tile completion requires a pmtiles_uri.
+   * @memberof TaskTileService
+   */
+  async updateTileStatus(
+    taskTileId: string,
+    updates: {
+      status: 'STARTED' | 'COMPLETED' | 'FAILED' | 'DRAFT';
+      pmtiles_uri?: string | null;
+      content_type?: string | null;
+      error_code?: string | null;
+      error_message?: string | null;
+    }
+  ): Promise<TaskTile> {
+    if (updates.status === 'STARTED') {
+      return this.markTileStarted(taskTileId);
+    }
+
+    if (updates.status === 'COMPLETED') {
+      if (!updates.pmtiles_uri) {
+        throw new HTTP400('Tile completion requires a pmtiles_uri.');
+      }
+      return this.markTileCompleted(taskTileId, updates.pmtiles_uri, updates.content_type ?? null);
+    }
+
+    if (updates.status === 'FAILED') {
+      return this.markTileFailed(taskTileId, updates.error_code ?? null, updates.error_message ?? null);
+    }
+
+    return this.markTileFailed(taskTileId, 'invalid_status', 'Unsupported status update.');
+  }
+}

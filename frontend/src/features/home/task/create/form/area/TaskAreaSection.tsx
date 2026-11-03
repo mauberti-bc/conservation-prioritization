@@ -1,0 +1,201 @@
+import { mdiCheck, mdiShapePolygonPlus } from '@mdi/js';
+import Icon from '@mdi/react';
+import { Box, Button, Typography } from '@mui/material';
+import { FileDropzone } from 'components/dropzone/FileDropzone';
+import { TooltipStack } from 'components/tooltip/TooltipStack';
+import { TooltipPopover } from 'components/TooltipPopover';
+import { useFormikContext } from 'formik';
+import { useConfigContext, useMapContext } from 'hooks/useContext';
+import { useCallback, useEffect, useState } from 'react';
+import { addDrawEventListener, removeDrawEventListener } from 'utils/draw-events';
+import { createPortal } from 'react-dom';
+import { validateGeometry } from 'utils/spatial';
+import { v4 } from 'uuid';
+import { TaskCreateFormValues } from '../TaskCreateForm';
+import { TaskGeometryForm } from './geometry/TaskGeometryForm';
+
+const AREA_UPLOAD_FEATURE_FLAG = 'APP_FF_AREA_UPLOAD';
+
+interface TaskAreaSectionProps {
+  isReadOnly?: boolean;
+}
+
+export const TaskAreaSection = ({ isReadOnly = false }: TaskAreaSectionProps) => {
+  const config = useConfigContext();
+  const { values, setFieldValue } = useFormikContext<TaskCreateFormValues>();
+  const { drawControlsRef, mapRef, drawRef, isMapReady } = useMapContext();
+  const [isDrawing, setIsDrawing] = useState(false);
+  const showUploadDropzone = config.FEATURE_FLAGS.includes(AREA_UPLOAD_FEATURE_FLAG);
+
+  const startDrawing = useCallback(() => {
+    if (!drawRef.current || !mapRef.current || !drawControlsRef.current) {
+      return;
+    }
+    drawControlsRef.current?.startDrawing();
+    setIsDrawing(drawRef.current.getMode() === 'draw_polygon');
+  }, [drawControlsRef, drawRef, mapRef]);
+
+  const finishDrawing = useCallback(() => {
+    if (!drawControlsRef.current) {
+      return;
+    }
+    drawControlsRef.current.submit((features) => {
+      const { isValid } = validateGeometry(features);
+      if (!isValid || features.length === 0) {
+        return;
+      }
+      const newFeature = features[0];
+      const newGeometry = {
+        id: v4(),
+        name: `Area ${values.targetArea.length + 1}`,
+        description: null,
+        geojson: newFeature,
+        mapboxFeatureId: newFeature.id,
+      };
+      setFieldValue('targetArea', [...values.targetArea, newGeometry]);
+    });
+    setIsDrawing(drawRef.current?.getMode() === 'draw_polygon');
+  }, [drawControlsRef, drawRef, setFieldValue, values.targetArea]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapReady) {
+      setIsDrawing(false);
+      return;
+    }
+
+    /**
+     * Mirrors Draw's mode and saves completed geometry when drawing ends on the map.
+     *
+     * @returns {void} No return value.
+     */
+    const syncDrawingMode = () => {
+      const isMapDrawing = drawRef.current?.getMode() === 'draw_polygon';
+      if (isDrawing && !isMapDrawing) {
+        finishDrawing();
+      }
+      setIsDrawing(isMapDrawing);
+    };
+
+    syncDrawingMode();
+    addDrawEventListener(map, 'draw.modechange', syncDrawingMode);
+    // Public Draw API calls suppress modechange; render also catches those transitions.
+    addDrawEventListener(map, 'draw.render', syncDrawingMode);
+    return () => {
+      removeDrawEventListener(map, 'draw.modechange', syncDrawingMode);
+      removeDrawEventListener(map, 'draw.render', syncDrawingMode);
+    };
+  }, [drawRef, finishDrawing, isDrawing, isMapReady, mapRef]);
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      const featureToDelete = values.targetArea.find((g) => g.id === id);
+      if (featureToDelete && drawRef.current && featureToDelete.mapboxFeatureId) {
+        drawRef.current.delete(featureToDelete.mapboxFeatureId);
+      }
+      setFieldValue(
+        'targetArea',
+        values.targetArea.filter((g) => g.id !== id)
+      );
+    },
+    [values.targetArea, setFieldValue, drawRef]
+  );
+
+  /**
+   * Handle Enter key to finish drawing
+   *
+   * @param {KeyboardEvent} e Keyboard event used to handle task-area shortcuts.
+   * @returns {void} No return value.
+   */
+  const handleKeydown = useCallback(
+    (e: KeyboardEvent) => {
+      if (isDrawing && e.key === 'Enter' && e.target === mapRef.current?.getCanvas()) {
+        e.preventDefault();
+        finishDrawing();
+      }
+    },
+    [isDrawing, finishDrawing, mapRef]
+  );
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeydown);
+    return () => document.removeEventListener('keydown', handleKeydown);
+  }, [handleKeydown]);
+
+  const floatingFinishButton =
+    !isReadOnly && isDrawing
+      ? createPortal(
+          <Box
+            sx={{
+              position: 'fixed',
+              top: 100,
+              right: '5%',
+              zIndex: 1300,
+            }}>
+            <Button
+              sx={{ py: 2, px: 4 }}
+              variant="contained"
+              color="primary"
+              startIcon={<Icon path={mdiCheck} size={1} />}
+              onClick={finishDrawing}>
+              Finish Drawing (Press Enter)
+            </Button>
+          </Box>,
+          document.body
+        )
+      : null;
+
+  return (
+    <>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
+        <TooltipStack tooltip="Limit solutions to areas of interest">
+          <Typography
+            color="textSecondary"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing={0.5}
+            variant="body2">
+            Areas
+          </Typography>
+        </TooltipStack>
+        {!isReadOnly && (
+          <TooltipPopover tooltip={isDrawing ? 'Finish Drawing' : 'Add Area'}>
+            <span>
+              <Button
+                onClick={isDrawing ? finishDrawing : startDrawing}
+                aria-label={isDrawing ? 'Finish Drawing' : 'Add Area'}
+                color="primary"
+                startIcon={<Icon path={isDrawing ? mdiCheck : mdiShapePolygonPlus} size={0.9} />}
+                sx={{ whiteSpace: 'nowrap' }}>
+                {isDrawing ? 'Finish Drawing' : 'Draw Area'}
+              </Button>
+            </span>
+          </TooltipPopover>
+        )}
+      </Box>
+
+      {!isReadOnly && showUploadDropzone && (
+        <Box>
+          <FileDropzone
+            label="Upload areas of interest"
+            accept={{
+              'application/geo+json': ['.geojson'],
+              'application/json': ['.json'],
+              'application/zip': ['.zip'],
+              'application/x-zip-compressed': ['.zip'],
+            }}
+            onFilesSelected={(files) => console.log(files)}
+          />
+        </Box>
+      )}
+
+      {values.targetArea.length > 0 ? (
+        <Box mt={1}>
+          <TaskGeometryForm geometry={values.targetArea} onDelete={handleDelete} isReadOnly={isReadOnly} />
+        </Box>
+      ) : null}
+
+      {floatingFinishButton}
+    </>
+  );
+};

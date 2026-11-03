@@ -1,0 +1,70 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "conservation-tool.fullname.prefect-deploy" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: {{ include "conservation-tool.fullname.prefect-deploy" . }}
+    spec:
+      serviceAccountName: deployer
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        {{- if .Values.services.workflows.deploy.securityContext.runAsUser }}
+        runAsUser: {{ .Values.services.workflows.deploy.securityContext.runAsUser | int64 }}
+        {{- end }}
+        {{- if .Values.services.workflows.deploy.securityContext.fsGroup }}
+        fsGroup: {{ .Values.services.workflows.deploy.securityContext.fsGroup | int64 }}
+        {{- end }}
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: prefect-deploy
+          image: "{{ .Values.registry }}/{{ .Values.services.workflows.deploy.image.stream }}:{{ .Values.services.workflows.deploy.image.tag }}"
+          imagePullPolicy: {{ .Values.services.workflows.deploy.image.pullPolicy | default "IfNotPresent" }}
+          securityContext:
+            runAsNonRoot: true
+            {{- if .Values.services.workflows.deploy.securityContext.runAsUser }}
+            runAsUser: {{ .Values.services.workflows.deploy.securityContext.runAsUser | int64 }}
+            {{- end }}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          command:
+            - bash
+            - -c
+          args:
+            - |
+              set -euo pipefail
+              bash src/setup.sh
+              python -m src.utils.wait_for_prefect_workers {{ range .Values.services.workflows.worker.profiles }}{{ .pool | quote }} {{ end }}
+          ports:
+            - containerPort: {{ .Values.ports.prefect_server_api | default 4201 }}
+          env:
+            - name: PREFECT_API_URL
+              value: "{{ .Values.env.PREFECT_API_URL }}"
+            - name: ZARR_STORE_PATH
+              value: "{{ .Values.env.ZARR_STORE_PATH }}"
+            - name: HOME
+              value: "/home/app"
+            - name: PREFECT_HOME
+              value: "/tmp/.prefect"
+            - name: MPLCONFIGDIR
+              value: "/tmp/.config/matplotlib"
+          resources:
+            {{- toYaml .Values.services.workflows.deploy.resources | nindent 12 }}

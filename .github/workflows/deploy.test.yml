@@ -1,0 +1,25 @@
+name: Promote to Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Confirm deployment"
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: promote-to-test
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirm }}
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    with:
+      source_tag: dev
+      target_tag: test
+      image_tag: test
+      environment: test

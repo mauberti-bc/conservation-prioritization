@@ -1,0 +1,56 @@
+# Memory requests: 2560Mi for running services + 512Mi for deployment hooks = 3Gi.
+# The quota applies to requests. Running service limits total 3Gi, with 1920Mi for the worker.
+prefect-server:
+  server:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 448Mi
+      limits:
+        cpu: 100m
+        memory: 448Mi
+
+services:
+  frontend:
+    resources:
+      requests:
+        memory: 64Mi
+      limits:
+        memory: 64Mi
+
+  workflows:
+    worker:
+      profiles:
+        sparse-solver:
+          executionProfile: dev-1920mi
+          # Leave 320Mi of the pod limit for Prefect and orchestration overhead.
+          daskWorkerMemory: 1600MiB
+          maxPeakMemoryBytes: 1677721600
+          resources:
+            requests:
+              cpu: 100m
+              memory: 1408Mi
+            limits:
+              cpu: "2"
+              memory: 1920Mi
+
+  api:
+    resources:
+      requests:
+        memory: 320Mi
+      limits:
+        memory: 320Mi
+    route:
+      host: "conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"
+
+  db:
+    resources:
+      requests:
+        memory: 320Mi
+      limits:
+        memory: 320Mi
+
+env:
+  NODE_OPTIONS: "--max-old-space-size=192"
+  NODE_ENV: "development"
+  FRONTEND_API_HOST: "https://conservation-tool-api-fa9440-dev.apps.gold.devops.gov.bc.ca"

@@ -1,0 +1,67 @@
+[project]
+name = "conservation-tool"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.36.0",
+    "dask>=2025.5.1",
+    "geopandas>=1.1.1",
+    "highspy>=1.11.0",
+    "matplotlib>=3.10.3",
+    "morecantile>=6.2.0",
+    "pillow>=13.0.0",
+    "pmtiles>=3.4.1",
+    # Keep in sync with the prefect-server chart appVersion pinned in
+    # helm/conservation-tool/Chart.yaml (chart 2026.10.6163015 = Prefect 3.8.8).
+    "prefect[dask]==3.8.8",
+    "psutil>=7.0.0",
+    "pyarrow>=20.0.0",
+    "pyogrio>=0.11.0",
+    "rasterio>=1.4.3",
+    "rioxarray>=0.19.0",
+    "requests>=2.32.3",
+    "s3fs>=2025.7.0",
+    "scipy>=1.16.0",
+    "zarr<3.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = ["build", ".venv", "__pycache__"]
+fix = true
+
+[tool.ruff.lint]
+select = ["E", "F", "B"]
+
+[build-system]
+requires = ["uv", "setuptools"]
+build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "debugpy>=1.8.14",
+    "ipykernel>=6.29.5",
+    "jupyter>=1.1.1",
+    "jupyter-contrib-nbextensions>=0.7.0",
+    "jupyterlab-rise>=0.43.1",
+    "rise>=5.7.1",
+    "ruff>=0.12.11",
+    "black>=25.1.0",
+    "isort>=6.0.1",
+]

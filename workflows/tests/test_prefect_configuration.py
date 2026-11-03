@@ -1,0 +1,423 @@
+import shutil
+import subprocess
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import yaml
+
+from src.utils.task_run_concurrency import (
+    TASK_RUN_CONCURRENCY_LIMIT,
+    TASK_RUN_LEASE_DURATION_SECONDS,
+    acquire_task_run_slot,
+)
+
+
+class PrefectConfigurationTest(unittest.TestCase):
+    @unittest.skipUnless(
+        shutil.which("helm"), "Helm is required to render rollout manifests"
+    )
+    def test_rendered_rollout_and_hook_safeguards(self) -> None:
+        """Retain mutable-tag upgrades while bounding storage and worker startup."""
+        chart = Path(__file__).resolve().parents[2] / "helm" / "conservation-tool"
+        for tag in ("dev", "a" * 40):
+            with self.subTest(tag=tag):
+                rendered = subprocess.check_output(
+                    [
+                        "helm",
+                        "template",
+                        "conservation-tool",
+                        str(chart),
+                        "--values",
+                        str(chart / "values-dev.yaml"),
+                        "--set-string",
+                        f"services.db.image.tag={tag}",
+                    ],
+                    text=True,
+                )
+                resources = {
+                    item["metadata"]["name"]: item
+                    for item in yaml.safe_load_all(rendered)
+                    if item and item["kind"] in ("Deployment", "Job")
+                }
+                database = resources["conservation-tool-db"]
+                worker = resources["conservation-tool-prefect-worker-sparse-solver"]
+                registration = resources["conservation-tool-prefect-deploy"]
+                setup = resources["conservation-tool-db-setup-1"]
+                annotations = database["spec"]["template"]["metadata"].get(
+                    "annotations", {}
+                )
+                self.assertEqual(
+                    "conservation-tool/release-revision" in annotations, tag == "dev"
+                )
+                for workload in (database, worker):
+                    self.assertEqual(workload["spec"]["strategy"]["type"], "Recreate")
+                    self.assertEqual(workload["spec"]["progressDeadlineSeconds"], 1200)
+                    self.assertEqual(
+                        workload["spec"]["template"]["spec"][
+                            "terminationGracePeriodSeconds"
+                        ],
+                        120,
+                    )
+                self.assertNotIn("initContainers", worker["spec"]["template"]["spec"])
+                command = registration["spec"]["template"]["spec"]["containers"][0][
+                    "args"
+                ][0]
+                self.assertIn("wait_for_prefect_workers", command)
+                self.assertIn('"sparse-solver"', command)
+                self.assertLess(
+                    command.index("src/setup.sh"),
+                    command.index("wait_for_prefect_workers"),
+                )
+                for job in (registration, setup):
+                    self.assertEqual(job["spec"]["activeDeadlineSeconds"], 900)
+                    self.assertEqual(job["spec"]["ttlSecondsAfterFinished"], 86400)
+                    self.assertNotIn(
+                        "hook-failed",
+                        job["metadata"]["annotations"]["helm.sh/hook-delete-policy"],
+                    )
+
+    def test_environment_memory_budgets_include_deployment_headroom(self) -> None:
+        """Keep services and deployment headroom within each environment's quota."""
+        repository = Path(__file__).resolve().parents[2]
+        chart = repository / "helm" / "conservation-tool"
+        base = yaml.safe_load((chart / "values.yaml").read_text(encoding="utf-8"))
+        # Namespace memory quotas, as documented at the top of each values-<env>.yaml.
+        budgets_mib = {"dev": 3072, "test": 4096, "prod": 3072}
+        for environment, budget_mib in budgets_mib.items():
+            with self.subTest(environment=environment):
+                values = yaml.safe_load(
+                    (chart / f"values-{environment}.yaml").read_text(encoding="utf-8")
+                )
+                services = values["services"]
+                profile = services["workflows"]["worker"]["profiles"]["sparse-solver"]
+                resources = [
+                    services[name]["resources"] for name in ("api", "db", "frontend")
+                ] + [
+                    profile["resources"],
+                    values["prefect-server"]["server"]["resources"],
+                ]
+                hook_resources = [
+                    base["services"]["workflows"]["deploy"]["resources"],
+                    base["services"]["dbSetup"]["resources"],
+                    base["prefect-server"]["migrations"]["resources"],
+                ]
+                for resource_type in ("requests", "limits"):
+                    running_mib = sum(
+                        int(resource[resource_type]["memory"].removesuffix("Mi"))
+                        for resource in resources
+                    )
+                    hook_mib = max(
+                        int(resource[resource_type]["memory"].removesuffix("Mi"))
+                        for resource in hook_resources
+                    )
+                    if resource_type == "requests":
+                        self.assertLessEqual(running_mib + hook_mib, budget_mib)
+                    else:
+                        # Quotas govern requests; service limits may use
+                        # the full budget while requests reserve deployment headroom.
+                        self.assertLessEqual(running_mib, budget_mib)
+
+                worker_bytes = (
+                    int(profile["resources"]["limits"]["memory"].removesuffix("Mi"))
+                    * 1024**2
+                )
+                dask_bytes = (
+                    int(profile["daskWorkerMemory"].removesuffix("MiB")) * 1024**2
+                )
+                self.assertLess(dask_bytes, worker_bytes)
+                self.assertLess(profile["maxPeakMemoryBytes"], worker_bytes)
+
+    def test_continuous_and_discrete_optimization_are_deployed(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        configuration = yaml.safe_load(
+            (repository / "workflows" / "prefect.yaml").read_text(encoding="utf-8")
+        )
+        deployments = {
+            deployment["name"] for deployment in configuration["deployments"]
+        }
+        self.assertIn("task-run-continuous-optimization-compiled", deployments)
+        self.assertIn("task-run-discrete-optimization-compiled", deployments)
+        self.assertIn("task-run-priority-ranking-compiled", deployments)
+
+    def test_deployment_pools_are_created_and_have_compose_workers(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        workflow_configuration = yaml.safe_load(
+            (repository / "workflows" / "prefect.yaml").read_text(encoding="utf-8")
+        )
+        deployment_pools = {
+            deployment["work_pool"]["name"]
+            for deployment in workflow_configuration["deployments"]
+        }
+        setup_script = (repository / "workflows" / "src" / "setup.sh").read_text(
+            encoding="utf-8"
+        )
+        for pool in deployment_pools:
+            self.assertIn(f'"{pool}"', setup_script)
+
+        compose = yaml.safe_load(
+            (repository / "compose.yml").read_text(encoding="utf-8")
+        )
+        compose_worker_pools = {
+            service["command"][-1]
+            for name, service in compose["services"].items()
+            if name.startswith("prefect_worker")
+        }
+        self.assertEqual(deployment_pools, compose_worker_pools)
+
+        helm_values = yaml.safe_load(
+            (repository / "helm" / "conservation-tool" / "values.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        helm_profiles = helm_values["services"]["workflows"]["worker"]["profiles"]
+        worker_values = helm_values["services"]["workflows"]["worker"]
+        self.assertEqual(
+            deployment_pools,
+            {profile["pool"] for profile in helm_profiles.values()},
+        )
+        self.assertEqual("ReadWriteOnce", worker_values["persistence"]["accessMode"])
+        self.assertEqual("512Mi", worker_values["persistence"]["size"])
+        sparse_profile = helm_profiles["sparse-solver"]
+        self.assertEqual("sparse-16g", sparse_profile["executionProfile"])
+        self.assertEqual(1, sparse_profile["daskWorkers"])
+        self.assertEqual(
+            sparse_profile["resources"]["limits"]["memory"],
+            sparse_profile["daskWorkerMemory"],
+        )
+        self.assertEqual(12 * 1024**3, sparse_profile["maxPeakMemoryBytes"])
+        self.assertEqual(512 * 1024**2, sparse_profile["maxScratchBytes"])
+        self.assertEqual("16Gi", sparse_profile["resources"]["limits"]["memory"])
+        self.assertIn(
+            "536870912",
+            str(
+                compose["services"]["prefect_worker"]["environment"][
+                    "WORKFLOW_SCRATCH_LIMIT_BYTES"
+                ]
+            ),
+        )
+
+    def test_solver_concurrency_is_scoped_to_the_solver_task(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        setup_script = (repository / "workflows" / "src" / "setup.sh").read_text(
+            encoding="utf-8"
+        )
+        pool_script = (
+            repository / "workflows" / "src" / "ensure_work_pool.sh"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            'TASK_RUN_CONCURRENCY_LIMIT="conservation-task-runs"',
+            setup_script,
+        )
+        self.assertIn('--limit 1 --enable', setup_script)
+        self.assertIn('--limit 1', setup_script)
+        self.assertIn('WORK_POOL_CONCURRENCY="${3:-1}"', pool_script)
+        self.assertIn('set-concurrency-limit', pool_script)
+
+        optimization_flow_source = (
+            repository / "workflows" / "src" / "flows" / "optimization_execution.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('@task(name="solve_compiled_model")', optimization_flow_source)
+        self.assertIn("with acquire_task_run_slot():", optimization_flow_source)
+
+    def test_worker_startup_does_not_depend_on_registration_hooks(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        worker_deployment = (
+            repository
+            / "helm"
+            / "conservation-tool"
+            / "templates"
+            / "workflows"
+            / "worker-deployment.yaml"
+        ).read_text(encoding="utf-8")
+
+        self.assertNotIn("initContainers:", worker_deployment)
+        self.assertIn("- src/start_worker.sh", worker_deployment)
+        self.assertNotIn("- src/setup.sh", worker_deployment)
+        startup_script = (
+            repository / "workflows" / "src" / "start_worker.sh"
+        ).read_text()
+        self.assertIn("src.utils.wait_for_prefect", startup_script)
+        self.assertIn("exec prefect worker start", startup_script)
+        self.assertNotIn("src/setup.sh", startup_script)
+        self.assertIn("WORKFLOW_SCRATCH_ROOT", worker_deployment)
+        self.assertIn("WORKFLOW_SCRATCH_LIMIT_BYTES", worker_deployment)
+        self.assertIn("mountPath:", worker_deployment)
+        self.assertIn("/workflow-scratch", worker_deployment)
+        self.assertIn("persistentVolumeClaim:", worker_deployment)
+        self.assertIn("conservation-tool.fullname.workflow-scratch", worker_deployment)
+        self.assertIn("fsGroup:", worker_deployment)
+        self.assertIn("type: Recreate", worker_deployment)
+
+    def test_environment_workflow_security_contexts_use_namespace_ids(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        expected_ids = {
+            "values.yaml": 1003600000,
+            "values-test.yaml": 1003620000,
+            "values-prod.yaml": 1003590000,
+        }
+
+        for values_file, namespace_id in expected_ids.items():
+            with self.subTest(values_file=values_file):
+                helm_values = yaml.safe_load(
+                    (repository / "helm" / "conservation-tool" / values_file).read_text(
+                        encoding="utf-8"
+                    )
+                )
+                worker_context = helm_values["services"]["workflows"]["worker"][
+                    "securityContext"
+                ]
+                deploy_context = helm_values["services"]["workflows"]["deploy"][
+                    "securityContext"
+                ]
+                self.assertEqual(namespace_id, worker_context["runAsUser"])
+                self.assertEqual(namespace_id, worker_context["fsGroup"])
+                self.assertEqual(namespace_id, deploy_context["runAsUser"])
+                self.assertEqual(namespace_id, deploy_context["fsGroup"])
+
+    def test_dask_compilation_closes_before_highs_starts(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        for domain in ("continuous", "discrete"):
+            flow_source = (
+                repository
+                / "workflows"
+                / "src"
+                / "flows"
+                / f"task_run_{domain}_optimization.py"
+            ).read_text(encoding="utf-8")
+
+            self.assertIn(f'name="compile_task_run_{domain}_optimization"', flow_source)
+            self.assertIn(f'@flow(name="task_run_{domain}_optimization")', flow_source)
+            self.assertIn('os.getenv("SPATIAL_DASK_WORKERS", "1")', flow_source)
+            self.assertIn('os.getenv("SPATIAL_DASK_WORKER_MEMORY", "4GB")', flow_source)
+            self.assertIn(
+                f"compile_run=compile_task_run_{domain}_optimization", flow_source
+            )
+        priority_flow_source = (
+            repository / "workflows" / "src" / "flows" / "task_run_priority_ranking.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('name="compile_task_run_priority_ranking"', priority_flow_source)
+        self.assertIn('@flow(name="task_run_priority_ranking")', priority_flow_source)
+        self.assertIn('os.getenv("SPATIAL_DASK_WORKERS", "1")', priority_flow_source)
+        self.assertIn(
+            'os.getenv("SPATIAL_DASK_WORKER_MEMORY", "4GB")',
+            priority_flow_source,
+        )
+        self.assertIn(
+            "compile_run=compile_task_run_priority_ranking",
+            priority_flow_source,
+        )
+
+        task_tile_source = (
+            repository / "workflows" / "src" / "flows" / "task_tile.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            'os.getenv("SPATIAL_DASK_WORKER_MEMORY", "4GB")',
+            task_tile_source,
+        )
+
+    def test_workflows_use_durable_scratch_for_outputs(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        optimization_source = (
+            repository / "workflows" / "src" / "flows" / "optimization_execution.py"
+        ).read_text(encoding="utf-8")
+        task_tile_source = (
+            repository / "workflows" / "src" / "flows" / "task_tile.py"
+        ).read_text(encoding="utf-8")
+        scratch_source = (
+            repository / "workflows" / "src" / "utils" / "scratch.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("task_run_scratch_directory", optimization_source)
+        self.assertIn("task_run_scratch_directory", task_tile_source)
+        self.assertIn("cleanup_scratch_directory(output_dir)", optimization_source)
+        self.assertIn("cleanup_scratch_directory(output)", task_tile_source)
+        self.assertIn(
+            'DEFAULT_WORKFLOW_SCRATCH_ROOT = "/workflow-scratch"',
+            scratch_source,
+        )
+        self.assertIn("WORKFLOW_KEEP_SCRATCH", scratch_source)
+        self.assertNotIn('Path("/data/outputs")', optimization_source)
+        self.assertNotIn('Path("/data/outputs")', task_tile_source)
+
+    def test_workflow_scratch_pvc_is_declared(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        pvc_template = (
+            repository
+            / "helm"
+            / "conservation-tool"
+            / "templates"
+            / "workflows"
+            / "scratch-pvc.yaml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("kind: PersistentVolumeClaim", pvc_template)
+        self.assertIn("services.workflows.worker.persistence.enabled", pvc_template)
+        self.assertIn('default "ReadWriteOnce"', pvc_template)
+        self.assertIn("conservation-tool.fullname.workflow-scratch", pvc_template)
+
+    def test_internal_workflow_callbacks_do_not_return_full_runs(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        callback_paths = [
+            repository
+            / "api"
+            / "src"
+            / "paths"
+            / "internal"
+            / "run"
+            / "{runId}"
+            / "artifact"
+            / "{artifactType}"
+            / "index.ts",
+            repository
+            / "api"
+            / "src"
+            / "paths"
+            / "internal"
+            / "run"
+            / "{runId}"
+            / "status"
+            / "index.ts",
+            repository
+            / "api"
+            / "src"
+            / "paths"
+            / "internal"
+            / "run"
+            / "{runId}"
+            / "solution"
+            / "index.ts",
+            repository
+            / "api"
+            / "src"
+            / "paths"
+            / "internal"
+            / "run"
+            / "{runId}"
+            / "publish"
+            / "index.ts",
+        ]
+
+        for path in callback_paths:
+            source = path.read_text(encoding="utf-8")
+            self.assertIn("json({ ok: true })", source)
+            self.assertNotIn("TaskRunSchema", source)
+
+    def test_task_run_slot_uses_a_short_failure_recovery_lease(self) -> None:
+        with patch("src.utils.task_run_concurrency.concurrency") as concurrency:
+            with acquire_task_run_slot():
+                pass
+
+        concurrency.assert_called_once_with(
+            TASK_RUN_CONCURRENCY_LIMIT,
+            occupy=1,
+            lease_duration=TASK_RUN_LEASE_DURATION_SECONDS,
+            strict=True,
+        )
+        self.assertEqual(60, TASK_RUN_LEASE_DURATION_SECONDS)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,164 @@
+import axios from 'axios';
+import React, { PropsWithChildren, useEffect, useState } from 'react';
+import { ensureProtocol } from 'utils/util';
+
+export interface IConfig {
+  API_HOST: string;
+  CHANGE_VERSION: string;
+  NODE_ENV: string;
+  VITE_APP_NODE_ENV: string;
+  VERSION: string;
+  KEYCLOAK_CONFIG: {
+    authority: string;
+    realm: string;
+    clientId: string;
+  };
+  SITEMINDER_LOGOUT_URL: string;
+  S3_PUBLIC_HOST_URL: string;
+  BASEMAP_URL: string;
+  BASEMAP_ATTRIBUTION: string;
+  SATELLITE_BASEMAP_URL: string;
+  SATELLITE_BASEMAP_ATTRIBUTION: string;
+  /**
+   * Used in conjunction with the feature flag guard (FeatureFlagGuard) to disable components.
+   *
+   * @type {string[]}
+   * @memberof IConfig
+   */
+  FEATURE_FLAGS: string[];
+}
+
+export const ConfigContext = React.createContext<IConfig | undefined>(undefined);
+
+/**
+ * Parses a valid feature flag string into an array of feature flag strings.
+ *
+ * @param {string} featureFlagsString Comma-separated feature flag names.
+ * @returns {string[]} Feature flags string.
+ */
+const parseFeatureFlagsString = (featureFlagsString: string): string[] => {
+  if (!featureFlagsString) {
+    return [];
+  }
+
+  return featureFlagsString.split(',');
+};
+
+/**
+ * Returns a browser-safe API host for frontend requests.
+ *
+ * @param {string | undefined} apiHost Configured API hostname or URL.
+ * @returns {string} A browser-safe API host for frontend requests.
+ */
+const getBrowserApiHost = (apiHost: string | undefined): string => {
+  const normalizedHost = (apiHost || '').trim();
+
+  if (!normalizedHost) {
+    return 'localhost';
+  }
+
+  if (normalizedHost === '0.0.0.0' || normalizedHost === 'http://0.0.0.0' || normalizedHost === 'https://0.0.0.0') {
+    return 'localhost';
+  }
+
+  return normalizedHost;
+};
+
+/**
+ * Return the app config based on locally set environment variables.
+ *
+ * This is used when running the app locally in docker.
+ *
+ * Note: All changes to env vars here must also be reflected in the `frontend/server/index.mjs` file, so that the app has
+ * access to the same env vars when running in both local development (via compose.yml) and in OpenShift.
+ *
+ * @returns {IConfig} Frontend configuration derived from local environment variables.
+ */
+const getLocalConfig = (): IConfig => {
+  const API_HOST = getBrowserApiHost(import.meta.env.VITE_APP_API_HOST);
+  const API_PORT = import.meta.env.VITE_APP_API_PORT;
+
+  const API_URL = (API_PORT && `${API_HOST}:${API_PORT}`) || API_HOST || 'localhost';
+
+  const OBJECT_STORE_URL = import.meta.env.OBJECT_STORE_URL || 'nrs.objectstore.gov.bc.ca';
+  const OBJECT_STORE_BUCKET_NAME = import.meta.env.OBJECT_STORE_BUCKET_NAME || 'gblhvt';
+  return {
+    API_HOST: ensureProtocol(API_URL, 'http://'),
+    CHANGE_VERSION: import.meta.env.CHANGE_VERSION || 'NA',
+    NODE_ENV: import.meta.env.MODE,
+    VITE_APP_NODE_ENV: import.meta.env.VITE_APP_NODE_ENV || 'dev',
+    VERSION: `${import.meta.env.VERSION || 'NA'}(build #${import.meta.env.CHANGE_VERSION || 'NA'})`,
+    KEYCLOAK_CONFIG: {
+      authority: import.meta.env.VITE_APP_KEYCLOAK_HOST || '',
+      realm: import.meta.env.VITE_APP_KEYCLOAK_REALM || '',
+      clientId: import.meta.env.VITE_APP_KEYCLOAK_CLIENT_ID || '',
+    },
+    SITEMINDER_LOGOUT_URL: import.meta.env.VITE_APP_SITEMINDER_LOGOUT_URL || '',
+    S3_PUBLIC_HOST_URL: ensureProtocol(`${OBJECT_STORE_URL}/${OBJECT_STORE_BUCKET_NAME}`, 'https://'),
+    BASEMAP_URL: import.meta.env.VITE_BASEMAP_URL || '',
+    BASEMAP_ATTRIBUTION: import.meta.env.VITE_BASEMAP_ATTRIBUTION || '',
+    SATELLITE_BASEMAP_URL: import.meta.env.VITE_SATELLITE_BASEMAP_URL || '',
+    SATELLITE_BASEMAP_ATTRIBUTION: import.meta.env.VITE_SATELLITE_BASEMAP_ATTRIBUTION || '',
+    /**
+     * Feature flags
+     *
+     * Note: Recommend conforming to a consistent pattern when defining feature flags, to make feature flags easy to
+     * identify (ie: `[APP/API]_FF_<string>`)
+     */
+    FEATURE_FLAGS: parseFeatureFlagsString(import.meta.env.VITE_APP_FEATURE_FLAGS || ''),
+  };
+};
+
+/**
+ * Return the app config based on a deployed app, running via `frontend/server/index.mjs`
+ *
+ * @returns {Promise<IConfig>} The app config based on a deployed app, running via `frontend/server/index.mjs`
+ */
+const getDeployedConfig = async (): Promise<IConfig> => {
+  const { data } = await axios.get<IConfig>('/config');
+
+  return data;
+};
+
+/**
+ * Return true if MODE=development, false otherwise.
+ *
+ * @returns {boolean} True if MODE=development, false otherwise.
+ */
+const isDevelopment = (): boolean => {
+  if (import.meta.env.MODE === 'development') {
+    return true;
+  }
+
+  return false;
+};
+
+/**
+ * Provides environment variables.
+ *
+ * This will fetch env vars from either `import.meta.env` if running with MODE=development, or from
+ * `frontend/server/index.mjs` if running as a deployed MODE=production build.
+ *
+ * @param {*} props Component properties.
+ * @returns {React.ReactNode} The rendered component.
+ */
+export const ConfigContextProvider = (props: PropsWithChildren) => {
+  const [config, setConfig] = useState<IConfig>();
+
+  useEffect(() => {
+    const loadConfig = async () => {
+      if (isDevelopment()) {
+        const localConfig = getLocalConfig();
+        setConfig(localConfig);
+      } else {
+        const deployedConfig = await getDeployedConfig();
+        setConfig(deployedConfig);
+      }
+    };
+
+    if (!config) {
+      loadConfig();
+    }
+  }, [config]);
+  return <ConfigContext.Provider value={config}>{props.children}</ConfigContext.Provider>;
+};

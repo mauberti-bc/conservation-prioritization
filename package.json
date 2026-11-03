@@ -1,0 +1,17 @@
+{
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "husky": "^8.0.0",
+    "lint-staged": "^16.1.6"
+  },
+  "scripts": {
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "frontend/**/*.{js,jsx,ts,tsx}": [
+      "yarn --cwd frontend format-fix",
+      "yarn --cwd frontend lint-fix"
+    ]
+  },
+  "packageManager": "yarn@4.11.0"
+}

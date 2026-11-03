@@ -1,0 +1,219 @@
+import { Knex } from 'knex';
+import { IDENTITY_SOURCE } from '../constants/profile';
+import { SEED_CONSTANTS } from '../constants/seeds';
+
+/* ============================================================================
+ * Environment
+ * ========================================================================== */
+
+const DB_SCHEMA = process.env.DB_SCHEMA!;
+const DB_USER_API = process.env.DB_USER_API!;
+
+const C = SEED_CONSTANTS;
+
+/* ============================================================================
+ * Demo data seed for non-production environments.
+ * ========================================================================== */
+
+/**
+ * Seeds demo conservation data into an empty domain or an explicitly requested demo reset.
+ *
+ * Human profiles are created by authenticated self-registration rather than seeded administrator accounts.
+ *
+ * @param {Knex} knex The database connection used to create demo records.
+ * @returns {Promise<void>} Resolves after demo seeding completes or existing domain data is preserved.
+ * @throws {Error} Rejects if the API profile is missing or a database operation fails.
+ */
+export async function seed(knex: Knex): Promise<void> {
+  await knex.raw(`
+    SET SCHEMA '${DB_SCHEMA}';
+    SET SEARCH_PATH=${DB_SCHEMA},public;
+  `);
+
+  const apiProfile = await knex('profile')
+    .select('profile_id')
+    .where({ profile_identifier: DB_USER_API, identity_source: 'database', record_end_date: null })
+    .first();
+
+  if (!apiProfile?.profile_id) {
+    throw new Error('Seed requires the API profile to exist. Run migrations first.');
+  }
+
+  await knex.raw(`SELECT api_set_context('${DB_USER_API}', 'database');`);
+
+  const resetDemoData = process.env.RESET_DEMO_DATA === 'true';
+  const hasExistingDomainData = Boolean(
+    (await knex('task').select('task_id').first()) || (await knex('project').select('project_id').first())
+  );
+
+  /* ==========================================================================
+   * CLEAR DATA (demo-only tables)
+   * ========================================================================== */
+
+  if (resetDemoData) {
+    await knex.raw(`SET session_replication_role = 'replica';`);
+
+    for (const table of C.TABLES_TO_CLEAR) {
+      await knex(table).del();
+    }
+
+    await knex.raw(`SET session_replication_role = 'origin';`);
+  }
+
+  const projectAdminRole = await knex('role')
+    .select('role_id')
+    .where({ name: 'admin', scope: 'project', record_end_date: null })
+    .first();
+
+  const taskAdminRole = await knex('role')
+    .select('role_id')
+    .where({ name: 'admin', scope: 'task', record_end_date: null })
+    .first();
+
+  // Database setup runs during normal deployments. Seed fixtures only into an
+  // empty domain unless an explicit destructive demo reset was requested.
+  if (hasExistingDomainData && !resetDemoData) {
+    return;
+  }
+
+  /* ==========================================================================
+   * PROJECTS
+   * ========================================================================== */
+
+  for (const project of C.PROJECTS) {
+    await knex('project').insert(project);
+  }
+
+  /* ==========================================================================
+   * TASKS
+   * ========================================================================== */
+
+  for (const task of C.TASKS) {
+    await knex('task').insert(task);
+  }
+
+  const identitySources = Object.values(IDENTITY_SOURCE).filter((source) => source !== IDENTITY_SOURCE.DATABASE);
+
+  const nonDatabaseProfiles = await knex('profile')
+    .select('profile_id')
+    .whereIn('identity_source', identitySources)
+    .andWhere({ record_end_date: null });
+
+  /* ==========================================================================
+   * PROJECT PERMISSIONS
+   * ======================================================================== */
+
+  const seededProjects = await knex('project')
+    .select('project_id')
+    .whereIn(
+      'name',
+      C.PROJECTS.map((project) => project.name)
+    );
+
+  if (projectAdminRole?.role_id) {
+    for (const project of seededProjects) {
+      for (const profile of nonDatabaseProfiles) {
+        await knex('project_permission').insert({
+          project_id: project.project_id,
+          profile_id: profile.profile_id,
+          role_id: projectAdminRole.role_id
+        });
+      }
+    }
+  }
+
+  /* ==========================================================================
+   * TASK PERMISSIONS
+   * ======================================================================== */
+
+  const seededTasks = await knex('task')
+    .select('task_id')
+    .whereIn(
+      'name',
+      C.TASKS.map((task) => task.name)
+    );
+
+  if (taskAdminRole?.role_id) {
+    for (const task of seededTasks) {
+      for (const profile of nonDatabaseProfiles) {
+        await knex('task_permission').insert({
+          task_id: task.task_id,
+          profile_id: profile.profile_id,
+          role_id: taskAdminRole.role_id
+        });
+      }
+    }
+  }
+
+  /* ==========================================================================
+   * PROJECT PROFILES
+   * ========================================================================== */
+
+  const demoProjects = await knex('project')
+    .select('project_id', 'name')
+    .whereIn(
+      'name',
+      C.PROJECTS.map((project) => project.name)
+    );
+
+  for (const profile of nonDatabaseProfiles) {
+    for (const project of demoProjects) {
+      await knex('project_profile').insert({
+        project_id: project.project_id,
+        profile_id: profile.profile_id
+      });
+    }
+  }
+
+  /* ==========================================================================
+   * TASK PROFILES
+   * ========================================================================== */
+
+  const demoTasks = await knex('task')
+    .select('task_id')
+    .whereIn(
+      'name',
+      C.TASKS.map((task) => task.name)
+    );
+
+  const demoTask = demoTasks[0];
+
+  if (demoTasks.length) {
+    for (const profile of nonDatabaseProfiles) {
+      for (const task of demoTasks) {
+        await knex('task_profile').insert({
+          task_id: task.task_id,
+          profile_id: profile.profile_id
+        });
+      }
+    }
+  }
+
+  /* ==========================================================================
+   * PROJECT TASKS
+   * ========================================================================== */
+
+  if (demoTask?.task_id) {
+    for (const project of demoProjects) {
+      await knex('project_task').insert({
+        project_id: project.project_id,
+        task_id: demoTask.task_id
+      });
+    }
+  }
+
+  /* ==========================================================================
+   * TASK TILES
+   * ========================================================================== */
+
+  if (demoTask?.task_id) {
+    for (const tile of C.TASK_TILES) {
+      await knex('task_tile').insert({
+        task_id: demoTask.task_id,
+        status: tile.status,
+        pmtiles_uri: tile.pmtiles_uri,
+        content_type: tile.content_type
+      });
+    }
+  }
+}

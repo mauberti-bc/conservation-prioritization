@@ -1,0 +1,9 @@
+# Identity for the Prefect server pod. The server never calls the Kubernetes API
+# (workers are process workers), so it is granted no RBAC permissions.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prefect-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}

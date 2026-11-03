@@ -1,0 +1,25 @@
+name: Promote to Prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Confirm deployment"
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: promote-to-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirm }}
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    with:
+      source_tag: test
+      target_tag: prod
+      image_tag: prod
+      environment: prod

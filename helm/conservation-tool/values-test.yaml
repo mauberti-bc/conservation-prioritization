@@ -1,0 +1,151 @@
+environment:
+  id: "test"
+  name: "test"
+
+# Memory requests: 3584Mi for running services + 512Mi for deployment hooks = 4Gi.
+# The quota applies to requests. Running service limits total 4Gi, with 2912Mi for the worker.
+prefect-server:
+  ui:
+    podSecurityContext:
+      runAsUser: 1003620000
+      fsGroup: null
+    containerSecurityContext:
+      runAsUser: 1003620000
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+
+  server:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 448Mi
+      limits:
+        cpu: 100m
+        memory: 448Mi
+    podSecurityContext:
+      runAsUser: 1003620000
+      fsGroup: null
+    containerSecurityContext:
+      runAsUser: 1003620000
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+
+  migrations:
+    securityContext:
+      runAsUser: 1003620000
+      runAsNonRoot: true
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities: {}
+
+database:
+  postgresql:
+    primary:
+      podSecurityContext:
+        runAsUser: 1003620000
+        fsGroup: 1003620000
+      containerSecurityContext:
+        runAsUser: 1003620000
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: false
+        capabilities:
+          drop:
+            - ALL
+
+services:
+  frontend:
+    resources:
+      requests:
+        memory: 96Mi
+      limits:
+        memory: 96Mi
+    image:
+      tag: "test"
+    securityContext:
+      runAsUser: 1003620000
+      fsGroup: 1003620000
+
+  workflows:
+    worker:
+      image:
+        tag: "test"
+      securityContext:
+        runAsUser: 1003620000
+        fsGroup: 1003620000
+      profiles:
+        sparse-solver:
+          executionProfile: test-2912mi
+          # Leave 320Mi of the pod limit for Prefect and orchestration overhead.
+          daskWorkerMemory: 2592MiB
+          maxPeakMemoryBytes: 2717908992
+          resources:
+            requests:
+              cpu: 100m
+              memory: 2400Mi
+            limits:
+              cpu: "2"
+              memory: 2912Mi
+
+    deploy:
+      image:
+        tag: "test"
+      securityContext:
+        runAsUser: 1003620000
+        fsGroup: 1003620000
+
+  api:
+    resources:
+      requests:
+        memory: 320Mi
+      limits:
+        memory: 320Mi
+    image:
+      tag: "test"
+    route:
+      host: "conservation-tool-api-fa9440-test.apps.gold.devops.gov.bc.ca"
+    securityContext:
+      runAsUser: 1003620000
+      fsGroup: 1003620000
+
+  db:
+    resources:
+      requests:
+        memory: 320Mi
+      limits:
+        memory: 320Mi
+    image:
+      tag: "test"
+    securityContext:
+      runAsUser: 1003620000
+      fsGroup: 1003620000
+
+  dbSetup:
+    image:
+      tag: "test"
+
+backgroundServices:
+  podSecurityContext:
+    runAsUser: 1003620000
+    fsGroup: 1003620000
+  containerSecurityContext:
+    runAsUser: 1003620000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+env:
+  NODE_OPTIONS: "--max-old-space-size=192"
+  NODE_ENV: "test"
+  FRONTEND_API_HOST: "https://conservation-tool-api-fa9440-test.apps.gold.devops.gov.bc.ca"

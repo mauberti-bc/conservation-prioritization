@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "lib": ["es2020"],
+    "outDir": "dist",
+    "target": "es2018",
+    "sourceMap": true,
+    "allowJs": false,
+    "moduleResolution": "node",
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitThis": true,
+    "noImplicitAny": true,
+    "allowSyntheticDefaultImports": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noFallthroughCasesInSwitch": true,
+    "noErrorTruncation": true,
+    "strict": true,
+    "typeRoots": ["node_modules/@types", "src/types"]
+  },
+  "include": ["src"],
+  "ts-node": {
+    // Tests compile through TypeScript's CommonJS emit so Sinon can stub module
+    // exports; type checking is done by `yarn build` and `yarn lint`.
+    "transpileOnly": true
+  }
+}

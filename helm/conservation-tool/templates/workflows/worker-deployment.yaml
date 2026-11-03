@@ -1,0 +1,177 @@
+{{- $root := . -}}
+{{- range $profileName, $profile := .Values.services.workflows.worker.profiles }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "conservation-tool.fullname.prefect-worker" $root }}-{{ $profileName }}
+  namespace: {{ $root.Release.Namespace }}
+  labels:
+    {{- include "conservation-tool.labels" $root | nindent 4 }}
+    conservation-tool/workload-profile: {{ $profileName }}
+spec:
+  progressDeadlineSeconds: 1200
+  replicas: {{ $profile.replicas | default $root.Values.services.workflows.worker.replicas }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ include "conservation-tool.fullname.prefect-worker" $root }}-{{ $profileName }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "conservation-tool.fullname.prefect-worker" $root }}-{{ $profileName }}
+        conservation-tool/workload-profile: {{ $profileName }}
+      annotations:
+        conservation-tool/release-revision: {{ $root.Release.Revision | quote }}
+    spec:
+      terminationGracePeriodSeconds: 120
+      serviceAccountName: deployer
+      securityContext:
+        runAsNonRoot: true
+        {{- if $root.Values.services.workflows.worker.securityContext.runAsUser }}
+        runAsUser: {{ $root.Values.services.workflows.worker.securityContext.runAsUser | int64 }}
+        {{- end }}
+        {{- if $root.Values.services.workflows.worker.securityContext.fsGroup }}
+        fsGroup: {{ $root.Values.services.workflows.worker.securityContext.fsGroup | int64 }}
+        {{- end }}
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: prefect-worker
+          image: "{{ $root.Values.registry }}/{{ $root.Values.services.workflows.worker.image.stream }}:{{ $root.Values.services.workflows.worker.image.tag }}"
+          imagePullPolicy: {{ $root.Values.services.workflows.worker.image.pullPolicy | default "Always" }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          # Keep the container running while Prefect becomes available so Helm
+          # can run the post-install migration and registration hooks.
+          command:
+            - bash
+            - src/start_worker.sh
+          args:
+            - "{{ $profile.pool }}"
+          ports:
+            - containerPort: {{ $root.Values.ports.prefect_worker_api | default 4202 }}
+          env:
+            # Runner heartbeats let the server release slots after a worker OOM.
+            - name: PREFECT_RUNNER_HEARTBEAT_FREQUENCY
+              value: "60"
+            - name: HOME
+              value: "/home/app"
+            - name: PREFECT_HOME
+              value: {{ printf "%s/.prefect" ($profile.scratchRoot | default "/workflow-scratch") | quote }}
+            - name: TMPDIR
+              value: {{ $profile.scratchRoot | default "/workflow-scratch" | quote }}
+            # HOME is on the read-only root filesystem, so keep Matplotlib's cache on scratch.
+            - name: MPLCONFIGDIR
+              value: {{ printf "%s/.config/matplotlib" ($profile.scratchRoot | default "/workflow-scratch") | quote }}
+            - name: PREFECT_API_URL
+              value: "{{ $root.Values.env.PREFECT_API_URL }}"
+            - name: ZARR_STORE_PATH
+              value: "{{ $root.Values.env.ZARR_STORE_PATH }}"
+            - name: WORKFLOW_SCRATCH_ROOT
+              value: {{ $profile.scratchRoot | default "/workflow-scratch" | quote }}
+            - name: WORKFLOW_SCRATCH_LIMIT_BYTES
+              value: {{ $profile.maxScratchBytes | default 536870912 | quote }}
+            - name: CONSERVATION_API_URL
+              value: "{{ $root.Values.env.CONSERVATION_API_URL }}"
+            - name: INTERNAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-api
+                  key: INTERNAL_API_KEY
+            - name: OBJECT_STORE_URL
+              value: {{ $root.Values.env.OBJECT_STORE_PUBLIC_ENDPOINT | default $root.Values.env.OBJECT_STORE_URL | quote }}
+            - name: OBJECT_STORE_ENDPOINT
+              value: {{ $root.Values.env.OBJECT_STORE_PUBLIC_ENDPOINT | default $root.Values.env.OBJECT_STORE_ENDPOINT | quote }}
+            - name: OBJECT_STORE_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: OBJECT_STORE_ACCESS_KEY_ID
+            - name: OBJECT_STORE_SECRET_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: OBJECT_STORE_SECRET_KEY_ID
+            - name: OBJECT_STORE_BUCKET_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-object-storage
+                  key: OBJECT_STORE_BUCKET_NAME
+            - name: SOURCE_OBJECT_STORE_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-source-object-storage
+                  key: SOURCE_OBJECT_STORE_ENDPOINT
+            - name: SOURCE_OBJECT_STORE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-source-object-storage
+                  key: SOURCE_OBJECT_STORE_URL
+            - name: SOURCE_OBJECT_STORE_REGION
+              value: {{ $root.Values.env.SOURCE_OBJECT_STORE_REGION | default $root.Values.env.OBJECT_STORE_REGION | quote }}
+            - name: SOURCE_OBJECT_STORE_BUCKET_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-source-object-storage
+                  key: SOURCE_OBJECT_STORE_BUCKET_NAME
+            - name: SOURCE_BC_BOUNDARY_PATH
+              value: {{ $root.Values.env.SOURCE_BC_BOUNDARY_PATH | default "" | quote }}
+            - name: SOURCE_OBJECT_STORE_FORCE_PATH_STYLE
+              value: {{ $root.Values.env.SOURCE_OBJECT_STORE_FORCE_PATH_STYLE | default $root.Values.env.OBJECT_STORE_FORCE_PATH_STYLE | default "true" | quote }}
+            - name: SOURCE_OBJECT_STORE_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-source-object-storage
+                  key: SOURCE_OBJECT_STORE_ACCESS_KEY_ID
+            - name: SOURCE_OBJECT_STORE_SECRET_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: conservation-tool-source-object-storage
+                  key: SOURCE_OBJECT_STORE_SECRET_KEY_ID
+            - name: SPATIAL_DASK_WORKERS
+              value: {{ $profile.daskWorkers | default 1 | quote }}
+            - name: SPATIAL_DASK_WORKER_MEMORY
+              value: {{ $profile.daskWorkerMemory | default "1500MB" | quote }}
+            - name: SPATIAL_TILE_SIZE
+              value: {{ $profile.tileSize | default 1024 | quote }}
+            - name: SPATIAL_TILE_SUBMISSION_WAVE
+              value: {{ $profile.tileSubmissionWave | default 32 | quote }}
+            - name: SPARSE_EXECUTION_PROFILE
+              value: {{ $profile.executionProfile | default $profile.pool | quote }}
+            - name: SPARSE_PROFILE_MAX_PEAK_MEMORY_BYTES
+              value: {{ $profile.maxPeakMemoryBytes | default 25769803776 | quote }}
+            - name: SPARSE_PROFILE_MAX_SCRATCH_BYTES
+              value: {{ $profile.maxScratchBytes | default 68719476736 | quote }}
+            - name: PMTILES_METATILE_SIZE
+              value: {{ $profile.pmtilesMetatileSize | default 3 | quote }}
+            - name: PMTILES_PNG_COMPRESS_LEVEL
+              value: {{ $profile.pmtilesPngCompressLevel | default 3 | quote }}
+            - name: PMTILES_MAXIMUM_SOURCE_WINDOW
+              value: {{ $profile.pmtilesMaximumSourceWindow | default 2048 | quote }}
+            - name: PMTILES_MERGE_FAN_IN
+              value: {{ $profile.pmtilesMergeFanIn | default 64 | quote }}
+          resources:
+            {{- toYaml ($profile.resources | default $root.Values.services.workflows.worker.resources) | nindent 12 }}
+          volumeMounts:
+            - name: workflow-scratch
+              mountPath: {{ $profile.scratchMountPath | default "/workflow-scratch" | quote }}
+            # Writable paths, since the root filesystem is read-only.
+            - name: boundary-data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: workflow-scratch
+          persistentVolumeClaim:
+            claimName: {{ $root.Values.services.workflows.worker.persistence.existingClaim | default (include "conservation-tool.fullname.workflow-scratch" $root) }}
+        - name: boundary-data
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+{{- end }}

@@ -1,0 +1,76 @@
+import { debounce } from '@mui/material';
+import { TaskLayerOption } from 'features/home/task/create/form/layer/optimization-form.interface';
+import { useConservationApi } from 'hooks/useConservationApi';
+import { useCallback, useRef, useState } from 'react';
+
+export interface UseLayerSearchReturn {
+  layers: TaskLayerOption[];
+  loading: boolean;
+  error: string | null;
+  search: (term: string) => void;
+}
+
+interface UseLayerSearchProps {
+  debounceMs?: number;
+  allowEmptySearch?: boolean;
+}
+
+/**
+ * Custom hook for searching layers with debounced API requests.
+ * Handles loading state, errors, and caches results.
+ *
+ * @param {UseLayerSearchProps} options Options controlling the operation.
+ * @returns {UseLayerSearchReturn} Use layer search.
+ */
+export const useLayerSearch = ({
+  debounceMs = 300,
+  allowEmptySearch = false,
+}: UseLayerSearchProps = {}): UseLayerSearchReturn => {
+  const [layers, setLayers] = useState<TaskLayerOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const conservationApi = useConservationApi();
+
+  // Debounced API call
+  const debouncedSearch = useRef(
+    debounce(async (term: string) => {
+      const trimmed = term.trim();
+      if (!trimmed && !allowEmptySearch) {
+        setLayers([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await conservationApi.layer.findLayers(trimmed);
+        const mappedLayers: TaskLayerOption[] = response.layers.map((layer) => ({
+          path: layer.path,
+          name: layer.name,
+          description: layer.description,
+          group: layer.group,
+        }));
+        setLayers(mappedLayers);
+      } catch (err) {
+        console.error('Failed to fetch layers:', err);
+        setError('Failed to load layers. Please try again.');
+        setLayers([]);
+      } finally {
+        setLoading(false);
+      }
+    }, debounceMs)
+  ).current;
+
+  const search = useCallback(
+    (term: string) => {
+      debouncedSearch(term);
+    },
+    [debouncedSearch]
+  );
+
+  return { layers, loading, error, search };
+};

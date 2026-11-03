@@ -1,0 +1,479 @@
+import {
+  CompleteMultipartUploadCommandOutput,
+  DeleteObjectCommand,
+  DeleteObjectCommandOutput,
+  DeleteObjectsCommand,
+  DeleteObjectsCommandOutput,
+  GetObjectCommand,
+  GetObjectCommandOutput,
+  HeadObjectCommand,
+  HeadObjectCommandOutput,
+  ListObjectsCommand,
+  ListObjectsCommandOutput,
+  PutObjectCommand,
+  PutObjectCommandOutput,
+  S3Client
+} from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Readable } from 'stream';
+
+export interface IDatasetS3FileKey {
+  datasetUUID: string;
+  fileName: string;
+}
+
+export interface IArtifactS3FileKey {
+  submissionId: number;
+  submissionFeatureId: number;
+}
+
+export interface IQueueS3FileKey {
+  queueId: number;
+  datasetUUID: string;
+  fileName: string;
+}
+
+/**
+ * Local getter for retrieving the S3 client.
+ *
+ * @return {S3Client} The S3 client
+ */
+export const _getS3Client = (): S3Client => {
+  return new S3Client({
+    endpoint: _getObjectStoreEndpoint(),
+    credentials: {
+      accessKeyId: process.env.OBJECT_STORE_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.OBJECT_STORE_SECRET_KEY_ID!
+    },
+    forcePathStyle: _getObjectStoreForcePathStyle(),
+    region: _getObjectStoreRegion()
+  });
+};
+
+/**
+ * Local getter for retrieving the source S3 client used to read the Zarr layer library.
+ *
+ * @return {S3Client} The source S3 client
+ */
+export const _getSourceS3Client = (): S3Client => {
+  return new S3Client({
+    endpoint: _getSourceObjectStoreEndpoint(),
+    credentials: {
+      accessKeyId: process.env.SOURCE_OBJECT_STORE_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.SOURCE_OBJECT_STORE_SECRET_KEY_ID!
+    },
+    forcePathStyle: _getSourceObjectStoreForcePathStyle(),
+    region: _getSourceObjectStoreRegion()
+  });
+};
+
+/**
+ * Local getter for retrieving the S3 quarantine client.
+ *
+ * @return {S3Client} The S3 quarantine client
+ */
+export const _getQuarantineS3Client = (): S3Client => {
+  return new S3Client({
+    endpoint: _getObjectStoreEndpoint(),
+    credentials: {
+      accessKeyId: process.env.QUARANTINE_OBJECT_STORE_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.QUARANTINE_OBJECT_STORE_SECRET_KEY_ID!
+    },
+    forcePathStyle: _getObjectStoreForcePathStyle(),
+    region: _getObjectStoreRegion()
+  });
+};
+
+/**
+ * Local getter for retrieving the S3 object store endpoint.
+ *
+ * @returns {string} The object store endpoint
+ */
+export const _getObjectStoreEndpoint = (): string => {
+  const url = process.env.OBJECT_STORE_URL || 'https://nrs.objectstore.gov.bc.ca';
+
+  if (!['https://', 'http://'].some((protocol) => url.toLowerCase().startsWith(protocol))) {
+    return `https://${url}`;
+  }
+
+  return url;
+};
+
+/**
+ * Local getter for retrieving the source S3 object store endpoint used for Zarr reads.
+ *
+ * @returns {string} The source object store endpoint
+ * @throws {Error} SOURCE_OBJECT_STORE_URL or SOURCE_OBJECT_STORE_ENDPOINT is not configured.
+ */
+export const _getSourceObjectStoreEndpoint = (): string => {
+  const url = process.env.SOURCE_OBJECT_STORE_URL || process.env.SOURCE_OBJECT_STORE_ENDPOINT;
+
+  if (!url) {
+    throw new Error('SOURCE_OBJECT_STORE_URL or SOURCE_OBJECT_STORE_ENDPOINT is not configured.');
+  }
+
+  if (!['https://', 'http://'].some((protocol) => url.toLowerCase().startsWith(protocol))) {
+    return `https://${url}`;
+  }
+
+  return url;
+};
+
+/**
+ * Local getter for retrieving the object store region.
+ *
+ * @returns {string} The object store region
+ */
+export const _getObjectStoreRegion = (): string => {
+  return process.env.OBJECT_STORE_REGION || 'ca-central-1';
+};
+
+/**
+ * Local getter for retrieving the source object store region.
+ *
+ * @returns {string} The source object store region
+ */
+export const _getSourceObjectStoreRegion = (): string => {
+  return process.env.SOURCE_OBJECT_STORE_REGION || process.env.OBJECT_STORE_REGION || 'ca-central-1';
+};
+
+/**
+ * Local getter for retrieving the object store force path style flag.
+ *
+ * @returns {boolean} Whether to force path style
+ */
+export const _getObjectStoreForcePathStyle = (): boolean => {
+  return String(process.env.OBJECT_STORE_FORCE_PATH_STYLE || '').toLowerCase() === 'true';
+};
+
+/**
+ * Local getter for retrieving the source object store force path style flag.
+ *
+ * @returns {boolean} Whether to force path style
+ */
+export const _getSourceObjectStoreForcePathStyle = (): boolean => {
+  const value = process.env.SOURCE_OBJECT_STORE_FORCE_PATH_STYLE ?? process.env.OBJECT_STORE_FORCE_PATH_STYLE;
+
+  return String(value || '').toLowerCase() === 'true';
+};
+
+/**
+ * Local getter for retrieving the S3 object store bucket name.
+ *
+ * @returns {string} The object store bucket name
+ */
+export const _getObjectStoreBucketName = (): string => {
+  return process.env.OBJECT_STORE_BUCKET_NAME || '';
+};
+
+/**
+ * Local getter for retrieving the source S3 object store bucket name used for Zarr reads.
+ *
+ * @returns {string} The source object store bucket name
+ * @throws {Error} SOURCE_OBJECT_STORE_BUCKET_NAME is not configured.
+ */
+export const _getSourceObjectStoreBucketName = (): string => {
+  const bucket = process.env.SOURCE_OBJECT_STORE_BUCKET_NAME;
+
+  if (!bucket) {
+    throw new Error('SOURCE_OBJECT_STORE_BUCKET_NAME is not configured.');
+  }
+
+  return bucket;
+};
+
+/**
+ * Local getter for retrieving the S3 quarantine object store bucket name.
+ *
+ * @returns {string} The quarantine object store bucket name
+ */
+export const _getQuarantineObjectStoreBucketName = (): string => {
+  return process.env.QUARANTINE_OBJECT_STORE_BUCKET_NAME || '';
+};
+
+/**
+ * Returns the S3 host URL. It optionally takes an S3 key as a parameter, which produces
+ * a full URL to the given file in S3.
+ *
+ * @param {string} [key] The key to an object in S3
+ * @returns {string} The s3 host URL
+ * @export
+ */
+export const getS3HostUrl = (key?: string): string => {
+  // Appends the given S3 object key, trimming between 0 and 2 trailing '/' characters
+  return `${_getObjectStoreEndpoint()}/${_getObjectStoreBucketName()}/${key || ''}`.replace(/\/{0,2}$/, '');
+};
+
+/**
+ * Delete a file from S3, based on its key.
+ *
+ * For potential future reference, for deleting the delete marker of a file in S3:
+ * https://docs.aws.amazon.com/AmazonS3/latest/userguide/RemDelMarker.html
+ *
+ * @param {string} key the unique key assigned to the file in S3 when it was originally uploaded
+ * @returns {Promise<DeleteObjectCommandOutput>} the response from S3 or null if required parameters are null
+ * @export
+ */
+export async function deleteFileFromS3(key: string): Promise<DeleteObjectCommandOutput | null> {
+  const s3Client = _getS3Client();
+  if (!key || !s3Client) {
+    return null;
+  }
+
+  return s3Client.send(
+    new DeleteObjectCommand({
+      Bucket: _getObjectStoreBucketName(),
+      Key: key
+    })
+  );
+}
+
+/**
+ * Bulk delete files from S3 from a list of keys.
+ *
+ * For potential future reference:
+ *
+ * @param {string} keys - List of S3 keys to delete
+ * @returns {Promise<DeleteObjectCommandOutput>} the response from S3 or null if required parameters are null
+ * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/s3/command/DeleteObjectsCommand/
+ * @export
+ */
+export async function bulkDeleteFilesFromS3(keys: string[]): Promise<DeleteObjectsCommandOutput | null> {
+  const s3Client = _getS3Client();
+
+  if (!keys.length || !s3Client) {
+    return null;
+  }
+
+  return s3Client.send(
+    new DeleteObjectsCommand({
+      Bucket: _getObjectStoreBucketName(),
+      Delete: {
+        Objects: keys.map((key) => ({ Key: key }))
+      }
+    })
+  );
+}
+
+/**
+ * Upload a buffer to S3.
+ *
+ * @param {Buffer} buffer the buffer to upload
+ * @param {string} mimetype the mimetype of the buffer
+ * @param {string} key the path where S3 will store the file
+ * @param {Record<string, string>} [metadata={}] A metadata object to store additional information with the file
+ * @returns {Promise<PutObjectCommandOutput>} the response from S3
+ * @export
+ */
+export async function uploadBufferToS3(
+  buffer: Buffer,
+  mimetype: string,
+  key: string,
+  metadata: Record<string, string> = {}
+): Promise<PutObjectCommandOutput> {
+  const s3Client = _getS3Client();
+
+  return s3Client.send(
+    new PutObjectCommand({
+      Bucket: _getObjectStoreBucketName(),
+      Body: buffer,
+      ContentType: mimetype,
+      Key: key,
+      Metadata: metadata
+    })
+  );
+}
+
+/**
+ * Upload a stream to S3.
+ *
+ * @param {string} mimetype the mimetype of the stream data
+ * @param {string} key the path where S3 will store the file
+ * @param {Record<string, string>} [metadata={}] A metadata object to store additional information with the file
+ * @param {Readable} stream Readable stream containing the upload data.
+ * @return {Promise<CompleteMultipartUploadCommandOutput>} the response from S3
+ * @export
+ */
+export async function uploadStreamToS3(
+  stream: Readable,
+  mimetype: string,
+  key: string,
+  metadata: Record<string, string> = {}
+): Promise<CompleteMultipartUploadCommandOutput> {
+  const streamUpload = new Upload({
+    client: _getS3Client(),
+    params: {
+      Bucket: _getObjectStoreBucketName(),
+      Key: key,
+      Body: stream,
+      ContentType: mimetype,
+      Metadata: metadata
+    }
+  });
+
+  return streamUpload.done();
+}
+
+/**
+ * Fetch a file from S3.
+ *
+ * @param {string} key the S3 key of the file to fetch
+ * @param {string} [versionId] the S3 version id  of the file to fetch (optional)
+ * @returns {Promise<GetObjectCommandOutput>} The get object command output record.
+ * @export
+ */
+export async function getFileFromS3(key: string, versionId?: string): Promise<GetObjectCommandOutput> {
+  const s3Client = _getS3Client();
+
+  return s3Client.send(
+    new GetObjectCommand({
+      Bucket: _getObjectStoreBucketName(),
+      Key: key,
+      VersionId: versionId
+    })
+  );
+}
+
+/**
+ * Fetch a file from the source S3 store used for Zarr reads.
+ *
+ * @param {string} key the S3 key of the source file to fetch
+ * @param {string} [versionId] the S3 version id of the source file to fetch (optional)
+ * @returns {Promise<GetObjectCommandOutput>} The get object command output record.
+ * @export
+ */
+export async function getFileFromSourceS3(key: string, versionId?: string): Promise<GetObjectCommandOutput> {
+  const s3Client = _getSourceS3Client();
+
+  return s3Client.send(
+    new GetObjectCommand({
+      Bucket: _getSourceObjectStoreBucketName(),
+      Key: key,
+      VersionId: versionId
+    })
+  );
+}
+
+/**
+ * Fetches a list of files in S3 at the given path
+ *
+ * @param {string} path the path (Prefix) of the directory in S3
+ * @return {Promise<ListObjectsCommandOutput>} All objects at the given path, also including
+ * the directory itself.
+ * @export
+ */
+export const listFilesFromS3 = async (path: string): Promise<ListObjectsCommandOutput> => {
+  const s3Client = _getS3Client();
+
+  return s3Client.send(
+    new ListObjectsCommand({
+      Bucket: _getObjectStoreBucketName(),
+      Prefix: path
+    })
+  );
+};
+
+/**
+ * Retrieves all metadata for the given S3 object, including custom HTTP headers.
+ *
+ * @param {string} key the key of the object
+ * @returns {Promise<HeadObjectCommandOutput>} Object metadata and HTTP headers returned by S3.
+ * @export
+ */
+export async function getObjectMeta(key: string): Promise<HeadObjectCommandOutput> {
+  const s3Client = _getS3Client();
+
+  return s3Client.send(new HeadObjectCommand({ Bucket: _getObjectStoreBucketName(), Key: key }));
+}
+
+/**
+ * Get an s3 signed url.
+ *
+ * @param {string} key S3 object key
+ * @return {(Promise<string | null>)} the response from S3 or null if required parameters are null
+ */
+export async function getS3SignedURL(key: string): Promise<string | null> {
+  const s3Client = _getS3Client();
+
+  if (!key || !s3Client) {
+    return null;
+  }
+
+  return getSignedUrl(
+    s3Client,
+    new GetObjectCommand({
+      Bucket: _getObjectStoreBucketName(),
+      Key: key
+    }),
+    {
+      expiresIn: 300000 // 5 minutes
+    }
+  );
+}
+
+/**
+ * Get an array of s3 signed urls.
+ *
+ * @param {string[]} keys Object-store keys to process.
+ * @returns {Promise<(string | null)[]>} Matching (string) records, or null when no record matches.
+ * @export
+ */
+export async function getS3SignedURLs(keys: string[]): Promise<(string | null)[]> {
+  return Promise.all(keys.map((key) => getS3SignedURL(key)));
+}
+
+/**
+ * Generate an S3 key for a dataset artifact file.
+ *
+ * @param {IArtifactS3FileKey} options Options controlling the operation.
+ * @returns Generate submission feature s3 file key.
+ * @example
+ * submissions/<submission_id>/features/<submission_feature_id>
+ * @export
+ */
+export function generateSubmissionFeatureS3FileKey(options: IArtifactS3FileKey) {
+  return ['submissions', options.submissionId, 'features', options.submissionFeatureId].filter(Boolean).join('/');
+}
+
+/**
+ * Generate an S3 key for a submission job queue file.
+ *
+ * @param {IQueueS3FileKey} options Options controlling the operation.
+ * @returns Generate queue s3 file key.
+ * @example
+ * queue/<queue_id>/datasets/<dataset_uuid>/dwca/<file_name>
+ * @export
+ */
+export function generateQueueS3FileKey(options: IQueueS3FileKey) {
+  const keyParts: (string | number)[] = [];
+
+  keyParts.push('queue');
+  keyParts.push(options.queueId);
+  keyParts.push('datasets');
+  keyParts.push(options.datasetUUID);
+  keyParts.push('dwca');
+  keyParts.push(options.fileName);
+
+  return keyParts.filter(Boolean).join('/');
+}
+
+/**
+ * Generate an S3 key for a dataset DwCA file.
+ *
+ * @param {IDatasetS3FileKey} options Options controlling the operation.
+ * @returns Generate dataset s3 file key.
+ * @example
+ * datasets/<dataset_uuid>/dwca/<file_name>
+ * @export
+ */
+export function generateDatasetS3FileKey(options: IDatasetS3FileKey) {
+  const keyParts: (string | number)[] = [];
+
+  keyParts.push('datasets');
+  keyParts.push(options.datasetUUID);
+  keyParts.push('dwca');
+  keyParts.push(options.fileName);
+
+  return keyParts.filter(Boolean).join('/');
+}

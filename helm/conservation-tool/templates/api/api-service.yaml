@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "conservation-tool.fullname.api" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.services.api.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.services.api.service.port }}
+      targetPort: {{ .Values.services.api.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ include "conservation-tool.fullname.api" . }}

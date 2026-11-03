@@ -1,0 +1,282 @@
+import { SQL } from 'sql-template-strings';
+import { ApiExecuteSQLError } from '../errors/api-error';
+import { CreateProject, DeleteProject, Project, UpdateProject } from '../models/project';
+import { TaskProjectSummary } from '../models/project-task';
+import { BaseRepository } from './base-repository';
+
+/**
+ * Repository for project table CRUD operations.
+ *
+ * @export
+ * @class ProjectRepository
+ * @extends {BaseRepository}
+ */
+export class ProjectRepository extends BaseRepository {
+  /**
+   * Creates a new project record.
+   *
+   * @param {CreateProject} project
+   *   The project data to insert.
+   * @return {Promise<Project>}
+   *   The newly created project.
+   * @throws {ApiExecuteSQLError} Failed to create project.
+   * @memberof ProjectRepository
+   */
+  async createProject(project: CreateProject): Promise<Project> {
+    const sqlStatement = SQL`
+      INSERT INTO project (
+        name,
+        description,
+        colour
+      ) VALUES (
+        ${project.name},
+        ${project.description ?? null},
+        ${project.colour ?? null}
+      )
+      RETURNING project_id, name, description, colour
+    `;
+
+    const response = await this.connection.sql(sqlStatement, Project);
+
+    if (response.rowCount !== 1) {
+      throw new ApiExecuteSQLError('Failed to create project', [
+        'ProjectRepository->createProject',
+        'Expected rowCount = 1'
+      ]);
+    }
+
+    return response.rows[0];
+  }
+
+  /**
+   * Fetches a single active project by its project ID.
+   *
+   * @param {string} projectId
+   *   The UUID of the project.
+   * @return {Promise<Project>}
+   *   The matching project.
+   * @throws {ApiExecuteSQLError} Failed to get project by id.
+   * @memberof ProjectRepository
+   */
+  async getProjectById(projectId: string): Promise<Project> {
+    const sqlStatement = SQL`
+      SELECT
+        project_id, name, description, colour
+      FROM
+        project
+      WHERE
+        project_id = ${projectId}
+      AND
+        record_end_date IS NULL
+    `;
+
+    const response = await this.connection.sql(sqlStatement, Project);
+
+    if (response.rowCount !== 1) {
+      throw new ApiExecuteSQLError('Failed to get project by id', [
+        'ProjectRepository->getProjectById',
+        'Expected rowCount = 1'
+      ]);
+    }
+
+    return response.rows[0];
+  }
+
+  /**
+   * Fetches all active projects.
+   *
+   * @return {Promise<Project[]>}
+   *   A list of active projects.
+   * @memberof ProjectRepository
+   */
+  async getProjects(): Promise<Project[]> {
+    const sqlStatement = SQL`
+      SELECT
+        project.project_id,
+        project.name,
+        project.description,
+        project.colour,
+        COALESCE(task_counts.task_count, 0) AS task_count
+      FROM
+        project
+      LEFT JOIN (
+        SELECT project_id, COUNT(*)::int AS task_count
+        FROM project_task
+        GROUP BY project_id
+      ) AS task_counts ON task_counts.project_id = project.project_id
+      WHERE
+        record_end_date IS NULL
+      ORDER BY
+        name
+    `;
+
+    const response = await this.connection.sql(sqlStatement, Project);
+
+    return response.rows;
+  }
+
+  /**
+   * Fetches projects available to a profile GUID via project permissions.
+   *
+   * @param {string} profileGuid External identity provider GUID for the profile.
+   * @returns {Promise<Project[]>} Matching project records.
+   * @memberof ProjectRepository
+   */
+  async getProjectsByProfileGuid(profileGuid: string): Promise<Project[]> {
+    const sqlStatement = SQL`
+      SELECT
+        pr.project_id,
+        pr.name,
+        pr.description,
+        pr.colour,
+        COALESCE(task_counts.task_count, 0) AS task_count
+      FROM project pr
+      JOIN project_profile pp ON pp.project_id = pr.project_id
+      JOIN profile p ON p.profile_id = pp.profile_id
+      JOIN project_permission pperm ON pperm.project_id = pr.project_id AND pperm.profile_id = pp.profile_id
+      JOIN role r ON r.role_id = pperm.role_id
+      LEFT JOIN (
+        SELECT project_id, COUNT(*)::int AS task_count
+        FROM project_task
+        GROUP BY project_id
+      ) AS task_counts ON task_counts.project_id = pr.project_id
+      WHERE p.profile_guid = ${profileGuid}
+      AND p.record_end_date IS NULL
+      AND pp.record_end_date IS NULL
+      AND pperm.record_end_date IS NULL
+      AND r.record_end_date IS NULL
+      AND pr.record_end_date IS NULL
+      ORDER BY pr.name
+    `;
+
+    const response = await this.connection.sql(sqlStatement, Project);
+
+    return response.rows;
+  }
+
+  /**
+   * Updates an existing active project.
+   *
+   * Only supplied fields will be updated; all others remain unchanged.
+   * Audit fields are managed by database triggers.
+   *
+   * @param {string} projectId
+   *   The UUID of the project to update.
+   * @param {UpdateProject} updates
+   *   The project fields to update.
+   * @return {Promise<Project>}
+   *   The updated project.
+   * @throws {ApiExecuteSQLError} No project updates provided.
+   * @throws {ApiExecuteSQLError} Failed to update project.
+   * @memberof ProjectRepository
+   */
+  async updateProject(projectId: string, updates: UpdateProject): Promise<Project> {
+    const sqlStatement = SQL`UPDATE project SET `;
+    const updateFragments = [];
+
+    if (updates.name !== undefined) {
+      updateFragments.push(SQL`name = ${updates.name}`);
+    }
+
+    if (updates.description !== undefined) {
+      updateFragments.push(SQL`description = ${updates.description}`);
+    }
+
+    if (updates.colour !== undefined) {
+      updateFragments.push(SQL`colour = ${updates.colour}`);
+    }
+
+    if (!updateFragments.length) {
+      throw new ApiExecuteSQLError('No project updates provided', [
+        'ProjectRepository->updateProject',
+        'Expected at least one update field'
+      ]);
+    }
+
+    updateFragments.forEach((fragment, index) => {
+      if (index > 0) {
+        sqlStatement.append(SQL`, `);
+      }
+      sqlStatement.append(fragment);
+    });
+
+    sqlStatement.append(SQL`
+      WHERE
+        project_id = ${projectId}
+      AND
+        record_end_date IS NULL
+      RETURNING project_id, name, description, colour
+    `);
+
+    const response = await this.connection.sql(sqlStatement, Project);
+
+    if (response.rowCount !== 1) {
+      throw new ApiExecuteSQLError('Failed to update project', [
+        'ProjectRepository->updateProject',
+        'Expected rowCount = 1'
+      ]);
+    }
+
+    return response.rows[0];
+  }
+
+  /**
+   * Soft deletes an active project by setting its record end date.
+   *
+   * @param {DeleteProject} data
+   *   The project identifier.
+   * @returns {Promise<void>} Resolves when the operation completes.
+   * @throws {ApiExecuteSQLError} Failed to delete project.
+   * @memberof ProjectRepository
+   */
+  async deleteProject(data: DeleteProject): Promise<void> {
+    const sqlStatement = SQL`
+      UPDATE project
+      SET
+        record_end_date = now()
+      WHERE
+        project_id = ${data.project_id}
+      AND
+        record_end_date IS NULL
+    `;
+
+    const response = await this.connection.sql(sqlStatement);
+
+    if (response.rowCount !== 1) {
+      throw new ApiExecuteSQLError('Failed to delete project', [
+        'ProjectRepository->deleteProject',
+        'Expected rowCount = 1'
+      ]);
+    }
+  }
+
+  /**
+   * Fetch projects associated with the provided task IDs.
+   *
+   * @param {string[]} taskIds Identifiers of the tasks to process.
+   * @returns {Promise<TaskProjectSummary[]>} Matching task project summary records.
+   * @memberof ProjectRepository
+   */
+  async getProjectsByTaskIds(taskIds: string[]): Promise<TaskProjectSummary[]> {
+    if (!taskIds.length) {
+      return [];
+    }
+
+    const sqlStatement = SQL`
+      SELECT
+        pt.task_id,
+        p.project_id,
+        p.name,
+        p.description,
+        p.colour
+      FROM project_task pt
+      JOIN project p ON p.project_id = pt.project_id
+      WHERE pt.task_id = ANY(${taskIds}::uuid[])
+      AND p.record_end_date IS NULL
+    `;
+
+    const response = await this.connection.sql(sqlStatement, TaskProjectSummary);
+
+    return response.rows;
+  }
+}

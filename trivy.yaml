@@ -1,0 +1,21 @@
+# Repository-wide Trivy settings, shared by local scans (run from the repo root)
+# and the "Trivy Security Scan" GitHub workflow.
+
+scan:
+  # Never scan installed packages or the local Python virtualenv; the lockfiles
+  # are scanned instead.
+  #
+  # Do not skip helm/conservation-tool/charts: run `helm dependency build
+  # helm/conservation-tool` before scanning. Without its dependency charts the
+  # Helm chart cannot be rendered, and Trivy then silently reports nothing for it.
+  skip-dirs:
+    - "**/node_modules"
+    - "workflows/.venv"
+
+rego:
+  # Custom data for built-in checks, such as the trusted image registry list.
+  data:
+    - ".trivy/data"
+
+# Reviewed exceptions. Each entry records why it is safe to ignore.
+ignorefile: ".trivyignore.yaml"

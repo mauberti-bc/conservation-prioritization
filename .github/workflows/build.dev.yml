@@ -1,0 +1,149 @@
+name: Build and Push Images to OpenShift Registry
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Serialize complete releases so concurrent pushes cannot interleave dev tags.
+concurrency:
+  group: build-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  OPENSHIFT_SERVER: https://api.gold.devops.gov.bc.ca:6443
+  IMAGE_REPOSITORY: conservation-tool
+  IMAGE_REGISTRY: image-registry.apps.gold.devops.gov.bc.ca
+
+jobs:
+  build-push:
+    runs-on: ubuntu-24.04
+    environment: dev
+    env:
+      TOOLS_NAMESPACE: ${{ secrets.TOOLS_NAMESPACE }}
+      TOOLS_SA_TOKEN: ${{ secrets.TOOLS_SA_TOKEN }}
+      GIT_SHA: ${{ github.sha }}
+      NODE_ENV: ${{ vars.NODE_ENV }}
+      NODE_OPTIONS: ${{ vars.NODE_OPTIONS }}
+      PREFECT_API_URL: ${{ vars.PREFECT_API_URL }}
+      ZARR_STORE_PATH: ${{ vars.ZARR_STORE_PATH }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate deployment safeguards
+        run: python3 -m unittest discover -s helm/scripts/tests
+
+      - name: Install OpenShift CLI
+        uses: ./.github/actions/install-oc
+
+      - name: Log in to OpenShift
+        run: |
+          for i in 1 2 3; do
+            echo "Attempt $i: Logging into OpenShift..."
+            if oc login --token="$TOOLS_SA_TOKEN" --server="$OPENSHIFT_SERVER"; then
+              echo "Login succeeded"
+              break
+            elif [ "$i" -lt 3 ]; then
+              echo "Login failed. Retrying in 15 seconds..."
+              sleep 15
+            else
+              echo "Login failed after 3 attempts."
+              exit 1
+            fi
+          done
+          oc project "$TOOLS_NAMESPACE"
+
+      - name: Log in to OpenShift internal registry
+        run: |
+          oc whoami -t | docker login "$IMAGE_REGISTRY" -u unused --password-stdin
+
+      - name: Build and push frontend image
+        working-directory: frontend
+        run: |
+          required_vars=(NODE_ENV NODE_OPTIONS PREFECT_API_URL ZARR_STORE_PATH)
+          for var in "${required_vars[@]}"; do
+            if [ -z "${!var}" ]; then
+              echo "Error: Environment variable $var is not set."
+              exit 1
+            fi
+          done
+
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/frontend"
+
+          docker build \
+            --build-arg VITE_NODE_ENV="${NODE_ENV}" \
+            --build-arg VITE_NODE_OPTIONS="${NODE_OPTIONS}" \
+            --build-arg VITE_PREFECT_API_URL="${PREFECT_API_URL}" \
+            --build-arg VITE_ZARR_STORE_PATH="${ZARR_STORE_PATH}" \
+            -t "${BASE_IMAGE}:${GIT_SHA}" \
+            -f ./Dockerfile .
+
+          docker push "${BASE_IMAGE}:${GIT_SHA}"
+
+      - name: Build and push API image
+        working-directory: api
+        run: |
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/api"
+
+          docker build \
+            -t "${BASE_IMAGE}:${GIT_SHA}" \
+            -f ./Dockerfile .
+
+          docker push "${BASE_IMAGE}:${GIT_SHA}"
+
+      - name: Build and push Database image
+        working-directory: database
+        run: |
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/database"
+
+          docker build \
+            -t "${BASE_IMAGE}:${GIT_SHA}" \
+            -f ./Dockerfile .
+
+          docker push "${BASE_IMAGE}:${GIT_SHA}"
+
+      - name: Build and push db-setup image
+        working-directory: database
+        run: |
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/db-setup"
+
+          docker build \
+            -t "${BASE_IMAGE}:${GIT_SHA}" \
+            -f .docker/db/Dockerfile.setup .
+
+          docker push "${BASE_IMAGE}:${GIT_SHA}"
+
+      - name: Build and push Prefect worker image
+        working-directory: workflows
+        run: |
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-worker"
+
+          docker build \
+            -t "${BASE_IMAGE}:${GIT_SHA}" \
+            -f ./Dockerfile.worker .
+
+          docker push "${BASE_IMAGE}:${GIT_SHA}"
+
+      - name: Build and push Prefect deploy image
+        working-directory: workflows
+        run: |
+          BASE_IMAGE="${IMAGE_REGISTRY}/${TOOLS_NAMESPACE}/prefect-deploy"
+
+          docker build \
+            -t "${BASE_IMAGE}:${GIT_SHA}" \
+            -f ./Dockerfile.deploy .
+
+          docker push "${BASE_IMAGE}:${GIT_SHA}"
+
+  deploy:
+    needs: [build-push]
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    with:
+      environment: dev
+      image_tag: ${{ github.sha }}

@@ -1,0 +1,308 @@
+services:
+  frontend:
+    image: ${DOCKER_PROJECT_NAME}-frontend-${DOCKER_NAMESPACE}-img
+    container_name: ${DOCKER_PROJECT_NAME}-frontend-${DOCKER_NAMESPACE}-container
+    build:
+      context: ./frontend/
+      dockerfile: ./.docker/Dockerfile
+    stdin_open: true
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      NODE_OPTIONS: ${NODE_OPTIONS}
+      VITE_PORT: ${FRONTEND_PORT}
+      VITE_PREFECT_API_URL: ${PREFECT_API_URL}
+      VITE_ZARR_STORE_PATH: ${ZARR_STORE_PATH}
+      VITE_APP_API_HOST: ${APP_HOST}
+      VITE_BASEMAP_URL:
+      VITE_BASEMAP_ATTRIBUTION:
+      VITE_SATELLITE_BASEMAP_URL:
+      VITE_SATELLITE_BASEMAP_ATTRIBUTION:
+      VITE_APP_API_PORT: ${API_PORT}
+      VITE_APP_SITEMINDER_LOGOUT_URL: ${SITEMINDER_LOGOUT_URL}
+      VITE_APP_KEYCLOAK_HOST: ${KEYCLOAK_HOST}
+      VITE_APP_KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      VITE_APP_KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+    volumes:
+      - ./frontend:/opt/app-root/src
+      - /opt/app-root/src/node_modules
+      - ./workflows/data:/opt/app-root/src/public/data
+    networks:
+      - conservation-network
+
+  prefect_server:
+    build:
+      context: ./workflows
+      dockerfile: ./.docker/Dockerfile.server
+    image: ${DOCKER_PROJECT_NAME}-prefect-server-${DOCKER_NAMESPACE}-img
+    container_name: ${DOCKER_PROJECT_NAME}-prefect-server-${DOCKER_NAMESPACE}-container
+    stdin_open: true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0) if urllib.request.urlopen('http://localhost:4200/api/health').status == 200 else sys.exit(1)"]
+      interval: 15s
+      timeout: 15s
+      retries: 10
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "4200:4200"
+      - "8080:8080"
+    environment:
+      PREFECT_SERVER_API_HOST: 0.0.0.0
+      PREFECT_UI_API_URL: http://localhost:4200/api
+      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://${DB_USER_PREFECT}:${DB_USER_PREFECT_PASS}@db:5432/${DB_DATABASE}
+    networks:
+      - conservation-network
+
+  prefect_worker: &prefect_worker_common
+    build:
+      context: ./workflows
+      dockerfile: Dockerfile.worker
+    stdin_open: true
+    image: ${DOCKER_PROJECT_NAME}-prefect-worker-${DOCKER_NAMESPACE}-img
+    container_name: ${DOCKER_PROJECT_NAME}-prefect-worker-${DOCKER_NAMESPACE}-container
+    entrypoint: ["bash", "-c", "mkdir -p \"$$PREFECT_HOME\" \"$$TMPDIR\" && exec \"$$@\"", "--"]
+    command: ["prefect", "worker", "start", "-p", "sparse-solver"]
+    mem_limit: ${SPARSE_SOLVER_MEMORY_LIMIT:-9g}
+    volumes:
+      - zarr_data:/data
+    depends_on:
+      prefect_deploy:
+        condition: service_completed_successfully
+    ports:
+    - "8787:8787"  # Expose the 
+    environment:
+      PREFECT_API_URL: http://prefect_server:4200/api
+      ZARR_STORE_PATH: ${ZARR_STORE_PATH}
+      CONSERVATION_API_URL: http://api:5200/api
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      OBJECT_STORE_URL: ${OBJECT_STORE_URL}
+      OBJECT_STORE_ENDPOINT: ${OBJECT_STORE_ENDPOINT}
+      OBJECT_STORE_REGION: ${OBJECT_STORE_REGION}
+      OBJECT_STORE_FORCE_PATH_STYLE: ${OBJECT_STORE_FORCE_PATH_STYLE}
+      OBJECT_STORE_ACCESS_KEY_ID: ${OBJECT_STORE_ACCESS_KEY_ID}
+      OBJECT_STORE_SECRET_KEY_ID: ${OBJECT_STORE_SECRET_KEY_ID}
+      OBJECT_STORE_BUCKET_NAME: ${OBJECT_STORE_BUCKET_NAME}
+      SOURCE_OBJECT_STORE_ENDPOINT: ${SOURCE_OBJECT_STORE_ENDPOINT}
+      SOURCE_OBJECT_STORE_URL: ${SOURCE_OBJECT_STORE_URL}
+      SOURCE_OBJECT_STORE_REGION: ${SOURCE_OBJECT_STORE_REGION}
+      SOURCE_OBJECT_STORE_FORCE_PATH_STYLE: ${SOURCE_OBJECT_STORE_FORCE_PATH_STYLE}
+      SOURCE_OBJECT_STORE_ACCESS_KEY_ID: ${SOURCE_OBJECT_STORE_ACCESS_KEY_ID}
+      SOURCE_OBJECT_STORE_SECRET_KEY_ID: ${SOURCE_OBJECT_STORE_SECRET_KEY_ID}
+      SOURCE_OBJECT_STORE_BUCKET_NAME: ${SOURCE_OBJECT_STORE_BUCKET_NAME}
+      SOURCE_BC_BOUNDARY_PATH: ${SOURCE_BC_BOUNDARY_PATH}
+      WORKFLOW_SCRATCH_ROOT: ${WORKFLOW_SCRATCH_ROOT:-/data/workflow-scratch}
+      PREFECT_HOME: ${WORKFLOW_SCRATCH_ROOT:-/data/workflow-scratch}/.prefect
+      TMPDIR: ${WORKFLOW_SCRATCH_ROOT:-/data/workflow-scratch}
+      WORKFLOW_SCRATCH_LIMIT_BYTES: ${WORKFLOW_SCRATCH_LIMIT_BYTES:-536870912}
+      SPATIAL_DASK_WORKERS: ${SPATIAL_DASK_WORKERS:-1}
+      SPATIAL_DASK_WORKER_MEMORY: ${SPATIAL_DASK_WORKER_MEMORY:-9GB}
+      SPATIAL_TILE_SIZE: ${SPATIAL_TILE_SIZE:-1024}
+      SPATIAL_TILE_SUBMISSION_WAVE: ${SPATIAL_TILE_SUBMISSION_WAVE:-32}
+      SPARSE_EXECUTION_PROFILE: ${SPARSE_EXECUTION_PROFILE:-local-9g}
+      SPARSE_PROFILE_MAX_PEAK_MEMORY_BYTES: ${SPARSE_PROFILE_MAX_PEAK_MEMORY_BYTES:-8589934592}
+      SPARSE_PROFILE_MAX_SCRATCH_BYTES: ${SPARSE_PROFILE_MAX_SCRATCH_BYTES:-536870912}
+      PMTILES_METATILE_SIZE: ${PMTILES_METATILE_SIZE:-3}
+      PMTILES_PNG_COMPRESS_LEVEL: ${PMTILES_PNG_COMPRESS_LEVEL:-3}
+      PMTILES_MAXIMUM_SOURCE_WINDOW: ${PMTILES_MAXIMUM_SOURCE_WINDOW:-2048}
+      PMTILES_MERGE_FAN_IN: ${PMTILES_MERGE_FAN_IN:-64}
+    networks:
+      - conservation-network
+
+  prefect_deploy:
+    build:
+      context: ./workflows
+      dockerfile: Dockerfile.deploy
+    image: ${DOCKER_PROJECT_NAME}-prefect-deploy-${DOCKER_NAMESPACE}-img
+    container_name: ${DOCKER_PROJECT_NAME}-prefect-deploy-${DOCKER_NAMESPACE}-container
+    depends_on:
+      prefect_server:
+        condition: service_healthy
+    command: ["bash", "src/setup.sh"]
+    environment:
+      PREFECT_API_URL: http://prefect_server:4200/api
+      ZARR_STORE_PATH: ${ZARR_STORE_PATH}
+    networks:
+      - conservation-network
+
+  db:
+    image: ${DOCKER_PROJECT_NAME}-db-${DOCKER_NAMESPACE}-img
+    container_name: ${DOCKER_PROJECT_NAME}-db-${DOCKER_NAMESPACE}-container
+    build:
+      context: ./database/.docker/db
+      dockerfile: Dockerfile
+      args:
+        POSTGRES_VERSION: ${POSTGRES_VERSION}
+        POSTGIS_VERSION: ${POSTGIS_VERSION}
+        TZ: ${DB_TZ}
+    ports:
+      - "${DB_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $DB_ADMIN -p 5432 -d $DB_DATABASE"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      POSTGRES_USER: ${DB_ADMIN}
+      POSTGRES_PASSWORD: ${DB_ADMIN_PASS}
+      POSTGRES_DB: ${DB_DATABASE}
+      PORT: 5432
+      PGDATA: ${PGDATA}/${POSTGRES_VERSION}
+    volumes:
+      - postgres:${PGDATA}
+    networks:
+      - conservation-network
+
+  db_setup:
+    image: ${DOCKER_PROJECT_NAME}-db-setup-${DOCKER_NAMESPACE}-img
+    container_name: ${DOCKER_PROJECT_NAME}-db-setup-${DOCKER_NAMESPACE}-container
+    build:
+      context: ./database
+      dockerfile: ./.docker/db/Dockerfile.setup
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      RESET_DEMO_DATA: ${RESET_DEMO_DATA:-false}
+      DB_HOST: ${DB_HOST}
+      DB_ADMIN: ${DB_ADMIN}
+      DB_ADMIN_PASS: ${DB_ADMIN_PASS}
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE}
+      DB_SCHEMA: ${DB_SCHEMA}
+      DB_USER_API: ${DB_USER_API}
+      DB_USER_API_PASS: ${DB_USER_API_PASS}
+      DB_USER_PREFECT: ${DB_USER_PREFECT}
+      DB_USER_PREFECT_PASS: ${DB_USER_PREFECT_PASS}
+    volumes:
+      - /opt/app-root/src/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["npm", "run", "setup"]
+    networks:
+      - conservation-network
+
+  api:
+    image: ${DOCKER_PROJECT_NAME}-api-${DOCKER_NAMESPACE}-img
+    container_name: ${DOCKER_PROJECT_NAME}-api-${DOCKER_NAMESPACE}-container
+    build:
+      context: ./api
+      dockerfile: ./.docker/Dockerfile
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      NODE_OPTIONS: ${NODE_OPTIONS}
+      TZ: ${DB_TZ}
+      API_HOST: ${API_HOST}
+      API_PORT: ${API_PORT}
+      DB_HOST: ${DB_HOST}
+      DB_USER_API: ${DB_USER_API}
+      DB_USER_API_PASS: ${DB_USER_API_PASS}
+      DB_USER_PREFECT: ${DB_USER_PREFECT}
+      DB_USER_PREFECT_PASS: ${DB_USER_PREFECT_PASS}
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE}
+      DB_SCHEMA: ${DB_SCHEMA}
+      DB_POOL_SIZE: ${DB_POOL_SIZE}
+      DB_CONNECTION_MAX_USES: ${DB_CONNECTION_MAX_USES}
+      DB_CONNECTION_TIMEOUT: ${DB_CONNECTION_TIMEOUT}
+      DB_IDLE_TIMEOUT: ${DB_IDLE_TIMEOUT}
+      KEYCLOAK_HOST: ${KEYCLOAK_HOST}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_API_TOKEN_URL: ${KEYCLOAK_API_TOKEN_URL}
+      KEYCLOAK_API_CLIENT_ID: ${KEYCLOAK_API_CLIENT_ID}
+      KEYCLOAK_API_CLIENT_SECRET: ${KEYCLOAK_API_CLIENT_SECRET}
+      KEYCLOAK_API_HOST: ${KEYCLOAK_API_HOST}
+      KEYCLOAK_API_ENVIRONMENT: ${KEYCLOAK_API_ENVIRONMENT}
+      OBJECT_STORE_URL: ${OBJECT_STORE_URL}
+      OBJECT_STORE_ENDPOINT: ${OBJECT_STORE_ENDPOINT}
+      OBJECT_STORE_PUBLIC_ENDPOINT: ${OBJECT_STORE_PUBLIC_ENDPOINT}
+      OBJECT_STORE_REGION: ${OBJECT_STORE_REGION}
+      OBJECT_STORE_FORCE_PATH_STYLE: ${OBJECT_STORE_FORCE_PATH_STYLE}
+      OBJECT_STORE_ACCESS_KEY_ID: ${OBJECT_STORE_ACCESS_KEY_ID}
+      OBJECT_STORE_SECRET_KEY_ID: ${OBJECT_STORE_SECRET_KEY_ID}
+      OBJECT_STORE_BUCKET_NAME: ${OBJECT_STORE_BUCKET_NAME}
+      SOURCE_OBJECT_STORE_ENDPOINT: ${SOURCE_OBJECT_STORE_ENDPOINT}
+      SOURCE_OBJECT_STORE_URL: ${SOURCE_OBJECT_STORE_URL}
+      SOURCE_OBJECT_STORE_REGION: ${SOURCE_OBJECT_STORE_REGION}
+      SOURCE_OBJECT_STORE_FORCE_PATH_STYLE: ${SOURCE_OBJECT_STORE_FORCE_PATH_STYLE}
+      SOURCE_OBJECT_STORE_ACCESS_KEY_ID: ${SOURCE_OBJECT_STORE_ACCESS_KEY_ID}
+      SOURCE_OBJECT_STORE_SECRET_KEY_ID: ${SOURCE_OBJECT_STORE_SECRET_KEY_ID}
+      SOURCE_OBJECT_STORE_BUCKET_NAME: ${SOURCE_OBJECT_STORE_BUCKET_NAME}
+      APP_HOST: ${APP_HOST}
+      ZARR_STORE_PATH: ${ZARR_STORE_PATH}
+      PREFECT_API_URL: http://prefect_server:4200/api
+      PREFECT_API_KEY: ${PREFECT_API_KEY}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+    volumes:
+      - ./api:/opt/app-root/src
+      - /opt/app-root/src/node_modules
+      - zarr_data:/data
+      - ./workflows/data:/opt/app-root/src/public/data
+    depends_on:
+      db:
+        condition: service_healthy
+      db_setup:
+        condition: service_completed_successfully
+    networks:
+      - conservation-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: ${DOCKER_PROJECT_NAME}-minio-${DOCKER_NAMESPACE}-container
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORE_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORE_SECRET_KEY_ID}
+    volumes:
+      - minio_data:/data
+    networks:
+      - conservation-network
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio_setup:
+    image: minio/mc:latest
+    container_name: ${DOCKER_PROJECT_NAME}-minio-setup-${DOCKER_NAMESPACE}-container
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - conservation-network
+    entrypoint: >
+      /bin/sh -c "
+      set -e;
+      mc alias set myminio http://minio:9000 ${OBJECT_STORE_ACCESS_KEY_ID} ${OBJECT_STORE_SECRET_KEY_ID};
+      mc mb --ignore-existing myminio/${OBJECT_STORE_BUCKET_NAME};
+      mc mb --ignore-existing myminio/${QUARANTINE_OBJECT_STORE_BUCKET_NAME};
+      mc admin config set myminio api cors_allow_origin='*';
+      mc admin service restart --json myminio;
+      echo 'Buckets created and CORS configured successfully';
+      "
+
+networks:
+  conservation-network:
+    driver: bridge
+
+volumes:
+  postgres:
+    name: ${DOCKER_PROJECT_NAME}-db-${DOCKER_NAMESPACE}-vol
+  minio_data:
+  zarr_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./workflows/data

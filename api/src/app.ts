@@ -1,0 +1,152 @@
+import express, { NextFunction, Request, Response } from 'express';
+import { initialize } from 'express-openapi';
+import http from 'http';
+import { OpenAPIV3 } from 'openapi-types';
+import swaggerUIExpress from 'swagger-ui-express';
+import { defaultPoolConfig, initDBPool } from './database/db';
+import { initDBConstants } from './database/db-constants';
+import { ensureHTTPError, HTTP500 } from './errors/http-error';
+import { rootAPIDoc } from './openapi/root-api-doc';
+import { authenticateRequest, authenticateRequestOptional } from './request-handlers/security/authentication';
+import { initRequestStorage } from './utils/async-request-storage';
+import { getLogger } from './utils/logger';
+import { initRealtimeEventService } from './websocket/realtime-event-service';
+import { handleWebSocketUpgrade } from './websocket/ws-server';
+
+const logger = getLogger('app');
+
+const HOST = process.env.API_HOST;
+const PORT = Number(process.env.API_PORT);
+
+const MAX_REQ_BODY_SIZE = Number(process.env.MAX_REQ_BODY_SIZE) || 50 * 1024 * 1024;
+
+const app = express();
+const server = http.createServer(app);
+
+// Enable CORS
+app.use(function (req: Request, res: Response, next: NextFunction) {
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Authorization, responseType');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE, HEAD');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 'no-store');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  next();
+});
+
+// --- OpenAPI ---
+const openAPIFramework = initialize({
+  apiDoc: {
+    ...(rootAPIDoc as OpenAPIV3.Document),
+    'x-express-openapi-additional-middleware': getAdditionalMiddleware(),
+    'x-express-openapi-validation-strict': true
+  },
+  app,
+  paths: './src/paths',
+  pathsIgnore: new RegExp('.(spec|test)$'),
+  routesGlob: '**/*.{ts,js}',
+  routesIndexFileRegExp: /(?:index)?\.[tj]s$/,
+  promiseMode: true,
+  docsPath: '/raw-api-docs',
+  consumesMiddleware: {
+    'application/json': express.json({ limit: MAX_REQ_BODY_SIZE }),
+    'application/x-www-form-urlencoded': express.urlencoded({ limit: MAX_REQ_BODY_SIZE, extended: true })
+  },
+  securityHandlers: {
+    Bearer: async (req) => {
+      return authenticateRequest(req as Request);
+    },
+    OptionalBearer: async (req) => {
+      return authenticateRequestOptional(req as Request);
+    }
+  },
+  errorTransformer: (_, ajvError) => ajvError,
+  errorMiddleware: (error, req, res, next) => handleErrorMiddleware(error, req, res, next)
+});
+
+// Serve OpenAPI UI
+app.use(
+  '/api-docs',
+  swaggerUIExpress.serve as unknown as express.RequestHandler,
+  swaggerUIExpress.setup(openAPIFramework.apiDoc) as unknown as express.RequestHandler
+);
+
+// --- App Startup ---
+(async () => {
+  try {
+    initDBPool(defaultPoolConfig);
+    await initDBConstants();
+    await initRealtimeEventService();
+
+    server.on('upgrade', (req, socket, head) => {
+      void handleWebSocketUpgrade(req, socket, head);
+    });
+
+    server.listen(PORT, () => {
+      logger.info({ label: 'start api', message: `API running on ${HOST}:${PORT}/api` });
+    });
+  } catch (error) {
+    logger.error({ label: 'start api', message: 'Failed to start API', error });
+    process.exit(1);
+  }
+})();
+
+// --- Functions ---
+function getAdditionalMiddleware(): express.RequestHandler[] {
+  const middleware: express.RequestHandler[] = [initRequestStorage];
+
+  if (process.env.API_RESPONSE_VALIDATION_ENABLED === 'true') {
+    middleware.push(validateAllResponses);
+  }
+
+  return middleware;
+}
+
+function handleErrorMiddleware(error: any, req: Request, res: Response, _next: NextFunction) {
+  logger.error({
+    label: 'errorMiddleware',
+    error,
+    req_url: `${req.method} ${req.url}`,
+    req_params: req.params,
+    req_body: req.body
+  });
+
+  const httpError = ensureHTTPError(error);
+
+  if (!res.headersSent) {
+    res.status(httpError.status).json({
+      name: httpError.name,
+      status: httpError.status,
+      message: httpError.message,
+      errors: httpError.errors
+    });
+  }
+}
+
+const isStrictValidationEnabled = process.env.API_RESPONSE_VALIDATION_ENABLED === 'true';
+
+function validateAllResponses(_req: Request, res: Response, next: NextFunction) {
+  if (typeof res.validateResponse === 'function') {
+    const originalJson = res.json.bind(res);
+
+    res.json = (body?: any): Response => {
+      if (res.get('x-express-openapi-validation-error-for')) {
+        return originalJson(body);
+      }
+
+      const validationResult = res.validateResponse?.(res.statusCode, body);
+
+      if (isStrictValidationEnabled && validationResult?.errors?.length) {
+        throw new HTTP500(`Invalid response for status code ${res.statusCode}`, validationResult.errors);
+      }
+
+      return originalJson(body);
+    };
+  }
+
+  next();
+}

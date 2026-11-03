@@ -1,0 +1,5 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Run lint-staged
+npx lint-staged || echo "husky - linting failed, but commit will proceed"

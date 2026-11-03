@@ -1,0 +1,21 @@
+# Reviewed Trivy exceptions. Keep each entry scoped to the narrowest path,
+# explain why it is safe, and record when it was reviewed.
+
+misconfigurations:
+  - id: KSV-01010
+    paths:
+      - "helm/conservation-tool/templates/config/config-map.yaml"
+    statement: >-
+      False positive. The check treats any 3-20 character uppercase or numeric
+      value as a possible passport number. It matches CHANGE_VERSION, a build
+      number (default "001") shown in the UI. The ConfigMap holds no secrets;
+      credentials are supplied through Kubernetes Secrets. Reviewed 2026-11-02.
+  - id: KSV-0125
+    paths:
+      - "helm/conservation-tool/charts/prefect-server/templates/deployment.yaml"
+    statement: >-
+      The Prefect server runs the official prefecthq/prefect image from Docker
+      Hub, set by the upstream prefect-server chart and pinned to a release by
+      the chart version in helm/conservation-tool/Chart.lock. All images this
+      project builds come from the trusted OpenShift registry listed in
+      .trivy/data/trusted-registries.yaml. Reviewed 2026-11-02.

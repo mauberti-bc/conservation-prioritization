@@ -1,0 +1,19 @@
+{{- if and .Values.services.workflows.worker.persistence.enabled (not .Values.services.workflows.worker.persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "conservation-tool.fullname.workflow-scratch" . }}
+  labels:
+    {{- include "conservation-tool.labels" . | nindent 4 }}
+  annotations:
+    {{- include "conservation-tool.annotations" . | nindent 4 }}
+    {{- if eq (toString .Values.environment.id) "deploy" }}
+    "helm.sh/resource-policy": keep
+    {{- end }}
+spec:
+  accessModes:
+    - {{ .Values.services.workflows.worker.persistence.accessMode | default "ReadWriteOnce" }}
+  resources:
+    requests:
+      storage: {{ .Values.services.workflows.worker.persistence.size | default "10Gi" }}
+{{- end }}

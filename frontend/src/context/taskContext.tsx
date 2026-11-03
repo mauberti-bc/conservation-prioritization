@@ -1,0 +1,98 @@
+import { GetTaskResponse, GetTasksResponse } from 'hooks/interfaces/useTaskApi.interface';
+import { useConservationApi } from 'hooks/useConservationApi';
+import useDataLoader, { DataLoader } from 'hooks/useDataLoader';
+import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ApiPaginationRequestOptions } from 'types/pagination';
+
+export interface ITaskContext {
+  taskDataLoader: DataLoader<[task_id: string], GetTaskResponse, unknown>;
+  tasksDataLoader: DataLoader<[pagination?: ApiPaginationRequestOptions], GetTasksResponse, unknown>;
+  taskId: string;
+  setFocusedTask: (task: GetTaskResponse | null) => void;
+  onDownloadTask: (task: GetTaskResponse) => void;
+  refreshTasks: () => Promise<GetTasksResponse | undefined>;
+  hoveredTilesetUri: string | null;
+  setHoveredTilesetUri: (uri: string | null) => void;
+}
+
+export const TaskContext = createContext<ITaskContext>({
+  taskDataLoader: {} as DataLoader<[task_id: string], GetTaskResponse, unknown>,
+  tasksDataLoader: {} as DataLoader<[pagination?: ApiPaginationRequestOptions], GetTasksResponse, unknown>,
+  taskId: '',
+  setFocusedTask: () => undefined,
+  onDownloadTask: () => undefined,
+  refreshTasks: async () => undefined,
+  hoveredTilesetUri: null,
+  setHoveredTilesetUri: () => undefined,
+});
+
+export const TaskContextProvider = (props: PropsWithChildren<Record<never, any>>) => {
+  const conservationApi = useConservationApi();
+  const navigate = useNavigate();
+  const { taskId: activeTaskId } = useParams<{ taskId: string }>();
+  const taskDataLoader = useDataLoader(conservationApi.task.getTaskById);
+  const tasksDataLoader = useDataLoader(conservationApi.task.getAllTasks);
+  const lastRequestedTaskIdRef = useRef<string | null>(null);
+  const refreshTasksRef = useRef(tasksDataLoader.refresh);
+  const [hoveredTilesetUri, setHoveredTilesetUri] = useState<string | null>(null);
+  const defaultPagination = useMemo<ApiPaginationRequestOptions>(() => {
+    return {
+      page: 1,
+      limit: 25,
+      sort: 'created_at',
+      order: 'desc',
+    };
+  }, []);
+  refreshTasksRef.current = tasksDataLoader.refresh;
+
+  if (!activeTaskId) {
+    throw new Error('TaskContextProvider requires a :taskId route parameter.');
+  }
+
+  useEffect(() => {
+    if (taskDataLoader.isLoading || lastRequestedTaskIdRef.current === activeTaskId) {
+      return;
+    }
+
+    lastRequestedTaskIdRef.current = activeTaskId;
+    void taskDataLoader.refresh(activeTaskId);
+    // A failed route load must remain failed until an explicit refresh or route
+    // change. Treating missing data as a mismatch causes an immediate retry loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTaskId, taskDataLoader.isLoading]);
+
+  const setFocusedTask = useCallback(
+    (task: GetTaskResponse | null) => {
+      setHoveredTilesetUri(null);
+      if (task) {
+        navigate(`/map/${task.task_id}`);
+        taskDataLoader.setData(task);
+      } else {
+        navigate('/map');
+        taskDataLoader.clearData();
+        setHoveredTilesetUri(null); // clear hovered layer too
+      }
+    },
+    [navigate, setHoveredTilesetUri, taskDataLoader]
+  );
+
+  const refreshTasks = useCallback(async () => {
+    return refreshTasksRef.current(defaultPagination);
+  }, [defaultPagination]);
+
+  const taskContext: ITaskContext = useMemo(() => {
+    return {
+      taskDataLoader,
+      tasksDataLoader,
+      taskId: activeTaskId,
+      setFocusedTask,
+      onDownloadTask: () => undefined,
+      refreshTasks,
+      hoveredTilesetUri,
+      setHoveredTilesetUri,
+    };
+  }, [activeTaskId, refreshTasks, setFocusedTask, taskDataLoader, tasksDataLoader, hoveredTilesetUri]);
+
+  return <TaskContext.Provider value={taskContext}>{props.children}</TaskContext.Provider>;
+};

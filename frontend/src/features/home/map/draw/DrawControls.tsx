@@ -1,0 +1,340 @@
+import MapboxDraw from '@mapbox/mapbox-gl-draw';
+import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
+import { blue } from '@mui/material/colors';
+import { Feature } from 'geojson';
+import { useMapContext } from 'hooks/useContext';
+import * as maplibregl from 'maplibre-gl';
+import { addDrawEventListener, removeDrawEventListener } from 'utils/draw-events';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
+
+export interface DrawControlsProps {
+  startDrawing: () => void;
+  submit: (callback: (features: Feature[]) => void) => void;
+  clearDrawing: () => void;
+}
+
+export const DrawControls = forwardRef<DrawControlsProps>((_, ref) => {
+  const { mapRef, drawRef, isMapReady } = useMapContext();
+  const submitCallbackRef = useRef<((features: Feature[]) => void) | null>(null);
+  const previousFeatureIdsRef = useRef<Set<string | number>>(new Set());
+  const isControlAttachedRef = useRef(false);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    /**
+     * Keeps the drawing cursor during a pan without restarting the active polygon.
+     *
+     * @returns {void} No return value.
+     */
+    const preserveDrawingCursor = () => {
+      if (drawRef.current?.getMode() === 'draw_polygon') {
+        map.getCanvas().style.cursor = 'crosshair';
+      }
+    };
+
+    /**
+     * Clears the drawing cursor when a polygon is completed or cancelled.
+     *
+     * @param {MapboxDraw.DrawModeChangeEvent} event Event to handle or forward.
+     * @returns {void} No return value.
+     */
+    const onModeChange = (event: MapboxDraw.DrawModeChangeEvent) => {
+      map.getCanvas().style.cursor = event.mode === 'draw_polygon' ? 'crosshair' : '';
+    };
+
+    map.on('dragstart', preserveDrawingCursor);
+    map.on('drag', preserveDrawingCursor);
+    map.on('dragend', preserveDrawingCursor);
+    addDrawEventListener(map, 'draw.modechange', onModeChange);
+    return () => {
+      map.off('dragstart', preserveDrawingCursor);
+      map.off('drag', preserveDrawingCursor);
+      map.off('dragend', preserveDrawingCursor);
+      removeDrawEventListener(map, 'draw.modechange', onModeChange);
+      map.getCanvas().style.cursor = '';
+    };
+  }, [isMapReady, mapRef, drawRef]);
+
+  const hasDrawSources = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return false;
+    }
+
+    const style = map.getStyle();
+    if (!style || !style.sources) {
+      return false;
+    }
+
+    const sources = style.sources;
+    return Boolean(sources['mapbox-gl-draw-cold'] && sources['mapbox-gl-draw-hot']);
+  }, [mapRef]);
+
+  const hasDrawLayers = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return false;
+    }
+    return Boolean(map.getLayer('gl-draw-polygon-fill') || map.getLayer('gl-draw-polygon-fill-active'));
+  }, [mapRef]);
+
+  // Function to ensure draw layers are on top
+  const ensureDrawLayersOnTop = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    // List of all possible Mapbox Draw layer IDs
+    const drawLayerIds = [
+      'gl-draw-polygon-fill-inactive',
+      'gl-draw-polygon-fill-active',
+      'gl-draw-polygon-stroke-inactive',
+      'gl-draw-polygon-stroke-active',
+      'gl-draw-line-inactive',
+      'gl-draw-line-active',
+      'gl-draw-point-point-stroke-inactive',
+      'gl-draw-point-inactive',
+      'gl-draw-point-stroke-active',
+      'gl-draw-point-active',
+      // Custom style layer IDs
+      'gl-draw-polygon-fill',
+      'gl-draw-polygon-stroke',
+    ];
+
+    // Move each draw layer to the top if it exists
+    drawLayerIds.forEach((layerId) => {
+      if (map.getLayer(layerId)) {
+        try {
+          map.moveLayer(layerId, undefined);
+        } catch (error) {
+          console.debug(`Could not move layer ${layerId}:`, error);
+        }
+      }
+    });
+  }, [mapRef]);
+
+  /**
+   * Starts a polygon while preserving the map's existing pan interaction.
+   *
+   * @returns {void} No return value.
+   */
+  const startDrawing = () => {
+    const map = mapRef.current;
+    const draw = drawRef.current;
+
+    if (!map || !draw) {
+      console.warn('DrawControls not ready yet.');
+      return;
+    }
+
+    draw.changeMode('draw_polygon');
+    map.getCanvas().style.cursor = 'crosshair';
+    ensureDrawLayersOnTop();
+  };
+
+  const submit = (callback: (features: Feature[]) => void) => {
+    submitCallbackRef.current = callback;
+    if (!mapRef.current || !drawRef.current) {
+      return;
+    }
+
+    // Finalize the polygon before reading geometry (Draw removes the trailing preview vertex).
+    if (drawRef.current.getMode() !== 'simple_select') {
+      drawRef.current.changeMode('simple_select');
+    }
+    mapRef.current.getCanvas().style.cursor = '';
+
+    // Get all features
+    const allFeatures = drawRef.current.getAll().features;
+
+    // Filter to get only newly drawn features (not previously submitted)
+    const newFeatures = allFeatures.filter((feature) => !previousFeatureIdsRef.current.has(feature.id!));
+
+    // Call the callback with only new features
+    callback(newFeatures);
+
+    // Update the set of previous feature IDs
+    allFeatures.forEach((feature) => {
+      if (feature.id) {
+        previousFeatureIdsRef.current.add(feature.id);
+      }
+    });
+  };
+
+  /**
+   * Removes draft geometry and exits drawing mode using the public Draw API.
+   *
+   * @returns {void} No return value.
+   */
+  const clearDrawing = () => {
+    const draw = drawRef.current;
+    if (!draw) {
+      return;
+    }
+
+    try {
+      draw.deleteAll();
+      draw.changeMode('simple_select');
+      if (mapRef.current) {
+        mapRef.current.getCanvas().style.cursor = '';
+      }
+    } catch (error) {
+      console.debug('Failed to clear drawing:', error);
+    }
+
+    previousFeatureIdsRef.current.clear();
+  };
+
+  useEffect(() => {
+    let isCancelled = false;
+    let rafId: number | null = null;
+
+    const initializeDraw = () => {
+      const map = mapRef.current;
+      if (!map || !isMapReady || drawRef.current) {
+        return;
+      }
+
+      const draw = new MapboxDraw({
+        displayControlsDefault: false,
+        defaultMode: 'simple_select',
+        styles: [
+          {
+            id: 'gl-draw-polygon-fill',
+            type: 'fill',
+            paint: {
+              'fill-color': blue[500],
+              'fill-opacity': 0.3,
+            },
+          },
+          {
+            id: 'gl-draw-polygon-stroke',
+            type: 'line',
+            paint: {
+              'line-color': blue[800],
+              'line-width': 3,
+            },
+          },
+        ],
+      });
+
+      drawRef.current = draw;
+      map.addControl(draw as unknown as maplibregl.IControl, 'top-right');
+      isControlAttachedRef.current = true;
+
+      const waitForDrawSources = () => {
+        if (hasDrawSources()) {
+          ensureDrawLayersOnTop();
+          return;
+        }
+
+        map.once('sourcedata', () => {
+          waitForDrawSources();
+        });
+      };
+
+      // Ensure draw layers are on top after the map loads and layers are added
+      const onMapLoad = () => {
+        setTimeout(() => {
+          ensureDrawLayersOnTop();
+        }, 100); // Small delay to ensure all layers are rendered
+      };
+
+      // Listen for when new layers might be added that could cover draw layers
+      const onMapSourceData = (e: any) => {
+        if (e.isSourceLoaded && e.sourceId?.startsWith('pmtiles-')) {
+          setTimeout(() => {
+            ensureDrawLayersOnTop();
+          }, 50);
+        }
+      };
+
+      const onDrawRender = () => {
+        ensureDrawLayersOnTop();
+      };
+
+      if (map.isStyleLoaded()) {
+        onMapLoad();
+        waitForDrawSources();
+      } else {
+        map.once('load', () => {
+          onMapLoad();
+          waitForDrawSources();
+        });
+      }
+
+      // Ensure draw layers stay on top when new sources/layers are added
+      map.on('sourcedata', onMapSourceData);
+      map.on('styledata', ensureDrawLayersOnTop);
+      addDrawEventListener(map, 'draw.render', onDrawRender);
+
+      // Cleanup event listeners
+      return () => {
+        map.off('sourcedata', onMapSourceData);
+        map.off('styledata', ensureDrawLayersOnTop);
+        removeDrawEventListener(map, 'draw.render', onDrawRender);
+        const isRemoved = Boolean((map as maplibregl.Map & { _removed?: boolean })._removed);
+        if (isControlAttachedRef.current && !isRemoved) {
+          try {
+            map.removeControl(draw as unknown as maplibregl.IControl);
+          } catch (error) {
+            console.debug('Failed to remove draw control', error);
+          }
+        }
+        isControlAttachedRef.current = false;
+        if (drawRef.current === draw) {
+          drawRef.current = null;
+        }
+      };
+    };
+
+    const tryInit = () => {
+      if (isCancelled) {
+        return;
+      }
+      const cleanup = initializeDraw();
+      if (cleanup) {
+        return cleanup;
+      }
+      rafId = window.requestAnimationFrame(tryInit);
+      return undefined;
+    };
+
+    const cleanup = tryInit();
+
+    return () => {
+      isCancelled = true;
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+      if (cleanup) {
+        cleanup();
+      }
+    };
+  }, [mapRef, drawRef, ensureDrawLayersOnTop, isMapReady, hasDrawSources]);
+
+  useImperativeHandle(ref, () => ({
+    startDrawing,
+    submit,
+    clearDrawing,
+  }));
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const draw = drawRef.current;
+
+    if (!map || !draw || !isMapReady) {
+      return;
+    }
+
+    if (hasDrawSources() && hasDrawLayers()) {
+      ensureDrawLayersOnTop();
+    }
+  }, [isMapReady, mapRef, drawRef, ensureDrawLayersOnTop, hasDrawSources, hasDrawLayers]);
+
+  return null;
+});

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "conservation-tool.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+data:
+  NODE_ENV: '{{ .Values.env.NODE_ENV | default "development" }}'
+  CHANGE_VERSION: '{{ .Values.environment.changeId | default "" }}'
+  VERSION: '{{ .Chart.AppVersion | default "" }}'
+  API_HOST: '{{ .Values.env.FRONTEND_API_HOST | default "" }}'
+  APP_NODE_ENV: '{{ .Values.env.NODE_ENV | default "development" }}'
+  SITEMINDER_LOGOUT_URL: '{{ .Values.env.VITE_APP_SITEMINDER_LOGOUT_URL | default "" }}'
+  BASEMAP_URL: {{ .Values.env.VITE_BASEMAP_URL | default "" | quote }}
+  BASEMAP_ATTRIBUTION: {{ .Values.env.VITE_BASEMAP_ATTRIBUTION | default "" | quote }}
+  SATELLITE_BASEMAP_URL: {{ .Values.env.VITE_SATELLITE_BASEMAP_URL | default "" | quote }}
+  SATELLITE_BASEMAP_ATTRIBUTION: {{ .Values.env.VITE_SATELLITE_BASEMAP_ATTRIBUTION | default "" | quote }}
+  FEATURE_FLAGS: '{{ .Values.env.VITE_APP_FEATURE_FLAGS | default "" }}'

@@ -1,0 +1,54 @@
+import { mdiChevronDown, mdiCogOutline } from '@mdi/js';
+import Icon from '@mdi/react';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Collapse from '@mui/material/Collapse';
+import { grey } from '@mui/material/colors';
+import { useState } from 'react';
+import { TaskAdvancedForm } from './form/TaskAdvancedForm';
+
+interface TaskAdvancedSectionProps {
+  isReadOnly?: boolean;
+}
+
+export const TaskAdvancedSection = ({ isReadOnly = false }: TaskAdvancedSectionProps) => {
+  const [open, setOpen] = useState(false);
+
+  const shouldShowPanel = isReadOnly ? true : open;
+
+  const handleClick = () => {
+    setOpen((prev) => !prev);
+  };
+
+  return (
+    <Box width="100%">
+      {!isReadOnly && (
+        <Box>
+          <Button
+            onClick={handleClick}
+            color="primary"
+            startIcon={<Icon path={mdiCogOutline} size={1} />}
+            endIcon={
+              <Icon
+                path={mdiChevronDown}
+                size={0.8}
+                style={{
+                  transform: open ? 'rotate(0deg)' : 'rotate(180deg)',
+                  transition: 'transform 0.2s ease',
+                }}
+              />
+            }
+            sx={{ justifyContent: 'flex-start', color: grey[500] }}>
+            {open ? 'Hide Advanced' : 'Show Advanced'}
+          </Button>
+        </Box>
+      )}
+
+      <Collapse in={shouldShowPanel} sx={{ width: '100%' }} timeout={100}>
+        <Box my={1}>
+          <TaskAdvancedForm isReadOnly={isReadOnly} />
+        </Box>
+      </Collapse>
+    </Box>
+  );
+};
